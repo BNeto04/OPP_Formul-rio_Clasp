@@ -162,7 +162,14 @@ function processarEntradaManual(payload) {
         // Se a aba estiver vazia, escreve na linha 2. Se já tiver dados, pula 1 linha.
         const linhaParaEscrever = ultimaLinha > 0 ? ultimaLinha + 2 : 2; 
 
-        aba.getRange(linhaParaEscrever, 1, linhasParaInserir.length, linhasParaInserir[0].length).setValues(linhasParaInserir);
+        const range = aba.getRange(linhaParaEscrever, 1, linhasParaInserir.length, linhasParaInserir[0].length);
+        
+        // Remove a validação especificamente da coluna J (BAIRRO) para evitar o erro J161/J167
+        // A coluna J é a 10ª coluna
+        const rangeBairro = aba.getRange(linhaParaEscrever, 10, linhasParaInserir.length, 1);
+        rangeBairro.clearDataValidations();
+
+        range.setValues(linhasParaInserir);
     }
     return `Ocorrência ${chave} salva com sucesso (${linhasParaInserir.length} registros computados)!`;
   } catch (erro) {
