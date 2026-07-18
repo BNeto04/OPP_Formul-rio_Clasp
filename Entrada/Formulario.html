@@ -273,6 +273,638 @@
         </div>
 
         
+        <!-- ARQUIVO: Entrada/Formulario.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYNTHÉON - Registro Inteligente com OCR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Tesseract.js: OCR 100% no navegador, sem servidor externo -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <!-- PDF.js: renderizar PDF para canvas para o Tesseract ler -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #060913;
+      --card-bg: #0d1323;
+      --border-color: #1e293b;
+      --border-focus: #00d2ff;
+      --accent-color: #00ff9d;
+      --accent-glow: rgba(0, 255, 157, 0.35);
+      --secondary-color: #00d2ff;
+      --secondary-glow: rgba(0, 210, 255, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-terminal: #00ff9d;
+      --danger-color: #f43f5e;
+      --input-bg: #10172d;
+      --font-family: 'Outfit', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 16px;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .container { display: flex; flex: 1; gap: 16px; align-items: stretch; overflow: hidden; }
+    .panel-left { flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; }
+    .panel-right { flex: 1.2; display: flex; flex-direction: column; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; overflow: hidden; }
+    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 14px; }
+    header h1 { font-size: 1.2rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; background: linear-gradient(135deg, var(--accent-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .badge { background-color: rgba(0, 255, 157, 0.1); border: 1px solid var(--accent-color); color: var(--accent-color); font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 9999px; }
+    .upload-zone {
+      background-color: var(--card-bg);
+      border: 2px dashed rgba(0, 210, 255, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+    }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--secondary-color); background-color: rgba(0, 210, 255, 0.04); box-shadow: 0 0 20px var(--secondary-glow); }
+    .upload-zone svg { width: 40px; height: 40px; fill: var(--secondary-color); margin-bottom: 8px; filter: drop-shadow(0 0 6px var(--secondary-glow)); }
+    .upload-zone h3 { font-size: 0.9rem; font-weight: 700; color: var(--secondary-color); margin-bottom: 3px; }
+    .upload-zone p { font-size: 0.7rem; color: var(--text-muted); }
+    .progress-wrap { width: 100%; }
+    .progress-label { font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; display: none; }
+    .progress-bar-container { width: 100%; height: 5px; background: #050811; border-radius: 3px; overflow: hidden; display: none; }
+    .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--secondary-color), var(--accent-color)); box-shadow: 0 0 8px var(--accent-color); transition: width 0.2s ease; }
+    .terminal-box { flex: 1; background-color: #04060b; border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 200px; }
+    .terminal-header { background-color: #0b0f1a; padding: 7px 14px; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; letter-spacing: 1px; }
+    .terminal-dots { display: flex; gap: 5px; }
+    .terminal-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .terminal-dot.red { background-color: #ef4444; }
+    .terminal-dot.yellow { background-color: #eab308; }
+    .terminal-dot.green { background-color: #22c55e; }
+    .terminal-content { flex: 1; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-terminal); overflow-y: auto; white-space: pre-wrap; line-height: 1.6; }
+    .form-scroll { flex: 1; overflow-y: auto; padding-right: 8px; display: flex; flex-direction: column; gap: 12px; }
+    .card { background-color: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; }
+    .card-title { font-size: 0.78rem; font-weight: 700; color: var(--secondary-color); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; border-bottom: 1px solid rgba(0, 210, 255, 0.1); padding-bottom: 5px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .form-group { display: flex; flex-direction: column; gap: 3px; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    label { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    input, select { background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 6px 10px; font-size: 0.82rem; font-family: var(--font-family); outline: none; transition: all 0.2s; width: 100%; }
+    input:focus, select:focus { border-color: var(--border-focus); box-shadow: 0 0 8px var(--secondary-glow); }
+    .police-input-wrapper { display: flex; gap: 8px; margin-bottom: 7px; align-items: center; }
+    .police-input-wrapper input { flex: 1; }
+    .btn-add-tag { background-color: var(--secondary-color); color: #060913; font-weight: 700; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; white-space: nowrap; }
+    .police-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+    .police-table thead th { background-color: #0a0e1a; color: var(--secondary-color); font-weight: 700; text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border-color); font-size: 0.68rem; letter-spacing: 0.5px; text-transform: uppercase; }
+    .police-table tbody tr { border-bottom: 1px solid rgba(30,41,59,0.5); transition: background 0.15s; }
+    .police-table tbody tr:hover { background-color: rgba(0,210,255,0.04); }
+    .police-table td { padding: 5px 8px; color: var(--text-main); vertical-align: middle; }
+    .police-table td.td-pelotao { color: var(--secondary-color); font-weight: 700; white-space: nowrap; }
+    .police-table td.td-posto { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+    .police-table td.td-mat { font-family: 'JetBrains Mono', monospace; color: var(--accent-color); }
+    .police-table td.td-remove { text-align: center; }
+    .police-table-wrap { background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; margin-bottom: 7px; min-height: 36px; }
+    .police-empty-msg { color: var(--text-muted); font-size: 0.72rem; text-align: center; padding: 10px; font-style: italic; }
+    .dynamic-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 7px; }
+    .dynamic-item { display: flex; gap: 7px; align-items: center; }
+    .dynamic-item select, .dynamic-item input { padding: 5px 8px; font-size: 0.78rem; }
+    .btn-remove-item { background: transparent; border: 1px solid rgba(244, 63, 94, 0.3); color: var(--danger-color); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; transition: all 0.2s; flex-shrink: 0; }
+    .btn-remove-item:hover { background-color: var(--danger-color); color: white; }
+    .btn-add-item { background: transparent; border: 1px dashed var(--secondary-color); color: var(--secondary-color); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 0.72rem; font-weight: 600; transition: all 0.2s; }
+    .btn-add-item:hover { background-color: rgba(0, 210, 255, 0.05); }
+    .footer-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; align-items: center; background: var(--card-bg); flex-shrink: 0; }
+    .status-msg-box { flex: 1; padding: 6px 10px; background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.68rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); min-height: 28px; display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .btn-action { padding: 8px 20px; font-size: 0.8rem; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.3s; outline: none; border: none; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+    .btn-cancel { background-color: #1e293b; color: #e2e8f0; border: 1px solid var(--border-color); }
+    .btn-save { background: linear-gradient(135deg, var(--accent-color), #059669); color: #060913; box-shadow: 0 0 12px rgba(0, 255, 157, 0.15); }
+    .btn-save:hover { box-shadow: 0 0 22px var(--accent-color); transform: translateY(-1px); }
+    .btn-toggle-ocr { background: rgba(0, 210, 255, 0.1); border: 1px solid var(--secondary-color); color: var(--secondary-color); border-radius: 6px; padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 600; font-family: var(--font-family); transition: all 0.2s; outline: none; }
+    .btn-toggle-ocr:hover { background: rgba(0, 210, 255, 0.2); }
+    .btn-toggle-ocr svg { transition: transform 0.3s; }
+    .btn-toggle-ocr.collapsed svg { transform: rotate(180deg); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>SYNTHÉON :: Entrada Inteligente</h1>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button type="button" class="btn-toggle-ocr" onclick="toggleOCR()" id="btnToggleOCR" title="Ocultar/Mostrar OCR">
+        <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24"><path d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z" /></svg>
+        <span>Ocultar OCR</span>
+      </button>
+      <span class="badge">OCR In-Browser</span>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Painel Esquerdo: OCR -->
+    <div class="panel-left">
+
+      <!-- Drop Zone -->
+      <div id="dropZone" class="upload-zone">
+        <svg viewBox="0 0 24 24">
+          <path d="M14,13V17H10V13H7L12,8L17,13M19.35,10.03C18.67,6.59 15.64,4 12,4C9.11,4 6.6,5.64 5.35,8.03C2.34,8.36 0,10.9 0,14A6,6 0 0,0 6,20H19A5,5 0 0,0 24,15C24,12.36 21.95,10.22 19.35,10.03Z" />
+        </svg>
+        <h3>Solte o Documento Aqui</h3>
+        <p>Arraste PDF ou Imagem (Foto) ou clique para selecionar</p>
+        <input type="file" id="fileInput" hidden accept="application/pdf,image/png,image/jpeg,image/webp,image/bmp">
+      </div>
+
+      <!-- Progresso -->
+      <div class="progress-wrap">
+        <div class="progress-label" id="progressLabel">Inicializando OCR...</div>
+        <div class="progress-bar-container" id="progressContainer">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+      </div>
+
+      <!-- Terminal do OCR -->
+      <div class="terminal-box">
+        <div class="terminal-header">
+          <span>CONSOLE DE TEXTO OCR</span>
+          <div class="terminal-dots">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+          </div>
+        </div>
+        <div class="terminal-content" id="ocrTerminal">Aguardando documento para processar...</div>
+      </div>
+
+    </div>
+
+    <!-- Painel Direito: Formulário -->
+    <div class="panel-right">
+      <div class="form-scroll">
+
+        <!-- Fatos -->
+        <div class="card">
+          <div class="card-title">Dados do Fato</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="data">DATA</label>
+              <input type="text" id="data" placeholder="DD/MM/AAAA">
+            </div>
+            <div class="form-group">
+              <label for="hora">HORA</label>
+              <input type="text" id="hora" placeholder="HH:MM">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="qtd_o">QTD O</label>
+              <input type="number" id="qtd_o" placeholder="1" value="1" min="1">
+            </div>
+            <div class="form-group">
+              <label for="mike">MIKE</label>
+              <input type="text" id="mike" placeholder="Ex: 12345678">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label for="natureza">NATUREZA DA OCORRÊNCIA</label>
+              <input type="text" id="natureza" placeholder="Ex: ENTORPECENTES (TRÁFICO)">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="boe">BOE</label>
+              <input type="text" id="boe" placeholder="Ex: 2026/12345">
+            </div>
+            <div class="form-group">
+              <label for="ais">AIS</label>
+              <input type="number" id="ais" placeholder="Ex: 3" min="1">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cidade">CIDADE</label>
+              <input type="text" id="cidade" placeholder="Ex: RECIFE">
+            </div>
+            <div class="form-group">
+              <label for="bairro">BAIRRO</label>
+              <input type="text" id="bairro" placeholder="Ex: BOA VIAGEM">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="detidos">DETIDOS (Facultativo)</label>
+              <input type="text" id="detidos" list="detidosList" placeholder="Ex: APFD, TCO, BOC">
+              <datalist id="detidosList">
+                <option value="APFD">
+                <option value="TCO">
+                <option value="BOC">
+                <option value="AAFAI">
+              </datalist>
+            </div>
+          </div>
+        </div>
+
+        <!-- Equipe -->
+        <div class="card">
+          <div class="card-title">Equipe / Policiais</div>
+          <div class="police-input-wrapper">
+            <input type="text" id="policeInput" placeholder="Matrícula manual (ex: 1021400)" onkeydown="if(event.key==='Enter')adicionarPolicialManual()">
+            <button type="button" class="btn-add-tag" onclick="adicionarPolicialManual()">+ Adicionar</button>
+          </div>
+          <div class="police-table-wrap">
+            <table class="police-table">
+              <thead>
+                <tr>
+                  <th>Pelotão</th>
+                  <th>Posto</th>
+                  <th>Matrícula</th>
+                  <th>Nome</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="policeTableBody">
+                <tr id="police-empty-row"><td colspan="5" class="police-empty-msg">Nenhum policial adicionado</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Armas -->
+        <div class="card">
+          <div class="card-title">Armas Apreendidas</div>
+          <div class="dynamic-list" id="armasList"></div>
+          <button type="button" class="btn-add-item" onclick="adicionarArmaField()">+ Adicionar Arma</button>
+        </div>
+
+        
+        <!-- Pontuação -->
+        <div class="card" onchange="updatePontuacao()">
+          <div class="card-title">Pontuação e PIP</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ocorrenciaPip">OCORRÊNCIA PIP</label>
+              <select id="ocorrenciaPip">
+                <option value="OCORRÊNCIA LANÇADA VIA SISTEMA">OCORRÊNCIA LANÇADA VIA SISTEMA</option>
+                <option value="OCORRÊNCIA NÃO LANÇADA">OCORRÊNCIA NÃO LANÇADA</option>
+                <option value="TCO">TCO</option>
+                <option value="BOC">BOC</option>
+                <option value="APFD">APFD</option>
+                <option value="AAFAI">AAFAI</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="imputado">IMPUTADO?</label>
+              <select id="imputado" onchange="updatePontuacao()">
+                <option value="SEM IMPUTADO">SEM IMPUTADO</option>
+                <option value="COM IMPUTADO">COM IMPUTADO</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pontosTotais">PONTOS TOTAIS</label>
+              <input type="text" id="pontosTotais" readonly style="background-color: #0b1a26; color: #53ff45; font-weight: bold; border-color: #53ff45;">
+            </div>
+            <div class="form-group">
+              <label for="pontosFiccao">PONTOS FICÇÃO (1/4)</label>
+              <input type="text" id="pontosFiccao" readonly style="background-color: #0b1a26; color: #53ff45; border-color: #53ff45;">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="chaveOcorrencia">Chave Ocorrência</label>
+              <input type="text" id="chaveOcorrencia" readonly style="background-color: #0b1a26; color: #8fa4b8;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Pontuação -->
+        <div class="card" onchange="updatePontuacao()">
+          <div class="card-title">Pontuação e PIP</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ocorrenciaPip">OCORRÊNCIA PIP</label>
+              <select id="ocorrenciaPip">
+                <option value="OCORRÊNCIA LANÇADA VIA SISTEMA">OCORRÊNCIA LANÇADA VIA SISTEMA</option>
+                <option value="OCORRÊNCIA NÃO LANÇADA">OCORRÊNCIA NÃO LANÇADA</option>
+                <option value="TCO">TCO</option>
+                <option value="BOC">BOC</option>
+                <option value="APFD">APFD</option>
+                <option value="AAFAI">AAFAI</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="imputado">IMPUTADO?</label>
+              <select id="imputado" onchange="updatePontuacao()">
+                <option value="SEM IMPUTADO">SEM IMPUTADO</option>
+                <option value="COM IMPUTADO">COM IMPUTADO</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pontosTotais">PONTOS TOTAIS</label>
+              <input type="text" id="pontosTotais" readonly style="background-color: #0b1a26; color: #53ff45; font-weight: bold; border-color: #53ff45;">
+            </div>
+            <div class="form-group">
+              <label for="pontosFiccao">PONTOS FICÇÃO (1/4)</label>
+              <input type="text" id="pontosFiccao" readonly style="background-color: #0b1a26; color: #53ff45; border-color: #53ff45;">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="chaveOcorrencia">Chave Ocorrência</label>
+              <input type="text" id="chaveOcorrencia" readonly style="background-color: #0b1a26; color: #8fa4b8;">
+            </div>
+          </div>
+        </div>
+
+        <!-- ARQUIVO: Entrada/Formulario.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYNTHÉON - Registro Inteligente com OCR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Tesseract.js: OCR 100% no navegador, sem servidor externo -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <!-- PDF.js: renderizar PDF para canvas para o Tesseract ler -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #060913;
+      --card-bg: #0d1323;
+      --border-color: #1e293b;
+      --border-focus: #00d2ff;
+      --accent-color: #00ff9d;
+      --accent-glow: rgba(0, 255, 157, 0.35);
+      --secondary-color: #00d2ff;
+      --secondary-glow: rgba(0, 210, 255, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-terminal: #00ff9d;
+      --danger-color: #f43f5e;
+      --input-bg: #10172d;
+      --font-family: 'Outfit', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 16px;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .container { display: flex; flex: 1; gap: 16px; align-items: stretch; overflow: hidden; }
+    .panel-left { flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; }
+    .panel-right { flex: 1.2; display: flex; flex-direction: column; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; overflow: hidden; }
+    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 14px; }
+    header h1 { font-size: 1.2rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; background: linear-gradient(135deg, var(--accent-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .badge { background-color: rgba(0, 255, 157, 0.1); border: 1px solid var(--accent-color); color: var(--accent-color); font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 9999px; }
+    .upload-zone {
+      background-color: var(--card-bg);
+      border: 2px dashed rgba(0, 210, 255, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+    }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--secondary-color); background-color: rgba(0, 210, 255, 0.04); box-shadow: 0 0 20px var(--secondary-glow); }
+    .upload-zone svg { width: 40px; height: 40px; fill: var(--secondary-color); margin-bottom: 8px; filter: drop-shadow(0 0 6px var(--secondary-glow)); }
+    .upload-zone h3 { font-size: 0.9rem; font-weight: 700; color: var(--secondary-color); margin-bottom: 3px; }
+    .upload-zone p { font-size: 0.7rem; color: var(--text-muted); }
+    .progress-wrap { width: 100%; }
+    .progress-label { font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; display: none; }
+    .progress-bar-container { width: 100%; height: 5px; background: #050811; border-radius: 3px; overflow: hidden; display: none; }
+    .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--secondary-color), var(--accent-color)); box-shadow: 0 0 8px var(--accent-color); transition: width 0.2s ease; }
+    .terminal-box { flex: 1; background-color: #04060b; border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 200px; }
+    .terminal-header { background-color: #0b0f1a; padding: 7px 14px; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; letter-spacing: 1px; }
+    .terminal-dots { display: flex; gap: 5px; }
+    .terminal-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .terminal-dot.red { background-color: #ef4444; }
+    .terminal-dot.yellow { background-color: #eab308; }
+    .terminal-dot.green { background-color: #22c55e; }
+    .terminal-content { flex: 1; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-terminal); overflow-y: auto; white-space: pre-wrap; line-height: 1.6; }
+    .form-scroll { flex: 1; overflow-y: auto; padding-right: 8px; display: flex; flex-direction: column; gap: 12px; }
+    .card { background-color: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; }
+    .card-title { font-size: 0.78rem; font-weight: 700; color: var(--secondary-color); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; border-bottom: 1px solid rgba(0, 210, 255, 0.1); padding-bottom: 5px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .form-group { display: flex; flex-direction: column; gap: 3px; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    label { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    input, select { background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 6px 10px; font-size: 0.82rem; font-family: var(--font-family); outline: none; transition: all 0.2s; width: 100%; }
+    input:focus, select:focus { border-color: var(--border-focus); box-shadow: 0 0 8px var(--secondary-glow); }
+    .police-input-wrapper { display: flex; gap: 8px; margin-bottom: 7px; align-items: center; }
+    .police-input-wrapper input { flex: 1; }
+    .btn-add-tag { background-color: var(--secondary-color); color: #060913; font-weight: 700; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; white-space: nowrap; }
+    .police-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+    .police-table thead th { background-color: #0a0e1a; color: var(--secondary-color); font-weight: 700; text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border-color); font-size: 0.68rem; letter-spacing: 0.5px; text-transform: uppercase; }
+    .police-table tbody tr { border-bottom: 1px solid rgba(30,41,59,0.5); transition: background 0.15s; }
+    .police-table tbody tr:hover { background-color: rgba(0,210,255,0.04); }
+    .police-table td { padding: 5px 8px; color: var(--text-main); vertical-align: middle; }
+    .police-table td.td-pelotao { color: var(--secondary-color); font-weight: 700; white-space: nowrap; }
+    .police-table td.td-posto { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+    .police-table td.td-mat { font-family: 'JetBrains Mono', monospace; color: var(--accent-color); }
+    .police-table td.td-remove { text-align: center; }
+    .police-table-wrap { background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; margin-bottom: 7px; min-height: 36px; }
+    .police-empty-msg { color: var(--text-muted); font-size: 0.72rem; text-align: center; padding: 10px; font-style: italic; }
+    .dynamic-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 7px; }
+    .dynamic-item { display: flex; gap: 7px; align-items: center; }
+    .dynamic-item select, .dynamic-item input { padding: 5px 8px; font-size: 0.78rem; }
+    .btn-remove-item { background: transparent; border: 1px solid rgba(244, 63, 94, 0.3); color: var(--danger-color); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; transition: all 0.2s; flex-shrink: 0; }
+    .btn-remove-item:hover { background-color: var(--danger-color); color: white; }
+    .btn-add-item { background: transparent; border: 1px dashed var(--secondary-color); color: var(--secondary-color); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 0.72rem; font-weight: 600; transition: all 0.2s; }
+    .btn-add-item:hover { background-color: rgba(0, 210, 255, 0.05); }
+    .footer-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; align-items: center; background: var(--card-bg); flex-shrink: 0; }
+    .status-msg-box { flex: 1; padding: 6px 10px; background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.68rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); min-height: 28px; display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .btn-action { padding: 8px 20px; font-size: 0.8rem; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.3s; outline: none; border: none; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+    .btn-cancel { background-color: #1e293b; color: #e2e8f0; border: 1px solid var(--border-color); }
+    .btn-save { background: linear-gradient(135deg, var(--accent-color), #059669); color: #060913; box-shadow: 0 0 12px rgba(0, 255, 157, 0.15); }
+    .btn-save:hover { box-shadow: 0 0 22px var(--accent-color); transform: translateY(-1px); }
+    .btn-toggle-ocr { background: rgba(0, 210, 255, 0.1); border: 1px solid var(--secondary-color); color: var(--secondary-color); border-radius: 6px; padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 600; font-family: var(--font-family); transition: all 0.2s; outline: none; }
+    .btn-toggle-ocr:hover { background: rgba(0, 210, 255, 0.2); }
+    .btn-toggle-ocr svg { transition: transform 0.3s; }
+    .btn-toggle-ocr.collapsed svg { transform: rotate(180deg); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>SYNTHÉON :: Entrada Inteligente</h1>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button type="button" class="btn-toggle-ocr" onclick="toggleOCR()" id="btnToggleOCR" title="Ocultar/Mostrar OCR">
+        <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24"><path d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z" /></svg>
+        <span>Ocultar OCR</span>
+      </button>
+      <span class="badge">OCR In-Browser</span>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Painel Esquerdo: OCR -->
+    <div class="panel-left">
+
+      <!-- Drop Zone -->
+      <div id="dropZone" class="upload-zone">
+        <svg viewBox="0 0 24 24">
+          <path d="M14,13V17H10V13H7L12,8L17,13M19.35,10.03C18.67,6.59 15.64,4 12,4C9.11,4 6.6,5.64 5.35,8.03C2.34,8.36 0,10.9 0,14A6,6 0 0,0 6,20H19A5,5 0 0,0 24,15C24,12.36 21.95,10.22 19.35,10.03Z" />
+        </svg>
+        <h3>Solte o Documento Aqui</h3>
+        <p>Arraste PDF ou Imagem (Foto) ou clique para selecionar</p>
+        <input type="file" id="fileInput" hidden accept="application/pdf,image/png,image/jpeg,image/webp,image/bmp">
+      </div>
+
+      <!-- Progresso -->
+      <div class="progress-wrap">
+        <div class="progress-label" id="progressLabel">Inicializando OCR...</div>
+        <div class="progress-bar-container" id="progressContainer">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+      </div>
+
+      <!-- Terminal do OCR -->
+      <div class="terminal-box">
+        <div class="terminal-header">
+          <span>CONSOLE DE TEXTO OCR</span>
+          <div class="terminal-dots">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+          </div>
+        </div>
+        <div class="terminal-content" id="ocrTerminal">Aguardando documento para processar...</div>
+      </div>
+
+    </div>
+
+    <!-- Painel Direito: Formulário -->
+    <div class="panel-right">
+      <div class="form-scroll">
+
+        <!-- Fatos -->
+        <div class="card">
+          <div class="card-title">Dados do Fato</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="data">DATA</label>
+              <input type="text" id="data" placeholder="DD/MM/AAAA">
+            </div>
+            <div class="form-group">
+              <label for="hora">HORA</label>
+              <input type="text" id="hora" placeholder="HH:MM">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="qtd_o">QTD O</label>
+              <input type="number" id="qtd_o" placeholder="1" value="1" min="1">
+            </div>
+            <div class="form-group">
+              <label for="mike">MIKE</label>
+              <input type="text" id="mike" placeholder="Ex: 12345678">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label for="natureza">NATUREZA DA OCORRÊNCIA</label>
+              <input type="text" id="natureza" placeholder="Ex: ENTORPECENTES (TRÁFICO)">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="boe">BOE</label>
+              <input type="text" id="boe" placeholder="Ex: 2026/12345">
+            </div>
+            <div class="form-group">
+              <label for="ais">AIS</label>
+              <input type="number" id="ais" placeholder="Ex: 3" min="1">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cidade">CIDADE</label>
+              <input type="text" id="cidade" placeholder="Ex: RECIFE">
+            </div>
+            <div class="form-group">
+              <label for="bairro">BAIRRO</label>
+              <input type="text" id="bairro" placeholder="Ex: BOA VIAGEM">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="detidos">DETIDOS (Facultativo)</label>
+              <input type="text" id="detidos" list="detidosList" placeholder="Ex: APFD, TCO, BOC">
+              <datalist id="detidosList">
+                <option value="APFD">
+                <option value="TCO">
+                <option value="BOC">
+                <option value="AAFAI">
+              </datalist>
+            </div>
+          </div>
+        </div>
+
+        <!-- Equipe -->
+        <div class="card">
+          <div class="card-title">Equipe / Policiais</div>
+          <div class="police-input-wrapper">
+            <input type="text" id="policeInput" placeholder="Matrícula manual (ex: 1021400)" onkeydown="if(event.key==='Enter')adicionarPolicialManual()">
+            <button type="button" class="btn-add-tag" onclick="adicionarPolicialManual()">+ Adicionar</button>
+          </div>
+          <div class="police-table-wrap">
+            <table class="police-table">
+              <thead>
+                <tr>
+                  <th>Pelotão</th>
+                  <th>Posto</th>
+                  <th>Matrícula</th>
+                  <th>Nome</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="policeTableBody">
+                <tr id="police-empty-row"><td colspan="5" class="police-empty-msg">Nenhum policial adicionado</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Armas -->
+        <div class="card">
+          <div class="card-title">Armas Apreendidas</div>
+          <div class="dynamic-list" id="armasList"></div>
+          <button type="button" class="btn-add-item" onclick="adicionarArmaField()">+ Adicionar Arma</button>
+        </div>
+
+        
         <!-- Pontuação -->
         <div class="card" onchange="updatePontuacao()">
           <div class="card-title">Pontuação e PIP</div>
