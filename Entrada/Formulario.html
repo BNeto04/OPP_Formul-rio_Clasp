@@ -486,15 +486,6 @@
       const bairroMatch = text.match(/Bairro[:\s]+([^\n,;]+)/i);
       if (bairroMatch) document.getElementById('bairro').value = bairroMatch[1].trim();
 
-      // Policiais: lê especificamente o campo "Matrícula:" do BO
-      // Ex: "Matrícula: 1240765" ou "Matricula: 9901612"
-      // Depois cruza com o efetivo carregado para buscar pelotão, posto e nome
-      const matRegex = /Matr[íi]cula[:\s]+(\d{5,8})/gi;
-      const matsEncontradas = [...new Set([...text.matchAll(matRegex)].map(m => m[1]))];
-      matsEncontradas.forEach(m => {
-        if (!policiaisSet.has(m)) adicionarPolicialLinha(m);
-      });
-
       // Armas
       const linhas = text.split('\n');
       const armasDetectadas = [];
@@ -518,10 +509,20 @@
           }
         }
       });
+      
       if (armasDetectadas.length) {
         document.getElementById('armasList').innerHTML = '';
         armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, '', 0, a.quantidade));
       }
+
+      // Policiais: lê especificamente o campo "Matrícula:" do BO
+      // Ex: "Matrícula: 1240765" ou "Matricula: 9901612"
+      // Depois cruza com o efetivo carregado para buscar pelotão, posto e nome
+      const matRegex = /Matr[íi]cula[:\s]+(\d{5,8})/gi;
+      const matsEncontradas = [...new Set([...text.matchAll(matRegex)].map(m => m[1]))];
+      matsEncontradas.forEach(m => {
+        if (!policiaisSet.has(m)) adicionarPolicialLinha(m);
+      });
 
       // Drogas: Extração contextual inteligente
       const drogasDetectadas = [];
@@ -682,6 +683,11 @@
       // Remove mensagem de "vazio" se existir
       const emptyRow = document.getElementById('police-empty-row');
       if (emptyRow) emptyRow.remove();
+      
+      // Quantas armas temos na tela agora?
+      let totalArmasNaTela = 0;
+      const inputsQtdArmas = document.querySelectorAll('.arma-qtd');
+      inputsQtdArmas.forEach(input => totalArmasNaTela += (parseInt(input.value) || 0));
 
       const tbody = document.getElementById('policeTableBody');
       const tr = document.createElement('tr');
@@ -691,7 +697,7 @@
         <td class="td-posto">${p.posto}</td>
         <td class="td-mat">${p.matricula}</td>
         <td>${p.nome}</td>
-        <td class="td-armas"><input type="number" class="qtd-armas-policial" value="0" min="0" style="width: 50px; text-align: center; padding: 4px; font-size: 0.75rem;"></td>
+        <td class="td-armas"><input type="number" class="qtd-armas-policial" value="${totalArmasNaTela}" min="0" style="width: 50px; text-align: center; padding: 4px; font-size: 0.75rem;"></td>
         <td class="td-remove"><button type="button" class="btn-remove-item" onclick="removerPolicial('${mat}')">&times;</button></td>
       `;
       tbody.appendChild(tr);
