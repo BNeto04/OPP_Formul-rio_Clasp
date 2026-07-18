@@ -255,11 +255,12 @@
                   <th>Posto</th>
                   <th>Matrícula</th>
                   <th>Nome</th>
+                  <th>Qtd Armas</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody id="policeTableBody">
-                <tr id="police-empty-row"><td colspan="5" class="police-empty-msg">Nenhum policial adicionado</td></tr>
+                <tr id="police-empty-row"><td colspan="6" class="police-empty-msg">Nenhum policial adicionado</td></tr>
               </tbody>
             </table>
           </div>
@@ -670,6 +671,7 @@
         <td class="td-posto">${p.posto}</td>
         <td class="td-mat">${p.matricula}</td>
         <td>${p.nome}</td>
+        <td class="td-armas"><input type="number" class="qtd-armas-policial" value="0" min="0" style="width: 50px; text-align: center; padding: 4px; font-size: 0.75rem;"></td>
         <td class="td-remove"><button type="button" class="btn-remove-item" onclick="removerPolicial('${mat}')">&times;</button></td>
       `;
       tbody.appendChild(tr);
@@ -681,7 +683,7 @@
       if (el) el.remove();
       if (document.getElementById('policeTableBody').children.length === 0) {
         const tbody = document.getElementById('policeTableBody');
-        tbody.innerHTML = '<tr id="police-empty-row"><td colspan="5" class="police-empty-msg">Nenhum policial adicionado</td></tr>';
+        tbody.innerHTML = '<tr id="police-empty-row"><td colspan="6" class="police-empty-msg">Nenhum policial adicionado</td></tr>';
       }
     }
 
@@ -750,8 +752,14 @@
       // Monta lista de policiais com dados completos para o backend
       const policiais = [...policiaisSet].map(mat => {
         const p = efetivoPorMat[mat];
-        return p ? { pelotao: p.pelotao, posto: p.posto, matricula: mat, nome: p.nome }
-                 : { pelotao: '', posto: '', matricula: mat, nome: '' };
+        const tr = document.getElementById('prow_' + mat);
+        let qtdArmas = 0;
+        if (tr) {
+            const inputArmas = tr.querySelector('.qtd-armas-policial');
+            if (inputArmas) qtdArmas = parseInt(inputArmas.value) || 0;
+        }
+        return p ? { pelotao: p.pelotao, posto: p.posto, matricula: mat, nome: p.nome, qtd_armas: qtdArmas }
+                 : { pelotao: '', posto: '', matricula: mat, nome: '', qtd_armas: qtdArmas };
       });
       const payload = {
         origem:   'FORMULARIO',

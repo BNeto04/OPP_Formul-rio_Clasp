@@ -138,7 +138,7 @@ function processarEntradaManual(payload) {
             policial.posto, // GRAD (AC)
             policial.matricula, // MATRICULA (AD)
             policial.nome, // POLICIAL (AE)
-            policial.nome ? (totalArmas || "") : "", // QDT ARMAS (AF)
+            policial.nome ? (policial.qtd_armas > 0 ? policial.qtd_armas : "") : "", // QDT ARMAS (AF)
               (payload.ocorrenciaPip || "OCORRÊNCIA LANÇADA VIA SISTEMA"), // OCORRÊNCIA PIP (AG)
             isImputadoStr, // IMPUTADO? (AH)
               isFirst ? (payload.pontosTotais || totalPontos) : "", // PONTOS TOTAIS (AI)
