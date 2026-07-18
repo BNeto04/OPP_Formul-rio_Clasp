@@ -131,7 +131,7 @@ function processarEntradaManual(payload) {
         const colB = aba.getRange("B1:B" + aba.getMaxRows()).getValues();
         let ultimaLinha = 0;
         for (let i = colB.length - 1; i >= 0; i--) {
-            if (colB[i][0] !== "") {
+            if (String(colB[i][0]).trim() !== "") {
                 ultimaLinha = i + 1; // i é zero-based, linha é 1-based
                 break;
             }
@@ -140,13 +140,23 @@ function processarEntradaManual(payload) {
         // Se a aba estiver vazia, escreve na linha 2. Se já tiver dados, pula 1 linha.
         const linhaParaEscrever = ultimaLinha > 0 ? ultimaLinha + 2 : 2; 
 
-        const range = aba.getRange(linhaParaEscrever, 1, linhasParaInserir.length, linhasParaInserir[0].length);
-        
-        // Remove a validação de dados de TODAS as colunas que vamos escrever 
-        // para garantir que a gravação nunca seja bloqueada por validações antigas (ex: J167, AK169)
-        range.clearDataValidations();
+        // Gravação em Chunks (Pedaços) para NÃO subscrever as fórmulas da planilha (Camada Analítica)
+        const chunks = [
+            { start: 2, end: 18 },  // B até R
+            { start: 21, end: 22 }, // U até V
+            { start: 24, end: 25 }, // X até Y
+            { start: 28, end: 34 }, // AB até AH
+            { start: 37, end: 37 }  // AK
+        ];
 
-        range.setValues(linhasParaInserir);
+        chunks.forEach(chunk => {
+            const numCols = chunk.end - chunk.start + 1;
+            const chunkData = linhasParaInserir.map(row => row.slice(chunk.start - 1, chunk.end));
+            const targetRange = aba.getRange(linhaParaEscrever, chunk.start, linhasParaInserir.length, numCols);
+            
+            targetRange.clearDataValidations();
+            targetRange.setValues(chunkData);
+        });
     }
     return `Ocorrência ${chave} salva com sucesso (${linhasParaInserir.length} registros computados)!`;
   } catch (erro) {
