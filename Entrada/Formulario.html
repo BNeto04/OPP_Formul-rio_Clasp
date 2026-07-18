@@ -283,38 +283,23 @@
 
         <!-- Pontuação -->
         <div class="card" onchange="updatePontuacao()">
-          <div class="card-title">Pontuação e PIP</div>
+          <div class="card-title">Ocorrências PIP</div>
           <div class="form-row">
-            <div class="form-group">
-              <label for="ocorrenciaPip">OCORRÊNCIA PIP</label>
-              <select id="ocorrenciaPip">
-                <option value="OCORRÊNCIA LANÇADA VIA SISTEMA">OCORRÊNCIA LANÇADA VIA SISTEMA</option>
-                <option value="OCORRÊNCIA NÃO LANÇADA">OCORRÊNCIA NÃO LANÇADA</option>
-                <option value="TCO">TCO</option>
-                <option value="BOC">BOC</option>
-                <option value="APFD">APFD</option>
-                <option value="AAFAI">AAFAI</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="imputado">IMPUTADO?</label>
+            <div class="form-group full-width">
+              <label for="imputado">HOUVE IMPUTADO NA OCORRÊNCIA?</label>
               <select id="imputado" onchange="updatePontuacao()">
                 <option value="SEM IMPUTADO">SEM IMPUTADO</option>
                 <option value="COM IMPUTADO">COM IMPUTADO</option>
               </select>
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="pontosTotais">PONTOS TOTAIS</label>
-              <input type="text" id="pontosTotais" readonly style="background-color: #0b1a26; color: #53ff45; font-weight: bold; border-color: #53ff45;">
-            </div>
-            <div class="form-group">
-              <label for="pontosFiccao">PONTOS FICÇÃO (1/4)</label>
-              <input type="text" id="pontosFiccao" readonly style="background-color: #0b1a26; color: #53ff45; border-color: #53ff45;">
-            </div>
+          
+          <div class="form-group">
+            <label>ITENS DA OCORRÊNCIA (Tabela PIP)</label>
+            <div class="dynamic-list" id="pipList"></div>
+            <button type="button" class="btn-add-item" onclick="adicionarPipField()">+ Adicionar Título PIP</button>
           </div>
-          <div class="form-row">
+          <div class="form-row" style="margin-top: 15px;">
             <div class="form-group">
               <label for="chaveOcorrencia">Chave Ocorrência</label>
               <input type="text" id="chaveOcorrencia" readonly style="background-color: #0b1a26; color: #8fa4b8;">
@@ -588,42 +573,62 @@
     let efetivo = []; // [{pelotao, posto, matricula, nome}]
     let efetivoPorMat = {};
 
-      function updatePontuacao() {
-        const imputado = document.getElementById('imputado').value === 'COM IMPUTADO';
-        let total = 0;
+      function adicionarPipField(valorSelecionado = '') {
+        const id = 'pip-' + Date.now() + Math.random().toString(36).substr(2, 5);
+        const div = document.createElement('div');
+        div.className = 'dynamic-item';
+        div.id = id;
         
-        const armas = document.querySelectorAll('.arma-item');
-        armas.forEach(a => {
-          const tipo = a.querySelector('.arma-tipo').value;
-          const qtd = parseInt(a.querySelector('.arma-qtd').value) || 0;
-          let pts = 0;
-          if (tipo === 'FABRICAÇÃO CASEIRA') pts = imputado ? 8000 : 4000;
-          else if (tipo === 'REVÓLVER') pts = imputado ? 24000 : 12000;
-          else if (tipo === 'PISTOLA') pts = imputado ? 32000 : 16000;
-          else if (tipo === 'ESPINGARDA') pts = imputado ? 40000 : 20000;
-          else if (tipo === 'FUZIL') pts = imputado ? 80000 : 40000;
-          else pts = imputado ? 40000 : 20000;
-          total += pts * qtd;
+        const opcoes = [
+          "OCORRÊNCIA LANÇADA VIA SISTEMA",
+          "OCORRÊNCIA NÃO LANÇADA",
+          "TCO",
+          "BOC",
+          "APFD",
+          "AAFAI",
+          "Apreensão de arma de fogo artesanal",
+          "Apreensão de arma de fogo revólver",
+          "Apreensão de arma de fogo pistola",
+          "Apreensão de arma longa (12 industrial)",
+          "Apreensão de arma longa (fuzil)",
+          "Apreensão de munição revólver/pistola",
+          "Apreensão de munição calibre .12",
+          "Apreensão de munição fuzil",
+          "Apreensão de carregador",
+          "Apreensão de colete balístico completo",
+          "Apreensão de arma branca",
+          "Apreensão de celular",
+          "Apreensão de maconha por grama (invólucro ou papelote)",
+          "Apreensão de maconha (1Kg)",
+          "Apreensão de crack por grama",
+          "Apreensão de crack (1Kg)",
+          "Apreensão de haxixe (grama) / êxtase / sintéticas",
+          "Apreensão de haxixe (kg)",
+          "Apreensão de cocaína por grama (invólucro)",
+          "Apreensão de cocaína (kg)",
+          "Apreensão de numerário para cada real apreendido",
+          "Prisão por mandado",
+          "Ocorrência que desencadeou TCO/BOC",
+          "Ocorrência que desencadeou AAAI/APFD",
+          "Ocorrência que evitar MVI/Feminicídio",
+          "Apreensão de material explosivo",
+          "Apreensão de veículo furtado ou roubado",
+          "Ocorrência de vulto conforme entendimento do CMT"
+        ];
+        
+        let selectHtml = `<select style="flex:1" class="pip-tipo">`;
+        opcoes.forEach(op => {
+          selectHtml += `<option value="${op}" ${valorSelecionado === op ? 'selected' : ''}>${op}</option>`;
         });
+        selectHtml += `</select>`;
 
-        const drogas = document.querySelectorAll('.droga-item');
-        drogas.forEach(d => {
-          const tipo = d.querySelector('.droga-tipo').value;
-          const qtd = parseFloat(d.querySelector('.droga-qtd').value.replace(',','.')) || 0;
-          let pts = 0;
-          if (tipo === 'MACONHA DOLAR') pts = (qtd * 3) * (imputado ? 2.666666667 : 1.333333333);
-          else if (tipo === 'MACONHA GRAMA') pts = qtd * (imputado ? 2.666666667 : 1.333333333);
-          else if (tipo === 'COCAINA PINO') pts = (qtd * 1) * (imputado ? 10.66666667 : 5.333333333);
-          else if (tipo === 'COCAINA GRAMA') pts = qtd * (imputado ? 10.66666667 : 5.333333333);
-          else if (tipo === 'CRACK PEDRA') pts = (qtd * 0.25) * (imputado ? 10.66666667 : 5.333333333);
-          else if (tipo === 'CRACK GRAMA') pts = qtd * (imputado ? 10.66666667 : 5.333333333);
-          total += pts;
-        });
+        div.innerHTML = selectHtml + `
+          <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove()">&times;</button>`;
+        document.getElementById('pipList').appendChild(div);
+      }
 
-        document.getElementById('pontosTotais').value = Math.round(total);
-        document.getElementById('pontosFiccao').value = Math.round(total / 4);
-
-        // Chave Ocorrência
+      function updatePontuacao() {
+        // Chave Ocorrência (mantido do original)
         const data = document.getElementById('data').value || '';
         const hora = document.getElementById('hora').value || '';
         const boe = document.getElementById('boe').value || '';
@@ -761,6 +766,8 @@
         return p ? { pelotao: p.pelotao, posto: p.posto, matricula: mat, nome: p.nome, qtd_armas: qtdArmas }
                  : { pelotao: '', posto: '', matricula: mat, nome: '', qtd_armas: qtdArmas };
       });
+      const ocorrenciasPip = [...document.querySelectorAll('.pip-tipo')].map(el => el.value);
+
       const payload = {
         origem:   'FORMULARIO',
         mike:     document.getElementById('mike').value.trim(),
@@ -773,6 +780,8 @@
         natureza: document.getElementById('natureza').value.trim(),
         qtd_o:    document.getElementById('qtd_o').value.trim(),
         detidos:  document.getElementById('detidos').value.trim(),
+        imputado: document.getElementById('imputado').value,
+        ocorrenciasPip: ocorrenciasPip,
         policiais: policiais,
         armas:    obterArmas(),
         drogas:   obterDrogas()

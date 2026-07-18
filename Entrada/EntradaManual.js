@@ -139,11 +139,11 @@ function processarEntradaManual(payload) {
             policial.matricula, // MATRICULA (AD)
             policial.nome, // POLICIAL (AE)
             policial.nome ? (policial.qtd_armas > 0 ? policial.qtd_armas : "") : "", // QDT ARMAS (AF)
-              (payload.ocorrenciaPip || "OCORRÊNCIA LANÇADA VIA SISTEMA"), // OCORRÊNCIA PIP (AG)
-            isImputadoStr, // IMPUTADO? (AH)
-              isFirst ? (payload.pontosTotais || totalPontos) : "", // PONTOS TOTAIS (AI)
-              policial.matricula ? (payload.pontosFiccao || pontosFiccao) : "", // PONTOS FICÇÃO (1/4) (AJ)
-              (payload.chaveOcorrencia || chave) // Chave Ocorrência (AK)
+            (payload.ocorrenciasPip && payload.ocorrenciasPip[idx] ? payload.ocorrenciasPip[idx] : ""), // OCORRÊNCIA PIP (AG)
+            (payload.imputado || "SEM IMPUTADO"), // IMPUTADO? (AH)
+            "", // PONTOS TOTAIS (AI) - preenchido pela planilha
+            "", // PONTOS FICÇÃO (1/4) (AJ) - preenchido pela planilha
+            (payload.chaveOcorrencia || chave) // Chave Ocorrência (AK)
         ];
         linhasParaInserir.push(linha);
     }
