@@ -30,12 +30,14 @@ function processarEntradaManual(payload) {
 
     const chave = `${payload.data.replace(/-/g,'')}${payload.hora.replace(/:/g,'')}00|${payload.boe}`;
     
-    // Definir aba mensal (ex: JUL2026)
+    // Definir aba mensal (ex: JUL2026) suportando DD/MM/AAAA ou AAAA-MM-DD
     const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-    const partesData = payload.data.split('-');
     let nomeAba = "JAN2026";
+    const partesData = payload.data.split(/[-/]/);
     if (partesData.length === 3) {
-       nomeAba = `${meses[parseInt(partesData[1], 10) - 1]}${partesData[0]}`;
+       const mesStr = partesData[1];
+       const anoStr = partesData[0].length === 4 ? partesData[0] : partesData[2];
+       nomeAba = `${meses[parseInt(mesStr, 10) - 1]}${anoStr}`;
     }
 
     const SS_ID = '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
