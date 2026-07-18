@@ -447,15 +447,14 @@
       if (!text) return;
       const upper = text.toUpperCase();
 
-      // MIKE = Número do Boletim de Ocorrência
-      // Padrão prioritário: "BOLETIM DE OCORRÊNCIA Nº: XXXX"
-      const mikeMatch = text.match(/BOLETIM\s+DE\s+OCORR[ÊE]NCIA\s+N[º°\.\s]*[:\s]*([\d\/]+)/i)
-                     || text.match(/BOE?\s*N[º°\.\s]*[:\-]?\s*([\d\/]+)/i)
-                     || text.match(/MIKE\s*[:\-]?\s*(\d{5,15})/i);
+      // MIKE = Número do Boletim de Ocorrência (PM)
+      const mikeMatch = text.match(/MIKE\s*[:\-]?\s*(\d{5,15})/i)
+                     || text.match(/BOEPM\s*[:\-]?\s*(\d{5,15})/i);
       if (mikeMatch) document.getElementById('mike').value = mikeMatch[1].replace(/[\s]/g,'');
 
-      // BOE (campo secundário — pode ser diferente)
-      const boeMatch = text.match(/BOE\s*[:\-]?\s*([\d\/]+)/i)
+      // BOE = Boletim de Ocorrência da Polícia Civil (ex: 26E1174010335)
+      const boeMatch = text.match(/BOLETIM\s+DE\s+OCORR[ÊE]NCIA\s+N[º°\.\s]*[:\s]*([A-Z0-9\/]+)/i)
+                    || text.match(/BOE?\s*N[º°\.\s]*[:\-]?\s*([A-Z0-9\/]+)/i)
                     || text.match(/\b(\d{4}\/\d{4,})\b/);
       if (boeMatch) document.getElementById('boe').value = boeMatch[1].trim();
 
@@ -651,7 +650,11 @@
       const mat = input.value.trim();
       if (!mat) { alert('Por favor, digite a matrícula no campo de texto antes de clicar em Adicionar.'); return; }
       if (!/^\d+$/.test(mat)) { alert('Digite apenas números na matrícula.'); return; }
-      if (policiaisSet.has(mat)) { alert('Matrícula já adicionada!'); return; }
+      if (policiaisSet.has(mat)) { 
+          alert('Esta matrícula já foi adicionada na lista abaixo!'); 
+          input.value = '';
+          return; 
+      }
       adicionarPolicialLinha(mat);
       input.value = '';
     }
