@@ -498,17 +498,29 @@
       // Armas
       const linhas = text.split('\n');
       const armasDetectadas = [];
+
       linhas.forEach(l => {
         const u = l.toUpperCase();
-        if (u.includes('PISTOLA')||u.includes('REVÓLVER')||u.includes('REVOLVER')||u.includes('ESPINGARDA')||u.includes('CALIBRE')||u.includes('ARMA DE FOGO')) {
+        if (u.includes('MUNIÇÃO') || u.includes('MUNICAO') || u.includes('PEÇAS PARA ARMAS')) return; // Pula munições e acessórios
+
+        let modelo = null;
+        if (u.includes('REVÓLVER') || u.includes('REVOLVER')) modelo = 'REVÓLVER';
+        else if (u.includes('PISTOLA')) modelo = 'PISTOLA';
+        else if (u.includes('ESPINGARDA')) modelo = 'ESPINGARDA';
+        else if (u.includes('FUZIL')) modelo = 'FUZIL';
+        else if (u.includes('ARMA DE FOGO')) modelo = 'REVÓLVER'; // Fallback
+        
+        if (modelo) {
           const tipo = (u.includes('CASEIRA')||u.includes('ARTESANAL')) ? 'FABRICAÇÃO CASEIRA' : 'INDUSTRIAL';
-          const qtdM = l.match(/\b(\d+)\b/);
-          armasDetectadas.push({ tipo, quantidade: qtdM ? parseInt(qtdM[1]) : 1 });
+          const chave = tipo + '|' + modelo;
+          if (!armasDetectadas.find(a => a.chave === chave)) {
+            armasDetectadas.push({ chave, tipo, modelo, quantidade: 1 });
+          }
         }
       });
       if (armasDetectadas.length) {
         document.getElementById('armasList').innerHTML = '';
-        armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.quantidade));
+        armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, '', 0, a.quantidade));
       }
 
       // Drogas: Extração contextual inteligente
@@ -718,19 +730,30 @@
       document.getElementById('armasList').appendChild(div);
     }
 
-    function adicionarDrogaField(tipo = 'MACONHA', quantidade = 0, unidade = 'GRAMAS') {
+    function adicionarDrogaField(tipoRaw = 'MACONHA', quantidade = 0, unidade = 'GRAMAS') {
       const id = 'droga_' + Date.now();
       const div = document.createElement('div');
       div.className = 'dynamic-item';
       div.id = id;
+
+      // Match do select
+      let selectValue = 'MACONHA GRAMA'; // default
+      if (tipoRaw.includes('MACONHA')) {
+          selectValue = (unidade === 'UNIDADES' || unidade === 'DÓLAR') ? 'MACONHA DOLAR' : 'MACONHA GRAMA';
+      } else if (tipoRaw.includes('CRACK')) {
+          selectValue = (unidade === 'UNIDADES' || unidade === 'PEDRAS') ? 'CRACK PEDRA' : 'CRACK GRAMA';
+      } else if (tipoRaw.includes('COCA')) {
+          selectValue = (unidade === 'UNIDADES' || unidade === 'PINO') ? 'COCAINA PINO' : 'COCAINA GRAMA';
+      }
+
       div.innerHTML = `
         <select style="flex:2" class="droga-tipo">
-          <option value="MACONHA DOLAR">MACONHA DÓLAR</option>
-          <option value="MACONHA GRAMA">MACONHA GRAMA</option>
-          <option value="CRACK PEDRA">CRACK PEDRA</option>
-          <option value="CRACK GRAMA">CRACK GRAMA</option>
-          <option value="COCAINA PINO">COCAÍNA PINO</option>
-          <option value="COCAINA GRAMA">COCAÍNA GRAMA</option>
+          <option value="MACONHA DOLAR" ${selectValue==='MACONHA DOLAR'?'selected':''}>MACONHA DÓLAR</option>
+          <option value="MACONHA GRAMA" ${selectValue==='MACONHA GRAMA'?'selected':''}>MACONHA GRAMA</option>
+          <option value="CRACK PEDRA" ${selectValue==='CRACK PEDRA'?'selected':''}>CRACK PEDRA</option>
+          <option value="CRACK GRAMA" ${selectValue==='CRACK GRAMA'?'selected':''}>CRACK GRAMA</option>
+          <option value="COCAINA PINO" ${selectValue==='COCAINA PINO'?'selected':''}>COCAÍNA PINO</option>
+          <option value="COCAINA GRAMA" ${selectValue==='COCAINA GRAMA'?'selected':''}>COCAÍNA GRAMA</option>
         </select>
         <input type="number" style="flex:1;min-width:60px" class="droga-qtd" value="${quantidade}" min="0" step="0.01">
         <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove()">&times;</button>`;
