@@ -442,8 +442,10 @@
       return text;
     }
 
-    // ── AUTO-PREENCHIMENTO (REGEX HEURÍSTICAS) ───────────────────
     function parseAndFill(text) {
+      if (!text) return;
+      const upper = text.toUpperCase();
+
       // 1. MIKE = Número do Boletim de Ocorrência (PM)
       // Geralmente é uma longa sequência de números, procuramos após os rótulos comuns
       const mikeMatch = text.match(/BOLETIM\s+DE\s+OCORR[ÊE]NCIA\s+N[º°\.\s]*[:\s]*(\d{10,20})/i)
