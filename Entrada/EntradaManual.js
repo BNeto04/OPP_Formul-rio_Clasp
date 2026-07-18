@@ -164,10 +164,9 @@ function processarEntradaManual(payload) {
 
         const range = aba.getRange(linhaParaEscrever, 1, linhasParaInserir.length, linhasParaInserir[0].length);
         
-        // Remove a validação especificamente da coluna J (BAIRRO) para evitar o erro J161/J167
-        // A coluna J é a 10ª coluna
-        const rangeBairro = aba.getRange(linhaParaEscrever, 10, linhasParaInserir.length, 1);
-        rangeBairro.clearDataValidations();
+        // Remove a validação de dados de TODAS as colunas que vamos escrever 
+        // para garantir que a gravação nunca seja bloqueada por validações antigas (ex: J167, AK169)
+        range.clearDataValidations();
 
         range.setValues(linhasParaInserir);
     }
