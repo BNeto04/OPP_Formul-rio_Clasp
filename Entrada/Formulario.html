@@ -282,12 +282,12 @@
         </div>
 
         <!-- Pontuação -->
-        <div class="card" onchange="updatePontuacao()">
+        <div class="card" onchange="atualizarChaveOcorrencia()">
           <div class="card-title">Ocorrências PIP</div>
           <div class="form-row">
             <div class="form-group full-width">
               <label for="imputado">HOUVE IMPUTADO NA OCORRÊNCIA?</label>
-              <select id="imputado" onchange="updatePontuacao()">
+              <select id="imputado" onchange="atualizarChaveOcorrencia()">
                 <option value="SEM IMPUTADO">SEM IMPUTADO</option>
                 <option value="COM IMPUTADO">COM IMPUTADO</option>
               </select>
@@ -644,7 +644,7 @@
         document.getElementById('pipList').appendChild(div);
       }
 
-      function updatePontuacao() {
+      function atualizarChaveOcorrencia() {
         // Chave Ocorrência (mantido do original)
         const data = document.getElementById('data').value || '';
         const hora = document.getElementById('hora').value || '';
@@ -737,7 +737,7 @@
         <input type="text" style="flex:0.6" class="arma-calibre" placeholder="Calibre" value="${calibre}">
         <input type="number" style="flex:0.6" class="arma-municao" placeholder="Munição" value="${municao}" min="0">
         <input type="number" style="flex:0.6" class="arma-qtd" placeholder="Qtd" value="${quantidade}" min="1">
-        <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove(); updatePontuacao();">&times;</button>`;
+        <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove(); atualizarChaveOcorrencia();">&times;</button>`;
       document.getElementById('armasList').appendChild(div);
     }
 
@@ -849,15 +849,15 @@
     carregarEfetivo();
 
         // Listeners pontuacao
-        document.getElementById('data').addEventListener('change', updatePontuacao);
-        document.getElementById('hora').addEventListener('change', updatePontuacao);
-        document.getElementById('boe').addEventListener('change', updatePontuacao);
+        document.getElementById('data').addEventListener('change', atualizarChaveOcorrencia);
+        document.getElementById('hora').addEventListener('change', atualizarChaveOcorrencia);
+        document.getElementById('boe').addEventListener('change', atualizarChaveOcorrencia);
         document.getElementById('detidos').addEventListener('change', function() {
            const v = this.value.toUpperCase();
            if(v.includes('APFD') || v.includes('TCO') || v.includes('BOC') || v.includes('AAFAI')) {
               document.getElementById('imputado').value = 'COM IMPUTADO';
            }
-           updatePontuacao();
+           atualizarChaveOcorrencia();
         });
 
     // ── HELPERS ───────────────────────────────────────────────────

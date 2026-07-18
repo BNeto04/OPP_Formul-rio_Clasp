@@ -8,71 +8,25 @@ function processarEntradaManual(payload) {
     const imputado = payload.detidos > 0;
     const isImputadoStr = imputado ? "COM IMPUTADO" : "SEM IMPUTADO";
 
-    let totalPontos = 0;
-    let totalArmas = 0;
-    
-    // Calcular Pontos das Armas
-    payload.armas.forEach(arma => {
-       let pts = 0;
-       if (arma.tipo === 'FABRICAÇÃO CASEIRA') pts = imputado ? 8000 : 4000;
-       else if (arma.modelo === 'REVÓLVER') pts = imputado ? 24000 : 12000;
-       else if (arma.modelo === 'PISTOLA') pts = imputado ? 32000 : 16000;
-       else if (arma.modelo === 'ESPINGARDA') pts = imputado ? 40000 : 20000;
-       else if (arma.modelo === 'FUZIL') pts = imputado ? 80000 : 40000;
-       else pts = imputado ? 40000 : 20000;
-       
-       totalPontos += pts * arma.quantidade;
-       totalArmas += arma.quantidade;
-    });
-
-    // Calcular Pontos das Drogas
     let maconhaGrama = 0; let maconhaDolar = 0;
     let crackPedra = 0;   let crackGrama = 0;
     let cocainaPino = 0;  let cocainaGrama = 0;
-    let totalMaconha = 0; let totalCrack = 0; let totalCocaina = 0;
 
     payload.drogas.forEach(droga => {
-        let gramasParaPonto = 0;
-        
         if (droga.tipo === 'MACONHA DOLAR') {
             maconhaDolar += droga.quantidade;
-            gramasParaPonto = droga.quantidade * 3;
-            totalMaconha += gramasParaPonto;
-            totalPontos += gramasParaPonto * (imputado ? 2.666666667 : 1.333333333);
         } else if (droga.tipo === 'MACONHA GRAMA') {
             maconhaGrama += droga.quantidade;
-            gramasParaPonto = droga.quantidade;
-            totalMaconha += gramasParaPonto;
-            totalPontos += gramasParaPonto * (imputado ? 2.666666667 : 1.333333333);
         } else if (droga.tipo === 'COCAINA PINO') {
             cocainaPino += droga.quantidade;
-            gramasParaPonto = droga.quantidade * 1;
-            totalCocaina += gramasParaPonto;
-            totalPontos += gramasParaPonto * (imputado ? 10.66666667 : 5.333333333);
         } else if (droga.tipo === 'COCAINA GRAMA') {
             cocainaGrama += droga.quantidade;
-            gramasParaPonto = droga.quantidade;
-            totalCocaina += gramasParaPonto;
-            totalPontos += gramasParaPonto * (imputado ? 10.66666667 : 5.333333333);
         } else if (droga.tipo === 'CRACK PEDRA') {
             crackPedra += droga.quantidade;
-            gramasParaPonto = droga.quantidade * 0.25;
-            totalCrack += gramasParaPonto;
-            totalPontos += gramasParaPonto * (imputado ? 10.66666667 : 5.333333333);
         } else if (droga.tipo === 'CRACK GRAMA') {
             crackGrama += droga.quantidade;
-            gramasParaPonto = droga.quantidade;
-            totalCrack += gramasParaPonto;
-            totalPontos += gramasParaPonto * (imputado ? 10.66666667 : 5.333333333);
         }
     });
-
-    const numPoliciais = payload.policiais.length;
-    const divididoMac = numPoliciais > 0 ? (totalMaconha / numPoliciais) : 0;
-    const divididoCoc = numPoliciais > 0 ? (totalCocaina / numPoliciais) : 0;
-    
-    // Pontos Ficção (Sempre dividido por 4, independente do número de policiais na equipe)
-    const pontosFiccao = totalPontos / 4;
 
     const chave = `${payload.data.replace(/-/g,'')}${payload.hora.replace(/:/g,'')}00|${payload.boe}`;
     
@@ -125,15 +79,15 @@ function processarEntradaManual(payload) {
             armaMunicao || "", // MUNIÇÃO (P)
             isFirst ? (maconhaDolar || "") : "", // MACONHA DOLAR (Q)
             isFirst ? (maconhaGrama || "") : "", // MACONHA GRAMA (R)
-            isFirst ? (totalMaconha || "") : "", // TOTAL DE MACONHA (S)
-            divididoMac || "", // Dividido mac (T)
+            "", // TOTAL DE MACONHA (S) - preenchido pela Camada Analítica
+            "", // Dividido mac (T) - preenchido pela Camada Analítica
             isFirst ? (crackPedra || "") : "", // CRACK PEDRA (U)
             isFirst ? (crackGrama || "") : "", // CRACK GRAMA (V)
-            isFirst ? (totalCrack || "") : "", // Total CRACK (gr) (W)
+            "", // Total CRACK (gr) (W) - preenchido pela Camada Analítica
             isFirst ? (cocainaPino || "") : "", // COCAINA PINO (X)
             isFirst ? (cocainaGrama || "") : "", // COCAINA GRAMA (Y)
-            isFirst ? (totalCocaina || "") : "", // TOTAL DE COCAINA (Z)
-            divididoCoc || "", // Dividido coc (AA)
+            "", // TOTAL DE COCAINA (Z) - preenchido pela Camada Analítica
+            "", // Dividido coc (AA) - preenchido pela Camada Analítica
             policial.pelotao, // PELOTÃO (AB)
             policial.posto, // GRAD (AC)
             policial.matricula, // MATRICULA (AD)
