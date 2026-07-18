@@ -484,7 +484,12 @@
 
       // Bairro
       const bairroMatch = text.match(/Bairro[:\s]+([^\n,;]+)/i);
-      if (bairroMatch) document.getElementById('bairro').value = bairroMatch[1].trim();
+      if (bairroMatch) {
+          // O OCR costuma ler "Bairro - Cidade" (ex: MORRO DA CONCEICAO - RECIFE)
+          // Vamos pegar só o que vem antes do hífen para não quebrar a validação da planilha
+          let b = bairroMatch[1].split('-')[0].trim();
+          document.getElementById('bairro').value = b;
+      }
 
       // Armas
       const linhas = text.split('\n');
