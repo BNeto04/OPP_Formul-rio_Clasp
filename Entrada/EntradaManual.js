@@ -45,6 +45,28 @@ function processarEntradaManual(payload) {
     let aba = ss.getSheetByName(nomeAba);
     if (!aba) throw new Error("Aba mensal " + nomeAba + " não encontrada!");
 
+    // Verificação Anti-Duplicidade
+    const payloadBoe = payload.boe ? String(payload.boe).trim() : "";
+    const payloadMike = payload.mike ? String(payload.mike).trim() : "";
+    
+    if (payloadBoe || payloadMike) {
+        // Busca as colunas a partir da linha 2
+        const colBoe = aba.getRange("G2:G" + aba.getMaxRows()).getValues();
+        const colMike = aba.getRange("E2:E" + aba.getMaxRows()).getValues();
+        
+        for (let i = 0; i < colBoe.length; i++) {
+            const boePlanilha = String(colBoe[i][0]).trim();
+            const mikePlanilha = String(colMike[i][0]).trim();
+            
+            if (payloadBoe && boePlanilha && payloadBoe === boePlanilha) {
+                throw new Error(`BLOQUEADO: A ocorrência com BOE ${payloadBoe} já consta cadastrada nesta planilha.`);
+            }
+            if (payloadMike && mikePlanilha && payloadMike === mikePlanilha) {
+                throw new Error(`BLOQUEADO: A ocorrência com MIKE ${payloadMike} já consta cadastrada nesta planilha.`);
+            }
+        }
+    }
+
     const linhasParaInserir = [];
     const numLinhas = Math.max(payload.policiais.length, payload.armas.length);
     
