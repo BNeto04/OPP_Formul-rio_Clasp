@@ -1,0 +1,853 @@
+<!-- ARQUIVO: Entrada/Formulario.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYNTHÉON - Registro Inteligente com OCR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Tesseract.js: OCR 100% no navegador, sem servidor externo -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <!-- PDF.js: renderizar PDF para canvas para o Tesseract ler -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #060913;
+      --card-bg: #0d1323;
+      --border-color: #1e293b;
+      --border-focus: #00d2ff;
+      --accent-color: #00ff9d;
+      --accent-glow: rgba(0, 255, 157, 0.35);
+      --secondary-color: #00d2ff;
+      --secondary-glow: rgba(0, 210, 255, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-terminal: #00ff9d;
+      --danger-color: #f43f5e;
+      --input-bg: #10172d;
+      --font-family: 'Outfit', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 16px;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .container { display: flex; flex: 1; gap: 16px; align-items: stretch; overflow: hidden; }
+    .panel-left { flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; }
+    .panel-right { flex: 1.2; display: flex; flex-direction: column; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; overflow: hidden; }
+    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 14px; }
+    header h1 { font-size: 1.2rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; background: linear-gradient(135deg, var(--accent-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .badge { background-color: rgba(0, 255, 157, 0.1); border: 1px solid var(--accent-color); color: var(--accent-color); font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 9999px; }
+    .upload-zone {
+      background-color: var(--card-bg);
+      border: 2px dashed rgba(0, 210, 255, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+    }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--secondary-color); background-color: rgba(0, 210, 255, 0.04); box-shadow: 0 0 20px var(--secondary-glow); }
+    .upload-zone svg { width: 40px; height: 40px; fill: var(--secondary-color); margin-bottom: 8px; filter: drop-shadow(0 0 6px var(--secondary-glow)); }
+    .upload-zone h3 { font-size: 0.9rem; font-weight: 700; color: var(--secondary-color); margin-bottom: 3px; }
+    .upload-zone p { font-size: 0.7rem; color: var(--text-muted); }
+    .progress-wrap { width: 100%; }
+    .progress-label { font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; display: none; }
+    .progress-bar-container { width: 100%; height: 5px; background: #050811; border-radius: 3px; overflow: hidden; display: none; }
+    .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--secondary-color), var(--accent-color)); box-shadow: 0 0 8px var(--accent-color); transition: width 0.2s ease; }
+    .terminal-box { flex: 1; background-color: #04060b; border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 200px; }
+    .terminal-header { background-color: #0b0f1a; padding: 7px 14px; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; letter-spacing: 1px; }
+    .terminal-dots { display: flex; gap: 5px; }
+    .terminal-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .terminal-dot.red { background-color: #ef4444; }
+    .terminal-dot.yellow { background-color: #eab308; }
+    .terminal-dot.green { background-color: #22c55e; }
+    .terminal-content { flex: 1; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-terminal); overflow-y: auto; white-space: pre-wrap; line-height: 1.6; }
+    .form-scroll { flex: 1; overflow-y: auto; padding-right: 8px; display: flex; flex-direction: column; gap: 12px; }
+    .card { background-color: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; }
+    .card-title { font-size: 0.78rem; font-weight: 700; color: var(--secondary-color); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; border-bottom: 1px solid rgba(0, 210, 255, 0.1); padding-bottom: 5px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .form-group { display: flex; flex-direction: column; gap: 3px; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    label { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    input, select { background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 6px 10px; font-size: 0.82rem; font-family: var(--font-family); outline: none; transition: all 0.2s; width: 100%; }
+    input:focus, select:focus { border-color: var(--border-focus); box-shadow: 0 0 8px var(--secondary-glow); }
+    .police-input-wrapper { display: flex; gap: 8px; margin-bottom: 7px; align-items: center; }
+    .police-input-wrapper input { flex: 1; }
+    .btn-add-tag { background-color: var(--secondary-color); color: #060913; font-weight: 700; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; white-space: nowrap; }
+    .police-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+    .police-table thead th { background-color: #0a0e1a; color: var(--secondary-color); font-weight: 700; text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border-color); font-size: 0.68rem; letter-spacing: 0.5px; text-transform: uppercase; }
+    .police-table tbody tr { border-bottom: 1px solid rgba(30,41,59,0.5); transition: background 0.15s; }
+    .police-table tbody tr:hover { background-color: rgba(0,210,255,0.04); }
+    .police-table td { padding: 5px 8px; color: var(--text-main); vertical-align: middle; }
+    .police-table td.td-pelotao { color: var(--secondary-color); font-weight: 700; white-space: nowrap; }
+    .police-table td.td-posto { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+    .police-table td.td-mat { font-family: 'JetBrains Mono', monospace; color: var(--accent-color); }
+    .police-table td.td-remove { text-align: center; }
+    .police-table-wrap { background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; margin-bottom: 7px; min-height: 36px; }
+    .police-empty-msg { color: var(--text-muted); font-size: 0.72rem; text-align: center; padding: 10px; font-style: italic; }
+    .dynamic-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 7px; }
+    .dynamic-item { display: flex; gap: 7px; align-items: center; }
+    .dynamic-item select, .dynamic-item input { padding: 5px 8px; font-size: 0.78rem; }
+    .btn-remove-item { background: transparent; border: 1px solid rgba(244, 63, 94, 0.3); color: var(--danger-color); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; transition: all 0.2s; flex-shrink: 0; }
+    .btn-remove-item:hover { background-color: var(--danger-color); color: white; }
+    .btn-add-item { background: transparent; border: 1px dashed var(--secondary-color); color: var(--secondary-color); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 0.72rem; font-weight: 600; transition: all 0.2s; }
+    .btn-add-item:hover { background-color: rgba(0, 210, 255, 0.05); }
+    .footer-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; align-items: center; background: var(--card-bg); flex-shrink: 0; }
+    .status-msg-box { flex: 1; padding: 6px 10px; background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.68rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); min-height: 28px; display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .btn-action { padding: 8px 20px; font-size: 0.8rem; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.3s; outline: none; border: none; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+    .btn-cancel { background-color: #1e293b; color: #e2e8f0; border: 1px solid var(--border-color); }
+    .btn-save { background: linear-gradient(135deg, var(--accent-color), #059669); color: #060913; box-shadow: 0 0 12px rgba(0, 255, 157, 0.15); }
+    .btn-save:hover { box-shadow: 0 0 22px var(--accent-color); transform: translateY(-1px); }
+    .btn-toggle-ocr { background: rgba(0, 210, 255, 0.1); border: 1px solid var(--secondary-color); color: var(--secondary-color); border-radius: 6px; padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 600; font-family: var(--font-family); transition: all 0.2s; outline: none; }
+    .btn-toggle-ocr:hover { background: rgba(0, 210, 255, 0.2); }
+    .btn-toggle-ocr svg { transition: transform 0.3s; }
+    .btn-toggle-ocr.collapsed svg { transform: rotate(180deg); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>SYNTHÉON :: Entrada Inteligente</h1>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button type="button" class="btn-toggle-ocr" onclick="toggleOCR()" id="btnToggleOCR" title="Ocultar/Mostrar OCR">
+        <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24"><path d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z" /></svg>
+        <span>Ocultar OCR</span>
+      </button>
+      <span class="badge">OCR In-Browser</span>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Painel Esquerdo: OCR -->
+    <div class="panel-left">
+
+      <!-- Drop Zone -->
+      <div id="dropZone" class="upload-zone">
+        <svg viewBox="0 0 24 24">
+          <path d="M14,13V17H10V13H7L12,8L17,13M19.35,10.03C18.67,6.59 15.64,4 12,4C9.11,4 6.6,5.64 5.35,8.03C2.34,8.36 0,10.9 0,14A6,6 0 0,0 6,20H19A5,5 0 0,0 24,15C24,12.36 21.95,10.22 19.35,10.03Z" />
+        </svg>
+        <h3>Solte o Documento Aqui</h3>
+        <p>Arraste PDF ou Imagem (Foto) ou clique para selecionar</p>
+        <input type="file" id="fileInput" hidden accept="application/pdf,image/png,image/jpeg,image/webp,image/bmp">
+      </div>
+
+      <!-- Progresso -->
+      <div class="progress-wrap">
+        <div class="progress-label" id="progressLabel">Inicializando OCR...</div>
+        <div class="progress-bar-container" id="progressContainer">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+      </div>
+
+      <!-- Terminal do OCR -->
+      <div class="terminal-box">
+        <div class="terminal-header">
+          <span>CONSOLE DE TEXTO OCR</span>
+          <div class="terminal-dots">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+          </div>
+        </div>
+        <div class="terminal-content" id="ocrTerminal">Aguardando documento para processar...</div>
+      </div>
+
+    </div>
+
+    <!-- Painel Direito: Formulário -->
+    <div class="panel-right">
+      <div class="form-scroll">
+
+        <!-- Fatos -->
+        <div class="card">
+          <div class="card-title">Dados do Fato</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="data">DATA</label>
+              <input type="text" id="data" placeholder="DD/MM/AAAA">
+            </div>
+            <div class="form-group">
+              <label for="hora">HORA</label>
+              <input type="text" id="hora" placeholder="HH:MM">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="qtd_o">QTD O</label>
+              <input type="number" id="qtd_o" placeholder="1" value="1" min="1">
+            </div>
+            <div class="form-group">
+              <label for="mike">MIKE</label>
+              <input type="text" id="mike" placeholder="Ex: 12345678">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label for="natureza">NATUREZA DA OCORRÊNCIA</label>
+              <input type="text" id="natureza" placeholder="Ex: ENTORPECENTES (TRÁFICO)">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="boe">BOE</label>
+              <input type="text" id="boe" placeholder="Ex: 2026/12345">
+            </div>
+            <div class="form-group">
+              <label for="ais">AIS</label>
+              <input type="number" id="ais" placeholder="Ex: 3" min="1">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cidade">CIDADE</label>
+              <input type="text" id="cidade" placeholder="Ex: RECIFE">
+            </div>
+            <div class="form-group">
+              <label for="bairro">BAIRRO</label>
+              <input type="text" id="bairro" placeholder="Ex: BOA VIAGEM">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="detidos">DETIDOS (Facultativo)</label>
+              <input type="text" id="detidos" list="detidosList" placeholder="Ex: APFD, TCO, BOC">
+              <datalist id="detidosList">
+                <option value="APFD">
+                <option value="TCO">
+                <option value="BOC">
+                <option value="AAFAI">
+              </datalist>
+            </div>
+          </div>
+        </div>
+
+        <!-- Equipe -->
+        <div class="card">
+          <div class="card-title">Equipe / Policiais</div>
+          <div class="police-input-wrapper">
+            <input type="text" id="policeInput" placeholder="Matrícula manual (ex: 1021400)" onkeydown="if(event.key==='Enter')adicionarPolicialManual()">
+            <button type="button" class="btn-add-tag" onclick="adicionarPolicialManual()">+ Adicionar</button>
+          </div>
+          <div class="police-table-wrap">
+            <table class="police-table">
+              <thead>
+                <tr>
+                  <th>Pelotão</th>
+                  <th>Posto</th>
+                  <th>Matrícula</th>
+                  <th>Nome</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="policeTableBody">
+                <tr id="police-empty-row"><td colspan="5" class="police-empty-msg">Nenhum policial adicionado</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Armas -->
+        <div class="card">
+          <div class="card-title">Armas Apreendidas</div>
+          <div class="dynamic-list" id="armasList"></div>
+          <button type="button" class="btn-add-item" onclick="adicionarArmaField()">+ Adicionar Arma</button>
+        </div>
+
+        
+        <!-- Pontuação -->
+        <div class="card" onchange="updatePontuacao()">
+          <div class="card-title">Pontuação e PIP</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ocorrenciaPip">OCORRÊNCIA PIP</label>
+              <select id="ocorrenciaPip">
+                <option value="OCORRÊNCIA LANÇADA VIA SISTEMA">OCORRÊNCIA LANÇADA VIA SISTEMA</option>
+                <option value="OCORRÊNCIA NÃO LANÇADA">OCORRÊNCIA NÃO LANÇADA</option>
+                <option value="TCO">TCO</option>
+                <option value="BOC">BOC</option>
+                <option value="APFD">APFD</option>
+                <option value="AAFAI">AAFAI</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="imputado">IMPUTADO?</label>
+              <select id="imputado" onchange="updatePontuacao()">
+                <option value="SEM IMPUTADO">SEM IMPUTADO</option>
+                <option value="COM IMPUTADO">COM IMPUTADO</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pontosTotais">PONTOS TOTAIS</label>
+              <input type="text" id="pontosTotais" readonly style="background-color: #0b1a26; color: #53ff45; font-weight: bold; border-color: #53ff45;">
+            </div>
+            <div class="form-group">
+              <label for="pontosFiccao">PONTOS FICÇÃO (1/4)</label>
+              <input type="text" id="pontosFiccao" readonly style="background-color: #0b1a26; color: #53ff45; border-color: #53ff45;">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="chaveOcorrencia">Chave Ocorrência</label>
+              <input type="text" id="chaveOcorrencia" readonly style="background-color: #0b1a26; color: #8fa4b8;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Drogas -->
+        <div class="card">
+          <div class="card-title">Drogas Apreendidas</div>
+          <div class="dynamic-list" id="drogasList"></div>
+          <button type="button" class="btn-add-item" onclick="adicionarDrogaField()">+ Adicionar Droga</button>
+        </div>
+
+      </div>
+
+      <div class="footer-actions">
+        <div class="status-msg-box" id="statusMessage">> Pronto para registro.</div>
+        <button type="button" class="btn-action btn-cancel" onclick="google.script.host.close()">Cancelar</button>
+        <button type="button" class="btn-action btn-save" onclick="salvarDados()">Salvar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Configura PDF.js worker (CDN)
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const dropZone      = document.getElementById('dropZone');
+    const fileInput     = document.getElementById('fileInput');
+    const progressCont  = document.getElementById('progressContainer');
+    const progressBar   = document.getElementById('progressBar');
+    const progressLabel = document.getElementById('progressLabel');
+    const ocrTerminal   = document.getElementById('ocrTerminal');
+    const statusMsg     = document.getElementById('statusMessage');
+    const policiaisSet  = new Set();
+
+    // ── DRAG & DROP ──────────────────────────────────────────────
+    // Bloqueia abertura de arquivo pela janela inteira
+    ['dragenter','dragover','dragleave','drop'].forEach(ev => {
+      window.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
+    });
+
+    dropZone.addEventListener('dragover',  () => dropZone.classList.add('dragover'));
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) iniciarOCR(file);
+    });
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) iniciarOCR(file);
+    });
+
+    // ── MOTOR OCR (Tesseract.js + PDF.js) ────────────────────────
+    async function iniciarOCR(file) {
+      log('>> Arquivo recebido: ' + file.name);
+      setStatus('Processando...', 'var(--secondary-color)');
+      mostrarProgresso('Preparando OCR...', 0);
+
+      const isPDF = file.type === 'application/pdf';
+
+      try {
+        let textoFinal = '';
+
+        if (isPDF) {
+          textoFinal = await extrairTextoPDF(file);
+        } else {
+          textoFinal = await rodarTesseract(file, null);
+        }
+
+        ocrTerminal.innerText = textoFinal || '>> Nenhum texto detectado no documento.';
+        log('\n>> Extração concluída. Auto-preenchendo campos...');
+        esconderProgresso();
+        setStatus('OCR concluído!', 'var(--accent-color)');
+        parseAndFill(textoFinal);
+
+      } catch (err) {
+        esconderProgresso();
+        ocrTerminal.innerText = '>> ERRO: ' + err.message;
+        setStatus('Falha no OCR: ' + err.message, 'var(--danger-color)');
+      } finally {
+        fileInput.value = '';
+      }
+    }
+
+    async function extrairTextoPDF(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const totalPaginas = pdf.numPages;
+      let textoTotal = '';
+
+      log(`>> PDF detectado: ${totalPaginas} página(s).`);
+
+      for (let i = 1; i <= totalPaginas; i++) {
+        mostrarProgresso(`Processando página ${i} de ${totalPaginas}...`, Math.round((i / totalPaginas) * 50));
+        log(`>> Renderizando página ${i}...`);
+
+        const pagina = await pdf.getPage(i);
+
+        // 1. Tenta extrair texto nativo (PDF digital)
+        const conteudo = await pagina.getTextContent();
+        const textoNativo = conteudo.items.map(s => s.str).join(' ').trim();
+
+        if (textoNativo.length > 30) {
+          log(`   [Texto nativo detectado na página ${i}]`);
+          textoTotal += textoNativo + '\n\n';
+        } else {
+          // 2. Renderiza para Canvas e roda Tesseract (PDF escaneado)
+          log(`   [Renderizando para OCR visual - página ${i}]`);
+          const scale = 2.0;
+          const viewport = pagina.getViewport({ scale });
+          const canvas = document.createElement('canvas');
+          canvas.width  = viewport.width;
+          canvas.height = viewport.height;
+          await pagina.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+          const textoOCR = await rodarTesseract(null, canvas, i, totalPaginas);
+          textoTotal += textoOCR + '\n\n';
+        }
+      }
+
+      return textoTotal;
+    }
+
+    async function rodarTesseract(file, canvas, paginaAtual = 1, totalPaginas = 1) {
+      const worker = await Tesseract.createWorker('por', 1, {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            const base = Math.round((paginaAtual - 1) / totalPaginas * 50);
+            const inc  = Math.round(m.progress * 50 / totalPaginas);
+            mostrarProgresso(
+              `OCR página ${paginaAtual}/${totalPaginas}: ${Math.round(m.progress * 100)}%`,
+              base + inc
+            );
+          }
+        }
+      });
+
+      const origem = canvas || file;
+      const { data: { text } } = await worker.recognize(origem);
+      await worker.terminate();
+      return text;
+    }
+
+    // ── AUTO-PREENCHIMENTO (REGEX HEURÍSTICAS) ───────────────────
+    function parseAndFill(text) {
+      if (!text) return;
+      const upper = text.toUpperCase();
+
+      // MIKE = Número do Boletim de Ocorrência
+      // Padrão prioritário: "BOLETIM DE OCORRÊNCIA Nº: XXXX"
+      const mikeMatch = text.match(/BOLETIM\s+DE\s+OCORR[ÊE]NCIA\s+N[º°\.\s]*[:\s]*([\d\/]+)/i)
+                     || text.match(/BOE?\s*N[º°\.\s]*[:\-]?\s*([\d\/]+)/i)
+                     || text.match(/MIKE\s*[:\-]?\s*(\d{5,15})/i);
+      if (mikeMatch) document.getElementById('mike').value = mikeMatch[1].replace(/[\s]/g,'');
+
+      // BOE (campo secundário — pode ser diferente)
+      const boeMatch = text.match(/BOE\s*[:\-]?\s*([\d\/]+)/i)
+                    || text.match(/\b(\d{4}\/\d{4,})\b/);
+      if (boeMatch) document.getElementById('boe').value = boeMatch[1].trim();
+
+      // Natureza
+      const naturezaMatch = text.match(/Naturezas?:\s*(.*?)(?=\s*Data do Fato:|\n|$)/i);
+      if (naturezaMatch) document.getElementById('natureza').value = naturezaMatch[1].trim();
+
+      // Data e Hora
+      const dataHoraMatch = text.match(/Data do Fato:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/i);
+      if (dataHoraMatch) {
+          document.getElementById('data').value = dataHoraMatch[1];
+          document.getElementById('hora').value = dataHoraMatch[2];
+      } else {
+          const dataMatch = text.match(/\b(\d{2}\/\d{2}\/\d{4})\b/);
+          if (dataMatch) document.getElementById('data').value = dataMatch[1];
+      }
+
+      // Cidade
+      const cidades = ['RECIFE','CARUARU','OLINDA','JABOATÃO','CABO DE SANTO AGOSTINHO','IPOJUCA','PAULISTA','PETROLINA','CAMAÇARI','SERRA'];
+      for (const c of cidades) {
+        if (upper.includes(c)) { document.getElementById('cidade').value = c; break; }
+      }
+
+      // Bairro
+      const bairroMatch = text.match(/Bairro[:\s]+([^\n,;]+)/i);
+      if (bairroMatch) document.getElementById('bairro').value = bairroMatch[1].trim();
+
+      // Policiais: lê especificamente o campo "Matrícula:" do BO
+      // Ex: "Matrícula: 1240765" ou "Matricula: 9901612"
+      // Depois cruza com o efetivo carregado para buscar pelotão, posto e nome
+      const matRegex = /Matr[íi]cula[:\s]+(\d{5,8})/gi;
+      const matsEncontradas = [...new Set([...text.matchAll(matRegex)].map(m => m[1]))];
+      matsEncontradas.forEach(m => {
+        if (!policiaisSet.has(m)) adicionarPolicialLinha(m);
+      });
+
+      // Armas
+      const linhas = text.split('\n');
+      const armasDetectadas = [];
+      linhas.forEach(l => {
+        const u = l.toUpperCase();
+        if (u.includes('PISTOLA')||u.includes('REVÓLVER')||u.includes('REVOLVER')||u.includes('ESPINGARDA')||u.includes('CALIBRE')||u.includes('ARMA DE FOGO')) {
+          const tipo = (u.includes('CASEIRA')||u.includes('ARTESANAL')) ? 'FABRICAÇÃO CASEIRA' : 'INDUSTRIAL';
+          const qtdM = l.match(/\b(\d+)\b/);
+          armasDetectadas.push({ tipo, quantidade: qtdM ? parseInt(qtdM[1]) : 1 });
+        }
+      });
+      if (armasDetectadas.length) {
+        document.getElementById('armasList').innerHTML = '';
+        armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.quantidade));
+      }
+
+      // Drogas: Extração contextual inteligente
+      const drogasDetectadas = [];
+      const textoDrogas = text.toUpperCase();
+      const padroesDrogas = [
+        // 1. Padrão Estruturado BOE (ex: Categoria do Objeto: COCAINA ... Quantidade: 500)
+        /(MACONHA|CRACK|COCA[ÍI]NA)[\s\S]{0,120}?QUANTIDADE:\s*(\d+(?:[.,]\d+)?)/g,
+        // 2. Padrão Imagens Complementares (ex: ENTORPECENTE/COCAINA , 500 UNIDADE(S))
+        /(MACONHA|CRACK|COCA[ÍI]NA)\s*,\s*(\d+(?:[.,]\d+)?)\s*UNIDADE/g,
+        // 3. Peso Antes (ex: 50g de cocaína)
+        /(\d+(?:[.,]\d+)?)\s*(G|KG|GRAMAS?|QUILOS?)\s*(?:DE\s*)?(MACONHA|CRACK|COCA[ÍI]NA)/g,
+        // 4. Unidades Antes (ex: 497 ziplocks de cocaína)
+        /(\d+)\s*(ZIPLOCKS?|PAPELOTES?|PEDRAS?|INV[ÓO]LUCROS?|UNIDADES?|ENVOLT[ÓO]RIOS?|POR[ÇC][ÕO]ES)\s*(?:DE\s*)?(MACONHA|CRACK|COCA[ÍI]NA)/g,
+        // 5. Peso Depois (ex: cocaína 50 g)
+        /(MACONHA|CRACK|COCA[ÍI]NA)[\s\S]{0,30}?(?<!\d\d\/\d\d\/\d\d\d\d\s)(\d+(?:[.,]\d+)?)\s*(G|KG|GRAMAS?|QUILOS?)\b/g
+      ];
+
+      const drogasMap = new Map(); // Evitar duplicatas do mesmo tipo
+      
+      padroesDrogas.forEach((regex, index) => {
+        let m;
+        while ((m = regex.exec(textoDrogas)) !== null) {
+          let tipoRaw, valStr, undRaw;
+          
+          if (index === 0 || index === 1) {
+            tipoRaw = m[1]; valStr = m[2]; undRaw = 'UNIDADES';
+          } else if (index === 2) {
+            valStr = m[1]; undRaw = m[2]; tipoRaw = m[3];
+          } else if (index === 3) {
+            valStr = m[1]; undRaw = 'UNIDADES'; tipoRaw = m[3]; // m[2] é a palavra ziplock/etc
+          } else if (index === 4) {
+            tipoRaw = m[1]; valStr = m[2]; undRaw = m[3];
+          }
+          
+          let tipoNorm = tipoRaw.replace('I', 'Í'); // Padronizar COCAINA para COCAÍNA
+          if (tipoNorm === 'COCAÍNA' || tipoNorm === 'COCAINA') tipoNorm = 'COCAÍNA';
+          
+          let qtd = parseFloat(valStr.replace(',', '.'));
+          let unidadeNorm = 'GRAMAS';
+          if (undRaw.includes('K') || undRaw.includes('Q')) unidadeNorm = 'QUILOGRAMAS';
+          else if (undRaw === 'UNIDADES') unidadeNorm = 'UNIDADES';
+
+          // Salva a maior quantidade encontrada para o tipo
+          if (!drogasMap.has(tipoNorm) || drogasMap.get(tipoNorm).quantidade < qtd) {
+            drogasMap.set(tipoNorm, { tipo: tipoNorm, quantidade: qtd, unidadeMedida: unidadeNorm });
+          }
+        }
+      });
+
+      drogasMap.forEach(v => drogasDetectadas.push(v));
+
+      if (drogasDetectadas.length) {
+        document.getElementById('drogasList').innerHTML = '';
+        drogasDetectadas.forEach(d => adicionarDrogaField(d.tipo, d.quantidade, d.unidadeMedida));
+      }
+
+      setStatus(
+        `>> Auto-preenchimento concluído | ${matsEncontradas.length} pol | ${armasDetectadas.length} arm | ${drogasDetectadas.length} drog`,
+        'var(--accent-color)'
+      );
+    }
+
+    // ── EFETIVO: carregado do Sheets no init ─────────────────────
+    let efetivo = []; // [{pelotao, posto, matricula, nome}]
+    let efetivoPorMat = {};
+
+      function updatePontuacao() {
+        const imputado = document.getElementById('imputado').value === 'COM IMPUTADO';
+        let total = 0;
+        
+        const armas = document.querySelectorAll('.arma-item');
+        armas.forEach(a => {
+          const tipo = a.querySelector('.arma-tipo').value;
+          const qtd = parseInt(a.querySelector('.arma-qtd').value) || 0;
+          let pts = 0;
+          if (tipo === 'FABRICAÇÃO CASEIRA') pts = imputado ? 8000 : 4000;
+          else if (tipo === 'REVÓLVER') pts = imputado ? 24000 : 12000;
+          else if (tipo === 'PISTOLA') pts = imputado ? 32000 : 16000;
+          else if (tipo === 'ESPINGARDA') pts = imputado ? 40000 : 20000;
+          else if (tipo === 'FUZIL') pts = imputado ? 80000 : 40000;
+          else pts = imputado ? 40000 : 20000;
+          total += pts * qtd;
+        });
+
+        const drogas = document.querySelectorAll('.droga-item');
+        drogas.forEach(d => {
+          const tipo = d.querySelector('.droga-tipo').value;
+          const qtd = parseFloat(d.querySelector('.droga-qtd').value.replace(',','.')) || 0;
+          let pts = 0;
+          if (tipo === 'MACONHA DOLAR') pts = (qtd * 3) * (imputado ? 2.666666667 : 1.333333333);
+          else if (tipo === 'MACONHA GRAMA') pts = qtd * (imputado ? 2.666666667 : 1.333333333);
+          else if (tipo === 'COCAINA PINO') pts = (qtd * 1) * (imputado ? 10.66666667 : 5.333333333);
+          else if (tipo === 'COCAINA GRAMA') pts = qtd * (imputado ? 10.66666667 : 5.333333333);
+          else if (tipo === 'CRACK PEDRA') pts = (qtd * 0.25) * (imputado ? 10.66666667 : 5.333333333);
+          else if (tipo === 'CRACK GRAMA') pts = qtd * (imputado ? 10.66666667 : 5.333333333);
+          total += pts;
+        });
+
+        document.getElementById('pontosTotais').value = Math.round(total);
+        document.getElementById('pontosFiccao').value = Math.round(total / 4);
+
+        // Chave Ocorrência
+        const data = document.getElementById('data').value || '';
+        const hora = document.getElementById('hora').value || '';
+        const boe = document.getElementById('boe').value || '';
+        const chave = `${data.replace(/-/g,'')}${hora.replace(/:/g,'')}00|${boe}`;
+        document.getElementById('chaveOcorrencia').value = chave;
+      }
+ // matricula => objeto
+
+    function carregarEfetivo() {
+      google.script.run
+        .withSuccessHandler(lista => {
+          efetivo = lista || [];
+          efetivoPorMat = {};
+          efetivo.forEach(p => { efetivoPorMat[String(p.matricula).trim()] = p; });
+          log(`>> Efetivo carregado: ${efetivo.length} policiais.`);
+        })
+        .withFailureHandler(err => log('>> AVISO: não carregou efetivo: ' + err.message))
+        .getEfetivo();
+    }
+
+    // ── ELEMENTOS DINÂMICOS ───────────────────────────────────────
+    function adicionarPolicialManual() {
+      const input = document.getElementById('policeInput');
+      const mat = input.value.trim();
+      if (!mat) { alert('Por favor, digite a matrícula no campo de texto antes de clicar em Adicionar.'); return; }
+      if (!/^\d+$/.test(mat)) { alert('Digite apenas números na matrícula.'); return; }
+      if (policiaisSet.has(mat)) { alert('Matrícula já adicionada!'); return; }
+      adicionarPolicialLinha(mat);
+      input.value = '';
+    }
+
+    function adicionarPolicialLinha(mat) {
+      policiaisSet.add(mat);
+      const p = efetivoPorMat[mat] || { pelotao: '—', posto: '—', matricula: mat, nome: '(não encontrado)' };
+
+      // Remove mensagem de "vazio" se existir
+      const emptyRow = document.getElementById('police-empty-row');
+      if (emptyRow) emptyRow.remove();
+
+      const tbody = document.getElementById('policeTableBody');
+      const tr = document.createElement('tr');
+      tr.id = 'prow_' + mat;
+      tr.innerHTML = `
+        <td class="td-pelotao">${p.pelotao}</td>
+        <td class="td-posto">${p.posto}</td>
+        <td class="td-mat">${p.matricula}</td>
+        <td>${p.nome}</td>
+        <td class="td-remove"><button type="button" class="btn-remove-item" onclick="removerPolicial('${mat}')">&times;</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function removerPolicial(mat) {
+      policiaisSet.delete(mat);
+      const el = document.getElementById('prow_' + mat);
+      if (el) el.remove();
+      if (document.getElementById('policeTableBody').children.length === 0) {
+        const tbody = document.getElementById('policeTableBody');
+        tbody.innerHTML = '<tr id="police-empty-row"><td colspan="5" class="police-empty-msg">Nenhum policial adicionado</td></tr>';
+      }
+    }
+
+    function adicionarArmaField(tipo = 'INDUSTRIAL', modelo = 'REVÓLVER', calibre = '', municao = 0, quantidade = 1) {
+      const id = 'arma_' + Date.now();
+      const div = document.createElement('div');
+      div.className = 'dynamic-item';
+      div.id = id;
+      div.innerHTML = `
+        <select style="flex:1" class="arma-tipo">
+          <option value="INDUSTRIAL" ${tipo==='INDUSTRIAL'?'selected':''}>INDUSTRIAL</option>
+          <option value="FABRICAÇÃO CASEIRA" ${tipo==='FABRICAÇÃO CASEIRA'?'selected':''}>ARTESANAL</option>
+        </select>
+        <select style="flex:1" class="arma-modelo">
+          <option value="REVÓLVER" ${modelo==='REVÓLVER'?'selected':''}>REVÓLVER</option>
+          <option value="PISTOLA" ${modelo==='PISTOLA'?'selected':''}>PISTOLA</option>
+          <option value="ESPINGARDA" ${modelo==='ESPINGARDA'?'selected':''}>ESPINGARDA</option>
+          <option value="FUZIL" ${modelo==='FUZIL'?'selected':''}>FUZIL</option>
+        </select>
+        <input type="text" style="flex:0.6" class="arma-calibre" placeholder="Calibre" value="${calibre}">
+        <input type="number" style="flex:0.6" class="arma-municao" placeholder="Munição" value="${municao}" min="0">
+        <input type="number" style="flex:0.6" class="arma-qtd" placeholder="Qtd" value="${quantidade}" min="1">
+        <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove(); updatePontuacao();">&times;</button>`;
+      document.getElementById('armasList').appendChild(div);
+    }
+
+    function adicionarDrogaField(tipo = 'MACONHA', quantidade = 0, unidade = 'GRAMAS') {
+      const id = 'droga_' + Date.now();
+      const div = document.createElement('div');
+      div.className = 'dynamic-item';
+      div.id = id;
+      div.innerHTML = `
+        <select style="flex:2" class="droga-tipo">
+          <option value="MACONHA DOLAR">MACONHA DÓLAR</option>
+          <option value="MACONHA GRAMA">MACONHA GRAMA</option>
+          <option value="CRACK PEDRA">CRACK PEDRA</option>
+          <option value="CRACK GRAMA">CRACK GRAMA</option>
+          <option value="COCAINA PINO">COCAÍNA PINO</option>
+          <option value="COCAINA GRAMA">COCAÍNA GRAMA</option>
+        </select>
+        <input type="number" style="flex:1;min-width:60px" class="droga-qtd" value="${quantidade}" min="0" step="0.01">
+        <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove()">&times;</button>`;
+      document.getElementById('drogasList').appendChild(div);
+    }
+
+    function obterArmas() {
+      return [...document.querySelectorAll('#armasList .dynamic-item')].map(el => ({
+        tipo:      el.querySelector('.arma-tipo').value,
+        modelo:    el.querySelector('.arma-modelo').value,
+        calibre:   el.querySelector('.arma-calibre').value || '',
+        municao:   parseInt(el.querySelector('.arma-municao').value) || 0,
+        quantidade: parseInt(el.querySelector('.arma-qtd').value) || 0
+      })).filter(a => a.quantidade > 0);
+    }
+
+    function obterDrogas() {
+      return [...document.querySelectorAll('#drogasList .dynamic-item')].map(el => ({
+        tipo: el.querySelector('.droga-tipo').value,
+        quantidade: parseFloat(el.querySelector('.droga-qtd').value) || 0
+      })).filter(d => d.quantidade > 0);
+    }
+
+    // ── SALVAR ────────────────────────────────────────────────────
+    function salvarDados() {
+      setStatus('> Enviando para o Sheets...', 'var(--secondary-color)');
+      // Monta lista de policiais com dados completos para o backend
+      const policiais = [...policiaisSet].map(mat => {
+        const p = efetivoPorMat[mat];
+        return p ? { pelotao: p.pelotao, posto: p.posto, matricula: mat, nome: p.nome }
+                 : { pelotao: '', posto: '', matricula: mat, nome: '' };
+      });
+      const payload = {
+        origem:   'FORMULARIO',
+        mike:     document.getElementById('mike').value.trim(),
+        boe:      document.getElementById('boe').value.trim(),
+        ais:      document.getElementById('ais').value.trim(),
+        data:     document.getElementById('data').value.trim(),
+        hora:     document.getElementById('hora').value.trim(),
+        cidade:   document.getElementById('cidade').value.trim(),
+        bairro:   document.getElementById('bairro').value.trim(),
+        natureza: document.getElementById('natureza').value.trim(),
+        qtd_o:    document.getElementById('qtd_o').value.trim(),
+        detidos:  document.getElementById('detidos').value.trim(),
+        policiais: policiais,
+        armas:    obterArmas(),
+        drogas:   obterDrogas()
+      };
+
+      google.script.run
+        .withSuccessHandler(res => {
+          setStatus('>> ' + res, 'var(--accent-color)');
+          limparFormulario();
+        })
+        .withFailureHandler(err => setStatus('>> ERRO: ' + err.message, 'var(--danger-color)'))
+        .processarEntradaManual(payload);
+    }
+
+    function limparFormulario() {
+      ['mike','boe','data','hora','cidade','bairro','natureza','qtd_o','ais','detidos'].forEach(id => {
+          if (document.getElementById(id)) document.getElementById(id).value = '';
+      });
+      policiaisSet.clear();
+      document.getElementById('policeTableBody').innerHTML =
+        '<tr id="police-empty-row"><td colspan="5" class="police-empty-msg">Nenhum policial adicionado</td></tr>';
+      document.getElementById('armasList').innerHTML = '';
+      document.getElementById('drogasList').innerHTML = '';
+      ocrTerminal.innerText = 'Aguardando documento para processar...';
+    }
+
+    // Carrega o efetivo assim que o modal abre
+    carregarEfetivo();
+
+        // Listeners pontuacao
+        document.getElementById('data').addEventListener('change', updatePontuacao);
+        document.getElementById('hora').addEventListener('change', updatePontuacao);
+        document.getElementById('boe').addEventListener('change', updatePontuacao);
+        document.getElementById('detidos').addEventListener('change', function() {
+           const v = this.value.toUpperCase();
+           if(v.includes('APFD') || v.includes('TCO') || v.includes('BOC') || v.includes('AAFAI')) {
+              document.getElementById('imputado').value = 'COM IMPUTADO';
+           }
+           updatePontuacao();
+        });
+
+    // ── HELPERS ───────────────────────────────────────────────────
+    function log(msg) {
+      ocrTerminal.innerText = (ocrTerminal.innerText === 'Aguardando documento para processar...' ? '' : ocrTerminal.innerText)
+        + msg + '\n';
+      ocrTerminal.scrollTop = ocrTerminal.scrollHeight;
+    }
+
+    function setStatus(msg, color) {
+      statusMsg.innerText = msg;
+      statusMsg.style.color = color;
+    }
+
+    function mostrarProgresso(label, pct) {
+      progressLabel.style.display = 'block';
+      progressCont.style.display  = 'block';
+      progressLabel.innerText = label;
+      progressBar.style.width = pct + '%';
+    }
+
+    function esconderProgresso() {
+      setTimeout(() => {
+        progressLabel.style.display = 'none';
+        progressCont.style.display  = 'none';
+        progressBar.style.width = '0%';
+      }, 600);
+    }
+    // ==========================================
+    // Alternar Painel OCR
+    // ==========================================
+    function toggleOCR() {
+      const panelLeft = document.querySelector('.panel-left');
+      const btn = document.getElementById('btnToggleOCR');
+      if (panelLeft.style.display === 'none') {
+        panelLeft.style.display = 'flex';
+        btn.classList.remove('collapsed');
+        btn.querySelector('span').innerText = 'Ocultar OCR';
+      } else {
+        panelLeft.style.display = 'none';
+        btn.classList.add('collapsed');
+        btn.querySelector('span').innerText = 'Mostrar OCR';
+      }
+    }
+  </script>
+</body>
+</html>

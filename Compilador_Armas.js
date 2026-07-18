@@ -1,0 +1,277 @@
+/**
+ * PROJETO: Compilador de Armas GS
+ * LOTE: Ocorrência por PEL 2026
+ * DESCRIÇÃO: Script para consolidação automática do rateio de produtividade de armas.
+ */
+
+// ============================================================================
+// UI - ENTRADA DO FLUXO
+// ============================================================================
+function onOpen() {
+
+  const ui = SpreadsheetApp.getUi();
+
+  ui.createMenu('🔫 ARMAS')
+    .addItem('📅 Seleção Livre', 'abrirMenuSelecaoLivre')
+    .addItem('📊 Anual', 'iniciarModoAnual')
+    .addToUi();
+
+  criarMenuPip_();
+  criarMenuDrogas_();   // ← Chamada do menu de Entorpecentes
+  criarMenuCPM_();
+}
+
+// ============================================================================
+// FUNÇÕES DO COMPILADOR DE ARMAS
+// ============================================================================
+function iniciarModoAnual() {
+  const ui = SpreadsheetApp.getUi();
+  const mesesAnual = ['JAN2026', 'FEV2026', 'MAR2026', 'ABR2026', 'MAI2026', 'JUN2026', 'JUL2026', 'AGO2026', 'SET2026', 'OUT2026', 'NOV2026', 'DEZ2026'];
+  
+  const response = ui.alert('Modo Anual', 'Deseja processar todos os meses de 2026?', ui.ButtonSet.YES_NO);
+  if (response == ui.Button.YES) {
+    executarCompilador(mesesAnual, 'ANUAL');
+  }
+}
+
+function abrirMenuSelecaoLivre() {
+  const htmlOutput = HtmlService.createHtmlOutput(`
+    <div style="font-family: Arial, sans-serif; padding: 10px;">
+      <h4>Selecione os meses para compilar:</h4>
+      <form id="mesesForm">
+        <label><input type="checkbox" name="mes" value="JAN2026"> JAN2026</label><br>
+        <label><input type="checkbox" name="mes" value="FEV2026"> FEV2026</label><br>
+        <label><input type="checkbox" name="mes" value="MAR2026"> MAR2026</label><br>
+        <label><input type="checkbox" name="mes" value="ABR2026"> ABR2026</label><br>
+        <label><input type="checkbox" name="mes" value="MAI2026"> MAI2026</label><br>
+        <label><input type="checkbox" name="mes" value="JUN2026"> JUN2026</label><br>
+        <label><input type="checkbox" name="mes" value="JUL2026"> JUL2026</label><br>
+        <label><input type="checkbox" name="mes" value="AGO2026"> AGO2026</label><br>
+        <label><input type="checkbox" name="mes" value="SET2026"> SET2026</label><br>
+        <label><input type="checkbox" name="mes" value="OUT2026"> OUT2026</label><br>
+        <label><input type="checkbox" name="mes" value="NOV2026"> NOV2026</label><br>
+        <label><input type="checkbox" name="mes" value="DEZ2026"> DEZ2026</label><br>
+        <br>
+        <button type="button" onclick="enviar()" style="padding: 8px 15px; background: #0f9d58; color: white; border: none; border-radius: 4px; cursor: pointer;">Compilar</button>
+      </form>
+      <script>
+        function enviar() {
+          const checkboxes = document.querySelectorAll('input[name="mes"]:checked');
+          const selecionados = Array.from(checkboxes).map(cb => cb.value);
+          if (selecionados.length === 0) {
+            alert('Selecione pelo menos um mês!');
+            return;
+          }
+          google.script.run.withSuccessHandler(google.script.host.close).processarMenuLivre(selecionados);
+        }
+      </script>
+    </div>
+  `).setWidth(300).setHeight(400);
+  
+  SpreadsheetApp.getUi().showModalDialog(htmlOutput, 'Seleção Livre de Meses');
+}
+
+function processarMenuLivre(mesesSelecionados) {
+  executarCompilador(mesesSelecionados, 'LIVRE');
+}
+
+// ============================================================================
+// MOTOR PRINCIPAL DO COMPILADOR
+// ============================================================================
+function executarCompilador(mesesAlvo, modo) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  
+  let logs = {
+    abasProcessadas: [],
+    linhasLidas: 0,
+    policiaisUnicos: 0,
+    linhasIgnoradas: 0,
+    avisosGerados: []
+  };
+  
+  let dadosBrutos = [];
+  
+  try {
+    mesesAlvo.forEach(nomeAba => {
+      const sheet = ss.getSheetByName(nomeAba);
+      
+      if (!sheet) {
+        logs.avisosGerados.push(`Aba '${nomeAba}' não encontrada — mês pulado.`);
+        return; 
+      }
+      
+      logs.abasProcessadas.push(nomeAba);
+      
+      const lastCol = sheet.getLastColumn();
+      const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toUpperCase());
+      
+      const idxBoe = headers.indexOf('BOE');
+      const idxPelotao = headers.indexOf('PELOTÃO');
+      const idxMatricula = headers.indexOf('MATRICULA');
+      const idxPolicial = headers.indexOf('POLICIAL');
+      
+      let idxGraduacao = headers.indexOf('GRADUAÇÃO');
+      if (idxGraduacao === -1) idxGraduacao = headers.indexOf('GRAD');
+
+      let idxArmas = headers.indexOf('QDT ARMAS');
+      if (idxArmas === -1) idxArmas = headers.indexOf('QTD ARMAS');
+      
+      if (idxPelotao === -1) throw new Error(`Coluna PELOTÃO não encontrada no cabeçalho da aba ${nomeAba}.`);
+      if (idxMatricula === -1) throw new Error(`Coluna MATRICULA não encontrada no cabeçalho da aba ${nomeAba}.`);
+      if (idxPolicial === -1) throw new Error(`Coluna POLICIAL não encontrada no cabeçalho da aba ${nomeAba}.`);
+      if (idxArmas === -1) throw new Error(`Coluna QDT ARMAS (ou QTD ARMAS) não encontrada no cabeçalho da aba ${nomeAba}.`);
+      
+      const numRows = sheet.getLastRow() - 1;
+      if (numRows <= 0) return;
+      
+      const data = sheet.getRange(2, 1, numRows, lastCol).getValues();
+      logs.linhasLidas += data.length;
+      
+      let boesVistos = {};
+      
+      data.forEach((row, index) => {
+        const linhaReal = index + 2;
+        const boe = idxBoe !== -1 ? String(row[idxBoe]).trim() : ""; 
+        const pelotao = row[idxPelotao];
+        const graduacao = idxGraduacao !== -1 ? row[idxGraduacao] : "";
+        const matricula = String(row[idxMatricula]).trim();
+        const policial = row[idxPolicial];
+        const qtdArmas = Number(row[idxArmas]);
+        
+        if (boe !== "") {
+          if (!boesVistos[boe]) {
+            boesVistos[boe] = true;
+            if (matricula !== "" && qtdArmas > 0) {
+              logs.avisosGerados.push(`Linha mestra do BOE ${boe} na linha ${linhaReal} (${nomeAba}) possui matrícula e QDT ARMAS preenchidos.`);
+            }
+          }
+        }
+        
+        if (matricula === "" || isNaN(qtdArmas) || qtdArmas === 0) {
+          logs.linhasIgnoradas++;
+          return;
+        }
+        
+        const regexNumerica = /^\d+$/;
+        if (!regexNumerica.test(matricula)) {
+          throw new Error(`Matrícula inválida na aba ${nomeAba}, linha ${linhaReal}: '${matricula}'.`);
+        }
+        
+        dadosBrutos.push({ pelotao, graduacao, matricula, policial, qtdArmas });
+      });
+    });
+    
+    if (dadosBrutos.length === 0) {
+      ui.alert('Aviso', 'Nenhum dado válido de armas foi encontrado.', ui.ButtonSet.OK);
+      return;
+    }
+    
+    let produtividade = {};
+    
+    dadosBrutos.forEach(item => {
+      if (!produtividade[item.matricula]) {
+        produtividade[item.matricula] = { nome: item.policial, pelotao: item.pelotao, graduacao: item.graduacao, score: 0 };
+        logs.policiaisUnicos++;
+      }
+      produtividade[item.matricula].score += item.qtdArmas;
+    });
+    
+    let ranking = [];
+    for (const mat in produtividade) {
+      ranking.push([produtividade[mat].pelotao, produtividade[mat].graduacao, mat, produtividade[mat].nome, produtividade[mat].score]);
+    }
+    ranking.sort((a, b) => b[4] - a[4]);
+    
+    let nomeBaseAba = modo === 'ANUAL' ? 'COMP_ARMAS_2026' : `COMP_ARMAS_${logs.abasProcessadas[0]}_${logs.abasProcessadas[logs.abasProcessadas.length - 1]}`;
+    let nomeFinalAba = nomeBaseAba;
+    let versao = 1;
+    
+    while (ss.getSheetByName(nomeFinalAba)) {
+      nomeFinalAba = `${nomeBaseAba}.v${versao}`;
+      versao++;
+    }
+    
+    const novaAba = ss.insertSheet(nomeFinalAba);
+    
+    const cabecalhoResultado = [['PELOTÃO', 'GRADUAÇÃO', 'MATRÍCULA', 'POLICIAL', 'SCORE ACUMULADO (ARMAS)']];
+    novaAba.getRange(1, 1, 1, 5).setValues(cabecalhoResultado).setFontWeight("bold").setBackground("#e0e0e0");
+    
+    if (ranking.length > 0) {
+      novaAba.getRange(2, 1, ranking.length, 5).setValues(ranking);
+      
+      let backgrounds = [];
+      let fontColors = [];
+      
+      ranking.forEach(row => {
+        const pelotaoStr = String(row[0]).toUpperCase();
+        const score = Number(row[4]);
+        
+        let corPel = '#FFFFFF';
+        if (pelotaoStr.includes('OFICIAIS')) corPel = '#F1C232';
+        else if (/1[º°O]?\s*PEL/i.test(pelotaoStr)) corPel = '#00FF00';
+        else if (/2[º°O]?\s*PEL/i.test(pelotaoStr)) corPel = '#6D9EEB';
+        else if (/3[º°O]?\s*PEL/i.test(pelotaoStr)) corPel = '#FFFFFF';
+        
+        let corArma = '#FFFFFF';
+        let corFonteArma = '#000000';
+        
+        if (score >= 10) {
+          corArma = '#38761D';
+          corFonteArma = '#FFFFFF';
+        } else if (score >= 6) {
+          corArma = '#93C47D';
+        } else if (score >= 4) {
+          corArma = '#FFFF00';
+        } else if (score >= 1) {
+          corArma = '#FF9900';
+        }
+        
+        backgrounds.push([corPel, corPel, corPel, corPel, corArma]);
+        fontColors.push(['#000000', '#000000', '#000000', '#000000', corFonteArma]);
+      });
+      
+      const dataRange = novaAba.getRange(2, 1, ranking.length, 5);
+      dataRange.setBackgrounds(backgrounds);
+      dataRange.setFontColors(fontColors);
+      dataRange.setHorizontalAlignment("center");
+      novaAba.getRange(2, 4, ranking.length, 1).setHorizontalAlignment("left");
+    }
+    
+    novaAba.autoResizeColumns(1, 5);
+    
+    const nomeLog = modo === 'ANUAL' ? 'LOG_ANUAL' : 'LOG_LIVRE';
+    let abaLog = ss.getSheetByName(nomeLog);
+    if (!abaLog) abaLog = ss.insertSheet(nomeLog);
+    
+    abaLog.clear();
+    
+    const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
+    
+    const conteudoLog = [
+      ['RELATÓRIO DE EXECUÇÃO - COMPILADOR DE ARMAS GS'],
+      ['Modo de Execução:', modo],
+      ['Data/Hora:', timestamp],
+      ['Aba Gerada:', nomeFinalAba],
+      [''],
+      ['ESTATÍSTICAS'],
+      ['Abas Processadas:', logs.abasProcessadas.join(', ') || 'Nenhuma'],
+      ['Total de Linhas Lidas:', logs.linhasLidas],
+      ['Policiais Únicos Identificados:', logs.policiaisUnicos],
+      ['Linhas Ignoradas:', logs.linhasIgnoradas],
+      ['Alertas Gerados:', logs.avisosGerados.length],
+      [''],
+      ['AVISOS DETALHADOS']
+    ];
+    
+    logs.avisosGerados.forEach(aviso => conteudoLog.push(['-', aviso]));
+    
+    abaLog.getRange(1, 1, conteudoLog.length, 2).setValues(conteudoLog.map(linha => linha.length === 1 ? [linha[0], ''] : linha));
+    abaLog.autoResizeColumns(1, 2);
+    
+    ui.alert('Sucesso!', `Compilação concluída.\nAba: ${nomeFinalAba}`, ui.ButtonSet.OK);
+
+  } catch (error) {
+    ui.alert('🛑 ERRO BLOQUEANTE', error.message, ui.ButtonSet.OK);
+  }
+}
