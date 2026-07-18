@@ -447,16 +447,29 @@
       if (!text) return;
       const upper = text.toUpperCase();
 
-      // MIKE = Número do Boletim de Ocorrência (PM)
-      const mikeMatch = text.match(/MIKE\s*[:\-]?\s*(\d{5,15})/i)
-                     || text.match(/BOEPM\s*[:\-]?\s*(\d{5,15})/i);
-      if (mikeMatch) document.getElementById('mike').value = mikeMatch[1].replace(/[\s]/g,'');
+      // 1. Tentar achar o número logo após "BOLETIM DE OCORRÊNCIA Nº:"
+      const boletimMatch = text.match(/BOLETIM\s+DE\s+OCORR[ÊE]NCIA\s+N[º°\.\s]*[:\s]*([A-Z0-9\/]+)/i);
+      if (boletimMatch) {
+          const num = boletimMatch[1].replace(/[\s]/g, '');
+          // Se for puramente números (ignorando barras), é o MIKE (PM). Se tiver letras (ex: 26E...), é o BOE (PC).
+          if (/^\d+$/.test(num.replace(/\//g, ''))) {
+              document.getElementById('mike').value = num;
+          } else {
+              document.getElementById('boe').value = num;
+          }
+      }
 
-      // BOE = Boletim de Ocorrência da Polícia Civil (ex: 26E1174010335)
-      const boeMatch = text.match(/BOLETIM\s+DE\s+OCORR[ÊE]NCIA\s+N[º°\.\s]*[:\s]*([A-Z0-9\/]+)/i)
-                    || text.match(/BOE?\s*N[º°\.\s]*[:\-]?\s*([A-Z0-9\/]+)/i)
-                    || text.match(/\b(\d{4}\/\d{4,})\b/);
-      if (boeMatch) document.getElementById('boe').value = boeMatch[1].trim();
+      // 2. Fallbacks explícitos para MIKE se ainda estiver vazio
+      if (!document.getElementById('mike').value) {
+          const mikeExplicit = text.match(/MIKE\s*[:\-]?\s*(\d{5,20})/i) || text.match(/BOEPM\s*[:\-]?\s*(\d{5,20})/i) || text.match(/BOE?\s*N[º°\.\s]*[:\-]?\s*([\d\/]+)/i);
+          if (mikeExplicit) document.getElementById('mike').value = mikeExplicit[1].replace(/[\s]/g,'');
+      }
+
+      // 3. Fallbacks explícitos para BOE se ainda estiver vazio
+      if (!document.getElementById('boe').value) {
+          const boeExplicit = text.match(/BOEPC\s*[:\-]?\s*([A-Z0-9\/]+)/i) || text.match(/BOE\s*[:\-]?\s*([A-Z0-9\/]+)/i) || text.match(/\b(\d{4}\/\d{4,})\b/);
+          if (boeExplicit) document.getElementById('boe').value = boeExplicit[1].trim();
+      }
 
       // Natureza
       const naturezaMatch = text.match(/Naturezas?:\s*(.*?)(?=\s*Data do Fato:|\n|$)/i);
