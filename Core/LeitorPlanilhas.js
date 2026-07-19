@@ -17,6 +17,11 @@ const SyntheonLeitor = {
     const ocorrenciasPorChave = {}; // chave -> OcorrenciaPadronizada
     
     abasAlvo.forEach(nomeAba => {
+      const inicioAba = Date.now();
+      let linhasAba = 0;
+      let ocorrenciasAba = new Set();
+      let policiaisAba = new Set();
+
       const sheet = ss.getSheetByName(nomeAba);
       if (!sheet) {
         logger.aviso(`Aba ${nomeAba} não encontrada e foi pulada.`);
@@ -53,7 +58,11 @@ const SyntheonLeitor = {
         cocaina: SyntheonUtils.localizarColuna(headers, 'COCAINA'),
         crack: SyntheonUtils.localizarColuna(headers, 'CRACK'),
         pontosTotais: SyntheonUtils.localizarColuna(headers, 'PONTOS_TOTAIS'),
-        pontosFiccao: SyntheonUtils.localizarColuna(headers, 'PONTOS_FICCAO')
+        pontosFiccao: SyntheonUtils.localizarColuna(headers, 'PONTOS_FICCAO'),
+        detidos: SyntheonUtils.localizarColuna(headers, 'DETIDOS'),
+        apfd: SyntheonUtils.localizarColuna(headers, 'APFD'),
+        tco: SyntheonUtils.localizarColuna(headers, 'TCO'),
+        boc: SyntheonUtils.localizarColuna(headers, 'BOC')
       };
 
       // Validação básica do cabeçalho
@@ -102,10 +111,15 @@ const SyntheonLeitor = {
           }
         }
 
+        linhasAba++;
+
         // Mapear chaves identificadoras
         const mike = idx.mike !== -1 ? String(row[idx.mike]).trim() : '';
         const boe = idx.boe !== -1 ? String(row[idx.boe]).trim() : '';
         const chave = (mike && boe) ? `${mike}|${boe}` : (mike || boe || `L${linhaReal}_${nomeAba}`);
+        
+        ocorrenciasAba.add(chave);
+        policiaisAba.add(matricula);
 
         // Cruzamento com a base de Efetivo
         const cadastro = mapaEfetivo[matricula];
@@ -131,6 +145,10 @@ const SyntheonLeitor = {
         const crack = idx.crack !== -1 ? SyntheonUtils.converterNumero(row[idx.crack]) : 0;
         const pontosTotais = idx.pontosTotais !== -1 ? SyntheonUtils.converterNumero(row[idx.pontosTotais]) : 0;
         const pontosFiccao = idx.pontosFiccao !== -1 ? SyntheonUtils.converterNumero(row[idx.pontosFiccao]) : 0;
+        const detidos = idx.detidos !== -1 ? SyntheonUtils.converterNumero(row[idx.detidos]) : 0;
+        const apfd = idx.apfd !== -1 ? SyntheonUtils.converterNumero(row[idx.apfd]) : 0;
+        const tco = idx.tco !== -1 ? SyntheonUtils.converterNumero(row[idx.tco]) : 0;
+        const boc = idx.boc !== -1 ? SyntheonUtils.converterNumero(row[idx.boc]) : 0;
 
         // Validar que quantidades não são negativas
         if (!SyntheonValidador.validarQuantidadeNaoNegativa(armas) ||
@@ -173,7 +191,12 @@ const SyntheonLeitor = {
             armas: 0,
             maconha: 0,
             cocaina: 0,
-            crack: 0
+            crack: 0,
+            detidos: 0,
+            apfd: 0,
+            tco: 0,
+            boc: 0,
+            qtdBoe: boe ? 1 : 0
           };
           logger.linhasValidas++;
         } else {
@@ -187,9 +210,18 @@ const SyntheonLeitor = {
         pol.maconha += mac;
         pol.cocaina += coc;
         pol.crack += crack;
+        pol.detidos += detidos;
+        pol.apfd += apfd;
+        pol.tco += tco;
+        pol.boc += boc;
 
         // Prevenir duplicação da pontuação rateada no mesmo evento
         pol.pontosFiccao = Math.max(pol.pontosFiccao, pontosFiccao);
+      }
+      
+      const tempoAba = ((Date.now() - inicioAba) / 1000).toFixed(2);
+      if (typeof logger.logAbaDetalhado === 'function') {
+        logger.logAbaDetalhado(nomeAba, linhasAba, ocorrenciasAba.size, policiaisAba.size, tempoAba);
       }
     });
 

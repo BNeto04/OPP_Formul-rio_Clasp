@@ -27,6 +27,13 @@ class SyntheonLogger {
     }
   }
 
+  logAbaDetalhado(nomeAba, linhas, ocorrencias, policiais, tempoSegundos) {
+    // Pode imprimir no console de debug
+    if (typeof Logger !== 'undefined') {
+      Logger.log(`[ABA] ${nomeAba} | ${linhas} linhas | ${ocorrencias} ocorrências | ${policiais} policiais | Tempo: ${tempoSegundos}s`);
+    }
+  }
+
   aviso(mensagem) {
     this.avisos.push(mensagem);
     if (CONFIG_SYNTHEON.DEBUG) {

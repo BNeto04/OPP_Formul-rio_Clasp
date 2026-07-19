@@ -28,6 +28,13 @@ const SyntheonMetricas = {
             cocaina: 0,
             crack: 0,
             drogasTotal: 0,
+            detidos: 0,
+            apfd: 0,
+            tco: 0,
+            boc: 0,
+            qtdBoe: 0,
+            ocorrenciasComArma: 0,
+            ocorrenciasComDroga: 0,
             historicoEscalas: [] // Armazena todas as lotações por onde passou
           };
         }
@@ -43,23 +50,39 @@ const SyntheonMetricas = {
         }
 
         registro.ocorrencias++;
+        if (pol.armas > 0) registro.ocorrenciasComArma++;
+        if (pol.maconha > 0 || pol.cocaina > 0 || pol.crack > 0) registro.ocorrenciasComDroga++;
         
         // Acumular Pontuações
         // Para PIP/CPM, a pontuação consolidada no Objeto Canônico é a pontosFiccao rateada
-        registro.pontosPIP += pol.pontosFiccao;
-        registro.pontosCPM += pol.pontosFiccao; // CPM utiliza a mesma base de pontos na célula
+        registro.pontosPIP += pol.pontosFiccao || 0;
+        registro.pontosCPM += pol.pontosFiccao || 0; // CPM utiliza a mesma base de pontos na célula
+        registro.pontosTotais += pol.pontosFiccao || 0;
 
-        // Acumular Apreensões
-        registro.armas += pol.armas;
-        registro.maconha += pol.maconha;
-        registro.cocaina += pol.cocaina;
-        registro.crack += pol.crack;
+        // Acumular Apreensões e KPIs
+        registro.armas += pol.armas || 0;
+        registro.maconha += pol.maconha || 0;
+        registro.cocaina += pol.cocaina || 0;
+        registro.crack += pol.crack || 0;
+        registro.detidos += pol.detidos || 0;
+        registro.apfd += pol.apfd || 0;
+        registro.tco += pol.tco || 0;
+        registro.boc += pol.boc || 0;
+        registro.qtdBoe += pol.qtdBoe || 0;
         
         // Peso total de drogas (maconha + cocaína + crack)
-        registro.drogasTotal += (pol.maconha + pol.cocaina + pol.crack);
+        registro.drogasTotal += ((pol.maconha || 0) + (pol.cocaina || 0) + (pol.crack || 0));
       });
     });
 
-    return produtividade;
+    const resultado = {};
+    for (const matricula in produtividade) {
+      const reg = produtividade[matricula];
+      reg.pontosTotais = reg.pontosCPM;
+      // Requer que a classe RegistroAnalitico já tenha sido carregada pelo Google Apps Script
+      resultado[matricula] = typeof RegistroAnalitico !== 'undefined' ? new RegistroAnalitico(reg) : reg;
+    }
+
+    return resultado;
   }
 };
