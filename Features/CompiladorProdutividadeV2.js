@@ -42,15 +42,14 @@ class CompiladorProdutividadeV2 {
     // O Modelo se encarrega de ordenar os dados conforme suas próprias regras de negócio
     registrosAnaliticos = modelo.ordenarDados(registrosAnaliticos);
 
-    // 4. PREPARAÇÃO PARA EXIBIÇÃO (Formatação das linhas via Modelo/Schema)
-    const headers = modelo.obterColunas();
-    const dadosMapeados = registrosAnaliticos.map(reg => modelo.formatarLinha(reg));
+    // 4. RENDERIZAÇÃO LÓGICA E FÍSICA (Pilares 5 e 6)
+    const tema = TemaPMPE;
+    
+    // O Renderer apenas constrói um Documento (agnóstico de Sheets)
+    const documentoLogico = RendererLogico.renderizar(modelo, registrosAnaliticos, tema);
 
-    // 5. RENDERIZAÇÃO LÓGICA / FÍSICA (Pilares 5 e 6)
-    // Na Fase 4 criaremos o Driver. Por enquanto usamos o RendererTabela legado
-    // para provar a coexistência da camada superior.
-    const nomeAbaSaida = modelo.obterTitulo();
-    RendererTabela.renderizar(planilha, nomeAbaSaida, headers, dadosMapeados);
+    // O Driver pega o documento e materializa na Planilha (único ponto de contato com a API)
+    GoogleSheetsDriver.materializar(planilha, documentoLogico);
 
     return true;
   }
