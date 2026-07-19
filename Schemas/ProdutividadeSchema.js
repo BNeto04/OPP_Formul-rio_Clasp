@@ -31,18 +31,18 @@ const ProdutividadeSchema = {
       registro.nome,
       registro.grad,
       registro.pelotao,
-      registro.ocorrencias,
-      registro.qtdBoe,
-      registro.pontosTotais,
+      registro.fatos.ocorrencias,
+      registro.fatos.qtdBoe,
+      registro.indicadores.pontosTotais,
       registro.mediaPontos,
-      registro.armas,
+      registro.fatos.armas,
       registro.mediaArmas,
-      registro.maconha,
-      registro.crack,
-      registro.cocaina,
-      registro.drogasTotal,
+      registro.fatos.maconha,
+      registro.fatos.crack,
+      registro.fatos.cocaina,
+      registro.fatos.drogasTotal,
       registro.mediaDrogas,
-      registro.detidos
+      registro.fatos.detidos
     ];
   }
 };

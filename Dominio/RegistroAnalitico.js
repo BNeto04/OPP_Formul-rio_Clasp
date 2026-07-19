@@ -1,53 +1,61 @@
 /**
  * ARQUIVO: Dominio/RegistroAnalitico.js
- * DESCRIÇÃO: Entidade canônica que consolida a produção de um policial ou entidade,
- * gerando e disponibilizando os Indicadores Chave de Desempenho (KPIs).
+ * DESCRIÇÃO: Entidade canônica que consolida a produção de um policial ou entidade.
+ * Segue estritamente a Regra #1 (Separação de Fatos vs Indicadores) e Rastreabilidade.
  */
 class RegistroAnalitico {
   constructor(dados) {
+    // Rastreabilidade e Identificação
     this.matricula = dados.matricula || '';
     this.nome = dados.nome || '';
     this.grad = dados.grad || '';
     this.pelotao = dados.pelotao || '';
-    
-    this.ocorrencias = dados.ocorrencias || 0;
-    this.qtdBoe = dados.qtdBoe || 0;
-    this.pontosTotais = dados.pontosTotais || 0;
-    
-    this.armas = dados.armas || 0;
-    this.maconha = dados.maconha || 0;
-    this.cocaina = dados.cocaina || 0;
-    this.crack = dados.crack || 0;
-    this.drogasTotal = dados.drogasTotal || 0;
-    
-    this.detidos = dados.detidos || 0;
-    this.apfd = dados.apfd || 0;
-    this.tco = dados.tco || 0;
-    this.boc = dados.boc || 0;
+    this.historicoEscalas = dados.historicoEscalas || [];
 
-    this.ocorrenciasComArma = dados.ocorrenciasComArma || 0;
-    this.ocorrenciasComDroga = dados.ocorrenciasComDroga || 0;
+    // Fatos (Imutáveis: Quantidades extraídas diretamente da Fonte)
+    this.fatos = {
+      ocorrencias: dados.fatos?.ocorrencias ?? dados.ocorrencias ?? 0,
+      qtdBoe: dados.fatos?.qtdBoe ?? dados.qtdBoe ?? 0,
+      armas: dados.fatos?.armas ?? dados.armas ?? 0,
+      maconha: dados.fatos?.maconha ?? dados.maconha ?? 0,
+      cocaina: dados.fatos?.cocaina ?? dados.cocaina ?? 0,
+      crack: dados.fatos?.crack ?? dados.crack ?? 0,
+      drogasTotal: dados.fatos?.drogasTotal ?? dados.drogasTotal ?? 0,
+      detidos: dados.fatos?.detidos ?? dados.detidos ?? 0,
+      apfd: dados.fatos?.apfd ?? dados.apfd ?? 0,
+      tco: dados.fatos?.tco ?? dados.tco ?? 0,
+      boc: dados.fatos?.boc ?? dados.boc ?? 0,
+      ocorrenciasComArma: dados.fatos?.ocorrenciasComArma ?? dados.ocorrenciasComArma ?? 0,
+      ocorrenciasComDroga: dados.fatos?.ocorrenciasComDroga ?? dados.ocorrenciasComDroga ?? 0
+    };
+
+    // Indicadores (Variáveis calculadas pelo Motor Analítico)
+    this.indicadores = {
+      pontosTotais: dados.indicadores?.pontosTotais ?? dados.pontosTotais ?? 0,
+      pontosPIP: dados.indicadores?.pontosPIP ?? dados.pontosPIP ?? 0,
+      pontosCPM: dados.indicadores?.pontosCPM ?? dados.pontosCPM ?? 0
+    };
   }
 
-  // --- KPIs Derivados --- //
+  // --- KPIs Derivados Dinamicamente (Indicadores Computados) --- //
 
   get mediaPontos() {
-    return this.ocorrencias > 0 ? parseFloat((this.pontosTotais / this.ocorrencias).toFixed(2)) : 0;
+    return this.fatos.ocorrencias > 0 ? parseFloat((this.indicadores.pontosTotais / this.fatos.ocorrencias).toFixed(2)) : 0;
   }
 
   get mediaArmas() {
-    return this.ocorrencias > 0 ? parseFloat((this.armas / this.ocorrencias).toFixed(2)) : 0;
+    return this.fatos.ocorrencias > 0 ? parseFloat((this.fatos.armas / this.fatos.ocorrencias).toFixed(2)) : 0;
   }
 
   get mediaDrogas() {
-    return this.ocorrencias > 0 ? parseFloat((this.drogasTotal / this.ocorrencias).toFixed(2)) : 0;
+    return this.fatos.ocorrencias > 0 ? parseFloat((this.fatos.drogasTotal / this.fatos.ocorrencias).toFixed(2)) : 0;
   }
 
   get percentualArmas() {
-    return this.ocorrencias > 0 ? parseFloat((this.ocorrenciasComArma / this.ocorrencias).toFixed(2)) : 0;
+    return this.fatos.ocorrencias > 0 ? parseFloat((this.fatos.ocorrenciasComArma / this.fatos.ocorrencias).toFixed(2)) : 0;
   }
   
   get percentualDrogas() {
-    return this.ocorrencias > 0 ? parseFloat((this.ocorrenciasComDroga / this.ocorrencias).toFixed(2)) : 0;
+    return this.fatos.ocorrencias > 0 ? parseFloat((this.fatos.ocorrenciasComDroga / this.fatos.ocorrencias).toFixed(2)) : 0;
   }
 }
