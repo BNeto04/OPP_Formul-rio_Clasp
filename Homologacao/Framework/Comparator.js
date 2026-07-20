@@ -15,11 +15,13 @@ class Comparator {
   extrairDatasets(sheet, metadado, mapaEfetivo) {
     const tempos = {};
 
-    // 1. Extração V1 (MOCK)
+    // 1. Extração V1 real usando os motores legados
     const t0_v1 = new Date().getTime();
-    // const rawV1 = LeitorPlanilhas.lerAba(sheet);
-    // const arrayV1 = Metricas.processarProdutividadePolicial(rawV1, mapaEfetivo);
-    const arrayV1 = []; // Placeholder para dados V1 reais
+    const loggerV1 = new SyntheonLogger('HOMOLOGACAO');
+    const ss = sheet.getParent();
+    const ocorrenciasV1 = SyntheonLeitor.lerAbas(ss, [sheet.getName()], null, null, loggerV1);
+    const mapaProdV1 = SyntheonMetricas.consolidarPoliciais(ocorrenciasV1);
+    const arrayV1 = Object.values(mapaProdV1);
     tempos.tempoV1 = new Date().getTime() - t0_v1;
 
     // 2. Extração V2
