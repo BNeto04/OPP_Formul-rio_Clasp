@@ -47,6 +47,29 @@ class Comparator {
     arrayV1.forEach(reg => mapaV1[normalizar(reg.matricula)] = reg);
     arrayV2.forEach(reg => mapaV2[normalizar(reg.matricula)] = reg);
     
+    // --- INÍCIO DEPURAÇÃO (SOLICITADA PELO USUÁRIO) ---
+    let divergenciasLogadas = 0;
+    Object.keys(mapaV2).forEach(chaveV2 => {
+       if (!mapaV1[chaveV2] && divergenciasLogadas < 5) {
+           divergenciasLogadas++;
+           const regV2 = mapaV2[chaveV2];
+           
+           // Achar correspondente na força bruta (tirando qualquer não-número para garantir que a gente encontre)
+           const matriculaV2ApenasNumeros = String(regV2.matricula).replace(/\\D/g, ''); // a regex certa de limpar tudo
+           const v1Match = arrayV1.find(r => String(r.matricula).replace(/\\D/g, '') === matriculaV2ApenasNumeros);
+           
+           Logger.log(`[DEPURAÇÃO DIVERGÊNCIA #${divergenciasLogadas}]`);
+           Logger.log(`Matrícula original da V1: ${v1Match ? v1Match.matricula : 'NÃO ENCONTRADO'}`);
+           Logger.log(`Matrícula normalizada da V1: ${v1Match ? normalizar(v1Match.matricula) : 'N/A'}`);
+           Logger.log(`Matrícula original da V2: ${regV2.matricula}`);
+           Logger.log(`Matrícula normalizada da V2: ${normalizar(regV2.matricula)}`);
+           Logger.log(`Chave efetivamente usada no Map da V1: ${v1Match ? normalizar(v1Match.matricula) : 'N/A'}`);
+           Logger.log(`Chave efetivamente usada no Map da V2: ${chaveV2}`);
+           Logger.log(`Chave utilizada na consulta: ${chaveV2}`);
+       }
+    });
+    // --- FIM DEPURAÇÃO ---
+
     return { mapaV1, mapaV2 };
   }
 }
