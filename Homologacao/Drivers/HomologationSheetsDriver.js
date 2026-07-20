@@ -18,7 +18,7 @@ class HomologationSheetsDriver {
     // Cabeçalho
     aba.appendRow([relatorio.titulo, relatorio.dataHora, relatorio.sucessoTotal ? "APROVADO ✅" : "REPROVADO ❌"]);
     aba.appendRow([`Tempo V1: ${relatorio.estatisticas.tempoV1_ms}ms`, `Tempo V2: ${relatorio.estatisticas.tempoV2_ms}ms`, ""]);
-    aba.appendRow([]);
+    aba.appendRow(["", "", ""]);
     aba.appendRow(["MÉTRICA", "V1 (LEGADO)", "V2 (NOVO)", "STATUS", "DIAGNÓSTICO"]);
     
     // Dados
