@@ -58,5 +58,30 @@ function compilarProdutividadeBetaV2() {
 // FASE 5: TESTES DE HOMOLOGAÇÃO (Validação Operacional)
 // ---------------------------------------------------------
 function rodarTesteDeHomologacao() {
-  ValidadorEquivalencia.compararMotores();
+  const planilha = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = planilha.getSheetByName("JAN2026");
+  
+  if (!sheet) {
+    Logger.log("[ERRO] Aba JAN2026 não encontrada para teste.");
+    return;
+  }
+
+  // 1. Instanciar o Driver Desejado (Pode ser ConsoleDriver, JsonDriver, ou SheetsDriver)
+  const driverVisual = new HomologationSheetsDriver(); 
+  
+  // 2. Instanciar a Engine
+  const engine = new HomologationEngine(driverVisual);
+  
+  // 3. Registrar a Suíte de Testes Isolados
+  engine.registrarTeste(testOcorrencias);
+  engine.registrarTeste(testArmas);
+  engine.registrarTeste(testDrogas);
+  engine.registrarTeste(testPontuacao);
+  
+  // 4. Executar passando o dataset real
+  // Mock de mapa efetivo (como nos scripts anteriores)
+  const mapaEfetivo = {}; 
+  const metadado2026 = CatalogoEstruturas[FonteDados.OPP_2026];
+  
+  engine.executar(sheet, metadado2026, mapaEfetivo);
 }
