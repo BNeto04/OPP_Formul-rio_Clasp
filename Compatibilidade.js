@@ -53,3 +53,10 @@ function compilarProdutividadeBetaV2() {
   // const dados = MotorAnaliticoV2.processar(Adaptador2026.ler());
   // return GoogleSheetsDriver.imprimir(Renderer.renderizar(dados, modelo));
 }
+
+// ---------------------------------------------------------
+// FASE 5: TESTES DE HOMOLOGAÇÃO (Validação Operacional)
+// ---------------------------------------------------------
+function rodarTesteDeHomologacao() {
+  ValidadorEquivalencia.compararMotores();
+}
