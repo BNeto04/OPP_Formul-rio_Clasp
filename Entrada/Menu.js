@@ -16,6 +16,12 @@ function onOpen() {
     .addItem('📊 Anual', 'iniciarModoAnual')
     .addToUi();
 
+  // Menu do novo framework
+  ui.createMenu('🏆 PRODUTIVIDADE')
+    .addItem('📊 Rápida (Todas as Abas)', 'compilarProdutividadeRapida')
+    .addItem('⚙️ Avançada (Selecionar Meses)', 'compilarProdutividadeAvancada')
+    .addToUi();
+
   criarMenuPip_();
   criarMenuDrogas_();   // ← Chamada do menu de Entorpecentes
   criarMenuCPM_();
