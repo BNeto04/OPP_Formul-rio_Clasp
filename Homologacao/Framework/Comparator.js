@@ -40,8 +40,12 @@ class Comparator {
     const mapaV1 = {};
     const mapaV2 = {};
     
-    arrayV1.forEach(reg => mapaV1[reg.matricula] = reg);
-    arrayV2.forEach(reg => mapaV2[reg.matricula] = reg);
+    // V1 usa matrícula sem hífen (1139207). V2 usa com hífen (113920-7).
+    // O comparador normaliza a chave para garantir o match (Tira tudo que não for número).
+    const normalizar = (k) => String(k).replace(/\\D/g, '');
+    
+    arrayV1.forEach(reg => mapaV1[normalizar(reg.matricula)] = reg);
+    arrayV2.forEach(reg => mapaV2[normalizar(reg.matricula)] = reg);
     
     return { mapaV1, mapaV2 };
   }
