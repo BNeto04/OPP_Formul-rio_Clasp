@@ -20,6 +20,8 @@ function onOpen() {
   ui.createMenu('🏆 PRODUTIVIDADE')
     .addItem('📊 Rápida (Todas as Abas)', 'compilarProdutividadeRapida')
     .addItem('⚙️ Avançada (Selecionar Meses)', 'compilarProdutividadeAvancada')
+    .addSeparator()
+    .addItem('🧪 [DEV] Rodar Teste Homologação V1 x V2', 'rodarTesteDeHomologacao')
     .addToUi();
 
   criarMenuPip_();
