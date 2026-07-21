@@ -67,6 +67,10 @@ class Adaptador2026 {
       }
 
       const mike = idx.mike !== -1 ? String(row[idx.mike]).trim() : '';
+      
+      // REGRA DO MIKE OBRIGATÓRIO: Se não tem MIKE, não é ocorrência (ignora dias sem alteração e linhas separadoras)
+      if (!mike) continue;
+
       const boe = idx.boe !== -1 ? String(row[idx.boe]).trim() : '';
       
       const rawData = idx.data !== -1 ? row[idx.data] : null;
@@ -83,7 +87,7 @@ class Adaptador2026 {
         dataStr = String(rawData).split(' ')[0];
       }
 
-      const chave = (mike && boe) ? `${dataStr}|${mike}|${boe}` : (mike || boe || `L${i+1}_${sheet.getName()}`);
+      const chave = `${dataStr}|${mike}|${boe}`;
 
       // Enriquecimento do Policial via Efetivo
       const cadastro = mapaEfetivo && mapaEfetivo[matricula] ? mapaEfetivo[matricula] : null;

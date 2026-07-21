@@ -11,10 +11,10 @@ Este documento concentra a lógica de negócio detalhada da planilha operacional
 Um túnel (bloco lógico) agrupa todas as linhas que pertencem a um mesmo evento do mundo real. 
 
 #### Como formar a chave (Coluna AK)
-A chave da ocorrência é a concatenação dos identificadores únicos oficiais:
-* Em ocorrências regulares: `MIKE | BOE`
-* Se faltar o BOE: Usa apenas o `MIKE`
-* Se não houver nenhum dos dois (ex: administrativo): A chave passa a ser a própria linha de origem e a data, garantindo unicidade isolada.
+A chave da ocorrência é a concatenação oficial: `Data | MIKE | BOE`.
+* **Regra do MIKE Obrigatório**: Um Túnel só existe se houver um número de MIKE (coluna E). 
+* Plantões "tranquilos" ou linhas separadoras (que possuem apenas Data e não possuem MIKE) são sumariamente ignoradas pelo Motor Matemático. Sem MIKE, não existe ocorrência.
+* Se faltar o BOE, a chave será gerada apenas como `Data | MIKE | (vazio)`.
 
 *(NOTA: A regra de extração oficial para o Motor Analítico V2 concatena Data, Mike e Boe ou usa a linha de origem).*
 

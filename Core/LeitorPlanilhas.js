@@ -115,9 +115,16 @@ const SyntheonLeitor = {
 
         // Mapear chaves identificadoras
         const mike = idx.mike !== -1 ? String(row[idx.mike]).trim() : '';
+        
+        // REGRA DO MIKE OBRIGATÓRIO
+        if (!mike) {
+          logger.linhasIgnoradas++;
+          continue;
+        }
+
         const boe = idx.boe !== -1 ? String(row[idx.boe]).trim() : '';
         const dataStr = formatarDataBR(dataObjeto);
-        const chave = (mike && boe) ? `${dataStr}|${mike}|${boe}` : (mike || boe || `L${linhaReal}_${nomeAba}`);
+        const chave = `${dataStr}|${mike}|${boe}`;
         
         ocorrenciasAba.add(chave);
         policiaisAba.add(matricula);
