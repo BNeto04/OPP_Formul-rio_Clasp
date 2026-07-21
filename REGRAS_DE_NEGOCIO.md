@@ -66,3 +66,5 @@ As seguintes violações devem gerar um alerta, aviso ou erro no futuro Verifica
 * **ERRO MATEMÁTICO**: Quantidades físicas negativas (ex: -1 arma).
 * **AVISO DE INTEGRIDADE**: Múltiplas linhas do mesmo policial na mesma ocorrência sem fatos extras que justifiquem.
 * **AVISO OPERACIONAL**: Ocorrência com imputado, mas sem nenhum Detido / APFD / TCO preenchido.
+* **ALERTA DE INDICADOR SEM FATO (AM)**: Ocorrência que informa um indicador (ex: "Apreensão de maconha"), mas tem os totalizadores físicos zerados no túnel.
+  * *Limitação Conhecida (V1)*: A fórmula na aba hoje (`=IF(AND(...)`) abrange apenas Maconha, Crack e Cocaína. Indicadores de armas, veículos recuperados, etc., ainda não possuem alerta de integridade automatizado na aba.

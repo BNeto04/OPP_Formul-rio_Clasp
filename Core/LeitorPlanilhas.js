@@ -116,7 +116,8 @@ const SyntheonLeitor = {
         // Mapear chaves identificadoras
         const mike = idx.mike !== -1 ? String(row[idx.mike]).trim() : '';
         const boe = idx.boe !== -1 ? String(row[idx.boe]).trim() : '';
-        const chave = (mike && boe) ? `${mike}|${boe}` : (mike || boe || `L${linhaReal}_${nomeAba}`);
+        const dataStr = formatarDataBR(dataObjeto);
+        const chave = (mike && boe) ? `${dataStr}|${mike}|${boe}` : (mike || boe || `L${linhaReal}_${nomeAba}`);
         
         ocorrenciasAba.add(chave);
         policiaisAba.add(matricula);

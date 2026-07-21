@@ -68,7 +68,22 @@ class Adaptador2026 {
 
       const mike = idx.mike !== -1 ? String(row[idx.mike]).trim() : '';
       const boe = idx.boe !== -1 ? String(row[idx.boe]).trim() : '';
-      const chave = (mike && boe) ? `${mike}|${boe}` : (mike || boe || `L${i+1}_${sheet.getName()}`);
+      
+      const rawData = idx.data !== -1 ? row[idx.data] : null;
+      // Trata a dependência segura caso converterDataUnificada ou formatarDataBR não estejam no escopo imediato (embora estejam no GAS)
+      let dataStr = '';
+      if (typeof converterDataUnificada === 'function' && typeof formatarDataBR === 'function') {
+        dataStr = formatarDataBR(converterDataUnificada(rawData));
+      } else if (rawData instanceof Date) {
+        const d = String(rawData.getDate()).padStart(2, '0');
+        const m = String(rawData.getMonth() + 1).padStart(2, '0');
+        const y = rawData.getFullYear();
+        dataStr = `${d}/${m}/${y}`;
+      } else {
+        dataStr = String(rawData).split(' ')[0];
+      }
+
+      const chave = (mike && boe) ? `${dataStr}|${mike}|${boe}` : (mike || boe || `L${i+1}_${sheet.getName()}`);
 
       // Enriquecimento do Policial via Efetivo
       const cadastro = mapaEfetivo && mapaEfetivo[matricula] ? mapaEfetivo[matricula] : null;
