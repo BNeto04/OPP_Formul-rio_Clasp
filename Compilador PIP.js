@@ -215,8 +215,8 @@ function executarCompiladorPip(abasAlvo, dataInicio, dataFim, modo) {
       p.grad,
       p.matricula,
       p.nome,
-      p.ocorrencias,
-      p.pontosPIP
+      (p.fatos && p.fatos.ocorrencias !== undefined) ? p.fatos.ocorrencias : (p.ocorrencias || 0),
+      (p.indicadores && p.indicadores.pontosPIP !== undefined) ? p.indicadores.pontosPIP : (p.pontosPIP || 0)
     ]);
 
     // 5. Criar aba de resultados com a formatação original intocada
@@ -231,7 +231,7 @@ function executarCompiladorPip(abasAlvo, dataInicio, dataFim, modo) {
       'COMPILAÇÃO PIP CONCLUÍDA',
       `Aba gerada: ${nomeAbaResultado}\n\n` +
       `Policiais processados: ${rankingFormatado.length}\n` +
-      `Pontuação distribuída: ${rankingOrdenado.reduce((s, r) => s + r.pontosPIP, 0).toLocaleString('pt-BR')}\n` +
+      `Pontuação distribuída: ${rankingOrdenado.reduce((s, r) => s + ((r.indicadores && r.indicadores.pontosPIP !== undefined) ? r.indicadores.pontosPIP : (r.pontosPIP || 0)), 0).toLocaleString('pt-BR')}\n` +
       `Linhas válidas: ${logger.linhasValidas}\n` +
       `Linhas ignoradas: ${logger.linhasIgnoradas}\n` +
       `Duplicidades eliminadas: ${logger.duplicidades}\n` +

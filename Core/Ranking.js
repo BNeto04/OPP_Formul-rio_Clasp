@@ -19,20 +19,20 @@ const SyntheonRanking = {
         switch (criterio) {
           case 'PONTOS':
             // Pontos acumulados (PIP ou CPM)
-            valA = a.pontosPIP;
-            valB = b.pontosPIP;
+            valA = (a.indicadores && a.indicadores.pontosPIP !== undefined) ? a.indicadores.pontosPIP : (a.pontosPIP || 0);
+            valB = (b.indicadores && b.indicadores.pontosPIP !== undefined) ? b.indicadores.pontosPIP : (b.pontosPIP || 0);
             break;
           case 'OCORRENCIAS':
-            valA = a.ocorrencias;
-            valB = b.ocorrencias;
+            valA = (a.fatos && a.fatos.ocorrencias !== undefined) ? a.fatos.ocorrencias : (a.ocorrencias || 0);
+            valB = (b.fatos && b.fatos.ocorrencias !== undefined) ? b.fatos.ocorrencias : (b.ocorrencias || 0);
             break;
           case 'ARMAS':
-            valA = a.armas;
-            valB = b.armas;
+            valA = (a.fatos && a.fatos.armas !== undefined) ? a.fatos.armas : (a.armas || 0);
+            valB = (b.fatos && b.fatos.armas !== undefined) ? b.fatos.armas : (b.armas || 0);
             break;
           case 'DROGAS':
-            valA = a.drogasTotal;
-            valB = b.drogasTotal;
+            valA = (a.fatos && a.fatos.drogasTotal !== undefined) ? a.fatos.drogasTotal : (a.drogasTotal || 0);
+            valB = (b.fatos && b.fatos.drogasTotal !== undefined) ? b.fatos.drogasTotal : (b.drogasTotal || 0);
             break;
           default:
             break;
