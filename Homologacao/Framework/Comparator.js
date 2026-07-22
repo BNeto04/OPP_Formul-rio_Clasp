@@ -38,7 +38,7 @@ class Comparator {
       abaV1.appendRow(['MATRICULA_ORIGINAL', 'MATRICULA_NORMALIZADA', 'NOME', 'QTD_OCORRENCIAS']);
       const dadosAbaV1 = arrayV1.map(p => [
         p.matricula, 
-        String(p.matricula).replace(/\\D/g, ''), 
+        String(p.matricula).replace(/\D/g, ''), 
         p.nome, 
         p.fatos ? p.fatos.ocorrencias : (p.ocorrencias || 0)
       ]);
@@ -50,7 +50,7 @@ class Comparator {
       abaV2.appendRow(['MATRICULA_ORIGINAL', 'MATRICULA_NORMALIZADA', 'NOME', 'QTD_OCORRENCIAS']);
       const dadosAbaV2 = arrayV2.map(p => [
         p.matricula, 
-        String(p.matricula).replace(/\\D/g, ''), 
+        String(p.matricula).replace(/\D/g, ''), 
         p.nome, 
         p.fatos ? p.fatos.ocorrencias : (p.ocorrencias || 0)
       ]);
@@ -72,7 +72,7 @@ class Comparator {
     
     // V1 usa matrícula sem hífen (1139207). V2 usa com hífen (113920-7).
     // O comparador normaliza a chave para garantir o match (Tira tudo que não for número).
-    const normalizar = (k) => String(k).replace(/\\D/g, '');
+    const normalizar = (k) => String(k).replace(/\D/g, '');
     
     arrayV1.forEach(reg => mapaV1[normalizar(reg.matricula)] = reg);
     arrayV2.forEach(reg => mapaV2[normalizar(reg.matricula)] = reg);
@@ -85,8 +85,8 @@ class Comparator {
            const regV2 = mapaV2[chaveV2];
            
            // Achar correspondente na força bruta (tirando qualquer não-número para garantir que a gente encontre)
-           const matriculaV2ApenasNumeros = String(regV2.matricula).replace(/\\D/g, ''); // a regex certa de limpar tudo
-           const v1Match = arrayV1.find(r => String(r.matricula).replace(/\\D/g, '') === matriculaV2ApenasNumeros);
+           const matriculaV2ApenasNumeros = String(regV2.matricula).replace(/\D/g, ''); // a regex certa de limpar tudo
+           const v1Match = arrayV1.find(r => String(r.matricula).replace(/\D/g, '') === matriculaV2ApenasNumeros);
            
            Logger.log(`[DEPURAÇÃO DIVERGÊNCIA #${divergenciasLogadas}]`);
            Logger.log(`Matrícula original da V1: ${v1Match ? v1Match.matricula : 'NÃO ENCONTRADO'}`);
