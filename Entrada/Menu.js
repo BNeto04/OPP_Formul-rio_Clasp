@@ -21,6 +21,8 @@ function onOpen() {
     .addItem('📊 Rápida (Todas as Abas)', 'compilarProdutividadeRapida')
     .addItem('⚙️ Avançada (Selecionar Meses)', 'compilarProdutividadeAvancada')
     .addSeparator()
+    .addItem('✅ Executar Guardião da Qualidade', 'executarGuardiaoQualidade')
+    .addSeparator()
     .addItem('🧪 [DEV] Rodar Teste Homologação V1 x V2', 'rodarTesteDeHomologacao')
     .addToUi();
 

@@ -40,10 +40,16 @@ class RegistroCanonico {
       boc: dados.metricasPrimarias?.boc || 0
     };
 
-    // 5. Fatos: Relacionamento de Equipe
+    // 5. Evento pontuavel declarado pelo operador na linha fisica (AG/AH).
+    this.eventoPontuavel = {
+      indicador: dados.eventoPontuavel?.indicador || '',
+      imputado: dados.eventoPontuavel?.imputado || ''
+    };
+
+    // 6. Fatos: Relacionamento de Equipe
     this.equipe = dados.equipe || ''; // Nome ou sigla da guarnição, se houver
     
-    // 6. Fatos: Policiais Envolvidos e sua cota de participação física
+    // 7. Fatos: Policiais Envolvidos e sua cota de participação física
     this.policiais = dados.policiais || [];
     /* Estrutura esperada do Policial no array:
     {

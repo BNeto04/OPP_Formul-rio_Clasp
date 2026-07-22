@@ -19,13 +19,8 @@ class Adaptador2026 {
     if (lastRow < 2 || lastCol < 1) return [];
 
     const dados = sheet.getRange(1, 1, lastRow, lastCol).getValues();
-    const headers = dados[0].map(h => typeof h === 'string' ? h.trim().toUpperCase() : '');
-    
-    // Função auxiliar local (em ambiente real usaria SyntheonUtils)
-    const loc = (nome) => {
-      const idx = headers.indexOf(nome);
-      return idx;
-    };
+    const headers = dados[0].map(h => SyntheonUtils.normalizarTexto(h));
+    const loc = (chaveAlias) => SyntheonUtils.localizarColuna(headers, chaveAlias);
 
     const idx = {
       data: loc('DATA'),
@@ -36,16 +31,18 @@ class Adaptador2026 {
       cidade: loc('CIDADE'),
       bairro: loc('BAIRRO'),
       ais: loc('AIS'),
-      matricula: loc('MATRÍCULA') > -1 ? loc('MATRÍCULA') : loc('MATRICULA'), // fallback
+      matricula: loc('MATRICULA'),
       militar: loc('POLICIAL'),
       grad: loc('GRAD'),
-      pelotao: loc('PELOTAO') > -1 ? loc('PELOTAO') : loc('PELOTÃO'),
+      pelotao: loc('PELOTAO'),
       armas: loc('ARMAS'),
       maconha: loc('MACONHA'),
-      cocaina: loc('COCAINA') > -1 ? loc('COCAINA') : loc('COCAÍNA'),
+      cocaina: loc('COCAINA'),
       crack: loc('CRACK'),
       pontosTotais: loc('PONTOS_TOTAIS'),
-      pontosFiccao: loc('PONTOS_FICCAO') > -1 ? loc('PONTOS_FICCAO') : loc('PONTOS_FICÇÃO'),
+      pontosFiccao: loc('PONTOS_FICCAO'),
+      indicadorPip: loc('INDICADOR_PIP'),
+      imputado: loc('IMPUTADO'),
       detidos: loc('DETIDOS'),
       apfd: loc('APFD'),
       tco: loc('TCO'),
@@ -96,7 +93,7 @@ class Adaptador2026 {
       let pelotao = idx.pelotao !== -1 ? String(row[idx.pelotao]).trim() : 'N/I';
 
       // Captura segura de números
-      const getNum = (colIdx) => (colIdx !== -1 && !isNaN(row[colIdx]) && row[colIdx] !== '') ? Number(row[colIdx]) : 0;
+      const getNum = (colIdx) => colIdx !== -1 ? SyntheonUtils.converterNumero(row[colIdx]) : 0;
 
       // Cria a instância canônica representando ESTE fato imutável (esta linha exata)
       // O Leitor NÃO soma, apenas traduz a linha física para a linguagem oficial.
@@ -124,6 +121,10 @@ class Adaptador2026 {
           apfd: getNum(idx.apfd),
           tco: getNum(idx.tco),
           boc: getNum(idx.boc)
+        },
+        eventoPontuavel: {
+          indicador: idx.indicadorPip !== -1 ? String(row[idx.indicadorPip]).trim() : '',
+          imputado: idx.imputado !== -1 ? String(row[idx.imputado]).trim() : ''
         },
         policiais: [{
           matricula: matricula,
