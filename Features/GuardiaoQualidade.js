@@ -10,7 +10,9 @@ class GuardiaoQualidade {
       return { alertas: 0, linhas: 0, tuneis: 0 };
     }
 
-    const dados = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    const rangeDados = sheet.getRange(1, 1, lastRow, lastCol);
+    const dados = rangeDados.getValues();
+    const formulas = rangeDados.getFormulas();
     const headers = dados[0].map(h => SyntheonUtils.normalizarTexto(h));
     const loc = (chaveAlias) => SyntheonUtils.localizarColuna(headers, chaveAlias);
 
@@ -28,7 +30,8 @@ class GuardiaoQualidade {
       cocaina: loc('COCAINA'),
       indicador: loc('INDICADOR_PIP'),
       imputado: loc('IMPUTADO'),
-      alerta: loc('ALERTA_INTEGRIDADE')
+      alerta: loc('ALERTA_INTEGRIDADE'),
+      calculadas: GuardiaoQualidade.localizarColunasCalculadas(headers)
     };
 
     if (idx.alerta === -1) {
@@ -54,6 +57,13 @@ class GuardiaoQualidade {
       const temFato = GuardiaoQualidade.temFatoOperacional(row, idx);
       const temParticipacao = !!matricula || !!policial;
       const temEvento = !!indicador || !!imputado || temFato;
+      const temLinhaOperacional = !!mike || temParticipacao || temEvento;
+
+      if (temLinhaOperacional) {
+        GuardiaoQualidade.validarFormulasObrigatorias(formulas[i], idx.calculadas).forEach(alerta => {
+          alertasPorLinha[i - 1].push(alerta);
+        });
+      }
 
       if (!mike) {
         if (temParticipacao || temEvento) {
@@ -99,11 +109,54 @@ class GuardiaoQualidade {
     sheet.getRange(2, idx.alerta + 1, saida.length, 1).clearContent();
     sheet.getRange(2, idx.alerta + 1, saida.length, 1).setValues(saida);
 
+    GuardiaoQualidade.renderizarLog(sheet, saida, tuneis);
+
     return {
       alertas: saida.filter(row => row[0]).length,
       linhas: lastRow - 1,
       tuneis: Object.keys(tuneis).length
     };
+  }
+
+  static renderizarLog(sheet, saida, tuneis) {
+    const ss = sheet.getParent();
+    const nomeLog = '[AUDITORIA] Ocorrencias';
+    let log = ss.getSheetByName(nomeLog);
+    if (!log) {
+      log = ss.insertSheet(nomeLog);
+    }
+
+    const linhasComAlerta = [];
+    saida.forEach((row, index) => {
+      if (row[0]) {
+        linhasComAlerta.push([sheet.getName(), index + 2, 'ALERTA', row[0]]);
+      }
+    });
+
+    const agora = Utilities.formatDate(
+      new Date(),
+      Session.getScriptTimeZone() || 'America/Sao_Paulo',
+      'dd/MM/yyyy HH:mm:ss'
+    );
+
+    const dados = [
+      ['Guardiao da Qualidade', agora, sheet.getName(), linhasComAlerta.length ? 'COM ALERTAS' : 'APROVADO'],
+      ['Tuneis analisados', Object.keys(tuneis).length, 'Linhas analisadas', saida.length],
+      ['Linhas com alerta', linhasComAlerta.length, '', ''],
+      ['', '', '', ''],
+      ['ABA', 'LINHA', 'STATUS', 'DIAGNOSTICO']
+    ];
+
+    if (linhasComAlerta.length > 0) {
+      linhasComAlerta.forEach(linha => dados.push(linha));
+    } else {
+      dados.push([sheet.getName(), '-', 'OK', 'Nenhuma inconsistencia encontrada nas regras ativas.']);
+    }
+
+    log.clear();
+    log.getRange(1, 1, dados.length, 4).setValues(dados);
+    log.getRange(1, 1, 5, 4).setFontWeight('bold');
+    log.autoResizeColumns(1, 4);
   }
 
   static validarTunel(tunel) {
@@ -124,6 +177,38 @@ class GuardiaoQualidade {
       }
       if (indicador.includes('MUNICAO') && tunel.fatos.municao <= 0) {
         alertas.push({ linha: evento.linha, mensagem: 'Indicador sem fato correspondente: municao zerada no tunel.' });
+      }
+    });
+    return alertas;
+  }
+
+  static localizarColunasCalculadas(headers) {
+    const colunas = [
+      { nome: 'TOTAL DE MACONHA', indicePadrao: 18, aliases: ['TOTAL DE MACONHA'] },
+      { nome: 'DIVIDIDO MAC', indicePadrao: 19, aliases: ['DIVIDIDO MAC'] },
+      { nome: 'TOTAL CRACK', indicePadrao: 22, aliases: ['TOTAL CRACK (GR)', 'TOTAL CRACK'] },
+      { nome: 'TOTAL DE COCAINA', indicePadrao: 25, aliases: ['TOTAL DE COCAINA', 'TOTAL COCAINA'] },
+      { nome: 'DIVIDIDO COC', indicePadrao: 26, aliases: ['DIVIDIDO COC'] },
+      { nome: 'PONTOS TOTAIS', indicePadrao: 34, aliases: ['PONTOS TOTAIS', 'PONTUACAO BRUTA'] },
+      { nome: 'PONTOS FICCAO', indicePadrao: 35, aliases: ['PONTOS FICCAO (1/4)', 'PONTOS FICCAO'] },
+      { nome: 'CHAVE OCORRENCIA', indicePadrao: 36, aliases: ['CHAVE OCORRENCIA', 'CHAVE'] }
+    ];
+
+    return colunas.map(coluna => {
+      const encontrado = GuardiaoQualidade.localizarPorAliases(headers, coluna.aliases);
+      return {
+        nome: coluna.nome,
+        indice: encontrado !== -1 ? encontrado : coluna.indicePadrao
+      };
+    });
+  }
+
+  static validarFormulasObrigatorias(formulaRow, colunasCalculadas) {
+    const alertas = [];
+    colunasCalculadas.forEach(coluna => {
+      if (!formulaRow || coluna.indice < 0 || coluna.indice >= formulaRow.length) return;
+      if (!formulaRow[coluna.indice]) {
+        alertas.push(`Formula ausente em coluna calculada: ${coluna.nome}.`);
       }
     });
     return alertas;

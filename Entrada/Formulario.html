@@ -91,6 +91,9 @@
     .police-table thead th { background-color: #0a0e1a; color: var(--secondary-color); font-weight: 700; text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border-color); font-size: 0.68rem; letter-spacing: 0.5px; text-transform: uppercase; }
     .police-table tbody tr { border-bottom: 1px solid rgba(30,41,59,0.5); transition: background 0.15s; }
     .police-table tbody tr:hover { background-color: rgba(0,210,255,0.04); }
+    .police-table tbody tr.police-draggable { cursor: grab; }
+    .police-table tbody tr.police-draggable.dragging { opacity: 0.45; background-color: rgba(0, 255, 157, 0.08); cursor: grabbing; }
+    .police-table tbody.drag-active { outline: 1px dashed rgba(0, 255, 157, 0.45); outline-offset: -2px; }
     .police-table td { padding: 5px 8px; color: var(--text-main); vertical-align: middle; }
     .police-table td.td-pelotao { color: var(--secondary-color); font-weight: 700; white-space: nowrap; }
     .police-table td.td-posto { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
@@ -282,12 +285,12 @@
         </div>
 
         <!-- Pontuação -->
-        <div class="card" onchange="atualizarChaveOcorrencia()">
+        <div class="card">
           <div class="card-title">Ocorrências PIP</div>
           <div class="form-row">
             <div class="form-group full-width">
               <label for="imputado">HOUVE IMPUTADO NA OCORRÊNCIA?</label>
-              <select id="imputado" onchange="atualizarChaveOcorrencia()">
+              <select id="imputado">
                 <option value="SEM IMPUTADO">SEM IMPUTADO</option>
                 <option value="COM IMPUTADO">COM IMPUTADO</option>
               </select>
@@ -298,12 +301,6 @@
             <label>ITENS DA OCORRÊNCIA (Tabela PIP)</label>
             <div class="dynamic-list" id="pipList"></div>
             <button type="button" class="btn-add-item" onclick="adicionarPipField()">+ Adicionar Título PIP</button>
-          </div>
-          <div class="form-row" style="margin-top: 15px;">
-            <div class="form-group">
-              <label for="chaveOcorrencia">Chave Ocorrência</label>
-              <input type="text" id="chaveOcorrencia" readonly style="background-color: #0b1a26; color: #8fa4b8;">
-            </div>
           </div>
         </div>
 
@@ -331,6 +328,7 @@
     const ocrTerminal   = document.getElementById('ocrTerminal');
     const statusMsg     = document.getElementById('statusMessage');
     const policiaisSet  = new Set();
+    let policialArrastado = null;
 
     // ── DRAG & DROP ──────────────────────────────────────────────
     // Bloqueia abertura de arquivo pela janela inteira
@@ -644,14 +642,6 @@
         document.getElementById('pipList').appendChild(div);
       }
 
-      function atualizarChaveOcorrencia() {
-        // Chave Ocorrência (mantido do original)
-        const data = document.getElementById('data').value || '';
-        const hora = document.getElementById('hora').value || '';
-        const boe = document.getElementById('boe').value || '';
-        const chave = `${data.replace(/-/g,'')}${hora.replace(/:/g,'')}00|${boe}`;
-        document.getElementById('chaveOcorrencia').value = chave;
-      }
  // matricula => objeto
 
     function carregarEfetivo() {
@@ -697,6 +687,10 @@
       const tbody = document.getElementById('policeTableBody');
       const tr = document.createElement('tr');
       tr.id = 'prow_' + mat;
+      tr.dataset.mat = mat;
+      tr.className = 'police-draggable';
+      tr.draggable = true;
+      tr.title = 'Arraste para reorganizar a equipe';
       tr.innerHTML = `
         <td class="td-pelotao">${p.pelotao}</td>
         <td class="td-posto">${p.posto}</td>
@@ -705,7 +699,51 @@
         <td class="td-armas"><input type="number" class="qtd-armas-policial" value="${totalArmasNaTela}" min="0" style="width: 50px; text-align: center; padding: 4px; font-size: 0.75rem;"></td>
         <td class="td-remove"><button type="button" class="btn-remove-item" onclick="removerPolicial('${mat}')">&times;</button></td>
       `;
+      ativarArrastePolicial(tr);
       tbody.appendChild(tr);
+    }
+
+    function ativarArrastePolicial(tr) {
+      tr.addEventListener('dragstart', e => {
+        if (e.target.closest('input, button, select')) {
+          e.preventDefault();
+          return;
+        }
+        policialArrastado = tr;
+        tr.classList.add('dragging');
+        document.getElementById('policeTableBody').classList.add('drag-active');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', tr.dataset.mat || '');
+      });
+
+      tr.addEventListener('dragend', () => {
+        tr.classList.remove('dragging');
+        document.getElementById('policeTableBody').classList.remove('drag-active');
+        policialArrastado = null;
+      });
+    }
+
+    document.getElementById('policeTableBody').addEventListener('dragover', e => {
+      if (!policialArrastado) return;
+      e.preventDefault();
+      const tbody = document.getElementById('policeTableBody');
+      const proximaLinha = obterProximaLinhaPolicial(tbody, e.clientY);
+      if (proximaLinha) tbody.insertBefore(policialArrastado, proximaLinha);
+      else tbody.appendChild(policialArrastado);
+    });
+
+    document.getElementById('policeTableBody').addEventListener('drop', e => {
+      if (!policialArrastado) return;
+      e.preventDefault();
+      setStatus('> Ordem da equipe ajustada.', 'var(--accent-color)');
+    });
+
+    function obterProximaLinhaPolicial(tbody, y) {
+      const linhas = [...tbody.querySelectorAll('tr.police-draggable:not(.dragging)')];
+      return linhas.find(linha => {
+        const box = linha.getBoundingClientRect();
+        return y < box.top + (box.height / 2);
+      }) || null;
     }
 
     function removerPolicial(mat) {
@@ -737,7 +775,7 @@
         <input type="text" style="flex:0.6" class="arma-calibre" placeholder="Calibre" value="${calibre}">
         <input type="number" style="flex:0.6" class="arma-municao" placeholder="Munição" value="${municao}" min="0">
         <input type="number" style="flex:0.6" class="arma-qtd" placeholder="Qtd" value="${quantidade}" min="1">
-        <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove(); atualizarChaveOcorrencia();">&times;</button>`;
+        <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove();">&times;</button>`;
       document.getElementById('armasList').appendChild(div);
     }
 
@@ -792,7 +830,10 @@
     function salvarDados() {
       setStatus('> Enviando para o Sheets...', 'var(--secondary-color)');
       // Monta lista de policiais com dados completos para o backend
-      const policiais = [...policiaisSet].map(mat => {
+      const ordemPoliciais = [...document.querySelectorAll('#policeTableBody tr[data-mat]')]
+        .map(tr => tr.dataset.mat)
+        .filter(mat => policiaisSet.has(mat));
+      const policiais = ordemPoliciais.map(mat => {
         const p = efetivoPorMat[mat];
         const tr = document.getElementById('prow_' + mat);
         let qtdArmas = 0;
@@ -839,7 +880,7 @@
       });
       policiaisSet.clear();
       document.getElementById('policeTableBody').innerHTML =
-        '<tr id="police-empty-row"><td colspan="5" class="police-empty-msg">Nenhum policial adicionado</td></tr>';
+        '<tr id="police-empty-row"><td colspan="6" class="police-empty-msg">Nenhum policial adicionado</td></tr>';
       document.getElementById('armasList').innerHTML = '';
       document.getElementById('drogasList').innerHTML = '';
       ocrTerminal.innerText = 'Aguardando documento para processar...';
@@ -849,15 +890,11 @@
     carregarEfetivo();
 
         // Listeners pontuacao
-        document.getElementById('data').addEventListener('change', atualizarChaveOcorrencia);
-        document.getElementById('hora').addEventListener('change', atualizarChaveOcorrencia);
-        document.getElementById('boe').addEventListener('change', atualizarChaveOcorrencia);
         document.getElementById('detidos').addEventListener('change', function() {
            const v = this.value.toUpperCase();
            if(v.includes('APFD') || v.includes('TCO') || v.includes('BOC') || v.includes('AAFAI')) {
               document.getElementById('imputado').value = 'COM IMPUTADO';
            }
-           atualizarChaveOcorrencia();
         });
 
     // ── HELPERS ───────────────────────────────────────────────────

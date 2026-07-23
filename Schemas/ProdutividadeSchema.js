@@ -21,6 +21,10 @@ const ProdutividadeSchema = {
     "DROGAS/O",
     "DETIDOS"
   ],
+
+  getHeaders() {
+    return this.HEADERS;
+  },
   
   /**
    * Converte o RegistroAnalítico para o array ordenado conforme HEADERS
@@ -44,5 +48,9 @@ const ProdutividadeSchema = {
       registro.mediaDrogas,
       registro.fatos.detidos
     ];
+  },
+
+  formatarLinha(registro) {
+    return this.extrairLinha(registro);
   }
 };

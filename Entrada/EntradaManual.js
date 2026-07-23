@@ -5,14 +5,16 @@
 
 function processarEntradaManual(payload) {
   try {
-    const imputado = payload.detidos > 0;
-    const isImputadoStr = imputado ? "COM IMPUTADO" : "SEM IMPUTADO";
+    const policiais = payload.policiais || [];
+    const armas = payload.armas || [];
+    const drogas = payload.drogas || [];
+    const ocorrenciasPip = payload.ocorrenciasPip || [];
 
     let maconhaGrama = 0; let maconhaDolar = 0;
     let crackPedra = 0;   let crackGrama = 0;
     let cocainaPino = 0;  let cocainaGrama = 0;
 
-    payload.drogas.forEach(droga => {
+    drogas.forEach(droga => {
         if (droga.tipo === 'MACONHA DOLAR') {
             maconhaDolar += droga.quantidade;
         } else if (droga.tipo === 'MACONHA GRAMA') {
@@ -28,8 +30,6 @@ function processarEntradaManual(payload) {
         }
     });
 
-    const chave = `${payload.data.replace(/-/g,'')}${payload.hora.replace(/:/g,'')}00|${payload.boe}`;
-    
     // Definir aba mensal (ex: JUL2026) suportando DD/MM/AAAA ou AAAA-MM-DD
     const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
     let nomeAba = "JAN2026";
@@ -68,12 +68,14 @@ function processarEntradaManual(payload) {
     }
 
     const linhasParaInserir = [];
-    const numLinhas = Math.max(payload.policiais.length, payload.armas.length);
+    const numLinhas = Math.max(policiais.length, armas.length, ocorrenciasPip.length, drogas.length ? 1 : 0);
     
     for (let idx = 0; idx < numLinhas; idx++) {
         const isFirst = (idx === 0);
-        const policial = payload.policiais[idx] || { pelotao: "", posto: "", matricula: "", nome: "" };
-        const arma = payload.armas[idx] || null;
+        const policial = policiais[idx] || { pelotao: "", posto: "", matricula: "", nome: "" };
+        const arma = armas[idx] || null;
+        const eventoPip = ocorrenciasPip[idx] || "";
+        const imputadoPip = eventoPip ? (payload.imputado || "SEM IMPUTADO") : "";
         
         let armaTipo = "", armaQtd = "", armaModelo = "", armaCalibre = "", armaMunicao = "";
         if (arma) {
@@ -117,11 +119,11 @@ function processarEntradaManual(payload) {
             policial.matricula, // MATRICULA (AD)
             policial.nome, // POLICIAL (AE)
             policial.nome ? (policial.qtd_armas > 0 ? policial.qtd_armas : "") : "", // QDT ARMAS (AF)
-            (payload.ocorrenciasPip && payload.ocorrenciasPip[idx] ? payload.ocorrenciasPip[idx] : ""), // OCORRÊNCIA PIP (AG)
-            (payload.imputado || "SEM IMPUTADO"), // IMPUTADO? (AH)
+            eventoPip, // OCORRÊNCIA PIP (AG)
+            imputadoPip, // IMPUTADO? (AH)
             "", // PONTOS TOTAIS (AI) - preenchido pela planilha
             "", // PONTOS FICÇÃO (1/4) (AJ) - preenchido pela planilha
-            (payload.chaveOcorrencia || chave) // Chave Ocorrência (AK)
+            "" // Chave Ocorrência (AK) - preenchida pela planilha
         ];
         linhasParaInserir.push(linha);
     }
@@ -145,8 +147,7 @@ function processarEntradaManual(payload) {
             { start: 2, end: 18 },  // B até R
             { start: 21, end: 22 }, // U até V
             { start: 24, end: 25 }, // X até Y
-            { start: 28, end: 34 }, // AB até AH
-            { start: 37, end: 37 }  // AK
+            { start: 28, end: 34 }  // AB até AH
         ];
 
         chunks.forEach(chunk => {
@@ -158,7 +159,8 @@ function processarEntradaManual(payload) {
             targetRange.setValues(chunkData);
         });
     }
-    return `Ocorrência ${chave} salva com sucesso (${linhasParaInserir.length} registros computados)!`;
+    const identificador = payloadMike || payloadBoe || "sem identificador";
+    return `Ocorrência ${identificador} salva com sucesso (${linhasParaInserir.length} registros computados)!`;
   } catch (erro) {
     console.error(`Falha: ${erro.message}`);
     throw new Error(erro.message);

@@ -9,7 +9,18 @@ const SyntheonNormalizador = {
    */
   normalizarGraduacao(rawGrad) {
     const limpo = SyntheonUtils.normalizarTexto(rawGrad);
-    return CONSTANTES_SYNTHEON.GRADUACOES[limpo] || limpo || 'N/I';
+    const chaveSemOrdinal = this.normalizarChaveGraduacao(limpo);
+    return CONSTANTES_SYNTHEON.GRADUACOES[limpo]
+      || CONSTANTES_SYNTHEON.GRADUACOES[chaveSemOrdinal]
+      || limpo
+      || 'N/I';
+  },
+
+  normalizarChaveGraduacao(valor) {
+    return SyntheonUtils.normalizarTexto(valor)
+      .replace(/[º°ª]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
   },
 
   /**

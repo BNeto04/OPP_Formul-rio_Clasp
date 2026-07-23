@@ -90,7 +90,7 @@ class Adaptador2026 {
       const cadastro = mapaEfetivo && mapaEfetivo[matricula] ? mapaEfetivo[matricula] : null;
       let nome = cadastro ? cadastro.nome : (idx.militar !== -1 ? String(row[idx.militar]).trim() : 'N/I');
       let grad = cadastro ? cadastro.graduacao : (idx.grad !== -1 ? String(row[idx.grad]).trim() : 'N/I');
-      let pelotao = idx.pelotao !== -1 ? String(row[idx.pelotao]).trim() : 'N/I';
+      let pelotao = cadastro && cadastro.pelotao ? cadastro.pelotao : (idx.pelotao !== -1 ? String(row[idx.pelotao]).trim() : 'N/I');
 
       // Captura segura de números
       const getNum = (colIdx) => colIdx !== -1 ? SyntheonUtils.converterNumero(row[colIdx]) : 0;
