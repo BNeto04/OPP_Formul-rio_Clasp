@@ -43,7 +43,9 @@ const SyntheonPoliciais = {
     });
 
     if (erros.length > 0) {
-      throw new Error(
+      throw new ErroValidacaoDominio(
+        'Efetivo',
+        'dados',
         `A aba EFETIVO contem inconsistencias criticas e o fluxo foi interrompido:\n\n` + erros.join('\n')
       );
     }
@@ -54,10 +56,10 @@ const SyntheonPoliciais = {
   carregarListaEfetivo(ss) {
     const sheet = ss.getSheetByName(CONSTANTES_SYNTHEON.ABA_EFETIVO);
     if (!sheet) {
-      throw new Error(`Aba ${CONSTANTES_SYNTHEON.ABA_EFETIVO} nao encontrada.`);
+      throw new ErroLeituraAba(CONSTANTES_SYNTHEON.ABA_EFETIVO, 'Aba nao encontrada.');
     }
     if (sheet.getLastRow() < 1) {
-      throw new Error('Aba EFETIVO sem dados cadastrados.');
+      throw new ErroLeituraAba(CONSTANTES_SYNTHEON.ABA_EFETIVO, 'Aba sem dados cadastrados.');
     }
 
     const dadosBrutos = sheet.getRange(1, 1, sheet.getLastRow(), Math.max(sheet.getLastColumn(), 7)).getValues();

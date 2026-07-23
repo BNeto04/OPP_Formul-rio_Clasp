@@ -51,18 +51,15 @@ class RegistroCanonico {
     
     // 7. Fatos: Policiais Envolvidos e sua cota de participação física
     this.policiais = dados.policiais || [];
-    /* Estrutura esperada do Policial no array:
-    {
-      matricula: '123456-7',
-      nome: 'SOLDADO SILVA',
-      graduacao: 'SD',
-      pelotao: '1º PEL',
-      pontosRateados: 10,
-      armas: 1,
-      maconha: 15.5,
-      cocaina: 0,
-      crack: 0
-    }
-    */
+
+    // Congela a instância e sub-estruturas para imutabilidade total no pipeline V2
+    Object.freeze(this.origem);
+    Object.freeze(this.coberturaHistorica);
+    Object.freeze(this.ocorrencia);
+    Object.freeze(this.metricasPrimarias);
+    Object.freeze(this.eventoPontuavel);
+    Object.freeze(this.policiais);
+    Object.freeze(this);
   }
 }
+
