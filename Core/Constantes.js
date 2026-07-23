@@ -1,7 +1,8 @@
 /**
  * Constantes Globais do Ecossistema SYNTHÉON
  */
-const CONSTANTES_SYNTHEON = {
+const CONSTANTES_SYNTHEON = (() => {
+const constantes = {
   // Aba padrão de referência
   ABA_EFETIVO: "EFETIVO",
 
@@ -30,7 +31,12 @@ const CONSTANTES_SYNTHEON = {
     PONTOS_FICCAO: ['PONTOS FICÇÃO (1/4)', 'PONTOS FICCAO', 'AJ', 'PONTOS'],
     INDICADOR_PIP: ['OCORRÊNCIA PIP', 'OCORRENCIA PIP', 'INDICADOR', 'EVENTO PIP'],
     IMPUTADO: ['IMPUTADO?', 'COM/SEM IMPUTADO', 'IMPUTADO'],
-    ALERTA_INTEGRIDADE: ['ALERTA INTEGRIDADE', 'ALERTA', 'OBSERVADOR']
+    ALERTA_INTEGRIDADE: ['ALERTA INTEGRIDADE', 'ALERTA', 'OBSERVADOR'],
+    DETIDOS: ['DETIDOS', 'PRESOS', 'CONDUZIDOS'],
+    APFD: ['APFD'],
+    TCO: ['TCO'],
+    BOC: ['BOC'],
+    AAFAI: ['AAFAI']
   },
 
   // Lista de Pelotões Válidos e Normalizados
@@ -58,3 +64,16 @@ const CONSTANTES_SYNTHEON = {
     'CORONEL': 'CEL', 'CEL': 'CEL'
   }
 };
+
+const deepFreeze = obj => {
+  Object.getOwnPropertyNames(obj).forEach(prop => {
+    const valor = obj[prop];
+    if (valor && typeof valor === 'object' && !Object.isFrozen(valor)) {
+      deepFreeze(valor);
+    }
+  });
+  return Object.freeze(obj);
+};
+
+return deepFreeze(constantes);
+})();

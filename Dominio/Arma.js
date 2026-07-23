@@ -17,6 +17,7 @@ class Arma {
     this.tipo = String(tipo).trim().toUpperCase();
     this.quantidade = qtd;
     this.calibre = String(calibre).trim().toUpperCase();
+    Object.freeze(this);
   }
 }
 
