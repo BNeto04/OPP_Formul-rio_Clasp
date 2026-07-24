@@ -30,33 +30,35 @@ class Comparator {
     const arrayV2 = MotorAnaliticoV2.processarProdutividadePolicial(fatosBrutos);
     tempos.tempoV2 = new Date().getTime() - t0_v2;
 
-    // --- DEPURAÇÃO SOLICITADA: EXPORTAR LISTAS DE PMS PARA ABAS TEMPORÁRIAS ---
-    try {
-      let abaV1 = ss.getSheetByName('ListaV1_PM');
-      if (!abaV1) abaV1 = ss.insertSheet('ListaV1_PM');
-      abaV1.clear();
-      abaV1.appendRow(['MATRICULA_ORIGINAL', 'MATRICULA_NORMALIZADA', 'NOME', 'QTD_OCORRENCIAS']);
-      const dadosAbaV1 = arrayV1.map(p => [
-        p.matricula, 
-        String(p.matricula).replace(/\D/g, ''), 
-        p.nome, 
-        p.fatos ? p.fatos.ocorrencias : (p.ocorrencias || 0)
-      ]);
-      if (dadosAbaV1.length > 0) abaV1.getRange(2, 1, dadosAbaV1.length, 4).setValues(dadosAbaV1);
+    // --- EXPORTAR LISTAS DE PMS PARA ABAS TEMPORÁRIAS (SOMENTE EM MODO DEBUG) ---
+    if (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.DEBUG) {
+      try {
+        let abaV1 = ss.getSheetByName('ListaV1_PM');
+        if (!abaV1) abaV1 = ss.insertSheet('ListaV1_PM');
+        abaV1.clear();
+        abaV1.appendRow(['MATRICULA_ORIGINAL', 'MATRICULA_NORMALIZADA', 'NOME', 'QTD_OCORRENCIAS']);
+        const dadosAbaV1 = arrayV1.map(p => [
+          p.matricula, 
+          String(p.matricula).replace(/\D/g, ''), 
+          p.nome, 
+          p.fatos ? p.fatos.ocorrencias : (p.ocorrencias || 0)
+        ]);
+        if (dadosAbaV1.length > 0) abaV1.getRange(2, 1, dadosAbaV1.length, 4).setValues(dadosAbaV1);
 
-      let abaV2 = ss.getSheetByName('ListaV2_PM');
-      if (!abaV2) abaV2 = ss.insertSheet('ListaV2_PM');
-      abaV2.clear();
-      abaV2.appendRow(['MATRICULA_ORIGINAL', 'MATRICULA_NORMALIZADA', 'NOME', 'QTD_OCORRENCIAS']);
-      const dadosAbaV2 = arrayV2.map(p => [
-        p.matricula, 
-        String(p.matricula).replace(/\D/g, ''), 
-        p.nome, 
-        p.fatos ? p.fatos.ocorrencias : (p.ocorrencias || 0)
-      ]);
-      if (dadosAbaV2.length > 0) abaV2.getRange(2, 1, dadosAbaV2.length, 4).setValues(dadosAbaV2);
-    } catch (e) {
-      Logger.log("Erro ao gerar abas de debug: " + e.message);
+        let abaV2 = ss.getSheetByName('ListaV2_PM');
+        if (!abaV2) abaV2 = ss.insertSheet('ListaV2_PM');
+        abaV2.clear();
+        abaV2.appendRow(['MATRICULA_ORIGINAL', 'MATRICULA_NORMALIZADA', 'NOME', 'QTD_OCORRENCIAS']);
+        const dadosAbaV2 = arrayV2.map(p => [
+          p.matricula, 
+          String(p.matricula).replace(/\D/g, ''), 
+          p.nome, 
+          p.fatos ? p.fatos.ocorrencias : (p.ocorrencias || 0)
+        ]);
+        if (dadosAbaV2.length > 0) abaV2.getRange(2, 1, dadosAbaV2.length, 4).setValues(dadosAbaV2);
+      } catch (e) {
+        if (typeof Logger !== 'undefined') Logger.log("Erro ao gerar abas de debug: " + e.message);
+      }
     }
     // --- FIM EXPORTAÇÃO DEPURAÇÃO ---
 

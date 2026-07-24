@@ -13,12 +13,24 @@ class Adaptador2026 {
    * @param {Object} mapaEfetivo - Dicionário de policiais ativos
    * @returns {Array<RegistroCanonico>}
    */
-  static extrairFatos(sheet, metadado, mapaEfetivo) {
-    const lastRow = sheet.getLastRow();
-    const lastCol = sheet.getLastColumn();
-    if (lastRow < 2 || lastCol < 1) return [];
+  static extrairFatos(fonte, metadado, mapaEfetivo) {
+    let dados = [];
+    let nomeAba = metadado?.aba || '2026';
 
-    const dados = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    if (fonte && typeof fonte.getRange === 'function') {
+      const lastRow = fonte.getLastRow();
+      const lastCol = fonte.getLastColumn();
+      if (lastRow < 2 || lastCol < 1) return [];
+      dados = fonte.getRange(1, 1, lastRow, lastCol).getValues();
+      nomeAba = fonte.getName();
+    } else if (Array.isArray(fonte)) {
+      dados = fonte;
+    } else {
+      return [];
+    }
+
+    if (dados.length < 2) return [];
+
     const headers = dados[0].map(h => SyntheonUtils.normalizarTexto(h));
     const loc = (chaveAlias) => SyntheonUtils.localizarColuna(headers, chaveAlias);
 
@@ -100,7 +112,7 @@ class Adaptador2026 {
       const registro = new RegistroCanonico({
         origem: {
           ano: 2026,
-          aba: sheet.getName(),
+          aba: nomeAba,
           linha: i + 1,
           versaoEstrutura: metadado.versao
         },
