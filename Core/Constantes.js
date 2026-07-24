@@ -77,3 +77,8 @@ const deepFreeze = obj => {
 
 return deepFreeze(constantes);
 })();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = CONSTANTES_SYNTHEON;
+}
+

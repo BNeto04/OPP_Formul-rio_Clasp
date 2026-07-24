@@ -34,3 +34,8 @@ class IPluginMetrica {
     throw new Error("Metodo finalizar() deve ser implementado pelo Plugin.");
   }
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = IPluginMetrica;
+}
+

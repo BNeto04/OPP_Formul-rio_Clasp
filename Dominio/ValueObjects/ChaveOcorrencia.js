@@ -44,6 +44,6 @@ class ChaveOcorrencia {
 
 // Para exportação no Node.js durante os testes locais
 if (typeof module !== 'undefined' && module.exports) {
-  const { ErroValidacaoDominio } = require('../../Core/Erros');
   module.exports = { ChaveOcorrencia };
 }
+

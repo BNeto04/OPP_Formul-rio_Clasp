@@ -20,7 +20,12 @@ class PluginArmas extends IPluginMetrica {
     consolidado.fatos.armas += (pmFato.armas || 0);
   }
 
-  finalizar(consolidado) {
-    // Nada a fazer no final
+  finalizar(consolidado) {}
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  if (typeof IPluginMetrica === 'undefined') {
+    global.IPluginMetrica = require('../IPluginMetrica');
   }
+  module.exports = PluginArmas;
 }

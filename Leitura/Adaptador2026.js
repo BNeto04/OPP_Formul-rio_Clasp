@@ -157,3 +157,8 @@ class Adaptador2026 {
     return registros;
   }
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = Adaptador2026;
+}
+

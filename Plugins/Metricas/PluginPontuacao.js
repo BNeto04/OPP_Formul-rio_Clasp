@@ -49,3 +49,11 @@ class PluginPontuacao extends IPluginMetrica {
     consolidado.indicadores.pontosTotais = pontos;
   }
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  if (typeof IPluginMetrica === 'undefined') {
+    global.IPluginMetrica = require('../IPluginMetrica');
+  }
+  module.exports = PluginPontuacao;
+}
+

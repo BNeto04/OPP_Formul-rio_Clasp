@@ -18,7 +18,13 @@ class PluginPrisoes extends IPluginMetrica {
     consolidado.fatos.boc += (pmFato.boc || 0);
   }
 
-  finalizar(consolidado) {
-    // Nada a fazer no final
-  }
+  finalizar(consolidado) {}
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  if (typeof IPluginMetrica === 'undefined') {
+    global.IPluginMetrica = require('../IPluginMetrica');
+  }
+  module.exports = PluginPrisoes;
+}
+

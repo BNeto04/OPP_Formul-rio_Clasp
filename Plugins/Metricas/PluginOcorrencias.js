@@ -19,7 +19,13 @@ class PluginOcorrencias extends IPluginMetrica {
     }
   }
 
-  finalizar(consolidado) {
-    // Nada a fazer no final
-  }
+  finalizar(consolidado) {}
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  if (typeof IPluginMetrica === 'undefined') {
+    global.IPluginMetrica = require('../IPluginMetrica');
+  }
+  module.exports = PluginOcorrencias;
+}
+

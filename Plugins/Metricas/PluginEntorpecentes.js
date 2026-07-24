@@ -27,7 +27,13 @@ class PluginEntorpecentes extends IPluginMetrica {
     consolidado.fatos.drogasTotal += ((pmFato.maconha || 0) + (pmFato.cocaina || 0) + (pmFato.crack || 0));
   }
 
-  finalizar(consolidado) {
-    // Nada a fazer no final
-  }
+  finalizar(consolidado) {}
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  if (typeof IPluginMetrica === 'undefined') {
+    global.IPluginMetrica = require('../IPluginMetrica');
+  }
+  module.exports = PluginEntorpecentes;
+}
+
