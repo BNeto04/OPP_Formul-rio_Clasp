@@ -1,30 +1,32 @@
 /**
- * Leitor Universal de dados do ecossistema SYNTHÉON.
- * Lê as planilhas, mapeia os cabeçalhos por alias, remove duplicidades e devolve objetos canônicos padronizados.
+ * Leitor Universal de dados do ecossistema SYNTHEON.
+ * Le as planilhas, mapeia os cabecalhos por alias, remove duplicidades e devolve objetos canonicos padronizados.
  */
 const SyntheonLeitor = {
   /**
-   * Lê uma lista de abas mensais e retorna um vetor de ocorrências consolidadas.
+   * Le uma lista de abas mensais e retorna um vetor de ocorrencias consolidadas.
    * @param {SpreadsheetApp.Spreadsheet} ss - Planilha ativa.
    * @param {Array<string>} abasAlvo - Nomes das abas de meses.
    * @param {Date|null} dataInicio - Filtro de data inicial.
    * @param {Date|null} dataFim - Filtro de data final.
-   * @param {SyntheonLogger} logger - Instância do logger do fluxo.
-   * @return {Array<OcorrenciaPadronizada>} Lista de ocorrências estruturadas.
+   * @param {SyntheonLogger} logger - Instancia do logger do fluxo.
+   * @return {Array<Object>} Lista de ocorrencias estruturadas.
    */
   lerAbas(ss, abasAlvo, dataInicio, dataFim, logger) {
     const mapaEfetivo = SyntheonPoliciais.carregarEfetivo(ss);
-    const ocorrenciasPorChave = {}; // chave -> OcorrenciaPadronizada
-    
+    const ocorrenciasPorChave = {};
+
     abasAlvo.forEach(nomeAba => {
       const inicioAba = Date.now();
-      let linhasAba = 0;
-      let ocorrenciasAba = new Set();
-      let policiaisAba = new Set();
+      const estatisticasAba = {
+        linhas: 0,
+        ocorrencias: new Set(),
+        policiais: new Set()
+      };
 
       const sheet = ss.getSheetByName(nomeAba);
       if (!sheet) {
-        logger.aviso(`Aba ${nomeAba} não encontrada e foi pulada.`);
+        logger.aviso(`Aba ${nomeAba} nao encontrada e foi pulada.`);
         return;
       }
       logger.logAba(nomeAba);
@@ -35,166 +37,55 @@ const SyntheonLeitor = {
 
       const dados = sheet.getRange(1, 1, lastRow, lastCol).getValues();
       const headers = dados[0].map(h => SyntheonUtils.normalizarTexto(h));
+      const idx = SyntheonLeitor._mapearColunas(headers);
       logger.linhasLidas += (dados.length - 1);
 
-      // Localizar índices das colunas utilizando aliases
-      const idx = {
-        data: SyntheonUtils.localizarColuna(headers, 'DATA'),
-        hora: SyntheonUtils.localizarColuna(headers, 'HORA'),
-        mike: SyntheonUtils.localizarColuna(headers, 'MIKE'),
-        boe: SyntheonUtils.localizarColuna(headers, 'BOE'),
-        natureza: SyntheonUtils.localizarColuna(headers, 'NATUREZA'),
-        cidade: SyntheonUtils.localizarColuna(headers, 'CIDADE'),
-        bairro: SyntheonUtils.localizarColuna(headers, 'BAIRRO'),
-        ais: SyntheonUtils.localizarColuna(headers, 'AIS'),
-        matricula: SyntheonUtils.localizarColuna(headers, 'MATRICULA'),
-        militar: SyntheonUtils.localizarColuna(headers, 'POLICIAL'),
-        grad: SyntheonUtils.localizarColuna(headers, 'GRAD'),
-        pelotao: SyntheonUtils.localizarColuna(headers, 'PELOTAO'),
-        
-        // Métricas
-        armas: SyntheonUtils.localizarColuna(headers, 'ARMAS'),
-        maconha: SyntheonUtils.localizarColuna(headers, 'MACONHA'),
-        cocaina: SyntheonUtils.localizarColuna(headers, 'COCAINA'),
-        crack: SyntheonUtils.localizarColuna(headers, 'CRACK'),
-        pontosTotais: SyntheonUtils.localizarColuna(headers, 'PONTOS_TOTAIS'),
-        pontosFiccao: SyntheonUtils.localizarColuna(headers, 'PONTOS_FICCAO'),
-        detidos: SyntheonUtils.localizarColuna(headers, 'DETIDOS'),
-        apfd: SyntheonUtils.localizarColuna(headers, 'APFD'),
-        tco: SyntheonUtils.localizarColuna(headers, 'TCO'),
-        boc: SyntheonUtils.localizarColuna(headers, 'BOC')
-      };
-
-      // Validação básica do cabeçalho
       if (idx.matricula === -1) {
-        logger.aviso(`Coluna MATRÍCULA não localizada na aba ${nomeAba}. Aba pulada.`);
+        logger.aviso(`Coluna MATRICULA nao localizada na aba ${nomeAba}. Aba pulada.`);
         return;
       }
       if (idx.mike === -1 && idx.boe === -1) {
-        logger.aviso(`Colunas identificadoras de ocorrência (MIKE/BOE) ausentes na aba ${nomeAba}. Aba pulada.`);
+        logger.aviso(`Colunas identificadoras de ocorrencia (MIKE/BOE) ausentes na aba ${nomeAba}. Aba pulada.`);
         return;
       }
 
       for (let i = 1; i < dados.length; i++) {
-        const row = dados[i];
-        const rawMat = row[idx.matricula];
-        const matricula = SyntheonUtils.limparMatricula(rawMat);
-        const linhaReal = i + 1;
+        const linha = SyntheonLeitor._processarLinha(dados[i], idx, mapaEfetivo, logger, {
+          nomeAba,
+          linhaReal: i + 1,
+          dataInicio,
+          dataFim,
+          estatisticas: estatisticasAba
+        });
 
-        // Pular matrículas nulas
-        if (!matricula) {
-          logger.linhasIgnoradas++;
-          continue;
-        }
+        if (!linha) continue;
 
-        // Validar formato da matrícula
-        if (!SyntheonValidador.validarMatricula(matricula)) {
-          logger.aviso(`Matrícula inválida na aba ${nomeAba}, linha ${linhaReal}: "${rawMat}".`);
-          logger.linhasIgnoradas++;
-          continue;
-        }
-
-        // Tratar conversão da data
-        const rawData = idx.data !== -1 ? row[idx.data] : null;
-        const dataObjeto = converterDataUnificada(rawData);
-        if (!SyntheonValidador.validarData(dataObjeto)) {
-          logger.aviso(`Data inválida ou ausente na aba ${nomeAba}, linha ${linhaReal}: "${rawData}".`);
-          logger.linhasIgnoradas++;
-          continue;
-        }
-
-        // Filtrar período de data se fornecido
-        if (dataInicio && dataFim) {
-          if (dataObjeto < dataInicio || dataObjeto > dataFim) {
-            logger.linhasIgnoradas++;
-            continue;
-          }
-        }
-
-        linhasAba++;
-
-        // Mapear chaves identificadoras
-        const mike = idx.mike !== -1 ? String(row[idx.mike]).trim() : '';
-        
-        // REGRA DO MIKE OBRIGATÓRIO
-        if (!mike) {
-          logger.linhasIgnoradas++;
-          continue;
-        }
-
-        const boe = idx.boe !== -1 ? String(row[idx.boe]).trim() : '';
-        const dataStr = formatarDataBR(dataObjeto);
-        const chave = `${dataStr}|${mike}|${boe}`;
-        
-        ocorrenciasAba.add(chave);
-        policiaisAba.add(matricula);
-
-        // Cruzamento com a base de Efetivo
-        const cadastro = mapaEfetivo[matricula];
-        let nomePolicial = idx.militar !== -1 ? String(row[idx.militar]).trim().toUpperCase() : 'N/I';
-        let gradPolicial = idx.grad !== -1 ? String(row[idx.grad]).trim().toUpperCase() : 'N/I';
-        let pelotaoPolicial = idx.pelotao !== -1 ? String(row[idx.pelotao]).trim() : 'N/I';
-
-        if (cadastro) {
-          nomePolicial = cadastro.nome.toUpperCase();
-          gradPolicial = cadastro.graduacao;
-        } else {
-          logger.matriculasNaoEncontradas.add(matricula);
-        }
-
-        // Normalização das propriedades
-        pelotaoPolicial = SyntheonNormalizador.normalizarPelotao(pelotaoPolicial);
-        gradPolicial = SyntheonNormalizador.normalizarGraduacao(gradPolicial);
-
-        // Extrair valores numéricos das colunas
-        const armas = idx.armas !== -1 ? SyntheonUtils.converterNumero(row[idx.armas]) : 0;
-        const mac = idx.maconha !== -1 ? SyntheonUtils.converterNumero(row[idx.maconha]) : 0;
-        const coc = idx.cocaina !== -1 ? SyntheonUtils.converterNumero(row[idx.cocaina]) : 0;
-        const crack = idx.crack !== -1 ? SyntheonUtils.converterNumero(row[idx.crack]) : 0;
-        const pontosTotais = idx.pontosTotais !== -1 ? SyntheonUtils.converterNumero(row[idx.pontosTotais]) : 0;
-        const pontosFiccao = idx.pontosFiccao !== -1 ? SyntheonUtils.converterNumero(row[idx.pontosFiccao]) : 0;
-        const detidos = idx.detidos !== -1 ? SyntheonUtils.converterNumero(row[idx.detidos]) : 0;
-        const apfd = idx.apfd !== -1 ? SyntheonUtils.converterNumero(row[idx.apfd]) : 0;
-        const tco = idx.tco !== -1 ? SyntheonUtils.converterNumero(row[idx.tco]) : 0;
-        const boc = idx.boc !== -1 ? SyntheonUtils.converterNumero(row[idx.boc]) : 0;
-
-        // Validar que quantidades não são negativas
-        if (!SyntheonValidador.validarQuantidadeNaoNegativa(armas) ||
-            !SyntheonValidador.validarQuantidadeNaoNegativa(mac) ||
-            !SyntheonValidador.validarQuantidadeNaoNegativa(coc) ||
-            !SyntheonValidador.validarQuantidadeNaoNegativa(crack)) {
-          logger.aviso(`Valores negativos ignorados na aba ${nomeAba}, linha ${linhaReal} para policial ${matricula}.`);
-          logger.linhasIgnoradas++;
-          continue;
-        }
-
-        // Inicializar ocorrência canônica se não existir no mapa
-        if (!ocorrenciasPorChave[chave]) {
-          ocorrenciasPorChave[chave] = {
-            chave: chave,
-            mike: mike,
-            boe: boe,
-            data: dataObjeto,
-            hora: idx.hora !== -1 ? String(row[idx.hora]).trim() : '',
-            natureza: idx.natureza !== -1 ? String(row[idx.natureza]).trim() : '',
-            cidade: idx.cidade !== -1 ? String(row[idx.cidade]).trim() : '',
-            bairro: idx.bairro !== -1 ? String(row[idx.bairro]).trim() : '',
-            ais: idx.ais !== -1 ? SyntheonUtils.converterNumero(row[idx.ais]) : 0,
+        if (!ocorrenciasPorChave[linha.chave]) {
+          ocorrenciasPorChave[linha.chave] = {
+            chave: linha.chave,
+            mike: linha.mike,
+            boe: linha.boe,
+            data: linha.data,
+            hora: linha.hora,
+            natureza: linha.natureza,
+            cidade: linha.cidade,
+            bairro: linha.bairro,
+            ais: linha.ais,
             policiais: {},
             pontosTotaisOcorrencia: 0
           };
         }
 
-        const oc = ocorrenciasPorChave[chave];
-        oc.pontosTotaisOcorrencia = Math.max(oc.pontosTotaisOcorrencia, pontosTotais);
+        const ocorrencia = ocorrenciasPorChave[linha.chave];
+        ocorrencia.pontosTotaisOcorrencia = Math.max(ocorrencia.pontosTotaisOcorrencia, linha.pontosTotais);
 
-        // Adicionar ou mesclar o policial na ocorrência (deduplicando e consolidando linhas correlacionadas)
-        if (!oc.policiais[matricula]) {
-          oc.policiais[matricula] = {
-            matricula: matricula,
-            nome: nomePolicial,
-            grad: gradPolicial,
-            pelotao: pelotaoPolicial,
+        const policialExistia = !!ocorrencia.policiais[linha.matricula];
+        if (!policialExistia) {
+          ocorrencia.policiais[linha.matricula] = {
+            matricula: linha.matricula,
+            nome: linha.nomePolicial,
+            grad: linha.gradPolicial,
+            pelotao: linha.pelotaoPolicial,
             pontosFiccao: 0,
             armas: 0,
             maconha: 0,
@@ -204,40 +95,31 @@ const SyntheonLeitor = {
             apfd: 0,
             tco: 0,
             boc: 0,
-            qtdBoe: boe ? 1 : 0
+            qtdBoe: linha.boe ? 1 : 0
           };
           logger.linhasValidas++;
         } else {
           logger.duplicidades++;
         }
 
-        const pol = oc.policiais[matricula];
-        
-        // Acumular quantidades físicas
-        pol.armas += armas;
-        pol.maconha += mac;
-        pol.cocaina += coc;
-        pol.crack += crack;
-        pol.detidos += detidos;
-        pol.apfd += apfd;
-        pol.tco += tco;
-        pol.boc += boc;
-
-        // Prevenir duplicação da pontuação rateada no mesmo evento
-        pol.pontosFiccao = Math.max(pol.pontosFiccao, pontosFiccao);
+        SyntheonLeitor._acumularMetricasPolicial(ocorrencia.policiais[linha.matricula], linha);
       }
-      
+
       const tempoAba = ((Date.now() - inicioAba) / 1000).toFixed(2);
       if (typeof logger.logAbaDetalhado === 'function') {
-        logger.logAbaDetalhado(nomeAba, linhasAba, ocorrenciasAba.size, policiaisAba.size, tempoAba);
+        logger.logAbaDetalhado(
+          nomeAba,
+          estatisticasAba.linhas,
+          estatisticasAba.ocorrencias.size,
+          estatisticasAba.policiais.size,
+          tempoAba
+        );
       }
     });
 
-    // Converter mapa estruturado em vetor
     const vetorOcorrencias = Object.values(ocorrenciasPorChave);
     logger.ocorrenciasUnicas = vetorOcorrencias.length;
-    
-    // Contar total de policiais únicos
+
     const matriculasUnicas = new Set();
     vetorOcorrencias.forEach(oc => {
       Object.keys(oc.policiais).forEach(mat => matriculasUnicas.add(mat));
@@ -245,5 +127,146 @@ const SyntheonLeitor = {
     logger.policiaisUnicos = matriculasUnicas.size;
 
     return vetorOcorrencias;
+  },
+
+  _mapearColunas(headers) {
+    return {
+      data: SyntheonUtils.localizarColuna(headers, 'DATA'),
+      hora: SyntheonUtils.localizarColuna(headers, 'HORA'),
+      mike: SyntheonUtils.localizarColuna(headers, 'MIKE'),
+      boe: SyntheonUtils.localizarColuna(headers, 'BOE'),
+      natureza: SyntheonUtils.localizarColuna(headers, 'NATUREZA'),
+      cidade: SyntheonUtils.localizarColuna(headers, 'CIDADE'),
+      bairro: SyntheonUtils.localizarColuna(headers, 'BAIRRO'),
+      ais: SyntheonUtils.localizarColuna(headers, 'AIS'),
+      matricula: SyntheonUtils.localizarColuna(headers, 'MATRICULA'),
+      militar: SyntheonUtils.localizarColuna(headers, 'POLICIAL'),
+      grad: SyntheonUtils.localizarColuna(headers, 'GRAD'),
+      pelotao: SyntheonUtils.localizarColuna(headers, 'PELOTAO'),
+      armas: SyntheonUtils.localizarColuna(headers, 'ARMAS'),
+      maconha: SyntheonUtils.localizarColuna(headers, 'MACONHA'),
+      cocaina: SyntheonUtils.localizarColuna(headers, 'COCAINA'),
+      crack: SyntheonUtils.localizarColuna(headers, 'CRACK'),
+      pontosTotais: SyntheonUtils.localizarColuna(headers, 'PONTOS_TOTAIS'),
+      pontosFiccao: SyntheonUtils.localizarColuna(headers, 'PONTOS_FICCAO'),
+      detidos: SyntheonUtils.localizarColuna(headers, 'DETIDOS'),
+      apfd: SyntheonUtils.localizarColuna(headers, 'APFD'),
+      tco: SyntheonUtils.localizarColuna(headers, 'TCO'),
+      boc: SyntheonUtils.localizarColuna(headers, 'BOC')
+    };
+  },
+
+  _processarLinha(row, idx, mapaEfetivo, logger, contexto) {
+    const rawMat = row[idx.matricula];
+    const matricula = SyntheonUtils.limparMatricula(rawMat);
+
+    if (!matricula) {
+      logger.linhasIgnoradas++;
+      return null;
+    }
+
+    if (!SyntheonValidador.validarMatricula(matricula)) {
+      logger.aviso(`Matricula invalida na aba ${contexto.nomeAba}, linha ${contexto.linhaReal}: "${rawMat}".`);
+      logger.linhasIgnoradas++;
+      return null;
+    }
+
+    const rawData = idx.data !== -1 ? row[idx.data] : null;
+    const dataObjeto = converterDataUnificada(rawData);
+    if (!SyntheonValidador.validarData(dataObjeto)) {
+      logger.aviso(`Data invalida ou ausente na aba ${contexto.nomeAba}, linha ${contexto.linhaReal}: "${rawData}".`);
+      logger.linhasIgnoradas++;
+      return null;
+    }
+
+    if (contexto.dataInicio && contexto.dataFim) {
+      if (dataObjeto < contexto.dataInicio || dataObjeto > contexto.dataFim) {
+        logger.linhasIgnoradas++;
+        return null;
+      }
+    }
+
+    if (contexto.estatisticas) {
+      contexto.estatisticas.linhas++;
+    }
+
+    const mike = idx.mike !== -1 ? String(row[idx.mike]).trim() : '';
+    if (!mike) {
+      logger.linhasIgnoradas++;
+      return null;
+    }
+
+    const boe = idx.boe !== -1 ? String(row[idx.boe]).trim() : '';
+    const dataStr = formatarDataBR(dataObjeto);
+    const chave = `${dataStr}|${mike}|${boe}`;
+    const cadastro = mapaEfetivo[matricula];
+
+    if (contexto.estatisticas) {
+      contexto.estatisticas.ocorrencias.add(chave);
+      contexto.estatisticas.policiais.add(matricula);
+    }
+
+    let nomePolicial = idx.militar !== -1 ? String(row[idx.militar]).trim().toUpperCase() : 'N/I';
+    let gradPolicial = idx.grad !== -1 ? String(row[idx.grad]).trim().toUpperCase() : 'N/I';
+    let pelotaoPolicial = idx.pelotao !== -1 ? String(row[idx.pelotao]).trim() : 'N/I';
+
+    if (cadastro) {
+      nomePolicial = cadastro.nome.toUpperCase();
+      gradPolicial = cadastro.graduacao;
+    } else {
+      logger.matriculasNaoEncontradas.add(matricula);
+    }
+
+    pelotaoPolicial = SyntheonNormalizador.normalizarPelotao(pelotaoPolicial);
+    gradPolicial = SyntheonNormalizador.normalizarGraduacao(gradPolicial);
+
+    const linha = {
+      chave,
+      mike,
+      boe,
+      data: dataObjeto,
+      hora: idx.hora !== -1 ? String(row[idx.hora]).trim() : '',
+      natureza: idx.natureza !== -1 ? String(row[idx.natureza]).trim() : '',
+      cidade: idx.cidade !== -1 ? String(row[idx.cidade]).trim() : '',
+      bairro: idx.bairro !== -1 ? String(row[idx.bairro]).trim() : '',
+      ais: idx.ais !== -1 ? SyntheonUtils.converterNumero(row[idx.ais]) : 0,
+      matricula,
+      nomePolicial,
+      gradPolicial,
+      pelotaoPolicial,
+      armas: idx.armas !== -1 ? SyntheonUtils.converterNumero(row[idx.armas]) : 0,
+      maconha: idx.maconha !== -1 ? SyntheonUtils.converterNumero(row[idx.maconha]) : 0,
+      cocaina: idx.cocaina !== -1 ? SyntheonUtils.converterNumero(row[idx.cocaina]) : 0,
+      crack: idx.crack !== -1 ? SyntheonUtils.converterNumero(row[idx.crack]) : 0,
+      pontosTotais: idx.pontosTotais !== -1 ? SyntheonUtils.converterNumero(row[idx.pontosTotais]) : 0,
+      pontosFiccao: idx.pontosFiccao !== -1 ? SyntheonUtils.converterNumero(row[idx.pontosFiccao]) : 0,
+      detidos: idx.detidos !== -1 ? SyntheonUtils.converterNumero(row[idx.detidos]) : 0,
+      apfd: idx.apfd !== -1 ? SyntheonUtils.converterNumero(row[idx.apfd]) : 0,
+      tco: idx.tco !== -1 ? SyntheonUtils.converterNumero(row[idx.tco]) : 0,
+      boc: idx.boc !== -1 ? SyntheonUtils.converterNumero(row[idx.boc]) : 0
+    };
+
+    if (!SyntheonValidador.validarQuantidadeNaoNegativa(linha.armas) ||
+        !SyntheonValidador.validarQuantidadeNaoNegativa(linha.maconha) ||
+        !SyntheonValidador.validarQuantidadeNaoNegativa(linha.cocaina) ||
+        !SyntheonValidador.validarQuantidadeNaoNegativa(linha.crack)) {
+      logger.aviso(`Valores negativos ignorados na aba ${contexto.nomeAba}, linha ${contexto.linhaReal} para policial ${matricula}.`);
+      logger.linhasIgnoradas++;
+      return null;
+    }
+
+    return linha;
+  },
+
+  _acumularMetricasPolicial(policial, dadosLinha) {
+    policial.armas += dadosLinha.armas;
+    policial.maconha += dadosLinha.maconha;
+    policial.cocaina += dadosLinha.cocaina;
+    policial.crack += dadosLinha.crack;
+    policial.detidos += dadosLinha.detidos;
+    policial.apfd += dadosLinha.apfd;
+    policial.tco += dadosLinha.tco;
+    policial.boc += dadosLinha.boc;
+    policial.pontosFiccao = Math.max(policial.pontosFiccao, dadosLinha.pontosFiccao);
   }
 };
