@@ -5,12 +5,30 @@
  * Adaptador2026 + MotorAnaliticoV2 e gera o painel mestre oficial de produtividade.
  */
 
+const ORDEM_MESES_SYNTHEON = {
+  JAN: 1, FEV: 2, MAR: 3, ABR: 4, MAI: 5, JUN: 6,
+  JUL: 7, AGO: 8, SET: 9, OUT: 10, NOV: 11, DEZ: 12
+};
+
+function ordenarAbasCronologicamente(abas) {
+  return abas.sort((a, b) => {
+    const mesA = (a.match(/^[A-Z]{3}/i) || [''])[0].toUpperCase();
+    const mesB = (b.match(/^[A-Z]{3}/i) || [''])[0].toUpperCase();
+    const anoA = parseInt((a.match(/\d{4}$/) || ['0'])[0], 10);
+    const anoB = parseInt((b.match(/\d{4}$/) || ['0'])[0], 10);
+
+    if (anoA !== anoB) return anoA - anoB;
+    return (ORDEM_MESES_SYNTHEON[mesA] || 99) - (ORDEM_MESES_SYNTHEON[mesB] || 99);
+  });
+}
+
 function rodarCentralAnaliticaAnual() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const abas = ss.getSheets()
+  let abas = ss.getSheets()
     .map(s => s.getName())
-    .filter(nome => /^[A-Z]{3}2026$/i.test(nome))
-    .sort();
+    .filter(nome => /^[A-Z]{3}2026$/i.test(nome));
+
+  abas = ordenarAbasCronologicamente(abas);
 
   if (abas.length === 0) {
     SpreadsheetApp.getUi().alert("Nenhuma aba mensal de 2026 encontrada para a Central Analítica.");
@@ -22,10 +40,11 @@ function rodarCentralAnaliticaAnual() {
 
 function abrirMenuCentralAnaliticaSelecaoLivre() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const abas = ss.getSheets()
+  let abas = ss.getSheets()
     .map(s => s.getName())
-    .filter(nome => /^[A-Z]{3}\d{4}$/i.test(nome))
-    .sort();
+    .filter(nome => /^[A-Z]{3}\d{4}$/i.test(nome));
+
+  abas = ordenarAbasCronologicamente(abas);
 
   if (abas.length === 0) {
     SpreadsheetApp.getUi().alert("Nenhuma aba mensal encontrada.");
@@ -92,8 +111,9 @@ function abrirMenuCentralAnaliticaSelecaoLivre() {
 
 function processarCentralAnaliticaSelecaoLivre(abasSelecionadas) {
   if (!abasSelecionadas || abasSelecionadas.length === 0) return;
-  const nomeAbaSaida = `CA_${abasSelecionadas[0]}_${abasSelecionadas[abasSelecionadas.length - 1]}`;
-  return processarCentralAnalitica(abasSelecionadas, nomeAbaSaida);
+  const abasOrdenadas = ordenarAbasCronologicamente(abasSelecionadas);
+  const nomeAbaSaida = `CA_${abasOrdenadas[0]}_${abasOrdenadas[abasOrdenadas.length - 1]}`;
+  return processarCentralAnalitica(abasOrdenadas, nomeAbaSaida);
 }
 
 function processarCentralAnalitica(abas, nomeAbaSaida) {
@@ -167,6 +187,7 @@ function processarCentralAnalitica(abas, nomeAbaSaida) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
+    ordenarAbasCronologicamente,
     rodarCentralAnaliticaAnual,
     abrirMenuCentralAnaliticaSelecaoLivre,
     processarCentralAnaliticaSelecaoLivre,

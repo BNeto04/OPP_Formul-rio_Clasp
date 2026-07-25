@@ -72,4 +72,13 @@ test('CentralAnalitica: deve consolidar e ordenar por Pontuação > Ocorrências
   assert.strictEqual(registros[0].fatos.ocorrencias, 2);
 });
 
+test('CentralAnalitica: deve ordenar abas mensais cronologicamente (JAN..DEZ)', () => {
+  const { ordenarAbasCronologicamente } = require('../Features/CentralAnalitica');
+  const abasDesordenadas = ['JUL2026', 'ABR2026', 'FEV2026', 'DEZ2026', 'JAN2026', 'MAR2026'];
+  const ordenadas = ordenarAbasCronologicamente(abasDesordenadas);
+
+  assert.deepStrictEqual(ordenadas, ['JAN2026', 'FEV2026', 'MAR2026', 'ABR2026', 'JUL2026', 'DEZ2026']);
+});
+
 console.log(`\n🎉 Testes da Central Analítica concluídos: ${sucessos} testes passaram!`);
+

@@ -73,7 +73,7 @@ const RendererCA = {
 
     const linhas = registros.map((reg, idx) => [
       idx + 1,
-      reg.graduacao || 'N/I',
+      reg.grad || reg.graduacao || 'N/I',
       reg.matricula || 'N/I',
       reg.nome || 'N/I',
       reg.pelotao || 'N/I',
