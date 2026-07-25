@@ -1,36 +1,60 @@
 /**
  * ARQUIVO: Entrada/Menu.js
- * DESCRICAO: Conecta a interface grafica ao Google Sheets.
+ * DESCRICAO: Conecta a interface grafica ao Google Sheets com tratamento defensivo de menus.
  */
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
 
-  ui.createMenu('Formulario')
-    .addItem('Nova Ocorrencia (Formulario)', 'abrirFormularioEntrada')
-    .addToUi();
+  try {
+    ui.createMenu('Formulario')
+      .addItem('Nova Ocorrencia (Formulario)', 'abrirFormularioEntrada')
+      .addToUi();
+  } catch (e) {
+    Logger.log('Erro ao criar menu Formulario: ' + e.message);
+  }
 
-  ui.createMenu('ARMAS')
-    .addItem('Selecao Livre', 'abrirMenuSelecaoLivre')
-    .addItem('Anual', 'iniciarModoAnual')
-    .addToUi();
+  try {
+    ui.createMenu('ARMAS')
+      .addItem('Selecao Livre', 'abrirMenuSelecaoLivre')
+      .addItem('Anual', 'iniciarModoAnual')
+      .addToUi();
+  } catch (e) {
+    Logger.log('Erro ao criar menu ARMAS: ' + e.message);
+  }
 
-  ui.createMenu('PRODUTIVIDADE')
-    .addItem('Gerar Produtividade / Comparativo 2026', 'abrirMenuComparativo2026')
-    .addSeparator()
-    .addItem('Executar Guardiao da Qualidade', 'executarGuardiaoQualidade')
-    .addItem('Sincronizar EFETIVO pelo PECULIO', 'normalizarEfetivo')
-    .addSeparator()
-    .addItem('[DEV] Rodar Teste Homologacao V1 x V2', 'rodarTesteDeHomologacao')
-    .addToUi();
+  try {
+    ui.createMenu('PRODUTIVIDADE')
+      .addItem('Gerar Produtividade / Comparativo 2026', 'abrirMenuComparativo2026')
+      .addSeparator()
+      .addItem('Executar Guardiao da Qualidade', 'executarGuardiaoQualidade')
+      .addItem('Sincronizar EFETIVO pelo PECULIO', 'normalizarEfetivo')
+      .addSeparator()
+      .addItem('[DEV] Rodar Teste Homologacao V1 x V2', 'rodarTesteDeHomologacao')
+      .addToUi();
+  } catch (e) {
+    Logger.log('Erro ao criar menu PRODUTIVIDADE: ' + e.message);
+  }
 
-  ui.createMenu('📊 CA')
-    .addItem('Rodar Anual 2026', 'rodarCentralAnaliticaAnual')
-    .addItem('Seleção Livre', 'abrirMenuCentralAnaliticaSelecaoLivre')
-    .addToUi();
+  try {
+    ui.createMenu('CENTRAL ANALITICA')
+      .addItem('Rodar Anual 2026', 'rodarCentralAnaliticaAnual')
+      .addItem('Selecao Livre', 'abrirMenuCentralAnaliticaSelecaoLivre')
+      .addToUi();
+  } catch (e) {
+    Logger.log('Erro ao criar menu CENTRAL ANALITICA: ' + e.message);
+  }
 
-  criarMenuPip_();
-  criarMenuDrogas_();
-  criarMenuCPM_();
+  if (typeof criarMenuPip_ === 'function') {
+    try { criarMenuPip_(); } catch (e) { Logger.log('Erro ao criar menu PIP: ' + e.message); }
+  }
+
+  if (typeof criarMenuDrogas_ === 'function') {
+    try { criarMenuDrogas_(); } catch (e) { Logger.log('Erro ao criar menu Drogas: ' + e.message); }
+  }
+
+  if (typeof criarMenuCPM_ === 'function') {
+    try { criarMenuCPM_(); } catch (e) { Logger.log('Erro ao criar menu CPM: ' + e.message); }
+  }
 }
 
 function abrirFormularioEntrada() {
