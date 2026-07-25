@@ -1,5 +1,7 @@
 /**
  * ARQUIVO: Render/RendererTabela.js
+ * @deprecated Mantido apenas para fluxos legados de produtividade V1.
+ * Prefira renderizadores específicos como RendererComparativo2026.
  * DESCRIÇÃO: Renderizador genérico de tabelas com bloco de metadados.
  * Totalmente isolado das regras de negócio do aplicativo.
  */
