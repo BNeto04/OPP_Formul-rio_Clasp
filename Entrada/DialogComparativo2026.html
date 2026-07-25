@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="UTF-8">
     <base target="_top">
     <style>
       body { font-family: Arial, sans-serif; padding: 18px; color: #111827; }
@@ -31,7 +32,7 @@
       function gerar() {
         const selecionados = Array.from(document.querySelectorAll('input[name="mes"]:checked')).map(cb => cb.value);
         if (selecionados.length === 0) {
-          alert('Selecione pelo menos um mês.');
+          alert('Selecione pelo menos um mes.');
           return;
         }
         google.script.run
