@@ -1,4 +1,5 @@
 'use strict';
+if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 
 /**
  * ARQUIVO: Testes/RodarTodosOsTestes.js
@@ -20,3 +21,4 @@ require('./TestCentralAnalitica');
 console.log('\n====================================================');
 console.log('✨ TODAS AS SUÍTES FORAM EXECUTADAS COM SUCESSO!');
 console.log('====================================================');
+}

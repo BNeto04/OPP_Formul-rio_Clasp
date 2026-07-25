@@ -1,4 +1,5 @@
 'use strict';
+if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 
 /**
  * ARQUIVO: Testes/TestDominio.js
@@ -116,3 +117,5 @@ test('RegistroCanonico: sub-estruturas devem ser imutáveis (frozen)', () => {
 });
 
 console.log(`\n🎉 Testes de Domínio concluídos: ${sucessos} testes passaram!`);
+}
+

@@ -1,4 +1,5 @@
 'use strict';
+if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 
 /**
  * ARQUIVO: Testes/TestPlugins.js
@@ -109,3 +110,5 @@ test('PluginPontuacao: deve deduplicar a pontuação rateada pelo valor MÁXIMO 
 });
 
 console.log(`\n🎉 Testes de Plugins concluídos: ${sucessos} testes passaram!`);
+}
+

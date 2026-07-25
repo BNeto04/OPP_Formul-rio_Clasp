@@ -1,4 +1,5 @@
 'use strict';
+if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 
 /**
  * ARQUIVO: Testes/TestAdaptador2026.js
@@ -71,3 +72,5 @@ test('Adaptador2026: deve enriquecer dados do policial usando o mapaEfetivo', ()
 });
 
 console.log(`\n🎉 Testes do Adaptador 2026 concluídos: ${sucessos} testes passaram!`);
+}
+

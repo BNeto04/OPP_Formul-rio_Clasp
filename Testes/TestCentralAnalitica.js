@@ -1,4 +1,5 @@
 'use strict';
+if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 
 /**
  * ARQUIVO: Testes/TestCentralAnalitica.js
@@ -81,4 +82,6 @@ test('CentralAnalitica: deve ordenar abas mensais cronologicamente (JAN..DEZ)', 
 });
 
 console.log(`\n🎉 Testes da Central Analítica concluídos: ${sucessos} testes passaram!`);
+}
+
 
