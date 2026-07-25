@@ -23,6 +23,11 @@ function onOpen() {
     .addItem('[DEV] Rodar Teste Homologacao V1 x V2', 'rodarTesteDeHomologacao')
     .addToUi();
 
+  ui.createMenu('📊 CA')
+    .addItem('Rodar Anual 2026', 'rodarCentralAnaliticaAnual')
+    .addItem('Seleção Livre', 'abrirMenuCentralAnaliticaSelecaoLivre')
+    .addToUi();
+
   criarMenuPip_();
   criarMenuDrogas_();
   criarMenuCPM_();

@@ -98,3 +98,8 @@ class MotorAnaliticoV2 {
     return motor.executar(fatosCanonicos);
   }
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = MotorAnaliticoV2;
+}
+

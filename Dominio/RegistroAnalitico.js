@@ -59,3 +59,8 @@ class RegistroAnalitico {
     return this.fatos.ocorrencias > 0 ? parseFloat((this.fatos.ocorrenciasComDroga / this.fatos.ocorrencias).toFixed(2)) : 0;
   }
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = RegistroAnalitico;
+}
+

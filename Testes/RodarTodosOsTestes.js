@@ -14,6 +14,8 @@ console.log('');
 require('./TestPlugins');
 console.log('');
 require('./TestAdaptador2026');
+console.log('');
+require('./TestCentralAnalitica');
 
 console.log('\n====================================================');
 console.log('✨ TODAS AS SUÍTES FORAM EXECUTADAS COM SUCESSO!');
