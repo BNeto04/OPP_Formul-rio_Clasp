@@ -5,7 +5,8 @@
  */
 if (typeof FonteDados === 'undefined' && typeof require !== 'undefined') {
   const meta = require('../Config/Metamodelos');
-  global.FonteDados = meta.FonteDados;
-  global.CatalogoEstruturas = meta.CatalogoEstruturas;
+  if (typeof global !== 'undefined') {
+    global.FonteDados = meta.FonteDados;
+    global.CatalogoEstruturas = meta.CatalogoEstruturas;
+  }
 }
-
