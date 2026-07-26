@@ -1,0 +1,16 @@
+{
+  "name": "syntheon-engine",
+  "version": "2.0.0",
+  "description": "Motor Analítico e Central de Inteligência SYNTHÉON (PMPE)",
+  "main": "Motor/MotorAnaliticoV2.js",
+  "scripts": {
+    "test": "node Testes/RodarTodosOsTestes.js"
+  },
+  "keywords": [
+    "syntheon",
+    "pmpe",
+    "produtividade"
+  ],
+  "author": "SYNTHÉON Team",
+  "license": "ISC"
+}

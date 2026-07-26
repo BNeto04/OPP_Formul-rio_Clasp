@@ -212,8 +212,8 @@ function executarCompiladorCPM(abasAlvo, dataInicio, dataFim, modo) {
       p.grad,
       p.matricula,
       p.nome,
-      p.ocorrencias,
-      p.pontosCPM
+      (p.fatos && p.fatos.ocorrencias !== undefined) ? p.fatos.ocorrencias : (p.ocorrencias || 0),
+      (p.indicadores && p.indicadores.pontosCPM !== undefined) ? p.indicadores.pontosCPM : (p.pontosCPM || 0)
     ]);
 
     // 5. Criar aba de resultados com a formatação original intocada
@@ -228,7 +228,7 @@ function executarCompiladorCPM(abasAlvo, dataInicio, dataFim, modo) {
       'COMPILAÇÃO CPM CONCLUÍDA',
       `Aba gerada: ${nomeAbaResultado}\n\n` +
       `Policiais processados: ${rankingFormatado.length}\n` +
-      `Pontuação distribuída: ${rankingOrdenado.reduce((s, r) => s + r.pontosCPM, 0).toLocaleString('pt-BR')}\n` +
+      `Pontuação distribuída: ${rankingOrdenado.reduce((s, r) => s + ((r.indicadores && r.indicadores.pontosCPM !== undefined) ? r.indicadores.pontosCPM : (r.pontosCPM || 0)), 0).toLocaleString('pt-BR')}\n` +
       `Linhas válidas: ${logger.linhasValidas}\n` +
       `Linhas ignoradas: ${logger.linhasIgnoradas}\n` +
       `Duplicidades eliminadas: ${logger.duplicidades}\n` +

@@ -1,11 +1,11 @@
 /**
  * ARQUIVO: Core/Erros.js
- * RESPONSABILIDADE: Definir classes de erros personalizadas para o ecossistema SYNTHÉON.
+ * RESPONSABILIDADE: Definir classes de erros personalizadas para o ecossistema SYNTHEON.
  */
 
 class ErroValidacaoDominio extends Error {
   constructor(entidade, campo, mensagem) {
-    super(`[Validação de Domínio - ${entidade}] O campo '${campo}' é inválido: ${mensagem}`);
+    super(`[Validacao de Dominio - ${entidade}] O campo '${campo}' e invalido: ${mensagem}`);
     this.name = 'ErroValidacaoDominio';
     this.entidade = entidade;
     this.campo = campo;
@@ -13,7 +13,28 @@ class ErroValidacaoDominio extends Error {
   }
 }
 
-// Para permitir importação no Node.js durante testes locais
+class ErroLeituraAba extends Error {
+  constructor(aba, mensagem) {
+    super(`[Leitura de Aba - ${aba}] ${mensagem}`);
+    this.name = 'ErroLeituraAba';
+    this.aba = aba;
+    this.mensagem = mensagem;
+  }
+}
+
+class ErroConfiguracaoInvalida extends Error {
+  constructor(chave, mensagem) {
+    super(`[Configuracao Invalida - ${chave}] ${mensagem}`);
+    this.name = 'ErroConfiguracaoInvalida';
+    this.chave = chave;
+    this.mensagem = mensagem;
+  }
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { ErroValidacaoDominio };
+  module.exports = {
+    ErroValidacaoDominio,
+    ErroLeituraAba,
+    ErroConfiguracaoInvalida
+  };
 }

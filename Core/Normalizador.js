@@ -9,7 +9,18 @@ const SyntheonNormalizador = {
    */
   normalizarGraduacao(rawGrad) {
     const limpo = SyntheonUtils.normalizarTexto(rawGrad);
-    return CONSTANTES_SYNTHEON.GRADUACOES[limpo] || limpo || 'N/I';
+    const chaveSemOrdinal = this.normalizarChaveGraduacao(limpo);
+    return CONSTANTES_SYNTHEON.GRADUACOES[limpo]
+      || CONSTANTES_SYNTHEON.GRADUACOES[chaveSemOrdinal]
+      || limpo
+      || 'N/I';
+  },
+
+  normalizarChaveGraduacao(valor) {
+    return SyntheonUtils.normalizarTexto(valor)
+      .replace(/[º°ª]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
   },
 
   /**
@@ -21,7 +32,14 @@ const SyntheonNormalizador = {
     let limpo = SyntheonUtils.normalizarTexto(rawPel);
     if (!limpo) return 'N/I';
 
-    // Se bater com "1º PEL", "1ºPEL", "1 PEL", "PEL 1", etc.
+    // 1. Checa variações de GTAR primeiro (ex: "1º PEL GTAR", "2º PEL GTAR", "GTAR")
+    if (limpo.includes('GTAR')) {
+      if (limpo.includes('1')) return '1º PEL GTAR';
+      if (limpo.includes('2')) return '2º PEL GTAR';
+      return 'GTAR';
+    }
+
+    // 2. Checa Pelotões comuns
     if (/^1[º°O]?\s*PEL/i.test(limpo) || /^PEL\s*1/i.test(limpo)) {
       return '1º PEL';
     }
@@ -34,13 +52,15 @@ const SyntheonNormalizador = {
     if (limpo.includes('OFICIAIS')) {
       return 'OFICIAIS';
     }
-    if (limpo.includes('GTAR')) {
-      return 'GTAR';
-    }
     if (limpo.includes('CPM')) {
       return 'CPM';
     }
 
-    return limpo; // Retorna o valor limpo original se não bater nos padrões
+    return limpo;
   }
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = SyntheonNormalizador;
+}
+

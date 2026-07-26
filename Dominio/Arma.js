@@ -17,11 +17,15 @@ class Arma {
     this.tipo = String(tipo).trim().toUpperCase();
     this.quantidade = qtd;
     this.calibre = String(calibre).trim().toUpperCase();
+    Object.freeze(this);
   }
 }
 
 // Para exportação no Node.js durante os testes locais
 if (typeof module !== 'undefined' && module.exports) {
-  const { ErroValidacaoDominio } = require('../Core/Erros');
+  if (typeof ErroValidacaoDominio === 'undefined') {
+    global.ErroValidacaoDominio = require('../Core/Erros').ErroValidacaoDominio;
+  }
   module.exports = { Arma };
 }
+

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <base target="_top">
+    <style>
+      body { font-family: Arial, sans-serif; padding: 18px; color: #111827; }
+      h3 { margin: 0 0 6px; font-size: 17px; }
+      p { margin: 0 0 14px; color: #4b5563; font-size: 13px; line-height: 1.35; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+      .mes { display: flex; align-items: center; gap: 7px; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; cursor: pointer; }
+      .mes:hover { background: #f3f4f6; }
+      .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+      button { border: 0; border-radius: 6px; padding: 8px 12px; font-weight: 700; cursor: pointer; }
+      .secondary { background: #e5e7eb; color: #111827; }
+      .primary { background: #064e3b; color: white; }
+    </style>
+  </head>
+  <body>
+    <h3>Produtividade / Comparativo 2026</h3>
+    <p>Selecione um ou mais meses. Para bimestre ou trimestre, marque os meses desejados.</p>
+    <div class="grid"><?= opcoes ?></div>
+    <div class="actions">
+      <button class="secondary" onclick="marcarTodos()">Todos</button>
+      <button class="secondary" onclick="google.script.host.close()">Cancelar</button>
+      <button class="primary" onclick="gerar()">Gerar</button>
+    </div>
+    <script>
+      function marcarTodos() {
+        document.querySelectorAll('input[name="mes"]').forEach(cb => cb.checked = true);
+      }
+      function gerar() {
+        const selecionados = Array.from(document.querySelectorAll('input[name="mes"]:checked')).map(cb => cb.value);
+        if (selecionados.length === 0) {
+          alert('Selecione pelo menos um mes.');
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(() => google.script.host.close())
+          .withFailureHandler(err => alert('Erro: ' + err.message))
+          .processarComparativo2026Selecionado(selecionados);
+      }
+    </script>
+  </body>
+</html>

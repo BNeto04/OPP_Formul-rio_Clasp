@@ -20,15 +20,27 @@ const SyntheonMetricas = {
             nome: pol.nome,
             grad: pol.grad,
             pelotao: pol.pelotao, // Lotação inicial
-            ocorrencias: 0,
-            pontosPIP: 0,
-            pontosCPM: 0,
-            armas: 0,
-            maconha: 0,
-            cocaina: 0,
-            crack: 0,
-            drogasTotal: 0,
-            historicoEscalas: [] // Armazena todas as lotações por onde passou
+            historicoEscalas: [],
+            fatos: {
+              ocorrencias: 0,
+              armas: 0,
+              maconha: 0,
+              cocaina: 0,
+              crack: 0,
+              drogasTotal: 0,
+              detidos: 0,
+              apfd: 0,
+              tco: 0,
+              boc: 0,
+              qtdBoe: 0,
+              ocorrenciasComArma: 0,
+              ocorrenciasComDroga: 0
+            },
+            indicadores: {
+              pontosPIP: 0,
+              pontosCPM: 0,
+              pontosTotais: 0
+            }
           };
         }
 
@@ -42,24 +54,40 @@ const SyntheonMetricas = {
           }
         }
 
-        registro.ocorrencias++;
+        registro.fatos.ocorrencias++;
+        if (pol.armas > 0) registro.fatos.ocorrenciasComArma++;
+        if (pol.maconha > 0 || pol.cocaina > 0 || pol.crack > 0) registro.fatos.ocorrenciasComDroga++;
         
-        // Acumular Pontuações
+        // Acumular Pontuações (Indicadores)
         // Para PIP/CPM, a pontuação consolidada no Objeto Canônico é a pontosFiccao rateada
-        registro.pontosPIP += pol.pontosFiccao;
-        registro.pontosCPM += pol.pontosFiccao; // CPM utiliza a mesma base de pontos na célula
+        registro.indicadores.pontosPIP += pol.pontosFiccao || 0;
+        registro.indicadores.pontosCPM += pol.pontosFiccao || 0; // CPM utiliza a mesma base de pontos na célula
+        registro.indicadores.pontosTotais += pol.pontosFiccao || 0;
 
-        // Acumular Apreensões
-        registro.armas += pol.armas;
-        registro.maconha += pol.maconha;
-        registro.cocaina += pol.cocaina;
-        registro.crack += pol.crack;
+        // Acumular Apreensões e KPIs (Fatos imutáveis da operação)
+        registro.fatos.armas += pol.armas || 0;
+        registro.fatos.maconha += pol.maconha || 0;
+        registro.fatos.cocaina += pol.cocaina || 0;
+        registro.fatos.crack += pol.crack || 0;
+        registro.fatos.detidos += pol.detidos || 0;
+        registro.fatos.apfd += pol.apfd || 0;
+        registro.fatos.tco += pol.tco || 0;
+        registro.fatos.boc += pol.boc || 0;
+        registro.fatos.qtdBoe += pol.qtdBoe || 0;
         
         // Peso total de drogas (maconha + cocaína + crack)
-        registro.drogasTotal += (pol.maconha + pol.cocaina + pol.crack);
+        registro.fatos.drogasTotal += ((pol.maconha || 0) + (pol.cocaina || 0) + (pol.crack || 0));
       });
     });
 
-    return produtividade;
+    const resultado = {};
+    for (const matricula in produtividade) {
+      const reg = produtividade[matricula];
+      reg.indicadores.pontosTotais = reg.indicadores.pontosCPM;
+      // Requer que a classe RegistroAnalitico já tenha sido carregada pelo Google Apps Script
+      resultado[matricula] = typeof RegistroAnalitico !== 'undefined' ? new RegistroAnalitico(reg) : reg;
+    }
+
+    return resultado;
   }
 };
