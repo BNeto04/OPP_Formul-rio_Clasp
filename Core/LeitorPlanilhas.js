@@ -213,6 +213,7 @@ const SyntheonLeitor = {
     if (cadastro) {
       nomePolicial = cadastro.nome.toUpperCase();
       gradPolicial = cadastro.graduacao;
+      pelotaoPolicial = cadastro.pelotao || pelotaoPolicial;
     } else {
       logger.matriculasNaoEncontradas.add(matricula);
     }

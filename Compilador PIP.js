@@ -209,14 +209,15 @@ function executarCompiladorPip(abasAlvo, dataInicio, dataFim, modo) {
     const criterios = ['PONTOS', 'OCORRENCIAS'];
     const rankingOrdenado = SyntheonRanking.gerarRanking(produtividade, criterios);
 
-    // 4. Mapear para o formato legado esperado pelo renderizador de aba
+    // 4. Mapear para o formato com DESIGNAÇÃO oficial do EFETIVO
     const rankingFormatado = rankingOrdenado.map(p => [
       p.rank,
       p.grad,
       p.matricula,
       p.nome,
-      (p.fatos && p.fatos.ocorrencias !== undefined) ? p.fatos.ocorrencias : (p.ocorrencias || 0),
-      (p.indicadores && p.indicadores.pontosPIP !== undefined) ? p.indicadores.pontosPIP : (p.pontosPIP || 0)
+      p.pelotao || 'N/I',
+      (p.indicadores && p.indicadores.pontosPIP !== undefined) ? p.indicadores.pontosPIP : (p.pontosPIP || 0),
+      (p.fatos && p.fatos.ocorrencias !== undefined) ? p.fatos.ocorrencias : (p.ocorrencias || 0)
     ]);
 
     // 5. Criar aba de resultados com a formatação original intocada
@@ -270,26 +271,28 @@ function criarAbaResultado_(ss, ranking, dataInicio, dataFim, modo) {
     'GRADUAÇÃO',
     'MATRÍCULA',
     'NOME COMPLETO',
-    'OCORRÊNCIAS',
-    'PONTUAÇÃO'
+    'DESIGNAÇÃO',
+    'PONTUAÇÃO',
+    'QTD OC.'
   ]];
 
-  sheet.getRange(1, 1, 1, 6)
+  sheet.getRange(1, 1, 1, 7)
     .setValues(cabecalho)
     .setFontWeight('bold')
     .setBackground('#d9ead3')
     .setHorizontalAlignment('center');
 
   if (ranking.length > 0) {
-    sheet.getRange(2, 1, ranking.length, 6).setValues(ranking);
-    sheet.getRange(2, 6, ranking.length, 1).setNumberFormat('#,##0.00');
-    sheet.getRange(2, 1, ranking.length, 3).setHorizontalAlignment('center');
-    sheet.getRange(2, 5, ranking.length, 2).setHorizontalAlignment('center');
+    sheet.getRange(2, 1, ranking.length, 7).setValues(ranking);
+    sheet.getRange(2, 6, ranking.length, 1).setNumberFormat('#,##0.00'); // PONTUAÇÃO (Col 6)
+    sheet.getRange(2, 1, ranking.length, 3).setHorizontalAlignment('center'); // RANK, GRAD, MAT
+    sheet.getRange(2, 5, ranking.length, 1).setHorizontalAlignment('center'); // DESIGNAÇÃO
+    sheet.getRange(2, 7, ranking.length, 1).setHorizontalAlignment('center'); // QTD OC.
   }
 
   sheet.setFrozenRows(1);
-  sheet.getRange(1, 1, Math.max(1, ranking.length + 1), 6).createFilter();
-  sheet.autoResizeColumns(1, 6);
+  sheet.getRange(1, 1, Math.max(1, ranking.length + 1), 7).createFilter();
+  sheet.autoResizeColumns(1, 7);
 
   return nomeFinal;
 }
