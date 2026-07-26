@@ -116,6 +116,17 @@ test('RegistroCanonico: sub-estruturas devem ser imutáveis (frozen)', () => {
   assert.throws(() => { reg.ocorrencia.chave = 'HACKED'; }, TypeError);
 });
 
+test('Normalizador: deve normalizar 1º PEL GTAR e 2º PEL GTAR preservando a sigla GTAR', () => {
+  const NormalizadorMod = require('../Core/Normalizador');
+  const SyntheonUtils = require('../Core/Utils');
+  global.SyntheonUtils = SyntheonUtils;
+
+  assert.strictEqual(NormalizadorMod.normalizarPelotao('1º PEL GTAR'), '1º PEL GTAR');
+  assert.strictEqual(NormalizadorMod.normalizarPelotao('2º PEL GTAR'), '2º PEL GTAR');
+  assert.strictEqual(NormalizadorMod.normalizarPelotao('1º PEL'), '1º PEL');
+});
+
 console.log(`\n🎉 Testes de Domínio concluídos: ${sucessos} testes passaram!`);
 }
+
 
