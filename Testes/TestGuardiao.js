@@ -4,7 +4,7 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 /**
  * ARQUIVO: Testes/TestGuardiao.js
  * DESCRIÇÃO: Suíte de testes unitários para o Guardião da Qualidade Operacional (M05).
- * Valida a compatibilidade de diagnósticos e regras de coerência do túnel (TASK-M05.1-03).
+ * Valida a compatibilidade de diagnósticos e regras de coerência do túnel (TASK-M05.1-03 e TASK-M05.1-03A).
  */
 
 const assert = require('assert');
@@ -133,9 +133,8 @@ test('GuardiaoQualidade: MIKE suspeito deve gerar ALERTA sem bloquear a execuç�
   assert.strictEqual(diagMike.severidade, 'ALERTA');
 });
 
-// 4. Teste: Divergência entre DATA e MIKE
+// 4. Teste: Divergência entre DATA (string) e MIKE
 test('GuardiaoQualidade: divergência entre data da planilha e data do MIKE deve gerar ALERTA', () => {
-  // DATA = 20/07/2026, mas MIKE = 202607150001 (15/07/2026)
   const dadosLinhas = [
     ['20/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
   ];
@@ -148,7 +147,20 @@ test('GuardiaoQualidade: divergência entre data da planilha e data do MIKE deve
   assert.ok(diagDataMike.diagnostico.includes('Divergência entre data'));
 });
 
-// 5. Teste: Coerência cruzada — mesmo MIKE com BOEs divergentes
+// 5. Teste: DATA como objeto Date (preservando coerência sem falso alerta)
+test('GuardiaoQualidade: deve processar DATA como objeto Date sem gerar falso alerta de data', () => {
+  const dataObjeto = new Date(2026, 6, 15); // 15 de Julho de 2026
+  const dadosLinhas = [
+    [dataObjeto, '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+  ];
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao]);
+  const resultado = GuardiaoQualidade.varrerAba(mockSheet);
+
+  const diagDataMike = resultado.diagnosticos.find(d => d.codigoRegra === 'MIKE_DATA_DIVERGENTE');
+  assert.strictEqual(diagDataMike, undefined);
+});
+
+// 6. Teste: Coerência cruzada — mesmo MIKE com BOEs divergentes
 test('GuardiaoQualidade: mesmo MIKE com BOEs diferentes deve gerar diagnóstico de divergência', () => {
   const dadosLinhas = [
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
@@ -165,8 +177,25 @@ test('GuardiaoQualidade: mesmo MIKE com BOEs diferentes deve gerar diagnóstico 
   assert.ok(diagBoe.diagnostico.includes('BOEs diferentes'));
 });
 
-// 6. Teste: AG sem AH (Evento incompleto) e AH sem AG
-test('GuardiaoQualidade: deve validar inconsistências de AG sem AH e AH sem AG com ação recomendada', () => {
+// 7. Teste: Coerência cruzada — mesmo MIKE em datas diferentes
+test('GuardiaoQualidade: mesmo MIKE utilizado em datas diferentes deve gerar diagnóstico de datas divergentes', () => {
+  const dadosLinhas = [
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    ['20/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+  ];
+  const formulas = [formulaCalculadaPadrao, formulaCalculadaPadrao];
+
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, formulas);
+  const resultado = GuardiaoQualidade.varrerAba(mockSheet);
+
+  const diagDatas = resultado.diagnosticos.find(d => d.codigoRegra === 'MIKE_DATAS_DIVERGENTES');
+  assert.ok(diagDatas);
+  assert.strictEqual(diagDatas.severidade, 'ALERTA');
+  assert.ok(diagDatas.diagnostico.includes('datas incompatíveis'));
+});
+
+// 8. Teste: AG sem AH (Evento incompleto)
+test('GuardiaoQualidade: AG preenchido sem AH deve gerar EVENTO_INCOMPLETO_AG com ação recomendada', () => {
   const dadosLinhas = [
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', '', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
   ];
@@ -179,7 +208,21 @@ test('GuardiaoQualidade: deve validar inconsistências de AG sem AH e AH sem AG 
   assert.ok(diagIncompleto.acaoRecomendada.includes('Revise AG/AH'));
 });
 
-// 7. Teste: Indicador PIP não mapeado -> OBSERVACAO
+// 9. Teste: AH sem AG (Imputado sem evento)
+test('GuardiaoQualidade: AH preenchido sem AG (imputado sem evento) deve gerar IMPUTADO_SEM_EVENTO_AH com ALERTA', () => {
+  const dadosLinhas = [
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, '', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+  ];
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao]);
+  const resultado = GuardiaoQualidade.varrerAba(mockSheet);
+
+  const diagImputadoSemAG = resultado.diagnosticos.find(d => d.codigoRegra === 'IMPUTADO_SEM_EVENTO_AH');
+  assert.ok(diagImputadoSemAG);
+  assert.strictEqual(diagImputadoSemAG.severidade, 'ALERTA');
+  assert.ok(diagImputadoSemAG.diagnostico.includes('Imputado sem evento'));
+});
+
+// 10. Teste: Indicador PIP não mapeado -> OBSERVACAO
 test('GuardiaoQualidade: indicador desconhecido deve gerar OBSERVACAO e não falso erro', () => {
   const dadosLinhas = [
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'EVENTO CUSTOMIZADO NAO MAPEADO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
