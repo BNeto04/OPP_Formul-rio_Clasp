@@ -108,19 +108,19 @@ function executarCompiladorDrogas(mesesAlvo, modo) {
 
       logs.abasProcessadas.push(nomeAba);
       const lastCol = sheet.getLastColumn();
-      const headersRaw = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-      const headers = headersRaw.map(h => String(h).trim().toUpperCase());
+      const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
 
-      const idxBoe = headers.findIndex(h => h.includes('BOE'));
-      const idxPelotao = headers.findIndex(h => h.includes('PELOTÃO'));
-      const idxGrad = Math.max(
-        headers.findIndex(h => h.includes('GRADUAÇÃO')), 
-        headers.findIndex(h => h.includes('GRAD'))
-      );
-      const idxMat = headers.findIndex(h => h.includes('MATRÍCULA') || h.includes('MATRICULA'));
-      const idxPolicial = headers.findIndex(h => h.includes('POLICIAL'));
-      const idxMac = headers.findIndex(h => h.includes('DIVIDIDO') && h.includes('MAC'));
-      const idxCoc = headers.findIndex(h => h.includes('DIVIDIDO') && h.includes('COC'));
+      const loc = (chaveAlias) => (typeof SyntheonCabecalhos !== 'undefined')
+        ? SyntheonCabecalhos.encontrar(headers, chaveAlias)
+        : SyntheonUtils.localizarColuna(headers.map(h => SyntheonUtils.normalizarTexto(h)), chaveAlias);
+
+      const idxBoe = loc('BOE');
+      const idxPelotao = loc('PELOTAO');
+      const idxGrad = loc('GRAD');
+      const idxMat = loc('MATRICULA');
+      const idxPolicial = loc('POLICIAL');
+      const idxMac = loc('MACONHA');
+      const idxCoc = loc('COCAINA');
 
       if ([idxPelotao, idxMat, idxPolicial, idxMac, idxCoc].some(i => i === -1)) {
         throw new Error(`Cabeçalhos obrigatórios não encontrados na aba ${nomeAba}.`);

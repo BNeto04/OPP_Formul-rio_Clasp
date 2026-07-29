@@ -100,18 +100,18 @@ function executarCompilador(mesesAlvo, modo) {
       logs.abasProcessadas.push(nomeAba);
       
       const lastCol = sheet.getLastColumn();
-      const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toUpperCase());
+      const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
       
-      const idxBoe = headers.indexOf('BOE');
-      const idxPelotao = headers.indexOf('PELOTÃO');
-      const idxMatricula = headers.indexOf('MATRICULA');
-      const idxPolicial = headers.indexOf('POLICIAL');
-      
-      let idxGraduacao = headers.indexOf('GRADUAÇÃO');
-      if (idxGraduacao === -1) idxGraduacao = headers.indexOf('GRAD');
+      const loc = (chaveAlias) => (typeof SyntheonCabecalhos !== 'undefined')
+        ? SyntheonCabecalhos.encontrar(headers, chaveAlias)
+        : SyntheonUtils.localizarColuna(headers.map(h => SyntheonUtils.normalizarTexto(h)), chaveAlias);
 
-      let idxArmas = headers.indexOf('QDT ARMAS');
-      if (idxArmas === -1) idxArmas = headers.indexOf('QTD ARMAS');
+      const idxBoe = loc('BOE');
+      const idxPelotao = loc('PELOTAO');
+      const idxMatricula = loc('MATRICULA');
+      const idxPolicial = loc('POLICIAL');
+      const idxGraduacao = loc('GRAD');
+      const idxArmas = loc('ARMAS');
       
       if (idxPelotao === -1) throw new Error(`Coluna PELOTÃO não encontrada no cabeçalho da aba ${nomeAba}.`);
       if (idxMatricula === -1) throw new Error(`Coluna MATRICULA não encontrada no cabeçalho da aba ${nomeAba}.`);
