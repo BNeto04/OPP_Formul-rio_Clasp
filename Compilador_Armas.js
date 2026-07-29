@@ -7,7 +7,7 @@
 // ============================================================================
 // UI - ENTRADA DO FLUXO
 // ============================================================================
-function onOpen() {
+function criarMenuArmas_() {
 
   const ui = SpreadsheetApp.getUi();
 
@@ -15,10 +15,6 @@ function onOpen() {
     .addItem('📅 Seleção Livre', 'abrirMenuSelecaoLivre')
     .addItem('📊 Anual', 'iniciarModoAnual')
     .addToUi();
-
-  criarMenuPip_();
-  criarMenuDrogas_();   // ← Chamada do menu de Entorpecentes
-  criarMenuCPM_();
 }
 
 // ============================================================================

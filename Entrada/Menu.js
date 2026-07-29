@@ -13,13 +13,8 @@ function onOpen() {
     Logger.log('Erro ao criar menu Formulario: ' + e.message);
   }
 
-  try {
-    ui.createMenu('ARMAS')
-      .addItem('Selecao Livre', 'abrirMenuSelecaoLivre')
-      .addItem('Anual', 'iniciarModoAnual')
-      .addToUi();
-  } catch (e) {
-    Logger.log('Erro ao criar menu ARMAS: ' + e.message);
+  if (typeof criarMenuArmas_ === 'function') {
+    try { criarMenuArmas_(); } catch (e) { Logger.log('Erro ao criar menu ARMAS: ' + e.message); }
   }
 
   try {
@@ -33,15 +28,6 @@ function onOpen() {
       .addToUi();
   } catch (e) {
     Logger.log('Erro ao criar menu PRODUTIVIDADE: ' + e.message);
-  }
-
-  try {
-    ui.createMenu('CENTRAL ANALITICA')
-      .addItem('Rodar Anual 2026', 'rodarCentralAnaliticaAnual')
-      .addItem('Selecao Livre', 'abrirMenuCentralAnaliticaSelecaoLivre')
-      .addToUi();
-  } catch (e) {
-    Logger.log('Erro ao criar menu CENTRAL ANALITICA: ' + e.message);
   }
 
   if (typeof criarMenuPip_ === 'function') {
