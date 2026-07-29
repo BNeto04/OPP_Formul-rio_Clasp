@@ -108,6 +108,9 @@ class RendererAuditoriaSaude {
     const registrosHistorico = registrosTabela.map(r => [agora, ...r]);
     const proxLinhaHist = Math.max(histSheet.getLastRow() + 1, 2);
     histSheet.getRange(proxLinhaHist, 1, registrosHistorico.length, 9).setValues(registrosHistorico);
+
+    // Estilização Executiva cumulativa para [HISTORICO] Auditoria Ocorrencias
+    RendererAuditoriaSaude.estilizarAbaHistorico_(histSheet, registrosHistorico, proxLinhaHist);
   }
 
   static estilitarAbaAuditoria_(logSheet, totalLinhasDoc, statusFinal, registrosTabela) {
@@ -190,6 +193,83 @@ class RendererAuditoriaSaude {
         logSheet.setColumnWidth(6, 320); // DIAGNÓSTICO
         logSheet.setColumnWidth(7, 320); // EVIDÊNCIA
         logSheet.setColumnWidth(8, 320); // AÇÃO RECOMENDADA
+      }
+
+    } catch (e) {
+      // Garante execução limpa em ambientes isolados/mocks
+    }
+  }
+
+  static estilizarAbaHistorico_(histSheet, novosRegistros, proxLinhaHist) {
+    if (!histSheet || typeof histSheet.getRange !== 'function') return;
+
+    try {
+      // Congelamento apenas da linha 1 e Gridlines
+      if (typeof histSheet.setFrozenRows === 'function') histSheet.setFrozenRows(1);
+      if (typeof histSheet.setHiddenGridlines === 'function') histSheet.setHiddenGridlines(false);
+
+      // Linha 1: Cabeçalho da Tabela de Histórico
+      const rangeCabecalho = histSheet.getRange(1, 1, 1, 9);
+      if (typeof rangeCabecalho.setBackground === 'function') {
+        rangeCabecalho.setBackground('#2C4257')
+          .setFontColor('#FFFFFF')
+          .setFontWeight('bold')
+          .setHorizontalAlignment('center');
+      }
+
+      // Estilização das Linhas de Dados anexadas (da proxLinhaHist em diante)
+      (novosRegistros || []).forEach((rHist, idx) => {
+        const linhaReal = proxLinhaHist + idx;
+        const severidade = rHist[4]; // No Histórico, SEVERIDADE está na coluna 5 (índice 4)
+        const estilo = RendererAuditoriaSaude.PALETA_SEVERIDADES[severidade] || RendererAuditoriaSaude.PALETA_SEVERIDADES['ALERTA'];
+
+        // Centralizar colunas 1 a 4 (DATA/HORA EXECUÇÃO, ABA, TÚNEL, LINHA)
+        const rangeCentralizadoEsquerda = histSheet.getRange(linhaReal, 1, 1, 4);
+        if (typeof rangeCentralizadoEsquerda.setHorizontalAlignment === 'function') {
+          rangeCentralizadoEsquerda.setHorizontalAlignment('center');
+        }
+
+        // Destacar a célula de SEVERIDADE (Coluna 5)
+        const cellSeveridade = histSheet.getRange(linhaReal, 5);
+        if (typeof cellSeveridade.setBackground === 'function') {
+          cellSeveridade.setBackground(estilo.fundo)
+            .setFontColor(estilo.fonte)
+            .setFontWeight(estilo.negrito ? 'bold' : 'normal')
+            .setHorizontalAlignment('center');
+        }
+
+        // Destacar a célula de REGRA (Coluna 6)
+        const cellRegra = histSheet.getRange(linhaReal, 6);
+        if (typeof cellRegra.setHorizontalAlignment === 'function') {
+          cellRegra.setHorizontalAlignment('center').setFontWeight('bold');
+        }
+
+        // Alinhamento à esquerda explícito das colunas DIAGNÓSTICO, EVIDÊNCIA, AÇÃO RECOMENDADA (Colunas 7 a 9)
+        const rangeEsquerdaTextos = histSheet.getRange(linhaReal, 7, 1, 3);
+        if (typeof rangeEsquerdaTextos.setHorizontalAlignment === 'function') {
+          rangeEsquerdaTextos.setHorizontalAlignment('left');
+        }
+
+        // Zebrado discreto nas linhas pares de dados (sem apagar a célula de severidade na Coluna 5)
+        if (linhaReal % 2 === 0) {
+          const rangeEsquerda = histSheet.getRange(linhaReal, 1, 1, 4);
+          const rangeDireita = histSheet.getRange(linhaReal, 6, 1, 4);
+          if (typeof rangeEsquerda.setBackground === 'function') rangeEsquerda.setBackground('#F8F9FA');
+          if (typeof rangeDireita.setBackground === 'function') rangeDireita.setBackground('#F8F9FA');
+        }
+      });
+
+      // Larguras Fixas Recomendadas para Histórico
+      if (typeof histSheet.setColumnWidth === 'function') {
+        histSheet.setColumnWidth(1, 160); // DATA/HORA EXECUÇÃO
+        histSheet.setColumnWidth(2, 120); // ABA
+        histSheet.setColumnWidth(3, 180); // TÚNEL
+        histSheet.setColumnWidth(4, 70);  // LINHA
+        histSheet.setColumnWidth(5, 140); // SEVERIDADE
+        histSheet.setColumnWidth(6, 210); // REGRA
+        histSheet.setColumnWidth(7, 320); // DIAGNÓSTICO
+        histSheet.setColumnWidth(8, 320); // EVIDÊNCIA
+        histSheet.setColumnWidth(9, 320); // AÇÃO RECOMENDADA
       }
 
     } catch (e) {

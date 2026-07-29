@@ -4,7 +4,7 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 /**
  * ARQUIVO: Testes/TestGuardiao.js
  * DESCRIÇÃO: Suíte de testes unitários e homologação final offline para o Guardião da Qualidade (M05/M06).
- * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado com divisor PIP fixo = 4 (TASK-M05.1-04E), Tabela PIP, relatórios legíveis, estilização executiva (TASK-M06.1-02) e homologação E2E.
+ * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado com divisor PIP fixo = 4 (TASK-M05.1-04E), Tabela PIP, relatórios legíveis, estilização executiva (TASK-M06.1-02/TASK-M06.1-03) e homologação E2E.
  */
 
 const assert = require('assert');
@@ -646,6 +646,37 @@ test('RendererAuditoriaSaude: valida paleta de severidades, congelamento de pain
   const alinhamentos = subLog.obterAlinhamentos();
   const alignLeftCols6To8 = alinhamentos.find(a => a.row === 6 && a.col === 6 && a.align === 'left');
   assert.ok(alignLeftCols6To8, 'As colunas 6 a 8 na linha 6 devem ter alinhamento à esquerda (left)');
+});
+
+// 23. Estilização Executiva e Histórico Cumulativo em [HISTORICO] Auditoria Ocorrencias (TASK-M06.1-03)
+test('RendererAuditoriaSaude: valida histórico cumulativo, congelamento da linha 1, severidade na coluna 5 e alinhamento à esquerda das colunas 7-9', () => {
+  const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
+  const dadosLinhas = [
+    ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
+  ];
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
+
+  // Executa varredura 1
+  GuardiaoQualidade.varrerAba(mockSheet);
+  // Executa varredura 2 (cumulativo)
+  GuardiaoQualidade.varrerAba(mockSheet);
+
+  const subHist = mockSheet.obterSubAba('[HISTORICO] Auditoria Ocorrencias');
+  assert.ok(subHist);
+
+  // 1. Confirma histórico estritamente cumulativo (cabeçalho + 2 execuções)
+  const dadosHist = subHist.obterDadosArmazenados();
+  assert.strictEqual(dadosHist.length, 3);
+  assert.strictEqual(dadosHist[1][4], 'CRITICO'); // Coluna 5 (SEVERIDADE)
+  assert.strictEqual(dadosHist[2][4], 'CRITICO'); // Coluna 5 (SEVERIDADE)
+
+  // 2. Confirma congelamento apenas da linha 1
+  assert.strictEqual(subHist.obterLinhasCongeladas(), 1);
+
+  // 3. Confirma alinhamento à esquerda (left) das colunas 7 a 9
+  const alinhamentos = subHist.obterAlinhamentos();
+  const alignLeftCols7To9 = alinhamentos.find(a => a.col === 7 && a.align === 'left');
+  assert.ok(alignLeftCols7To9, 'As colunas 7 a 9 no Histórico devem ter alinhamento à esquerda (left)');
 });
 
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);

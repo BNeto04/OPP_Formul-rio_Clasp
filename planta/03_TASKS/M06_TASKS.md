@@ -1,7 +1,7 @@
 # M06 — Relatórios Oficiais e Formatação Visual (Tasks)
 
 > **Documento:** `planta/03_TASKS/M06_TASKS.md`  
-> **Status da Sprint:** EM ANDAMENTO (TASK-M06.1-02 Concluída)  
+> **Status da Sprint:** EM ANDAMENTO (TASK-M06.1-03 Concluída)  
 > **Contexto:** Ecossistema Synthéon GS Down Plant Offline  
 
 ---
@@ -15,13 +15,17 @@
 
 ### [CONCLUÍDO] TASK-M06.1-02 — Estilização e Formatação Visual da Aba [AUDITORIA] Ocorrencias
 - Atualizado `Render/RendererAuditoriaSaude.js` implementando o método `estilizarAbaAuditoria_`.
-- Aplicada a paleta de severidades exclusiva (`CRITICO` `#D9534F`, `ALERTA` `#F0AD4E`, `OBSERVACAO` `#5BC0DE`, `EXCECAO MANUAL` `#6F42C1`, `ERRO TECNICO` `#900C3F`, `APROVADO` `#28A745`) na coluna de Severidade.
+- Aplicada a paleta de severidades exclusiva (`CRITICO` `#D9534F`, `ALERTA` `#F0AD4E`, `OBSERVACAO` `#5BC0DE`, `EXCECAO MANUAL` `#6F42C1`, `ERRO TECNICO` `#900C3F`, `APROVADO` `#28A745`) na coluna 4 (SEVERIDADE).
 - Aplicado título Azul Escuro (`#1C3144`), cabeçalho Azul Médio (`#2C4257`), congelamento de painéis (`setFrozenRows(5)`), zebrado suave e larguras de colunas recomendadas.
 - Preservados 100% intocados os relatórios oficiais de produtividade (Comparativo, PIP, Armas, Drogas e CPM).
 
-### [PENDENTE] TASK-M06.1-03 — Estilização e Formatação Visual da Aba [HISTORICO] Auditoria Ocorrencias
-- Atualizar o gerador de histórico em `Render/RendererAuditoriaSaude.js` para aplicar formatação de cabeçalho e zebrado cumulativo.
-- Preservar alinhamentos e destaque visual de severidades nas execuções arquivadas.
+### [CONCLUÍDO] TASK-M06.1-03 — Estilização e Formatação Visual da Aba [HISTORICO] Auditoria Ocorrencias
+- Atualizado `Render/RendererAuditoriaSaude.js` implementando o método `estilizarAbaHistorico_`.
+- Mantido o histórico estritamente cumulativo (sem limpar, reordenar ou sobrescrever registros).
+- Aplicado cabeçalho Azul Médio (`#2C4257`), fonte branca em negrito centralizado e congelada **apenas a linha 1** (`setFrozenRows(1)`).
+- Aplicada a paleta de severidade **exclusivamente na coluna 5** (SEVERIDADE no histórico).
+- Centralizadas as colunas 1 a 6 (`DATA/HORA EXECUÇÃO`, `ABA`, `TÚNEL`, `LINHA`, `SEVERIDADE`, `REGRA`) e alinhamento explícito à esquerda nas colunas 7 a 9 (`DIAGNÓSTICO`, `EVIDÊNCIA`, `AÇÃO RECOMENDADA`).
+- Aplicadas larguras recomendadas (`160, 120, 180, 70, 140, 210, 320, 320, 320`) e zebrado discreto nas linhas pares sem apagar a cor da severidade.
 
 ### [PENDENTE] TASK-M06.1-04 — Padronização Visual das Abas Mensais e Preservação da Coluna AM
 - Aplicar destaque visual discreto exclusivamente na célula AM (`Alerta Integridade`) das abas operacionais mensais.
