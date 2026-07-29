@@ -27,6 +27,14 @@ const PluginPrisoes = PluginPrisoesMod.PluginPrisoes || PluginPrisoesMod;
 const PluginPontuacaoMod = require('../Plugins/Metricas/PluginPontuacao');
 const PluginPontuacao = PluginPontuacaoMod.PluginPontuacao || PluginPontuacaoMod;
 
+const PluginClasses = [
+  PluginArmas,
+  PluginEntorpecentes,
+  PluginOcorrencias,
+  PluginPrisoes,
+  PluginPontuacao
+];
+
 console.log('🧪 Iniciando Testes Unitários: Plugins de Métrica...\n');
 
 let sucessos = 0;
@@ -41,6 +49,50 @@ function test(nome, fn) {
     process.exitCode = 1;
   }
 }
+
+// Contrato comum: todo plugin precisa expor o ciclo de vida completo.
+test('IPluginMetrica: deve rejeitar uso direto do contrato abstrato', () => {
+  const contrato = new IPluginMetrica();
+  assert.throws(() => contrato.inicializar({}), /inicializar/);
+  assert.throws(() => contrato.processar(null, {}, {}, 'CHAVE', true), /processar/);
+  assert.throws(() => contrato.finalizar({}), /finalizar/);
+});
+
+test('Plugins: todos devem implementar o contrato comum do ciclo de vida', () => {
+  PluginClasses.forEach(Plugin => {
+    const plugin = new Plugin();
+    assert.ok(plugin instanceof IPluginMetrica);
+    assert.strictEqual(typeof plugin.inicializar, 'function');
+    assert.strictEqual(typeof plugin.processar, 'function');
+    assert.strictEqual(typeof plugin.finalizar, 'function');
+  });
+});
+
+test('Plugins: inicializacao deve preparar o contrato de fatos do policial', () => {
+  const expectativas = [
+    ['armas', 'ocorrenciasComArma'],
+    ['maconha', 'cocaina', 'crack', 'drogasTotal', 'ocorrenciasComDroga'],
+    ['ocorrencias', 'qtdBoe'],
+    ['detidos', 'apfd', 'tco', 'boc']
+  ];
+
+  [PluginArmas, PluginEntorpecentes, PluginOcorrencias, PluginPrisoes]
+    .forEach((Plugin, indice) => {
+      const consolidado = { fatos: {} };
+      new Plugin().inicializar(consolidado);
+      expectativas[indice].forEach(chave => {
+        assert.strictEqual(consolidado.fatos[chave], 0);
+      });
+    });
+
+  const pontuacao = { matricula: 'PM-CONTRATO', indicadores: {} };
+  new PluginPontuacao().inicializar(pontuacao);
+  assert.deepStrictEqual(pontuacao.indicadores, {
+    pontosPIP: 0,
+    pontosCPM: 0,
+    pontosTotais: 0
+  });
+});
 
 // 1. PluginArmas
 test('PluginArmas: deve acumular armas e contar ocorrência com arma apenas 1x', () => {
@@ -88,6 +140,22 @@ test('PluginOcorrencias: deve contar ocorrência única e BOE apenas quando prim
   assert.strictEqual(consolidado.fatos.qtdBoe, 1);
 });
 
+test('PluginPrisoes: deve acumular detidos e procedimentos legais', () => {
+  const plugin = new PluginPrisoes();
+  const consolidado = { fatos: {} };
+  plugin.inicializar(consolidado);
+
+  plugin.processar(null, { detidos: 2, apfd: 1, tco: 1, boc: 0 }, consolidado, 'PM1_OC1', true);
+  plugin.processar(null, { detidos: 1, apfd: 0, tco: 0, boc: 1 }, consolidado, 'PM1_OC1', false);
+
+  assert.deepStrictEqual(consolidado.fatos, {
+    detidos: 3,
+    apfd: 1,
+    tco: 1,
+    boc: 1
+  });
+});
+
 // 4. PluginPontuacao (Deduplicação por Max-Value)
 test('PluginPontuacao: deve deduplicar a pontuação rateada pelo valor MÁXIMO da mesma ocorrência', () => {
   const plugin = new PluginPontuacao();
@@ -109,6 +177,31 @@ test('PluginPontuacao: deve deduplicar a pontuação rateada pelo valor MÁXIMO 
   assert.strictEqual(consolidado._pts, undefined); // Deve garantir que não há sujeira em _pts
 });
 
+test('PluginPontuacao: nao deve vazar estado entre ciclos com a mesma matricula', () => {
+  const plugin = new PluginPontuacao();
+  const primeiro = { matricula: 'PM-REUTILIZADO', indicadores: {} };
+  plugin.inicializar(primeiro);
+  plugin.processar(null, { pontosRateados: 100 }, primeiro, 'PM-REUTILIZADO_OC1', true);
+  plugin.finalizar(primeiro);
+  assert.strictEqual(primeiro.indicadores.pontosTotais, 100);
+
+  const segundo = { matricula: 'PM-REUTILIZADO', indicadores: {} };
+  plugin.inicializar(segundo);
+  plugin.processar(null, { pontosRateados: 7 }, segundo, 'PM-REUTILIZADO_OC2', true);
+  plugin.finalizar(segundo);
+  assert.strictEqual(segundo.indicadores.pontosTotais, 7);
+});
+
+test('PluginPontuacao: finalizar deve limpar o acumulador interno do policial', () => {
+  const plugin = new PluginPontuacao();
+  const consolidado = { matricula: 'PM-LIMPEZA', indicadores: {} };
+  plugin.inicializar(consolidado);
+  plugin.processar(null, { pontosRateados: 12 }, consolidado, 'PM-LIMPEZA_OC1', true);
+  plugin.finalizar(consolidado);
+
+  assert.strictEqual(plugin._pontosPorPolicial.has('PM-LIMPEZA'), false);
+  assert.strictEqual(consolidado._pts, undefined);
+});
+
 console.log(`\n🎉 Testes de Plugins concluídos: ${sucessos} testes passaram!`);
 }
-
