@@ -1,7 +1,7 @@
 # M06 — Relatórios Oficiais e Formatação Visual (Tasks)
 
 > **Documento:** `planta/03_TASKS/M06_TASKS.md`  
-> **Status da Sprint:** TASK-M06.1-01C CONCLUÍDA  
+> **Status da Sprint:** EM ANDAMENTO (TASK-M06.1-02 Concluída)  
 > **Contexto:** Ecossistema Synthéon GS Down Plant Offline  
 
 ---
@@ -10,20 +10,14 @@
 
 ### [CONCLUÍDO] TASK-M06.1-01C — Correção e Homologação Fiel das Funções Executáveis do Inventário
 - Substituída a `TASK-M06.1-01B` pela **`TASK-M06.1-01C`**.
-- Atualizados `planta/01_SPRINTS/SPRINT_M06_RELATORIOS.md` e `planta/02_SPECS/M06_RELATORIOS_SPEC.md` com os nomes executáveis reais verificados diretamente no código:
-  - **PIP**: `criarMenuPip_()`, `abrirMenuPipMensal()`, `abrirMenuPipLivre()`, `gerarPipAnual()`.
-  - **DROGAS**: `criarMenuDrogas_()`, `abrirMenuSelecaoLivreDrogas()`.
-  - **ARMAS**: `criarMenuArmas_()`, `abrirMenuSelecaoLivre()`.
-  - **CPM**: `criarMenuCPM_()`, `abrirMenuCPMMensal()`, `abrirMenuCPMLivre()`, `gerarCPMAnual()`, `criarAbaResultadoCPM_()`.
-  - **COMPARATIVO**: `abrirMenuComparativo2026()`, `gerarComparativo2026Premium()`.
-- Separados **Compiladores Visuais de Apresentação** dos **Motores/Métricas Internas** (`PluginArmas` e `PluginEntorpecentes`).
-- Declarado expressamente o status de cada regra visual: **IMPLEMENTADA NO CÓDIGO ATUAL** ou **CONTRATO VISUAL A IMPLEMENTAR NO M06**.
-- Mantida a **Central Analítica SUSPENSA**.
+- Atualizados `planta/01_SPRINTS/SPRINT_M06_RELATORIOS.md` e `planta/02_SPECS/M06_RELATORIOS_SPEC.md` com os nomes executáveis reais verificados no código.
+- Separados Compiladores Visuais de Apresentação dos Motores/Métricas Internas.
 
-### [PENDENTE] TASK-M06.1-02 — Estilização e Formatação Visual da Aba [AUDITORIA] Ocorrencias
-- Atualizar `Render/RendererAuditoriaSaude.js` para aplicar cores da paleta de severidades exclusiva (`CRITICO`, `ALERTA`, `OBSERVACAO`, `EXCECAO MANUAL`, `APROVADO`).
-- Ajustar formatação do Card de Resumo das Linhas 1-3.
-- Ajustar congelamento de painéis, larguras de coluna e zebrado visual sem afetar relatórios oficiais.
+### [CONCLUÍDO] TASK-M06.1-02 — Estilização e Formatação Visual da Aba [AUDITORIA] Ocorrencias
+- Atualizado `Render/RendererAuditoriaSaude.js` implementando o método `estilizarAbaAuditoria_`.
+- Aplicada a paleta de severidades exclusiva (`CRITICO` `#D9534F`, `ALERTA` `#F0AD4E`, `OBSERVACAO` `#5BC0DE`, `EXCECAO MANUAL` `#6F42C1`, `ERRO TECNICO` `#900C3F`, `APROVADO` `#28A745`) na coluna de Severidade.
+- Aplicado título Azul Escuro (`#1C3144`), cabeçalho Azul Médio (`#2C4257`), congelamento de painéis (`setFrozenRows(5)`), zebrado suave e larguras de colunas recomendadas.
+- Preservados 100% intocados os relatórios oficiais de produtividade (Comparativo, PIP, Armas, Drogas e CPM).
 
 ### [PENDENTE] TASK-M06.1-03 — Estilização e Formatação Visual da Aba [HISTORICO] Auditoria Ocorrencias
 - Atualizar o gerador de histórico em `Render/RendererAuditoriaSaude.js` para aplicar formatação de cabeçalho e zebrado cumulativo.
