@@ -4,7 +4,7 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 /**
  * ARQUIVO: Testes/TestGuardiao.js
  * DESCRIÇÃO: Suíte de testes unitários e homologação final offline para o Guardião da Qualidade (M05).
- * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado, Tabela PIP, relatórios legíveis e homologação ponta a ponta (TASK-M05.1-06).
+ * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado com divisor PIP fixo = 4 (TASK-M05.1-04E), Tabela PIP, relatórios legíveis e homologação E2E.
  */
 
 const assert = require('assert');
@@ -159,7 +159,7 @@ test('GuardiaoQualidade: linha de plantão tranquilo (apenas data) não deve ger
 // 2. Teste: Ocorrência órfã
 test('GuardiaoQualidade: ocorrência órfã (policial sem MIKE) deve gerar diagnóstico CRITICO', () => {
   const dadosLinhas = [
-    ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao]);
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
@@ -172,7 +172,7 @@ test('GuardiaoQualidade: ocorrência órfã (policial sem MIKE) deve gerar diagn
 // 3. Teste: MIKE suspeito
 test('GuardiaoQualidade: MIKE suspeito deve gerar ALERTA sem bloquear a execução', () => {
   const dadosLinhas = [
-    ['15/07/2026', '2026', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '2026', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao]);
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
@@ -185,7 +185,7 @@ test('GuardiaoQualidade: MIKE suspeito deve gerar ALERTA sem bloquear a execuç�
 // 4. Teste: Divergência entre DATA (string) e MIKE
 test('GuardiaoQualidade: divergência entre data da planilha e data do MIKE deve gerar ALERTA', () => {
   const dadosLinhas = [
-    ['20/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['20/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao]);
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
@@ -199,7 +199,7 @@ test('GuardiaoQualidade: divergência entre data da planilha e data do MIKE deve
 test('GuardiaoQualidade: deve processar DATA como objeto Date sem gerar falso alerta de data', () => {
   const dataObjeto = new Date(2026, 6, 15);
   const dadosLinhas = [
-    [dataObjeto, '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    [dataObjeto, '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao]);
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
@@ -211,8 +211,8 @@ test('GuardiaoQualidade: deve processar DATA como objeto Date sem gerar falso al
 // 6. Teste: Coerência cruzada — mesmo MIKE com BOEs divergentes
 test('GuardiaoQualidade: mesmo MIKE com BOEs diferentes deve gerar diagnóstico de divergência', () => {
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
-    ['15/07/2026', '202607150001', '26E200', '113921-5', 'SD SOUZA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', ''],
+    ['15/07/2026', '202607150001', '26E200', '113921-5', 'SD SOUZA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao, formulaCalculadaPadrao]);
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
@@ -225,8 +225,8 @@ test('GuardiaoQualidade: mesmo MIKE com BOEs diferentes deve gerar diagnóstico 
 // 7. Teste: Coerência cruzada — mesmo MIKE em datas diferentes
 test('GuardiaoQualidade: mesmo MIKE utilizado em datas diferentes deve gerar diagnóstico de datas divergentes', () => {
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
-    ['20/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', ''],
+    ['20/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao, formulaCalculadaPadrao]);
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
@@ -239,7 +239,7 @@ test('GuardiaoQualidade: mesmo MIKE utilizado em datas diferentes deve gerar dia
 // 8. Teste: AG sem AH
 test('GuardiaoQualidade: AG preenchido sem AH deve gerar EVENTO_INCOMPLETO_AG com ação recomendada', () => {
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', '', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', '', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao]);
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
@@ -252,7 +252,7 @@ test('GuardiaoQualidade: AG preenchido sem AH deve gerar EVENTO_INCOMPLETO_AG co
 // 9. Teste: AH sem AG
 test('GuardiaoQualidade: AH preenchido sem AG (imputado sem evento) deve gerar IMPUTADO_SEM_EVENTO_AH com ALERTA', () => {
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, '', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, '', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao]);
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
@@ -265,7 +265,7 @@ test('GuardiaoQualidade: AH preenchido sem AG (imputado sem evento) deve gerar I
 // 10. Teste: Exceção Manual por Nota iniciada por EXCECAO:
 test('GuardiaoQualidade: célula sem fórmula mas com nota iniciada por EXCECAO: deve ser classificada como EXCECAO MANUAL', () => {
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 40, 20, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 40, 20, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
   const formulas = [
     ['', '', '', '', '', '', '', '', '', '=I2', '=J2', '=K2/2', '=L2', '=M2/4', '=N2', '=O2']
@@ -285,7 +285,7 @@ test('GuardiaoQualidade: célula sem fórmula mas com nota iniciada por EXCECAO:
 // 11. Teste: Fato não auditável automaticamente
 test('GuardiaoQualidade: numerário sem valor em reais registrado deve ser classificado como NÃO AUDITÁVEL AUTOMATICAMENTE', () => {
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'APREENSÃO DE NUMERÁRIO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'APREENSÃO DE NUMERÁRIO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao]);
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
@@ -295,8 +295,8 @@ test('GuardiaoQualidade: numerário sem valor em reais registrado deve ser class
   assert.strictEqual(diagNaoAuditavel.severidade, 'OBSERVACAO');
 });
 
-// 12. Regressão Matemático do Rateio por Túnel (4 policiais, fatos de 80, 64 e 160 = 304 / 4 = 76)
-test('RegrasQualidade: rateio por túnel com 4 policiais e fatos de 80, 64 e 160 (total 304 / 4 = 76) não deve acusar erro', () => {
+// 12. Rateio PIP com 4 policiais (304 / 4 = 76 cada) -> Aprovado (TASK-M05.1-04E)
+test('RegrasQualidade: rateio PIP com 304 pontos e 4 policiais (304 / 4 = 76 cada) deve ser aprovado sem alerta', () => {
   const dadosLinhas = [
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 80, 76, 'KEY', ''],
     ['15/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 0, 'POSSE DE DROGAS', 'SEM IMPUTADO', 0, 0, 0, 0, 0, 64, 76, 'KEY', ''],
@@ -310,20 +310,49 @@ test('RegrasQualidade: rateio por túnel com 4 policiais e fatos de 80, 64 e 160
   assert.strictEqual(diagRateio, undefined);
 });
 
-// 13. Rateio Zerado
-test('RegrasQualidade: rateio por túnel com 304 pontos e 4 policiais onde um possui PONTOS FICÇÃO = 0 deve gerar RATEIO_PONTOS_INCOERENTE', () => {
+// 12A. Rateio PIP com 5 policiais (304 / 4 = 76 cada) -> Aprovado (TASK-M05.1-04E)
+test('RegrasQualidade: rateio PIP com 304 pontos e 5 policiais (todos recebendo 304 / 4 = 76 cada) deve ser aprovado sem alerta', () => {
   const dadosLinhas = [
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 80, 76, 'KEY', ''],
     ['15/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 0, 'POSSE DE DROGAS', 'SEM IMPUTADO', 0, 0, 0, 0, 0, 64, 76, 'KEY', ''],
     ['15/07/2026', '202607150001', '26E100', '113922-3', 'SD SANTOS', 0, 'TRÁFICO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 160, 76, 'KEY', ''],
-    ['15/07/2026', '202607150001', '26E100', '113923-1', 'SD OLIVEIRA', 0, 'TRÁFICO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 0, 0, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113923-1', 'SD OLIVEIRA', 0, 'TRÁFICO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 0, 76, 'KEY', ''],
+    ['15/07/2026', '202607150001', '26E100', '113924-9', 'SD COSTA', 0, 'TRÁFICO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 0, 76, 'KEY', '']
   ];
-  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao, formulaCalculadaPadrao, formulaCalculadaPadrao, formulaCalculadaPadrao]);
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao, formulaCalculadaPadrao, formulaCalculadaPadrao, formulaCalculadaPadrao, formulaCalculadaPadrao]);
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
 
-  const diagRateioZerado = resultado.diagnosticos.find(d => d.codigoRegra === 'RATEIO_PONTOS_INCOERENTE');
-  assert.ok(diagRateioZerado);
-  assert.strictEqual(diagRateioZerado.linha, 5);
+  const diagRateio = resultado.diagnosticos.find(d => d.codigoRegra === 'RATEIO_PONTOS_INCOERENTE');
+  assert.strictEqual(diagRateio, undefined);
+});
+
+// 12B. Rateio PIP com 10 policiais (304 / 4 = 76 cada) -> Aprovado (TASK-M05.1-04E)
+test('RegrasQualidade: rateio PIP com 304 pontos e 10 policiais (todos recebendo 304 / 4 = 76 cada) deve ser aprovado sem alerta', () => {
+  const dadosLinhas = Array.from({ length: 10 }, (_, i) => [
+    '15/07/2026', '202607150001', '26E100', `11392${i}-0`, `SD PM ${i}`, 0, 'TRÁFICO', 'COM IMPUTADO', 0, 0, 0, 0, 0, i === 0 ? 304 : 0, 76, 'KEY', ''
+  ]);
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, Array(10).fill(formulaCalculadaPadrao));
+  const resultado = GuardiaoQualidade.varrerAba(mockSheet);
+
+  const diagRateio = resultado.diagnosticos.find(d => d.codigoRegra === 'RATEIO_PONTOS_INCOERENTE');
+  assert.strictEqual(diagRateio, undefined);
+});
+
+// 13. Rateio com policial zerado (304 pontos, 5 policiais, quatro com 76 e um com 0 -> alerta apenas no zerado) (TASK-M05.1-04E)
+test('RegrasQualidade: rateio PIP com 304 pontos e 5 policiais onde um possui PONTOS FICÇÃO = 0 gera RATEIO_PONTOS_INCOERENTE apenas para a linha zerada', () => {
+  const dadosLinhas = [
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 80, 76, 'KEY', ''],
+    ['15/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 0, 'POSSE DE DROGAS', 'SEM IMPUTADO', 0, 0, 0, 0, 0, 64, 76, 'KEY', ''],
+    ['15/07/2026', '202607150001', '26E100', '113922-3', 'SD SANTOS', 0, 'TRÁFICO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 160, 76, 'KEY', ''],
+    ['15/07/2026', '202607150001', '26E100', '113923-1', 'SD OLIVEIRA', 0, 'TRÁFICO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 0, 76, 'KEY', ''],
+    ['15/07/2026', '202607150001', '26E100', '113924-9', 'SD COSTA', 0, 'TRÁFICO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 0, 0, 'KEY', '']
+  ];
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao, formulaCalculadaPadrao, formulaCalculadaPadrao, formulaCalculadaPadrao, formulaCalculadaPadrao]);
+  const resultado = GuardiaoQualidade.varrerAba(mockSheet);
+
+  const diagsRateio = resultado.diagnosticos.filter(d => d.codigoRegra === 'RATEIO_PONTOS_INCOERENTE');
+  assert.strictEqual(diagsRateio.length, 1);
+  assert.strictEqual(diagsRateio[0].linha, 6); // Linha 6 (SD COSTA com 0)
 });
 
 // 14. Nome alternativo da aba Tabela PIP
@@ -333,7 +362,7 @@ test('GuardiaoQualidade: reconhece a Tabela PIP com hífen no nome (ex: TABELA-P
     ['PORTE ILEGAL DE ARMA DE FOGO']
   ];
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
 
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores, 'JUL2026_TESTE', 'TABELA-PIP');
@@ -350,8 +379,8 @@ test('GuardiaoQualidade: localiza a coluna do indicador por cabeçalho em qualqu
     ['001', 'ARMAS', 'PORTE ILEGAL DE ARMA DE FOGO']
   ];
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
-    ['15/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 1, 'INVENTADO_DESCONHECIDO', 'SEM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', ''],
+    ['15/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 1, 'INVENTADO_DESCONHECIDO', 'SEM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
 
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao, formulaCalculadaPadrao], [], abaPIPValores, 'JUL2026_TESTE', 'Tabela PIP');
@@ -370,7 +399,7 @@ test('GuardiaoQualidade: aba existente sem cabeçalho válido de indicador (com 
     ['002', 'DROGAS']
   ];
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
 
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPSemCabecalhoIndicador, 'JUL2026_TESTE', 'Tabela PIP');
@@ -385,7 +414,7 @@ test('GuardiaoQualidade: aba existente sem cabeçalho válido de indicador (com 
 test('RendererAuditoriaSaude: auditoria com alertas popula a aba [AUDITORIA] Ocorrencias com resumo e tabela de 8 colunas', () => {
   const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
   const dadosLinhas = [
-    ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
 
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
@@ -406,7 +435,7 @@ test('RendererAuditoriaSaude: auditoria com alertas popula a aba [AUDITORIA] Oco
 test('RendererAuditoriaSaude: auditoria aprovada sem alertas exibe a linha APROVADO na aba de auditoria', () => {
   const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
 
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
@@ -425,7 +454,7 @@ test('RendererAuditoriaSaude: auditoria aprovada sem alertas exibe a linha APROV
 test('RendererAuditoriaSaude: aba [HISTORICO] Auditoria Ocorrencias preserva registros de múltiplas execuções sem sobrescrever', () => {
   const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
 
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
@@ -470,19 +499,19 @@ test('GuardiaoQualidade: Homologação Final Offline End-to-End cobrindo 10 cen�
     // L2: Plantão tranquilo
     ['15/07/2026', '', '', '', '', 0, '', '', 0, 0, 0, 0, 0, 0, 0, '', ''],
     // L3: MIKE suspeito (2026)
-    ['15/07/2026', '2026', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    ['15/07/2026', '2026', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', ''],
     // L4: Ocorrência Órfã (sem MIKE com policial)
-    ['15/07/2026', '', '26E101', '113921-5', 'SD SOUZA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    ['15/07/2026', '', '26E101', '113921-5', 'SD SOUZA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', ''],
     // L5: Matrícula ausente
-    ['15/07/2026', '202607150002', '26E102', '', 'SD LIMA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    ['15/07/2026', '202607150002', '26E102', '', 'SD LIMA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', ''],
     // L6: AG sem AH (evento incompleto)
-    ['15/07/2026', '202607150003', '26E103', '113922-3', 'SD SANTOS', 1, 'PORTE ILEGAL DE ARMA DE FOGO', '', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    ['15/07/2026', '202607150003', '26E103', '113922-3', 'SD SANTOS', 1, 'PORTE ILEGAL DE ARMA DE FOGO', '', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', ''],
     // L7: AH sem AG (imputado sem evento)
-    ['15/07/2026', '202607150004', '26E104', '113923-1', 'SD OLIVEIRA', 1, '', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    ['15/07/2026', '202607150004', '26E104', '113923-1', 'SD OLIVEIRA', 1, '', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', ''],
     // L8: Exceção manual por nota EXCECAO:
-    ['15/07/2026', '202607150005', '26E105', '113924-9', 'SD COSTA', 0, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 40, 20, 0, 0, 0, 10, 10, 'KEY', ''],
+    ['15/07/2026', '202607150005', '26E105', '113924-9', 'SD COSTA', 0, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 40, 20, 0, 0, 0, 10, 2.5, 'KEY', ''],
     // L9: Numerário não auditável
-    ['15/07/2026', '202607150006', '26E106', '113925-6', 'SD FERREIRA', 0, 'APREENSÃO DE NUMERÁRIO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    ['15/07/2026', '202607150006', '26E106', '113925-6', 'SD FERREIRA', 0, 'APREENSÃO DE NUMERÁRIO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', ''],
     // L10-L13: Rateio correto (304 / 4 = 76)
     ['15/07/2026', '202607150007', '26E107', '113926-4', 'SD ALVES', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 80, 76, 'KEY', ''],
     ['15/07/2026', '202607150007', '26E107', '113927-2', 'SD ROCHA', 0, 'POSSE DE DROGAS', 'SEM IMPUTADO', 0, 0, 0, 0, 0, 64, 76, 'KEY', ''],

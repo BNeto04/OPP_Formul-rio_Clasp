@@ -120,9 +120,11 @@ class RegrasQualidade {
       }
     });
 
-    // 2. Validação Matemática do Rateio de PONTOS FICÇÃO por Túnel
-    const qtdPoliciaisDistintos = tunel.matriculas ? tunel.matriculas.size : 0;
-    
+    // 2. Validação Matemática do Rateio de PONTOS FICÇÃO por Túnel (Divisor PIP sempre igual a 4)
+    const DIVISOR_RATEIO_PIP = (typeof CONSTANTES_SYNTHEON !== 'undefined' && CONSTANTES_SYNTHEON.DIVISOR_RATEIO_PIP)
+      ? CONSTANTES_SYNTHEON.DIVISOR_RATEIO_PIP
+      : 4;
+
     // Calcula o total do túnel somando os pontos dos fatos únicos/válidos no túnel
     const pontosFatosUnicos = new Map();
     tunel.linhasFatos.forEach(lf => {
@@ -142,8 +144,8 @@ class RegrasQualidade {
       totalPontosTunel = valoresUnicos.reduce((a, b) => a + b, 0);
     }
 
-    if (qtdPoliciaisDistintos > 0 && totalPontosTunel > 0) {
-      const rateioEsperado = totalPontosTunel / qtdPoliciaisDistintos;
+    if (totalPontosTunel > 0) {
+      const rateioEsperado = totalPontosTunel / DIVISOR_RATEIO_PIP;
 
       // Valida CADA valor de PONTOS FICÇÃO preenchido ou zerado nas linhas de policiais do túnel
       tunel.linhasFatos.forEach(lf => {
@@ -156,8 +158,8 @@ class RegrasQualidade {
               linha: lf.linha,
               tunel: tunel.chave,
               diagnostico: 'Rateio de PONTOS FICÇÃO incoerente ou zerado para policial no túnel.',
-              evidencia: `Pontos Totais do túnel: ${totalPontosTunel} | Policiais distintos: ${qtdPoliciaisDistintos} | Rateio lido na linha: ${lf.pontosFiccaoLido} | Rateio esperado: ${rateioEsperado.toFixed(2)}`,
-              acaoRecomendada: 'Revise a fórmula de PONTOS FICÇÃO: o valor divergiu da divisão da pontuação total pelo número de policiais distintos do túnel.'
+              evidencia: `Pontos Totais do túnel: ${totalPontosTunel} | Divisor PIP: ${DIVISOR_RATEIO_PIP} | Rateio lido na linha: ${lf.pontosFiccaoLido} | Rateio esperado: ${rateioEsperado.toFixed(2)}`,
+              acaoRecomendada: `Ajuste a pontuação da linha para ${rateioEsperado.toFixed(2)} pts (total de pontos da ocorrência dividido por ${DIVISOR_RATEIO_PIP}).`
             }));
           }
         }
@@ -250,7 +252,6 @@ class RegrasQualidade {
   static indicadorConhecido(indicador, catalogoPIP = null) {
     if (!indicador) return true;
     
-    // Se a Tabela PIP não esteve disponível na varredura (catalogoPIP === null), não assume lista fixa nem gera erro falso
     if (catalogoPIP === null) {
       return true;
     }

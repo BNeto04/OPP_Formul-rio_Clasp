@@ -1,7 +1,7 @@
 # Protocolo de Homologação Manual do Guardião da Qualidade Operacional (M05)
 
 > **Documento:** `planta/M05_GUARDIAO_HOMOLOGACAO.md`  
-> **Status:** VERIFICADO OFFLINE - SPRINT M05.1  
+> **Status:** VERIFICADO OFFLINE - SPRINT M05.1 (Ajuste de Regra PIP Concluído)  
 > **Ambiente:** Bancada Offline (`refactor/down-plant-gs-offline`)  
 
 ---
@@ -10,7 +10,7 @@
 
 - **Zero Push Rule:** É terminantemente proibido executar `git push` ou `clasp push`.
 - **Preservação de Dados Operacionais:** O Guardião observa, demonstra a evidência e orienta a correção. Ele **nunca** corrige, apaga, preenche ou substitui dados operacionais automaticamente.
-- **Aba Ativa:** A auditoria opera sobre a aba mensal de ocorrências atualmente ativa (ex: `JUN2026`, `JUL2026`). Ele recusa execução direta sobre as abas `[AUDITORIA] Ocorrencias` ou `[HISTORICO] Auditoria Ocorrencias`.
+- **Divisor Fixo do Rateio PIP (`DIVISOR_RATEIO_PIP = 4`):** A fração PIP de PONTOS FICÇÃO por linha é **sempre `totalPontosTunel / 4`**, independentemente se a equipe no túnel tem 1, 4, 5 ou 10 policiais.
 
 ---
 
@@ -62,7 +62,7 @@ Quando a homologação em ambiente Google Sheets for autorizada, siga este proto
 | `MIKE_DATAS_DIVERGENTES` | **ALERTA** | Mesmo MIKE utilizado em datas diferentes na planilha. | Corrigir a data ou verificar se o número do MIKE foi duplicado. |
 | `EVENTO_INCOMPLETO_AG` | **ALERTA** | Ocorrência PIP (AG) preenchida sem o status IMPUTADO? (AH). | Definir COM IMPUTADO ou SEM IMPUTADO em AH. |
 | `IMPUTADO_SEM_EVENTO_AH` | **ALERTA** | IMPUTADO? (AH) preenchido sem o indicador OCORRÊNCIA PIP (AG). | Preencher o indicador em AG ou limpar o campo em AH. |
-| `RATEIO_PONTOS_INCOERENTE` | **ALERTA** | Pontos de ficção lidos diferem do rateio exato (`somaFatos / qtdPoliciais`) ou um policial está com `PONTOS FICÇÃO = 0`. | Ajustar os pontos rateados na coluna PONTOS FICÇÃO. |
+| `RATEIO_PONTOS_INCOERENTE` | **ALERTA** | Pontos de ficção lidos diferem do rateio exato (`pontosTotais / 4`) ou um policial está com `PONTOS FICÇÃO = 0`. | Ajustar a pontuação da linha para `pontosTotais / 4` (equipe base = 4). |
 | `EXCECAO_MANUAL_JUSTIFICADA` | **EXCECAO MANUAL** | Célula calculada sem fórmula mas com nota iniciada por `EXCECAO:`. | Tratado como exceção justificada, sem alerta de erro. |
 | `FATO_NAO_AUDITAVEL_AUTOMATICAMENTE` | **OBSERVACAO** | Indicadores como Apreensão de Numerário sem valor em reais. | Registrado como observação técnica. |
 | `INDICADOR_DESCONHECIDO` | **OBSERVACAO** | Indicador não cadastrado na Tabela PIP. | Verificar grafia do indicador ou atualizar a Tabela PIP. |
@@ -72,15 +72,12 @@ Quando a homologação em ambiente Google Sheets for autorizada, siga este proto
 
 ## 📌 Diferenciação: Melhorias Esperadas vs Regressões
 
-Ao comparar o relatório do novo Guardião com auditorias históricas de planilhas antigas (ex: `jun.2026`), **os seguintes novos alertas devem ser interpretados como MELHORIAS ESPERADAS E DESEJADAS**, e não como defeitos do sistema:
-
-1. **Alerta de Rateio Zerado (`PONTOS FICÇÃO = 0`)**: O Guardião antigo ignorava policiais com pontuação zerada no túnel. O novo Guardião aponta `RATEIO_PONTOS_INCOERENTE` para evitar perda de pontos rateados.
-2. **MIKE Suspeito (`MIKE_SUSPEITO`)**: O Guardião antigo aceitava qualquer número no MIKE. O novo avisa quando o valor for truncado (ex: `2026`), mantendo a execução fluida.
-3. **Exceção por Nota (`EXCECAO_MANUAL_JUSTIFICADA`)**: Permite auditoria limpa quando o operador justifica ajustes manuais por nota na célula.
-4. **Coerência Cruzada do Túnel (`MIKE_BOE_DIVERGENTE` / `MIKE_DATAS_DIVERGENTES`)**: Identifica divergências entre linhas do mesmo túnel antes da consolidação do motor.
+1. **Divisor de Rateio PIP Fixo em 4**: Não importa quantos policiais estejam no mesmo túnel (4, 5, 10 ou mais), todos devem receber `pontosTotais / 4`. Se a ocorrência gerou 304 pontos e há 5 policiais, todos recebem 76. Se um policial estiver com 0, apenas essa linha zerada gerará alerta.
+2. **Exceção por Nota (`EXCECAO_MANUAL_JUSTIFICADA`)**: Permite auditoria limpa quando o operador justifica ajustes manuais por nota na célula.
+3. **Coerência Cruzada do Túnel (`MIKE_BOE_DIVERGENTE` / `MIKE_DATAS_DIVERGENTES`)**: Identifica divergências entre linhas do mesmo túnel antes da consolidação do motor.
 
 ---
 
 ## 🔒 Conclusão da Homologação Offline
 
-O cômodo **M05 Guardião da Qualidade Operacional** está **100% testado, validado e homologado em ambiente offline** com **62/62 testes automatizados aprovados**.
+O cômodo **M05 Guardião da Qualidade Operacional** está **100% testado, alinhado e homologado em ambiente offline** com **64/64 testes automatizados aprovados**.

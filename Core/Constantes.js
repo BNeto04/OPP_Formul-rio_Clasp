@@ -6,6 +6,9 @@ const constantes = {
   // Aba padrão de referência
   ABA_EFETIVO: "EFETIVO",
 
+  // Divisor Fixo Oficial para Rateio PIP de Pontos Ficção (independente da quantidade de policiais no túnel)
+  DIVISOR_RATEIO_PIP: 4,
+
   // Mapeamento de Aliases para Cabeçalhos Dinâmicos
   ALIASES: {
     MATRICULA: ['MATRICULA', 'MAT.', 'MAT', 'MATR'],
@@ -27,7 +30,7 @@ const constantes = {
     MACONHA: ['TOTAL DE MACONHA', 'MACONHA', 'TOTAL MACONHA', 'DIVIDIDO MAC'],
     COCAINA: ['TOTAL DE COCAINA', 'COCAINA', 'TOTAL COCAINA', 'DIVIDIDO COC'],
     CRACK: ['TOTAL CRACK (GR)', 'CRACK', 'TOTAL CRACK', 'DIVIDIDO CRACK'],
-    PONTOS_TOTAIS: ['PONTOS TOTAIS', 'PONTUAÇÃO BRUTA'],
+    PONTOS_TOTAIS: ['PONTOS TOTAIS', 'PONTUACAO BRUTA'],
     PONTOS_FICCAO: ['PONTOS FICÇÃO (1/4)', 'PONTOS FICCAO', 'AJ', 'PONTOS'],
     INDICADOR_PIP: ['OCORRÊNCIA PIP', 'OCORRENCIA PIP', 'INDICADOR', 'EVENTO PIP'],
     IMPUTADO: ['IMPUTADO?', 'COM/SEM IMPUTADO', 'IMPUTADO'],
@@ -81,4 +84,3 @@ return deepFreeze(constantes);
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = CONSTANTES_SYNTHEON;
 }
-
