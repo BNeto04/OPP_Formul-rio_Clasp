@@ -19,4 +19,4 @@
 | `TASK-M04.1-02` | Auditoria de pureza do Motor e Plugins (isolar I/O e GAS) | `planta/M04_MOTOR_PUREZA.md`, `Motor/*.js`, `Plugins/*.js` | **CONCLUÍDA** | `61d72d3` |
 | `TASK-M04.1-03` | Blindar contratos e testes unitários dos plugins de métrica | `Testes/TestPlugins.js` | **CONCLUÍDA** | `1aad511` |
 | `TASK-M04.1-04` | Regressão matemática do Motor V2 por túnel (deduplicação e comutatividade) | `Testes/TestMotorAnaliticoRegressao.js`, `Testes/Fixtures/M04RegressaoFixture.js` | **CONCLUÍDA** | `4cb039e` |
-| `TASK-M04.1-05` | Registrar invariantes finais do Motor e declarar congelamento | `planta/02_SPECS/M04_MOTOR_SPEC.md` | **CONCLUÍDA** | `em_progresso` |
+| `TASK-M04.1-05` | Registrar invariantes finais do Motor e declarar congelamento | `planta/02_SPECS/M04_MOTOR_SPEC.md` | **CONCLUÍDA** | `3f44148` |
