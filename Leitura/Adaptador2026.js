@@ -31,8 +31,10 @@ class Adaptador2026 {
 
     if (dados.length < 2) return [];
 
-    const headers = dados[0].map(h => SyntheonUtils.normalizarTexto(h));
-    const loc = (chaveAlias) => SyntheonUtils.localizarColuna(headers, chaveAlias);
+    const rawHeaders = dados[0];
+    const loc = (chaveAlias) => (typeof SyntheonCabecalhos !== 'undefined')
+      ? SyntheonCabecalhos.encontrar(rawHeaders, chaveAlias)
+      : SyntheonUtils.localizarColuna(rawHeaders.map(h => SyntheonUtils.normalizarTexto(h)), chaveAlias);
 
     const idx = {
       data: loc('DATA'),
@@ -161,4 +163,3 @@ class Adaptador2026 {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = Adaptador2026;
 }
-

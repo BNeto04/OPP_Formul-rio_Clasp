@@ -51,7 +51,12 @@ const SyntheonUtils = {
    * @return {number} Índice (0-based) ou -1 se não localizado.
    */
   localizarColuna(headers, chaveAlias) {
-    const aliases = CONSTANTES_SYNTHEON.ALIASES[chaveAlias] || [chaveAlias];
+    if (typeof SyntheonCabecalhos !== 'undefined' && typeof SyntheonCabecalhos.encontrar === 'function') {
+      return SyntheonCabecalhos.encontrar(headers, chaveAlias);
+    }
+    const aliases = (typeof CONSTANTES_SYNTHEON !== 'undefined' && CONSTANTES_SYNTHEON.ALIASES && CONSTANTES_SYNTHEON.ALIASES[chaveAlias])
+      ? CONSTANTES_SYNTHEON.ALIASES[chaveAlias]
+      : [chaveAlias];
     const opcoesNormalizadas = aliases.map(alias => this.normalizarTexto(alias));
 
     // 1. Procura match exato
@@ -73,4 +78,3 @@ const SyntheonUtils = {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = SyntheonUtils;
 }
-

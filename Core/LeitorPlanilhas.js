@@ -36,7 +36,7 @@ const SyntheonLeitor = {
       if (lastRow < 2 || lastCol < 1) return;
 
       const dados = sheet.getRange(1, 1, lastRow, lastCol).getValues();
-      const headers = dados[0].map(h => SyntheonUtils.normalizarTexto(h));
+      const headers = dados[0];
       const idx = SyntheonLeitor._mapearColunas(headers);
       logger.linhasLidas += (dados.length - 1);
 
@@ -130,29 +130,33 @@ const SyntheonLeitor = {
   },
 
   _mapearColunas(headers) {
+    const loc = (chaveAlias) => (typeof SyntheonCabecalhos !== 'undefined')
+      ? SyntheonCabecalhos.encontrar(headers, chaveAlias)
+      : SyntheonUtils.localizarColuna(headers.map(h => SyntheonUtils.normalizarTexto(h)), chaveAlias);
+
     return {
-      data: SyntheonUtils.localizarColuna(headers, 'DATA'),
-      hora: SyntheonUtils.localizarColuna(headers, 'HORA'),
-      mike: SyntheonUtils.localizarColuna(headers, 'MIKE'),
-      boe: SyntheonUtils.localizarColuna(headers, 'BOE'),
-      natureza: SyntheonUtils.localizarColuna(headers, 'NATUREZA'),
-      cidade: SyntheonUtils.localizarColuna(headers, 'CIDADE'),
-      bairro: SyntheonUtils.localizarColuna(headers, 'BAIRRO'),
-      ais: SyntheonUtils.localizarColuna(headers, 'AIS'),
-      matricula: SyntheonUtils.localizarColuna(headers, 'MATRICULA'),
-      militar: SyntheonUtils.localizarColuna(headers, 'POLICIAL'),
-      grad: SyntheonUtils.localizarColuna(headers, 'GRAD'),
-      pelotao: SyntheonUtils.localizarColuna(headers, 'PELOTAO'),
-      armas: SyntheonUtils.localizarColuna(headers, 'ARMAS'),
-      maconha: SyntheonUtils.localizarColuna(headers, 'MACONHA'),
-      cocaina: SyntheonUtils.localizarColuna(headers, 'COCAINA'),
-      crack: SyntheonUtils.localizarColuna(headers, 'CRACK'),
-      pontosTotais: SyntheonUtils.localizarColuna(headers, 'PONTOS_TOTAIS'),
-      pontosFiccao: SyntheonUtils.localizarColuna(headers, 'PONTOS_FICCAO'),
-      detidos: SyntheonUtils.localizarColuna(headers, 'DETIDOS'),
-      apfd: SyntheonUtils.localizarColuna(headers, 'APFD'),
-      tco: SyntheonUtils.localizarColuna(headers, 'TCO'),
-      boc: SyntheonUtils.localizarColuna(headers, 'BOC')
+      data: loc('DATA'),
+      hora: loc('HORA'),
+      mike: loc('MIKE'),
+      boe: loc('BOE'),
+      natureza: loc('NATUREZA'),
+      cidade: loc('CIDADE'),
+      bairro: loc('BAIRRO'),
+      ais: loc('AIS'),
+      matricula: loc('MATRICULA'),
+      militar: loc('POLICIAL'),
+      grad: loc('GRAD'),
+      pelotao: loc('PELOTAO'),
+      armas: loc('ARMAS'),
+      maconha: loc('MACONHA'),
+      cocaina: loc('COCAINA'),
+      crack: loc('CRACK'),
+      pontosTotais: loc('PONTOS_TOTAIS'),
+      pontosFiccao: loc('PONTOS_FICCAO'),
+      detidos: loc('DETIDOS'),
+      apfd: loc('APFD'),
+      tco: loc('TCO'),
+      boc: loc('BOC')
     };
   },
 
