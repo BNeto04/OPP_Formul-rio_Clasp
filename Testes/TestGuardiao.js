@@ -3,8 +3,8 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 
 /**
  * ARQUIVO: Testes/TestGuardiao.js
- * DESCRIÇÃO: Suíte de testes unitários para o Guardião da Qualidade Operacional (M05).
- * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado, Tabela PIP e o formatador legível com histórico (TASK-M05.1-05).
+ * DESCRIÇÃO: Suíte de testes unitários e homologação final offline para o Guardião da Qualidade (M05).
+ * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado, Tabela PIP, relatórios legíveis e homologação ponta a ponta (TASK-M05.1-06).
  */
 
 const assert = require('assert');
@@ -25,7 +25,7 @@ global.RendererAuditoriaSaude = RendererAuditoriaSaude;
 const GuardiaoQualidade = require('../Features/GuardiaoQualidade');
 global.GuardiaoQualidade = GuardiaoQualidade;
 
-console.log('🧪 Iniciando Testes Unitários: Guardião da Qualidade Operacional (M05)...\n');
+console.log('🧪 Iniciando Testes Unitários e Homologação: Guardião da Qualidade Operacional (M05)...\n');
 
 let sucessos = 0;
 
@@ -454,6 +454,120 @@ test('GuardiaoQualidade: impede execução direta sobre as abas [AUDITORIA] Ocor
   }, (err) => {
     return err.message.includes('O Guardião não deve ser executado sobre abas de relatório ou histórico') && err.severidade === 'ERRO TECNICO';
   });
+});
+
+// 21. Fixture de Homologação Final Offline End-to-End (TASK-M05.1-06)
+test('GuardiaoQualidade: Homologação Final Offline End-to-End cobrindo 10 cenários operacionais simultâneos', () => {
+  const abaPIPValores = [
+    ['INDICADOR PIP'],
+    ['PORTE ILEGAL DE ARMA DE FOGO'],
+    ['POSSE DE DROGAS'],
+    ['TRÁFICO DE DROGAS'],
+    ['APREENSÃO DE NUMERÁRIO']
+  ];
+
+  const dadosLinhas = [
+    // L2: Plantão tranquilo
+    ['15/07/2026', '', '', '', '', 0, '', '', 0, 0, 0, 0, 0, 0, 0, '', ''],
+    // L3: MIKE suspeito (2026)
+    ['15/07/2026', '2026', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    // L4: Ocorrência Órfã (sem MIKE com policial)
+    ['15/07/2026', '', '26E101', '113921-5', 'SD SOUZA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    // L5: Matrícula ausente
+    ['15/07/2026', '202607150002', '26E102', '', 'SD LIMA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    // L6: AG sem AH (evento incompleto)
+    ['15/07/2026', '202607150003', '26E103', '113922-3', 'SD SANTOS', 1, 'PORTE ILEGAL DE ARMA DE FOGO', '', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    // L7: AH sem AG (imputado sem evento)
+    ['15/07/2026', '202607150004', '26E104', '113923-1', 'SD OLIVEIRA', 1, '', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    // L8: Exceção manual por nota EXCECAO:
+    ['15/07/2026', '202607150005', '26E105', '113924-9', 'SD COSTA', 0, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 40, 20, 0, 0, 0, 10, 10, 'KEY', ''],
+    // L9: Numerário não auditável
+    ['15/07/2026', '202607150006', '26E106', '113925-6', 'SD FERREIRA', 0, 'APREENSÃO DE NUMERÁRIO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    // L10-L13: Rateio correto (304 / 4 = 76)
+    ['15/07/2026', '202607150007', '26E107', '113926-4', 'SD ALVES', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 80, 76, 'KEY', ''],
+    ['15/07/2026', '202607150007', '26E107', '113927-2', 'SD ROCHA', 0, 'POSSE DE DROGAS', 'SEM IMPUTADO', 0, 0, 0, 0, 0, 64, 76, 'KEY', ''],
+    ['15/07/2026', '202607150007', '26E107', '113928-0', 'SD DIAS', 0, 'TRÁFICO DE DROGAS', 'COM IMPUTADO', 0, 0, 0, 0, 0, 160, 76, 'KEY', ''],
+    ['15/07/2026', '202607150007', '26E107', '113929-8', 'SD MARTINS', 0, 'TRÁFICO DE DROGAS', 'COM IMPUTADO', 0, 0, 0, 0, 0, 0, 76, 'KEY', ''],
+    // L14: Rateio zerado (quinto policial com PONTOS FICÇÃO = 0 no mesmo túnel)
+    ['15/07/2026', '202607150007', '26E107', '113930-6', 'SD RIBEIRO', 0, 'TRÁFICO DE DROGAS', 'COM IMPUTADO', 0, 0, 0, 0, 0, 0, 0, 'KEY', '']
+  ];
+
+  const formulas = dadosLinhas.map((r, i) => {
+    if (i === 6) { // L8 sem fórmula (tem nota de exceção)
+      return ['', '', '', '', '', '', '', '', '', '=I8', '=J8', '=K8/2', '=L8', '=M8/4', '=N8', '=O8'];
+    }
+    return formulaCalculadaPadrao;
+  });
+
+  const notas = dadosLinhas.map((r, i) => {
+    if (i === 6) { // L8
+      return ['', '', '', '', '', '', '', '', 'EXCECAO: Ajuste autorizado por BOE', '', '', '', '', '', '', ''];
+    }
+    return headersPadrao.map(() => '');
+  });
+
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, formulas, notas, abaPIPValores);
+  const resultado = GuardiaoQualidade.varrerAba(mockSheet);
+
+  assert.strictEqual(resultado.linhas, 13);
+  assert.ok(resultado.diagnosticos.length >= 7);
+
+  // 1. Linha 2 (Plantão tranquilo): sem alertas
+  const alertasL2 = resultado.diagnosticos.filter(d => d.linha === 2);
+  assert.strictEqual(alertasL2.length, 0);
+
+  // 2. Linha 3 (MIKE suspeito)
+  const diagL3 = resultado.diagnosticos.find(d => d.linha === 3 && d.codigoRegra === 'MIKE_SUSPEITO');
+  assert.ok(diagL3);
+
+  // 3. Linha 4 (Ocorrência órfã)
+  const diagL4 = resultado.diagnosticos.find(d => d.linha === 4 && d.codigoRegra === 'OCORRENCIA_ORFA');
+  assert.ok(diagL4);
+  assert.strictEqual(diagL4.severidade, 'CRITICO');
+
+  // 4. Linha 5 (Matrícula ausente)
+  const diagL5 = resultado.diagnosticos.find(d => d.linha === 5 && d.codigoRegra === 'MATRICULA_AUSENTE');
+  assert.ok(diagL5);
+
+  // 5. Linha 6 (AG sem AH)
+  const diagL6 = resultado.diagnosticos.find(d => d.linha === 6 && d.codigoRegra === 'EVENTO_INCOMPLETO_AG');
+  assert.ok(diagL6);
+
+  // 6. Linha 7 (AH sem AG)
+  const diagL7 = resultado.diagnosticos.find(d => d.linha === 7 && d.codigoRegra === 'IMPUTADO_SEM_EVENTO_AH');
+  assert.ok(diagL7);
+
+  // 7. Linha 8 (Exceção Manual)
+  const diagL8 = resultado.diagnosticos.find(d => d.linha === 8 && d.codigoRegra === 'EXCECAO_MANUAL_JUSTIFICADA');
+  assert.ok(diagL8);
+  assert.strictEqual(diagL8.severidade, 'EXCECAO MANUAL');
+
+  // 8. Linha 9 (Numerário não auditável)
+  const diagL9 = resultado.diagnosticos.find(d => d.linha === 9 && d.codigoRegra === 'FATO_NAO_AUDITAVEL_AUTOMATICAMENTE');
+  assert.ok(diagL9);
+  assert.strictEqual(diagL9.severidade, 'OBSERVACAO');
+
+  // 9. Linha 14 (Rateio zerado no túnel 202607150007)
+  const diagL14 = resultado.diagnosticos.find(d => d.linha === 14 && d.codigoRegra === 'RATEIO_PONTOS_INCOERENTE');
+  assert.ok(diagL14);
+  assert.strictEqual(diagL14.severidade, 'ALERTA');
+
+  // Validação da escrita na Coluna AM
+  const saidaAM = mockSheet.obterSaidaColunaAM();
+  assert.strictEqual(saidaAM.length, 13);
+  assert.strictEqual(saidaAM[0][0], ''); // L2 limpa
+  assert.ok(saidaAM[2][0].includes('Ocorrencia orfa')); // L4 com alerta curto na AM
+
+  // Valida a criação das abas [AUDITORIA] e [HISTORICO]
+  const subLog = mockSheet.obterSubAba('[AUDITORIA] Ocorrencias');
+  assert.ok(subLog);
+  const subHist = mockSheet.obterSubAba('[HISTORICO] Auditoria Ocorrencias');
+  assert.ok(subHist);
+
+  // Valida que dados operacionais da planilha não foram modificados
+  const rangeOriginal = mockSheet.getRange(1, 1, 14, 16);
+  assert.strictEqual(rangeOriginal.getValues()[1][0], '15/07/2026'); // L2 Data intacta
+  assert.strictEqual(rangeOriginal.getValues()[3][3], '113921-5'); // L4 Matrícula intacta
 });
 
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);

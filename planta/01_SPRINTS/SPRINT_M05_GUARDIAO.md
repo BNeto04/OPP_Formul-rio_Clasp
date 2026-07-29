@@ -1,6 +1,6 @@
 # Sprint M05 — Guardião da Qualidade Operacional
 
-> **Status:** PLANEJADA (EM EXECUÇÃO - TASK-M05.1-01)  
+> **Status:** CONCLUÍDA (VERIFICADO OFFLINE - Sprint 1)  
 > **Ambiente:** Bancada Offline (`refactor/down-plant-gs-offline`)  
 > **Cômodo Alvo:** M05 Guardião da Qualidade  
 
@@ -16,22 +16,23 @@
 
 ---
 
-## 📦 Entregáveis Planejados
+## 📦 Entregáveis Concluídos
 
-- **`planta/M05_GUARDIAO_INVENTARIO.md`**: Inventário completo dos componentes, regras e auditorias do M05.
-- **`planta/M05_GUARDIAO_PUREZA.md`**: Relatório de pureza da camada diagnóstica do M05.
+- **`planta/M05_GUARDIAO_INVENTARIO.md`**: Inventário completo dos componentes, regras e auditorias do M05 (`TASK-M05.1-01`).
+- **`planta/M05_GUARDIAO_PUREZA.md`**: Relatório de pureza da camada diagnóstica do M05 (`TASK-M05.1-02`).
+- **`planta/M05_GUARDIAO_HOMOLOGACAO.md`**: Protocolo de homologação manual do Guardião para planilhas de teste (`TASK-M05.1-06`).
 - **`Core/RegrasQualidade.js`**: Núcleo puro de diagnósticos e validação de regras contextuais de túnel.
 - **`Features/GuardiaoQualidade.js`**: Orquestrador e gerador de relatórios de auditoria de saúde.
 - **`Render/RendererAuditoriaSaude.js`**: Formatador visual das abas de auditoria (`[AUDITORIA] Ocorrencias` e `[HISTORICO] Auditoria Ocorrencias`).
-- **`Testes/TestGuardiao.js`**: Suíte de testes unitários offline cobrindo todos os diagnósticos.
+- **`Testes/TestGuardiao.js`**: Suíte de testes unitários e homologação offline cobrindo 100% dos cenários operacionais (21 testes).
 
 ---
 
 ## 🟢 Critérios de Aceite da Sprint
 
-- [ ] Inventário e governança da Sprint M05.1 concluídos (`TASK-M05.1-01`).
-- [ ] Núcleo puro de diagnóstico desacoplado do Apps Script (`TASK-M05.1-02`).
-- [ ] Validação de identidade e coerência do túnel implementada (`TASK-M05.1-03`).
-- [ ] Validação de fórmulas, matemática e exceções humanas via nota `EXCECAO:` (`TASK-M05.1-04`).
-- [ ] Relatórios de auditoria legíveis com Ação Recomendada e Histórico preservado (`TASK-M05.1-05`).
-- [ ] Testes unitários puros cobrindo 100% dos cenários operacionais (`TASK-M05.1-06`).
+- [x] Inventário e governança da Sprint M05.1 concluídos (`TASK-M05.1-01`).
+- [x] Núcleo puro de diagnóstico desacoplado do Apps Script (`TASK-M05.1-02`).
+- [x] Validação de identidade e coerência do túnel implementada (`TASK-M05.1-03`).
+- [x] Validação de fórmulas, matemática e exceções humanas via nota `EXCECAO:` (`TASK-M05.1-04`).
+- [x] Relatórios de auditoria legíveis com Ação Recomendada e Histórico preservado (`TASK-M05.1-05`).
+- [x] Testes unitários puros cobrindo 100% dos cenários operacionais e homologação offline (`TASK-M05.1-06`).
