@@ -30,17 +30,39 @@ function onOpen() {
     Logger.log('Erro ao criar menu PRODUTIVIDADE: ' + e.message);
   }
 
-  if (typeof criarMenuPip_ === 'function') {
-    try { criarMenuPip_(); } catch (e) { Logger.log('Erro ao criar menu PIP: ' + e.message); }
+  try {
+    criarMenuUnificadoPipCPM_();
+  } catch (e) {
+    Logger.log('Erro ao criar menu unificado PIP/CPM: ' + e.message);
   }
 
   if (typeof criarMenuDrogas_ === 'function') {
     try { criarMenuDrogas_(); } catch (e) { Logger.log('Erro ao criar menu Drogas: ' + e.message); }
   }
+}
 
-  if (typeof criarMenuCPM_ === 'function') {
-    try { criarMenuCPM_(); } catch (e) { Logger.log('Erro ao criar menu CPM: ' + e.message); }
-  }
+/**
+ * Menu Unificado PIP e CPM (TASK-M01.3-01).
+ * Unifica o acesso sob um único menu principal "🏆 PIP", sem alterar
+ * os compiladores, regras de apuração (29-28 vs Mês Civil) ou abas de saída.
+ */
+function criarMenuUnificadoPipCPM_() {
+  const ui = SpreadsheetApp.getUi();
+
+  const subMenuPip = ui.createMenu('PIP | Ciclo 29–28')
+    .addItem('▶ Gerar Mensal', 'abrirMenuPipMensal')
+    .addItem('📅 Seleção Livre', 'abrirMenuPipLivre')
+    .addItem('📊 Anual', 'gerarPipAnual');
+
+  const subMenuCpm = ui.createMenu('CPM | Mês civil')
+    .addItem('▶ Gerar Mensal', 'abrirMenuCPMMensal')
+    .addItem('📅 Seleção Livre', 'abrirMenuCPMLivre')
+    .addItem('📊 Anual', 'gerarCPMAnual');
+
+  ui.createMenu('🏆 PIP')
+    .addSubMenu(subMenuPip)
+    .addSubMenu(subMenuCpm)
+    .addToUi();
 }
 
 function abrirFormularioEntrada() {

@@ -1,7 +1,7 @@
 # Especificação Técnica de Relatórios e Regras Visuais (M06)
 
 > **Documento:** `planta/02_SPECS/M06_RELATORIOS_SPEC.md`  
-> **Status:** EM REVISÃO DOCUMENTAL (TASK-M06.1-01B)  
+> **Status:** TASK-M06.1-01C CONCLUÍDA  
 > **Referência Transversal:** `REGRA_TRANSVERSAL_FORMATACAO_RELATORIOS.md`  
 > **Escopo:** Design System, Paletas de Cores de Produtividade vs Severidade, Layouts de Tabelas e Mapeamento de Implementação  
 
@@ -50,6 +50,7 @@ Esta paleta se aplica **exclusivamente** às abas `[AUDITORIA] Ocorrencias` e `[
 ## 📐 2. Estrutura Visual, Congelamento e Formatos Numéricos
 
 ### 2.1 Padrão Visual do Comparativo 2026 (`Features/CompiladorProdutividade.js` $\rightarrow$ `Render/RendererComparativo2026.js`)
+- **Gatilhos / Funções Reais:** `abrirMenuComparativo2026()`, `gerarComparativo2026Premium()`
 - **Aba de Saída:** `COMPARATIVO_2026` (**IMPLEMENTADA NO CÓDIGO ATUAL**)
 - **Título Principal (Linha 2):** Fonte Arial 20pt Negrito, Centralizado, Borda Espessa `#000000`, Fundo Branco (**IMPLEMENTADA NO CÓDIGO ATUAL**).
 - **Linha de Metadados (Linha 4):** Fonte Arial 10pt Cor `#4B5563`, Centralizado (`Ano base | Periodo | Policiais`) (**IMPLEMENTADA NO CÓDIGO ATUAL**).
@@ -62,24 +63,30 @@ Esta paleta se aplica **exclusivamente** às abas `[AUDITORIA] Ocorrencias` e `[
 - **Formatos Numéricos:** Pontuação (`#,##0.00`), Entorpecentes (`#,##0.00`) (**IMPLEMENTADA NO CÓDIGO ATUAL**).
 
 ### 2.2 Padrão Visual do PIP (`Compilador PIP.js`)
+- **Gatilhos / Funções Reais:** `criarMenuPip_()`, `abrirMenuPipMensal()`, `abrirMenuPipLivre()`, `gerarPipAnual()`, `criarAbaResultado_()`
+- **Regra Temporal PIP:** Período de apuração de 29 do mês anterior a 28 do mês atual.
 - **Abas de Saída:** `PIP_<período>`, `PIP_ANUAL_2026`, `PIP_SELECAO_LIVRE` (**IMPLEMENTADAS NO CÓDIGO ATUAL**).
 - **Estrutura Atual:** Cabeçalho de 7 colunas em `#D9EAD3` negrito centralizado, `setFrozenRows(1)`, AutoFiltro, formato `#,##0.00` na Coluna 6 (Pontuação) (**IMPLEMENTADA NO CÓDIGO ATUAL**).
 - **Contrato M06:** Padronização visual completa no Design System Synthéon (**CONTRATO VISUAL A IMPLEMENTAR NO M06**).
 
-### 2.3 Padrão Visual de Armas (`Compilador_Armas.js`)
+### 2.3 Padrão Visual do CPM (`CPM – Compilador de Pontuação Mensal.js`)
+- **Gatilhos / Funções Reais:** `criarMenuCPM_()`, `abrirMenuCPMMensal()`, `abrirMenuCPMLivre()`, `gerarCPMAnual()`, `criarAbaResultadoCPM_()`
+- **Regra Temporal CPM:** Período de apuração do mês civil (1º ao último dia do mês).
+- **Abas de Saída:** `CPM_<mes>`, `CPM_ANUAL_2026`, `CPM_SELECAO_LIVRE` (**IMPLEMENTADAS NO CÓDIGO ATUAL**).
+- **Estrutura Atual:** Cabeçalho 6 colunas em `#D9EAD3` negrito centralizado, `setFrozenRows(1)`, AutoFiltro, formato `#,##0.00` na Coluna 6 (**IMPLEMENTADA NO CÓDIGO ATUAL**).
+- **Contrato M06:** Padronização visual no Design System Synthéon (**CONTRATO VISUAL A IMPLEMENTAR NO M06**).
+
+### 2.4 Padrão Visual de Armas (`Compilador_Armas.js`)
+- **Gatilhos / Funções Reais:** `criarMenuArmas_()`, `abrirMenuSelecaoLivre()`
 - **Abas de Saída:** `COMP_ARMAS_2026`, `COMP_ARMAS_<período>` (**IMPLEMENTADAS NO CÓDIGO ATUAL**).
 - **Estrutura Atual:** Cabeçalho 5 colunas em `#E0E0E0` negrito, cores básicas de Pelotão (`#F1C232` Oficiais, `#00FF00` 1º PEL, `#6D9EEB` 2º PEL, `#FFFFFF` 3º PEL) (**IMPLEMENTADA NO CÓDIGO ATUAL**).
 - **Contrato M06:** Incorporar escala de destaque de armas, GTAR e carimbo de auditoria (**CONTRATO VISUAL A IMPLEMENTAR NO M06**).
 
-### 2.4 Padrão Visual de Entorpecentes / Drogas (`Compilador de Entorpecentes.js`)
+### 2.5 Padrão Visual de Entorpecentes / Drogas (`Compilador de Entorpecentes.js`)
+- **Gatilhos / Funções Reais:** `criarMenuDrogas_()`, `abrirMenuSelecaoLivreDrogas()`
 - **Abas de Saída:** `COMP_DROGAS_2026`, `COMP_DROGAS_<período>` (**IMPLEMENTADAS NO CÓDIGO ATUAL**).
 - **Estrutura Atual:** Cabeçalho 10 colunas em `#E0E0E0` negrito, cores básicas de Pelotão (**IMPLEMENTADA NO CÓDIGO ATUAL**).
 - **Contrato M06:** Padronização com GTAR, alinhamentos à direita e formatos `#,##0.00`g estritos (**CONTRATO VISUAL A IMPLEMENTAR NO M06**).
-
-### 2.5 Padrão Visual do CPM (`CPM – Compilador de Pontuação Mensal.js`)
-- **Abas de Saída:** `CPM_<mes>`, `CPM_ANUAL_2026`, `CPM_SELECAO_LIVRE` (**IMPLEMENTADAS NO CÓDIGO ATUAL**).
-- **Estrutura Atual:** Cabeçalho 6 colunas em `#D9EAD3` negrito centralizado, `setFrozenRows(1)`, AutoFiltro, formato `#,##0.00` na Coluna 6 (**IMPLEMENTADA NO CÓDIGO ATUAL**).
-- **Contrato M06:** Padronização no Design System Synthéon (**CONTRATO VISUAL A IMPLEMENTAR NO M06**).
 
 ---
 

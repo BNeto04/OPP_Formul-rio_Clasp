@@ -27,6 +27,14 @@
 
 ---
 
+## SPRINT M01.3 — Unificação de Interface PIP & CPM
+
+| ID | Tarefa | Arquivo(s) Afetado(s) | Status | Commit |
+| :--- | :--- | :--- | :--- | :--- |
+| `TASK-M01.3-01` | Unificar acesso aos relatórios PIP (Ciclo 29-28) e CPM (Mês civil) sob menu `🏆 PIP` com submenus | `Entrada/Menu.js` | **CONCLUÍDA** | Local |
+
+---
+
 ## Ajustes de Interface & Marcadores
 
 | ID | Tarefa | Arquivo(s) Afetado(s) | Status | Commit |
