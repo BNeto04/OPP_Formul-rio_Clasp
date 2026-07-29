@@ -1,7 +1,7 @@
 # M06 — Relatórios Oficiais e Formatação Visual (Tasks)
 
 > **Documento:** `planta/03_TASKS/M06_TASKS.md`  
-> **Status da Sprint:** EM ANDAMENTO (TASK-M06.1-04 Concluída)  
+> **Status da Sprint:** SPRINT M06 CONCLUÍDA E HOMOLOGADA  
 > **Contexto:** Ecossistema Synthéon GS Down Plant Offline  
 
 ---
@@ -33,10 +33,9 @@
 - Aplicado destaque visual discreto **exclusivamente na célula AM (Coluna 39)** das linhas operacionais com alerta (`fundo #FFF3CD`, `fonte #856404`, `negrito`).
 - Validadas planilhas fictícias com colunas adicionais após AM no Teste 25, garantindo que o destaque permanece na coluna 39 e não vaza para colunas posteriores.
 - Garantida a preservação integral e intocada das cores, zebrados, bordas, fórmulas e dados operacionais das colunas A até AL (1 a 38).
-- Suíte global do ecossistema Synthéon atualizada para **68 testes** (15 Domínio + 10 Plugins + 6 Regressão V2 + 8 Adaptador 2026 + 27 Guardião + 2 Central Analítica), todos 100% aprovados.
 
+### [CONCLUÍDO] TASK-M06.1-05 — Suíte de Testes Visuais e Homologação Offline do M06
+- Criada a suíte dedicada `Testes/TestRenderers.js` para validação de regressão visual dos renderizadores.
+- Integrada em `Testes/RodarTodosOsTestes.js` com a suíte global expandida para **72 testes** (15 Domínio + 10 Plugins + 6 Regressão V2 + 8 Adaptador 2026 + 27 Guardião + 4 Renderizadores + 2 Central Analítica), todos 100% aprovados.
+- Elaborado o roteiro e protocolo oficial de homologação offline em `planta/M06_RELATORIOS_HOMOLOGACAO.md`.
 
-### [PENDENTE] TASK-M06.1-05 — Suíte de Testes Visuais e Homologação Offline do M06
-- Criar testes em `Testes/TestRenderers.js` ou equivalente validando a estrutura de estilos (cores, formatos, alinhamentos).
-- Executar a suíte integral de testes garantindo 100% de aprovação.
-- Elaborar o protocolo de homologação em `planta/M06_RELATORIOS_HOMOLOGACAO.md`.

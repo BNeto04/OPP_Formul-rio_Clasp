@@ -20,6 +20,8 @@ require('./TestAdaptador2026');
 console.log('');
 require('./TestGuardiao');
 console.log('');
+require('./TestRenderers');
+console.log('');
 require('./TestCentralAnalitica');
 
 console.log('\n====================================================');
