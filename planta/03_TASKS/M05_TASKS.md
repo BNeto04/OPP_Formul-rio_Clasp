@@ -25,5 +25,5 @@
 | `TASK-M05.1-04B` | Integração real do catálogo PIP via aba e cobertura de rateio zerado | `Core/RegrasQualidade.js`, `Features/GuardiaoQualidade.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `fcd914d` |
 | `TASK-M05.1-04C` | Localização flexível por aliases da Tabela PIP/coluna e tratamento de catálogo vazio | `Features/GuardiaoQualidade.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `d46b197` |
 | `TASK-M05.1-04D` | Normalização estrita de aliases (hífen/underline) e remoção de fallback para Coluna A | `Features/GuardiaoQualidade.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `9c73632` |
-| `TASK-M05.1-05` | Formatador de auditoria legível (`Ação Recomendada` e `Histórico`) | `Render/RendererAuditoriaSaude.js`, `Features/GuardiaoQualidade.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `em_progresso` |
+| `TASK-M05.1-05` | Formatador de auditoria legível (`Ação Recomendada` e `Histórico`) | `Render/RendererAuditoriaSaude.js`, `Features/GuardiaoQualidade.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `dda60ca` |
 | `TASK-M05.1-06` | Suíte de testes automatizados puros do Guardião e homologação | `Testes/TestGuardiao.js` | **PENDENTE** | - |
