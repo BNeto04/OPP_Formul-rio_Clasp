@@ -11,17 +11,59 @@ class GuardiaoQualidade {
       return { alertas: 0, linhas: 0, tuneis: 0, diagnosticos: [] };
     }
 
-    // Leitura do catálogo da Tabela PIP
+    // Leitura do catálogo da Tabela PIP por aliases flexíveis de aba e coluna
     let catalogoPIP = null;
     let modoLimitadoPIP = false;
+
     if (sheet && typeof sheet.getParent === 'function') {
       try {
         const parent = sheet.getParent();
-        if (parent && typeof parent.getSheetByName === 'function') {
-          const abaPIP = parent.getSheetByName('Tabela PIP');
+        if (parent) {
+          const aliasesAbaPIP = ['TABELA PIP', 'TABELA_PIP', 'PIP', 'TABELA DE INDICADORES'];
+          let abaPIP = null;
+
+          if (typeof parent.getSheets === 'function') {
+            const todasAbas = parent.getSheets();
+            abaPIP = todasAbas.find(s => {
+              const nomeNorm = typeof SyntheonUtils !== 'undefined'
+                ? SyntheonUtils.normalizarTexto(s.getName())
+                : String(s.getName()).toUpperCase().trim();
+              return aliasesAbaPIP.some(alias => nomeNorm === alias || nomeNorm.includes(alias));
+            });
+          }
+
+          if (!abaPIP && typeof parent.getSheetByName === 'function') {
+            for (const alias of aliasesAbaPIP) {
+              abaPIP = parent.getSheetByName(alias);
+              if (abaPIP) break;
+            }
+          }
+
           if (abaPIP) {
             const valsPIP = abaPIP.getDataRange().getValues();
-            catalogoPIP = valsPIP.slice(1).map(r => String(r[0] || '').trim()).filter(Boolean);
+            if (valsPIP && valsPIP.length > 0) {
+              const headersPIP = valsPIP[0].map(h => typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(h) : String(h).toUpperCase().trim());
+              const aliasesColIndicador = ['INDICADOR PIP', 'INDICADOR', 'OCORRENCIA PIP', 'OCORRENCIA'];
+
+              let colIdx = -1;
+              for (const alias of aliasesColIndicador) {
+                colIdx = headersPIP.indexOf(alias);
+                if (colIdx !== -1) break;
+              }
+              if (colIdx === -1) {
+                for (const alias of aliasesColIndicador) {
+                  colIdx = headersPIP.findIndex(h => h.includes(alias));
+                  if (colIdx !== -1) break;
+                }
+              }
+
+              if (colIdx === -1) colIdx = 0;
+
+              const listaIndicadores = valsPIP.slice(1).map(r => String(r[colIdx] || '').trim()).filter(Boolean);
+              if (listaIndicadores.length > 0) {
+                catalogoPIP = listaIndicadores;
+              }
+            }
           }
         }
       } catch (e) {
@@ -29,7 +71,8 @@ class GuardiaoQualidade {
       }
     }
 
-    if (catalogoPIP === null) {
+    if (!catalogoPIP || catalogoPIP.length === 0) {
+      catalogoPIP = null;
       modoLimitadoPIP = true;
     }
 
