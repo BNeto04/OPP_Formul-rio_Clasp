@@ -28,8 +28,10 @@
 - Aplicadas larguras recomendadas (`160, 120, 180, 70, 140, 210, 320, 320, 320`) e zebrado discreto nas linhas pares.
 
 ### [CONCLUÍDO] TASK-M06.1-04 — Padronização Visual das Abas Mensais e Preservação da Coluna AM
-- Atualizado `Render/RendererAuditoriaSaude.js` implementando o método `aplicarDestaquesAlertasAM_`.
+- Atualizados `Features/GuardiaoQualidade.js` e `Render/RendererAuditoriaSaude.js` implementando `aplicarDestaquesAlertasAM_(sheet, idx.alerta, saida)`.
+- Chamada explícita passando a referência real `idx.alerta` (0-based) e `saida`, eliminando qualquer inferência da "última coluna da aba".
 - Aplicado destaque visual discreto **exclusivamente na célula AM (Coluna 39)** das linhas operacionais com alerta (`fundo #FFF3CD`, `fonte #856404`, `negrito`).
+- Validadas planilhas fictícias com colunas adicionais após AM no Teste 25, garantindo que o destaque permanece na coluna 39 e não vaza para colunas posteriores.
 - Garantida a preservação integral e intocada das cores, zebrados, bordas, fórmulas e dados operacionais das colunas A até AL (1 a 38).
 
 ### [PENDENTE] TASK-M06.1-05 — Suíte de Testes Visuais e Homologação Offline do M06

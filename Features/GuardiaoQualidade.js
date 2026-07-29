@@ -1,7 +1,8 @@
 /**
  * ARQUIVO: Features/GuardiaoQualidade.js
- * DESCRICAO: Observador de boas práticas de preenchimento das ocorrências.
- * Trabalha internamente com objetos de diagnóstico estruturados.
+ * DESCRICAO: Motor central do Guardião da Qualidade Operacional (M05/M06).
+ * Realiza varreduras estáticas de integridade sobre abas mensais de ocorrências
+ * com diagnósticos estruturados e acionamento de renderização e destaques AM.
  */
 class GuardiaoQualidade {
   /**
@@ -218,7 +219,7 @@ class GuardiaoQualidade {
           tunel: chave,
           diagnostico: 'Evento incompleto: AG preenchido sem IMPUTADO?.',
           evidencia: `OCORRÊNCIA PIP (AG): "${indicador}" | IMPUTADO? (AH): vazio`,
-          acaoRecomendada: 'Revise AG/AH: o evento foi declarado sem definir COM IMPUTADO ou SEM IMPUTADO em AH.'
+          acaoRecomendada: 'Revise AG/AH: o evento foi declared sem definir COM IMPUTADO ou SEM IMPUTADO em AH.'
         }));
       }
 
@@ -301,6 +302,9 @@ class GuardiaoQualidade {
 
     RendererAuditoriaSaude.prepararColunaAlertas(sheet, idx.alerta, saida.length);
     sheet.getRange(2, idx.alerta + 1, saida.length, 1).setValues(saida);
+
+    // Chamada explícita de destaque passando a referência real idx.alerta (0-based) e os textos de saída
+    RendererAuditoriaSaude.aplicarDestaquesAlertasAM_(sheet, idx.alerta, saida);
 
     const todosDiagnosticos = alertasPorLinha.flat();
 

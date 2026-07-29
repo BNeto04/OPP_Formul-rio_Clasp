@@ -4,7 +4,7 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 /**
  * ARQUIVO: Testes/TestGuardiao.js
  * DESCRIÇÃO: Suíte de testes unitários e homologação final offline para o Guardião da Qualidade (M05/M06).
- * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado com divisor PIP fixo = 4 (TASK-M05.1-04E), Tabela PIP, relatórios legíveis, estilização executiva (TASK-M06.1-02/TASK-M06.1-03), destaque AM (TASK-M06.1-04) e homologação E2E.
+ * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado com divisor PIP fixo = 4 (TASK-M05.1-04E), Tabela PIP, relatórios legíveis, estilização executiva (TASK-M06.1-02/TASK-M06.1-03), destaque AM explícito (TASK-M06.1-04) e homologação E2E.
  */
 
 const assert = require('assert');
@@ -47,7 +47,7 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
 
   let dadosColunaAM = [];
   const mapSubSheets = {};
-  const mainTracker = { coresBackground: [], alinhamentos: [] };
+  const mainTracker = { coresBackground: [], coresFont: [], alinhamentos: [] };
 
   const createRangeMock = (targetRow, targetCol, sheetDataRef, subTracker = null, numRowsParam = 1, numColsParam = 1) => {
     const rangeObj = {
@@ -56,7 +56,9 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
           const startR = targetRow - 1;
           return sheetDataRef.storage.slice(startR, startR + numRowsParam);
         }
-        if (sheetDataRef.isMain && targetCol === headers.length && dadosColunaAM.length > 0) {
+        const idxAlertaHeader = SyntheonUtils.localizarColuna(headers, 'ALERTA_INTEGRIDADE');
+        const colAlertaReal = idxAlertaHeader !== -1 ? idxAlertaHeader + 1 : headers.length;
+        if (sheetDataRef.isMain && targetCol === colAlertaReal && dadosColunaAM.length > 0) {
           const startR = targetRow - 2;
           return dadosColunaAM.slice(startR, startR + numRowsParam);
         }
@@ -69,7 +71,9 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
         return rangeObj;
       },
       setValues: (vals) => {
-        if (sheetDataRef.isMain && targetRow === 2 && targetCol === headers.length) {
+        const idxAlertaHeader = SyntheonUtils.localizarColuna(headers, 'ALERTA_INTEGRIDADE');
+        const colAlertaReal = idxAlertaHeader !== -1 ? idxAlertaHeader + 1 : headers.length;
+        if (sheetDataRef.isMain && targetRow === 2 && targetCol === colAlertaReal) {
           dadosColunaAM = vals;
         }
         if (sheetDataRef.storage) {
@@ -88,7 +92,15 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
       clearContent: () => rangeObj,
       clear: () => rangeObj,
       setFontWeight: () => rangeObj,
-      setFontColor: () => rangeObj,
+      setFontColor: (color) => {
+        if (sheetDataRef.isMain) {
+          mainTracker.coresFont.push({ row: targetRow, col: targetCol, color });
+        }
+        if (subTracker && subTracker.coresFont) {
+          subTracker.coresFont.push({ row: targetRow, col: targetCol, color });
+        }
+        return rangeObj;
+      },
       setBackground: (color) => {
         if (sheetDataRef.isMain) {
           mainTracker.coresBackground.push({ row: targetRow, col: targetCol, color });
@@ -121,7 +133,7 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
   const getSubSheet = (name) => {
     if (!mapSubSheets[name]) {
       const subStorage = [];
-      const subTracker = { linhasCongeladas: 0, alinhamentos: [], coresBackground: [] };
+      const subTracker = { linhasCongeladas: 0, alinhamentos: [], coresBackground: [], coresFont: [] };
       mapSubSheets[name] = {
         getName: () => name,
         getLastRow: () => subStorage.length,
@@ -136,7 +148,8 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
         obterDadosArmazenados: () => subStorage,
         obterLinhasCongeladas: () => subTracker.linhasCongeladas,
         obterAlinhamentos: () => subTracker.alinhamentos,
-        obterCoresBackground: () => subTracker.coresBackground
+        obterCoresBackground: () => subTracker.coresBackground,
+        obterCoresFont: () => subTracker.coresFont
       };
     }
     return mapSubSheets[name];
@@ -172,7 +185,8 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
     getParent: () => parentMock,
     obterSaidaColunaAM: () => dadosColunaAM,
     obterSubAba: (n) => mapSubSheets[n],
-    obterCoresMainBackground: () => mainTracker.coresBackground
+    obterCoresMainBackground: () => mainTracker.coresBackground,
+    obterCoresMainFont: () => mainTracker.coresFont
   };
 
   return sheetMock;
@@ -711,8 +725,8 @@ test('RendererAuditoriaSaude: valida histórico cumulativo, congelamento da linh
   assert.ok(alignLeftCols7To9, 'As colunas 7 a 9 no Histórico devem ter alinhamento à esquerda (left)');
 });
 
-// 24. Destaque Visual Discreto da Coluna AM nas Abas Mensais (TASK-M06.1-04)
-test('RendererAuditoriaSaude: aplica destaque #FFF3CD/#856404 exclusivamente na célula AM com alerta, sem tocar em A:AL', () => {
+// 24. Destaque Visual Discreto da Coluna AM nas Abas Mensais — Fundo e Cor da Fonte (TASK-M06.1-04)
+test('RendererAuditoriaSaude: aplica destaque fundo #FFF3CD e fonte #856404 exclusivamente na célula AM com alerta', () => {
   const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
   const dadosLinhas = [
     // L2: Com alerta (ocorrência órfã - sem MIKE)
@@ -725,23 +739,63 @@ test('RendererAuditoriaSaude: aplica destaque #FFF3CD/#856404 exclusivamente na 
   // Executa o Guardião
   GuardiaoQualidade.varrerAba(mockSheet);
 
-  // 1. Confirma que a célula AM (coluna 17 no mock test, 39 em prod) da Linha 2 (com alerta) recebeu a cor #FFF3CD
   const coresMain = mockSheet.obterCoresMainBackground();
-  const corAMComAlerta = coresMain.find(c => c.row === 2 && c.col === headersPadrao.length && c.color === '#FFF3CD');
+  const colAMIdx = SyntheonUtils.localizarColuna(headersPadrao, 'ALERTA_INTEGRIDADE') + 1; // Coluna 17 (39 em prod)
+  const corAMComAlerta = coresMain.find(c => c.row === 2 && c.col === colAMIdx && c.color === '#FFF3CD');
   assert.ok(corAMComAlerta, 'A célula AM da Linha 2 deve receber fundo #FFF3CD ao conter alerta');
 
-  // 2. Confirma que a célula AM da Linha 3 (sem alerta) não recebeu a cor #FFF3CD
-  const corAMSemAlerta = coresMain.find(c => c.row === 3 && c.col === headersPadrao.length && c.color === '#FFF3CD');
+  // 2. Confirma COR DA FONTE #856404 na célula AM da Linha 2 (com alerta)
+  const fontesMain = mockSheet.obterCoresMainFont();
+  const fonteAMComAlerta = fontesMain.find(c => c.row === 2 && c.col === colAMIdx && c.color === '#856404');
+  assert.ok(fonteAMComAlerta, 'A célula AM da Linha 2 deve receber cor da fonte #856404 ao conter alerta');
+
+  // 3. Confirma que a célula AM da Linha 3 (sem alerta) não recebeu a cor de fundo #FFF3CD
+  const corAMSemAlerta = coresMain.find(c => c.row === 3 && c.col === colAMIdx && c.color === '#FFF3CD');
   assert.strictEqual(corAMSemAlerta, undefined, 'A célula AM da Linha 3 (sem alerta) não deve receber fundo de alerta');
 
-  // 3. Confirmar que NENHUMA formatação de background foi aplicada nas colunas A a AL (colunas 1 a 16 no mock) na aba principal
-  const formatacaoNasColunasA_AL = coresMain.filter(c => c.col >= 1 && c.col < headersPadrao.length);
+  // 4. Confirmar que NENHUMA formatação de background foi aplicada nas colunas A a AL (colunas 1 a 16 no mock)
+  const formatacaoNasColunasA_AL = coresMain.filter(c => c.col >= 1 && c.col < colAMIdx);
   assert.strictEqual(formatacaoNasColunasA_AL.length, 0, 'Nenhuma formatação de fundo deve ser aplicada às colunas A até AL (1 a 38)');
 
-  // 4. Confirmar que valores e fórmulas operacionais permanecem iguais antes e depois da auditoria
+  // 5. Confirmar que valores e fórmulas operacionais permanecem iguais antes e depois da auditoria
   const rangeOriginal = mockSheet.getRange(1, 1, 3, 16);
   assert.strictEqual(rangeOriginal.getValues()[1][2], '26E100'); // L2 BOE intacto
   assert.strictEqual(rangeOriginal.getValues()[2][0], '15/07/2026'); // L3 Data intacta
+});
+
+// 25. Coluna Adicional após AM — Prova que o destaque não usa a "última coluna" (TASK-M06.1-04)
+test('RendererAuditoriaSaude: com coluna adicional após AM, o destaque permanece na coluna real 39 e não vaza para a última coluna', () => {
+  const headersComColunaExtra = [
+    ...headersPadrao,
+    'COLUNA EXTRA APÓS AM' // Coluna 18 no mock (ex: Coluna 40 em produção)
+  ];
+  const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
+  const dadosLinhas = [
+    // L2: Com alerta (ocorrência órfã) + valor na coluna extra
+    ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '', 'DADO_EXTRA']
+  ];
+  const mockSheet = criarMockSheet(headersComColunaExtra, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
+
+  // Executa o Guardião
+  GuardiaoQualidade.varrerAba(mockSheet);
+
+  const colAlerta = SyntheonUtils.localizarColuna(headersComColunaExtra, 'ALERTA_INTEGRIDADE') + 1; // Coluna 17 (AM em prod: 39)
+  const colExtra = headersComColunaExtra.length; // Coluna 18 (última coluna, AN em prod: 40)
+
+  const coresMain = mockSheet.obterCoresMainBackground();
+  const fontesMain = mockSheet.obterCoresMainFont();
+
+  // 1. O destaque visual DEVE ser applied na coluna ALERTA INTEGRIDADE (coluna 17 / 39)
+  const destaqueAMFundo = coresMain.find(c => c.row === 2 && c.col === colAlerta && c.color === '#FFF3CD');
+  const destaqueAMFonte = fontesMain.find(c => c.row === 2 && c.col === colAlerta && c.color === '#856404');
+  assert.ok(destaqueAMFundo, 'O destaque de fundo #FFF3CD deve ser aplicado na coluna real de alerta (AM)');
+  assert.ok(destaqueAMFonte, 'O destaque de fonte #856404 deve ser aplicado na coluna real de alerta (AM)');
+
+  // 2. O destaque visual NÃO DEVE ser aplicado na coluna extra após AM (coluna 18 / 40)
+  const vazaColunaExtraFundo = coresMain.find(c => c.row === 2 && c.col === colExtra && c.color === '#FFF3CD');
+  const vazaColunaExtraFonte = fontesMain.find(c => c.row === 2 && c.col === colExtra && c.color === '#856404');
+  assert.strictEqual(vazaColunaExtraFundo, undefined, 'A coluna extra após AM não deve receber o fundo de alerta');
+  assert.strictEqual(vazaColunaExtraFonte, undefined, 'A coluna extra após AM não deve receber a fonte de alerta');
 });
 
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);

@@ -112,9 +112,6 @@ class RendererAuditoriaSaude {
 
     // Estilização Executiva acumulativa de TODAS as linhas do [HISTORICO] Auditoria Ocorrencias
     RendererAuditoriaSaude.estilizarAbaHistorico_(histSheet, registrosHistorico, proxLinhaHist);
-
-    // 3. Aplicação do destaque visual discreto exclusivamente na célula AM da aba operacional auditada (TASK-M06.1-04)
-    RendererAuditoriaSaude.aplicarDestaquesAlertasAM_(sheet);
   }
 
   static estilizarAbaAuditoria_(logSheet, totalLinhasDoc, statusFinal, registrosTabela) {
@@ -302,14 +299,15 @@ class RendererAuditoriaSaude {
 
   /**
    * Aplica o destaque visual discreto exclusivamente na célula AM da linha afetada (TASK-M06.1-04).
+   * Requer o índice real da coluna de alerta (idxAlerta 0-based) e a matriz de textos de saída (saida).
+   * Não infere AM pela última coluna da aba, evitando desalinhamento se houver colunas adicionais.
    * Não altera qualquer formatação, valor, fórmula ou borda das colunas A:AL (1 a 38).
    */
-  static aplicarDestaquesAlertasAM_(sheet, idxAlerta = null, saida = null) {
-    if (!sheet || typeof sheet.getRange !== 'function') return;
+  static aplicarDestaquesAlertasAM_(sheet, idxAlerta, saida) {
+    if (!sheet || typeof sheet.getRange !== 'function' || typeof idxAlerta !== 'number' || idxAlerta < 0) return;
 
     try {
-      const lastC = typeof sheet.getLastColumn === 'function' ? sheet.getLastColumn() : 39;
-      const colAM = (typeof idxAlerta === 'number' && idxAlerta >= 0) ? (idxAlerta + 1) : lastC;
+      const colAM = idxAlerta + 1; // Coluna real do alerta em base 1 (ex: 39 para AM)
       let valoresAM = saida;
 
       if (!valoresAM) {
