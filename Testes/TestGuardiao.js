@@ -4,7 +4,7 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 /**
  * ARQUIVO: Testes/TestGuardiao.js
  * DESCRIÇÃO: Suíte de testes unitários e homologação final offline para o Guardião da Qualidade (M05/M06).
- * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado com divisor PIP fixo = 4 (TASK-M05.1-04E), Tabela PIP, relatórios legíveis, estilização executiva (TASK-M06.1-02/TASK-M06.1-03) e homologação E2E.
+ * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado com divisor PIP fixo = 4 (TASK-M05.1-04E), Tabela PIP, relatórios legíveis, estilização executiva (TASK-M06.1-02/TASK-M06.1-03), destaque AM (TASK-M06.1-04) e homologação E2E.
  */
 
 const assert = require('assert');
@@ -47,13 +47,18 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
 
   let dadosColunaAM = [];
   const mapSubSheets = {};
+  const mainTracker = { coresBackground: [], alinhamentos: [] };
 
-  const createRangeMock = (targetRow, targetCol, sheetDataRef, subTracker = null, numRowsParam = 1) => {
+  const createRangeMock = (targetRow, targetCol, sheetDataRef, subTracker = null, numRowsParam = 1, numColsParam = 1) => {
     const rangeObj = {
       getValues: () => {
         if (sheetDataRef.storage) {
           const startR = targetRow - 1;
           return sheetDataRef.storage.slice(startR, startR + numRowsParam);
+        }
+        if (sheetDataRef.isMain && targetCol === headers.length && dadosColunaAM.length > 0) {
+          const startR = targetRow - 2;
+          return dadosColunaAM.slice(startR, startR + numRowsParam);
         }
         return sheetDataRef.values || dadosTotais;
       },
@@ -85,12 +90,18 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
       setFontWeight: () => rangeObj,
       setFontColor: () => rangeObj,
       setBackground: (color) => {
+        if (sheetDataRef.isMain) {
+          mainTracker.coresBackground.push({ row: targetRow, col: targetCol, color });
+        }
         if (subTracker && subTracker.coresBackground) {
           subTracker.coresBackground.push({ row: targetRow, col: targetCol, color });
         }
         return rangeObj;
       },
       setHorizontalAlignment: (align) => {
+        if (sheetDataRef.isMain) {
+          mainTracker.alinhamentos.push({ row: targetRow, col: targetCol, align });
+        }
         if (subTracker && subTracker.alinhamentos) {
           subTracker.alinhamentos.push({ row: targetRow, col: targetCol, align });
         }
@@ -116,7 +127,7 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
         getLastRow: () => subStorage.length,
         getLastColumn: () => (subStorage[0] ? subStorage[0].length : 0),
         clear: () => { subStorage.length = 0; },
-        getRange: (r, c, numR, numC) => createRangeMock(r, c, { storage: subStorage }, subTracker, numR || 1),
+        getRange: (r, c, numR, numC) => createRangeMock(r, c, { storage: subStorage }, subTracker, numR || 1, numC || 1),
         autoResizeColumns: () => {},
         setFontWeight: () => {},
         setFrozenRows: (n) => { subTracker.linhasCongeladas = n; },
@@ -157,10 +168,11 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
     getName: () => nomeAba,
     getLastRow: () => dadosTotais.length,
     getLastColumn: () => headers.length,
-    getRange: (row, col, numR, numC) => createRangeMock(row, col, mainRef),
+    getRange: (row, col, numR, numC) => createRangeMock(row, col, mainRef, null, numR || 1, numC || 1),
     getParent: () => parentMock,
     obterSaidaColunaAM: () => dadosColunaAM,
-    obterSubAba: (n) => mapSubSheets[n]
+    obterSubAba: (n) => mapSubSheets[n],
+    obterCoresMainBackground: () => mainTracker.coresBackground
   };
 
   return sheetMock;
@@ -580,7 +592,7 @@ test('GuardiaoQualidade: Homologação Final Offline End-to-End cobrindo 10 cen�
   const diagL3 = resultado.diagnosticos.find(d => d.linha === 3 && d.codigoRegra === 'MIKE_SUSPEITO');
   assert.ok(diagL3);
 
-  // 3. Linha 4 (Ocorrência órfã)
+  // 3. Linha 4 (Ocorrência Órfã)
   const diagL4 = resultado.diagnosticos.find(d => d.linha === 4 && d.codigoRegra === 'OCORRENCIA_ORFA');
   assert.ok(diagL4);
   assert.strictEqual(diagL4.severidade, 'CRITICO');
@@ -697,6 +709,39 @@ test('RendererAuditoriaSaude: valida histórico cumulativo, congelamento da linh
   const alinhamentos = subHist.obterAlinhamentos();
   const alignLeftCols7To9 = alinhamentos.find(a => a.col === 7 && a.align === 'left');
   assert.ok(alignLeftCols7To9, 'As colunas 7 a 9 no Histórico devem ter alinhamento à esquerda (left)');
+});
+
+// 24. Destaque Visual Discreto da Coluna AM nas Abas Mensais (TASK-M06.1-04)
+test('RendererAuditoriaSaude: aplica destaque #FFF3CD/#856404 exclusivamente na célula AM com alerta, sem tocar em A:AL', () => {
+  const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
+  const dadosLinhas = [
+    // L2: Com alerta (ocorrência órfã - sem MIKE)
+    ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', ''],
+    // L3: Sem alerta (plantão tranquilo)
+    ['15/07/2026', '', '', '', '', 0, '', '', 0, 0, 0, 0, 0, 0, 0, '', '']
+  ];
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao, ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']], [], abaPIPValores);
+
+  // Executa o Guardião
+  GuardiaoQualidade.varrerAba(mockSheet);
+
+  // 1. Confirma que a célula AM (coluna 17 no mock test, 39 em prod) da Linha 2 (com alerta) recebeu a cor #FFF3CD
+  const coresMain = mockSheet.obterCoresMainBackground();
+  const corAMComAlerta = coresMain.find(c => c.row === 2 && c.col === headersPadrao.length && c.color === '#FFF3CD');
+  assert.ok(corAMComAlerta, 'A célula AM da Linha 2 deve receber fundo #FFF3CD ao conter alerta');
+
+  // 2. Confirma que a célula AM da Linha 3 (sem alerta) não recebeu a cor #FFF3CD
+  const corAMSemAlerta = coresMain.find(c => c.row === 3 && c.col === headersPadrao.length && c.color === '#FFF3CD');
+  assert.strictEqual(corAMSemAlerta, undefined, 'A célula AM da Linha 3 (sem alerta) não deve receber fundo de alerta');
+
+  // 3. Confirmar que NENHUMA formatação de background foi aplicada nas colunas A a AL (colunas 1 a 16 no mock) na aba principal
+  const formatacaoNasColunasA_AL = coresMain.filter(c => c.col >= 1 && c.col < headersPadrao.length);
+  assert.strictEqual(formatacaoNasColunasA_AL.length, 0, 'Nenhuma formatação de fundo deve ser aplicada às colunas A até AL (1 a 38)');
+
+  // 4. Confirmar que valores e fórmulas operacionais permanecem iguais antes e depois da auditoria
+  const rangeOriginal = mockSheet.getRange(1, 1, 3, 16);
+  assert.strictEqual(rangeOriginal.getValues()[1][2], '26E100'); // L2 BOE intacto
+  assert.strictEqual(rangeOriginal.getValues()[2][0], '15/07/2026'); // L3 Data intacta
 });
 
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);

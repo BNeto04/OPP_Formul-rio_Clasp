@@ -1,7 +1,8 @@
 /**
  * ARQUIVO: Render/RendererAuditoriaSaude.js
  * DESCRICAO: Materialização visual e histórica da auditoria do Guardião da Qualidade (M06).
- * Aplica a paleta de severidades exclusivamente aos relatórios de apoio ([AUDITORIA] e [HISTORICO]).
+ * Aplica a paleta de severidades exclusivamente aos relatórios de apoio ([AUDITORIA] e [HISTORICO])
+ * e destaca visualmente apenas a célula AM das abas mensais com alerta (TASK-M06.1-04).
  */
 class RendererAuditoriaSaude {
   static get PALETA_SEVERIDADES() {
@@ -102,7 +103,7 @@ class RendererAuditoriaSaude {
     logSheet.getRange(1, 1, dadosLog.length, 8).setValues(dadosLog);
 
     // Estilização Executiva e Paleta de Severidades para [AUDITORIA] Ocorrencias
-    RendererAuditoriaSaude.estilitarAbaAuditoria_(logSheet, dadosLog.length, statusFinal, registrosTabela);
+    RendererAuditoriaSaude.estilizarAbaAuditoria_(logSheet, dadosLog.length, statusFinal, registrosTabela);
 
     // 2. Anexo sem sobrescrever na Aba [HISTORICO] Auditoria Ocorrencias
     const registrosHistorico = registrosTabela.map(r => [agora, ...r]);
@@ -111,9 +112,12 @@ class RendererAuditoriaSaude {
 
     // Estilização Executiva acumulativa de TODAS as linhas do [HISTORICO] Auditoria Ocorrencias
     RendererAuditoriaSaude.estilizarAbaHistorico_(histSheet, registrosHistorico, proxLinhaHist);
+
+    // 3. Aplicação do destaque visual discreto exclusivamente na célula AM da aba operacional auditada (TASK-M06.1-04)
+    RendererAuditoriaSaude.aplicarDestaquesAlertasAM_(sheet);
   }
 
-  static estilitarAbaAuditoria_(logSheet, totalLinhasDoc, statusFinal, registrosTabela) {
+  static estilizarAbaAuditoria_(logSheet, totalLinhasDoc, statusFinal, registrosTabela) {
     if (!logSheet || typeof logSheet.getRange !== 'function') return;
 
     try {
@@ -164,7 +168,7 @@ class RendererAuditoriaSaude {
           rangeCentralizado.setHorizontalAlignment('center');
         }
 
-        // Alinhamento à esquerda explicito das colunas DIAGNÓSTICO, EVIDÊNCIA, AÇÃO RECOMENDADA (Colunas 6 a 8)
+        // Alinhamento à esquerda explícito das colunas DIAGNÓSTICO, EVIDÊNCIA, AÇÃO RECOMENDADA (Colunas 6 a 8)
         const rangeEsquerdaTextos = logSheet.getRange(linhaReal, 6, 1, 3);
         if (typeof rangeEsquerdaTextos.setHorizontalAlignment === 'function') {
           rangeEsquerdaTextos.setHorizontalAlignment('left');
@@ -293,6 +297,55 @@ class RendererAuditoriaSaude {
 
     } catch (e) {
       // Garante execução limpa em ambientes isolados/mocks
+    }
+  }
+
+  /**
+   * Aplica o destaque visual discreto exclusivamente na célula AM da linha afetada (TASK-M06.1-04).
+   * Não altera qualquer formatação, valor, fórmula ou borda das colunas A:AL (1 a 38).
+   */
+  static aplicarDestaquesAlertasAM_(sheet, idxAlerta = null, saida = null) {
+    if (!sheet || typeof sheet.getRange !== 'function') return;
+
+    try {
+      const lastC = typeof sheet.getLastColumn === 'function' ? sheet.getLastColumn() : 39;
+      const colAM = (typeof idxAlerta === 'number' && idxAlerta >= 0) ? (idxAlerta + 1) : lastC;
+      let valoresAM = saida;
+
+      if (!valoresAM) {
+        const lastR = typeof sheet.getLastRow === 'function' ? sheet.getLastRow() : 1;
+        if (lastR < 2) return;
+        const rangeAM = sheet.getRange(2, colAM, lastR - 1, 1);
+        if (typeof rangeAM.getValues === 'function') {
+          valoresAM = rangeAM.getValues();
+        }
+      }
+
+      if (!Array.isArray(valoresAM) || valoresAM.length === 0) return;
+
+      valoresAM.forEach((row, idx) => {
+        const linhaReal = idx + 2;
+        const textoAlerta = (row && row[0]) ? String(row[0]).trim() : '';
+        const cellAM = sheet.getRange(linhaReal, colAM);
+
+        if (textoAlerta.length > 0) {
+          // Com alerta: aplicar exclusivamente em AM fundo #FFF3CD, fonte #856404 e negrito
+          if (typeof cellAM.setBackground === 'function') {
+            cellAM.setBackground('#FFF3CD')
+              .setFontColor('#856404')
+              .setFontWeight('bold');
+          }
+        } else {
+          // Sem alerta: limpar apenas o destaque visual criado em AM, sem alterar qualquer célula de A:AL
+          if (typeof cellAM.setBackground === 'function') {
+            cellAM.setBackground(null)
+              .setFontColor(null)
+              .setFontWeight('normal');
+          }
+        }
+      });
+    } catch (e) {
+      // Garante execução isolada e segura em ambientes de teste / mocks
     }
   }
 
