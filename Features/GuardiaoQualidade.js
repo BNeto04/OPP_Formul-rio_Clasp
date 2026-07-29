@@ -4,6 +4,17 @@
  * Trabalha internamente com objetos de diagnóstico estruturados.
  */
 class GuardiaoQualidade {
+  /**
+   * Normaliza textos convertendo hífens, underlines e múltiplos espaços para comparação flexível.
+   */
+  static normalizarNomeFlexivel(texto) {
+    if (!texto) return '';
+    let norm = typeof SyntheonUtils !== 'undefined'
+      ? SyntheonUtils.normalizarTexto(texto)
+      : String(texto).toUpperCase().trim();
+    return norm.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   static varrerAba(sheet) {
     const lastRow = sheet.getLastRow();
     const lastCol = sheet.getLastColumn();
@@ -19,15 +30,13 @@ class GuardiaoQualidade {
       try {
         const parent = sheet.getParent();
         if (parent) {
-          const aliasesAbaPIP = ['TABELA PIP', 'TABELA_PIP', 'PIP', 'TABELA DE INDICADORES'];
+          const aliasesAbaPIP = ['TABELA PIP', 'PIP', 'TABELA DE INDICADORES'];
           let abaPIP = null;
 
           if (typeof parent.getSheets === 'function') {
             const todasAbas = parent.getSheets();
             abaPIP = todasAbas.find(s => {
-              const nomeNorm = typeof SyntheonUtils !== 'undefined'
-                ? SyntheonUtils.normalizarTexto(s.getName())
-                : String(s.getName()).toUpperCase().trim();
+              const nomeNorm = GuardiaoQualidade.normalizarNomeFlexivel(s.getName());
               return aliasesAbaPIP.some(alias => nomeNorm === alias || nomeNorm.includes(alias));
             });
           }
@@ -42,26 +51,29 @@ class GuardiaoQualidade {
           if (abaPIP) {
             const valsPIP = abaPIP.getDataRange().getValues();
             if (valsPIP && valsPIP.length > 0) {
-              const headersPIP = valsPIP[0].map(h => typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(h) : String(h).toUpperCase().trim());
+              const headersPIP = valsPIP[0].map(h => GuardiaoQualidade.normalizarNomeFlexivel(h));
               const aliasesColIndicador = ['INDICADOR PIP', 'INDICADOR', 'OCORRENCIA PIP', 'OCORRENCIA'];
 
               let colIdx = -1;
               for (const alias of aliasesColIndicador) {
-                colIdx = headersPIP.indexOf(alias);
+                const aliasNorm = GuardiaoQualidade.normalizarNomeFlexivel(alias);
+                colIdx = headersPIP.indexOf(aliasNorm);
                 if (colIdx !== -1) break;
               }
               if (colIdx === -1) {
                 for (const alias of aliasesColIndicador) {
-                  colIdx = headersPIP.findIndex(h => h.includes(alias));
+                  const aliasNorm = GuardiaoQualidade.normalizarNomeFlexivel(alias);
+                  colIdx = headersPIP.findIndex(h => h.includes(aliasNorm));
                   if (colIdx !== -1) break;
                 }
               }
 
-              if (colIdx === -1) colIdx = 0;
-
-              const listaIndicadores = valsPIP.slice(1).map(r => String(r[colIdx] || '').trim()).filter(Boolean);
-              if (listaIndicadores.length > 0) {
-                catalogoPIP = listaIndicadores;
+              // Se não encontrou cabeçalho válido de indicador, NÃO assume coluna A!
+              if (colIdx !== -1) {
+                const listaIndicadores = valsPIP.slice(1).map(r => String(r[colIdx] || '').trim()).filter(Boolean);
+                if (listaIndicadores.length > 0) {
+                  catalogoPIP = listaIndicadores;
+                }
               }
             }
           }

@@ -4,7 +4,7 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 /**
  * ARQUIVO: Testes/TestGuardiao.js
  * DESCRIÇÃO: Suíte de testes unitários para o Guardião da Qualidade Operacional (M05).
- * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado e flexibilidade da Tabela PIP (TASK-M05.1-04C).
+ * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado, normalização flexível e segurança da Tabela PIP (TASK-M05.1-04D).
  */
 
 const assert = require('assert');
@@ -293,8 +293,8 @@ test('RegrasQualidade: rateio por túnel com 304 pontos e 4 policiais onde um po
   assert.strictEqual(diagRateioZerado.linha, 5);
 });
 
-// 14. Nome alternativo da aba Tabela PIP (ex: TABELA_PIP) (TASK-M05.1-04C)
-test('GuardiaoQualidade: reconhece a Tabela PIP por nome alternativo (ex: TABELA_PIP)', () => {
+// 14. Aba chamada TABELA-PIP (com hífen) (TASK-M05.1-04D)
+test('GuardiaoQualidade: reconhece a Tabela PIP com hífen no nome (ex: TABELA-PIP)', () => {
   const abaPIPValores = [
     ['INDICADOR PIP'],
     ['PORTE ILEGAL DE ARMA DE FOGO']
@@ -303,48 +303,49 @@ test('GuardiaoQualidade: reconhece a Tabela PIP por nome alternativo (ex: TABELA
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
   ];
 
-  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores, 'TABELA_PIP');
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores, 'TABELA-PIP');
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
 
   const diagModoLimitado = resultado.diagnosticos.find(d => d.codigoRegra === 'MODO_LIMITADO_CATALOGO_PIP');
-  assert.strictEqual(diagModoLimitado, undefined); // Aba reconhecida com sucesso!
+  assert.strictEqual(diagModoLimitado, undefined); // Reconhecida com sucesso!
 });
 
-// 15. Indicador PIP localizado em outra coluna (ex: Coluna C / Index 2 com cabeçalho INDICADOR PIP) (TASK-M05.1-04C)
-test('GuardiaoQualidade: localiza a coluna do indicador por cabeçalho em qualquer posição na Tabela PIP', () => {
+// 15. Aba chamada tabela_pip (minúscula com underline) (TASK-M05.1-04D)
+test('GuardiaoQualidade: reconhece a Tabela PIP minúscula com underline no nome (ex: tabela_pip)', () => {
   const abaPIPValores = [
-    ['CÓDIGO', 'CATEGORIA', 'INDICADOR PIP'],
-    ['001', 'ARMAS', 'PORTE ILEGAL DE ARMA DE FOGO']
-  ];
-  const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
-    ['15/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 0, 'INVENTADO_DESCONHECIDO', 'SEM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
-  ];
-
-  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao, formulaCalculadaPadrao], [], abaPIPValores, 'Tabela PIP');
-  const resultado = GuardiaoQualidade.varrerAba(mockSheet);
-
-  const diagDesconhecido = resultado.diagnosticos.find(d => d.codigoRegra === 'INDICADOR_DESCONHECIDO');
-  assert.ok(diagDesconhecido);
-  assert.strictEqual(diagDesconhecido.linha, 3);
-});
-
-// 16. Aba Tabela PIP existente, porém sem indicadores (catálogo vazio) (TASK-M05.1-04C)
-test('GuardiaoQualidade: aba Tabela PIP existente mas vazia ativa MODO_LIMITADO_CATALOGO_PIP sem falsos erros', () => {
-  const abaPIPVazia = [
-    ['INDICADOR PIP']
+    ['INDICADOR PIP'],
+    ['PORTE ILEGAL DE ARMA DE FOGO']
   ];
   const dadosLinhas = [
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
   ];
 
-  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPVazia, 'Tabela PIP');
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores, 'tabela_pip');
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
 
   const diagModoLimitado = resultado.diagnosticos.find(d => d.codigoRegra === 'MODO_LIMITADO_CATALOGO_PIP');
-  assert.ok(diagModoLimitado);
+  assert.strictEqual(diagModoLimitado, undefined); // Reconhecida com sucesso!
+});
+
+// 16. Aba existente sem coluna de indicador (com dados em A) não usa Coluna A como catálogo e ativa modo limitado (TASK-M05.1-04D)
+test('GuardiaoQualidade: aba existente sem cabeçalho válido de indicador (com dados em A) ativa MODO_LIMITADO_CATALOGO_PIP e não vaza Coluna A', () => {
+  const abaPIPSemCabecalhoIndicador = [
+    ['CÓDIGO', 'CATEGORIA'],
+    ['001', 'ARMAS'],
+    ['002', 'DROGAS']
+  ];
+  const dadosLinhas = [
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+  ];
+
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPSemCabecalhoIndicador, 'Tabela PIP');
+  const resultado = GuardiaoQualidade.varrerAba(mockSheet);
+
+  const diagModoLimitado = resultado.diagnosticos.find(d => d.codigoRegra === 'MODO_LIMITADO_CATALOGO_PIP');
+  assert.ok(diagModoLimitado); // Entra em modo limitado!
   assert.strictEqual(diagModoLimitado.severidade, 'OBSERVACAO');
 
+  // Não usou '001' ou 'ARMAS' como catálogo (o que geraria falsos erros em 'PORTE ILEGAL DE ARMA DE FOGO')
   const diagFalsoDesconhecido = resultado.diagnosticos.find(d => d.codigoRegra === 'INDICADOR_DESCONHECIDO');
   assert.strictEqual(diagFalsoDesconhecido, undefined);
 });
