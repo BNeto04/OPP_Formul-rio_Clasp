@@ -1,6 +1,6 @@
 # Mapeamento de Tarefas — Cômodo M03 Domínio
 
-> **Status Geral do Cômodo:** EM EXECUÇÃO (TASK-M03.1-01 CONCLUÍDA)  
+> **Status Geral do Cômodo:** EM EXECUÇÃO (TASK-M03.1-01 e TASK-M03.1-02 CONCLUÍDAS)  
 
 ---
 
@@ -17,7 +17,7 @@
 | ID | Tarefa | Arquivo(s) Afetado(s) | Status | Commit |
 | :--- | :--- | :--- | :--- | :--- |
 | `TASK-M03.1-01` | Inventário detalhado das entidades e Value Objects | `planta/M03_DOMINIO_INVENTARIO.md` | **CONCLUÍDA** | `a01d1b9` |
-| `TASK-M03.1-02` | Auditar pureza de `Dominio/RegistroCanonico.js` e `Dominio/RegistroAnalitico.js` | `Dominio/RegistroCanonico.js`, `Dominio/RegistroAnalitico.js` | **PENDENTE** | - |
+| `TASK-M03.1-02` | Blindar contratos semânticos do Domínio e testes de preservação visual | `Testes/TestDominio.js` | **CONCLUÍDA** | `em_progresso` |
 | `TASK-M03.1-03` | Validar imutabilidade e testes de `Dominio/ValueObjects/ChaveOcorrencia.js` | `Dominio/ValueObjects/ChaveOcorrencia.js` | **PENDENTE** | - |
 | `TASK-M03.1-04` | Auditar entidades secundárias (`Policial`, `Ocorrencia`, `Equipe`, `Arma`, `Droga`) | `Dominio/*.js` | **PENDENTE** | - |
 | `TASK-M03.1-05` | Garantir suíte de testes do Domínio cobrindo a integridade dos dados visuais | `Testes/TestDominio.js` | **PENDENTE** | - |

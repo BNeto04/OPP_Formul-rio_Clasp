@@ -4,7 +4,7 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 /**
  * ARQUIVO: Testes/TestDominio.js
  * DESCRIÇÃO: Suite de testes unitários para a camada de Domínio.
- * Executável em ambiente Node.js sem dependência do Google Apps Script.
+ * Valida a conversão, imutabilidade e preservação semântica de todas as entidades e Value Objects.
  */
 
 const assert = require('assert');
@@ -31,6 +31,8 @@ const Droga = DrogaMod.Droga || DrogaMod;
 
 const RegistroCanonicoMod = require('../Dominio/RegistroCanonico');
 const RegistroCanonico = RegistroCanonicoMod.RegistroCanonico || RegistroCanonicoMod;
+
+const RegistroAnalitico = require('../Dominio/RegistroAnalitico');
 
 console.log('🧪 Iniciando Testes Unitários: Camada de Domínio...\n');
 
@@ -82,6 +84,12 @@ test('Policial: deve considerar iguais policiais com a mesma matrícula numéric
   assert.strictEqual(p1.equals(p2), true);
 });
 
+test('Policial: igualdade deve funcionar comparando matricula sanitizada com pontuação e hífens', () => {
+  const p1 = new Policial('123.456-7', 'SOUZA', 'CB', '1º PEL GTAR');
+  const p2 = new Policial('1234567', 'SOUZA', 'CB', '1º PEL GTAR');
+  assert.strictEqual(p1.equals(p2), true);
+});
+
 // 3. Testes de Equipe
 test('Equipe: não deve permitir adicionar policiais duplicados', () => {
   const equipe = new Equipe();
@@ -116,6 +124,40 @@ test('RegistroCanonico: sub-estruturas devem ser imutáveis (frozen)', () => {
   assert.throws(() => { reg.ocorrencia.chave = 'HACKED'; }, TypeError);
 });
 
+test('RegistroCanonico: deve preservar eventoPontuavel (indicador e imputado) para o Guardião', () => {
+  const reg = new RegistroCanonico({
+    eventoPontuavel: { indicador: 'MANDADO DE PRISÃO', imputado: 'JOAO DA SILVA' }
+  });
+  assert.strictEqual(reg.eventoPontuavel.indicador, 'MANDADO DE PRISÃO');
+  assert.strictEqual(reg.eventoPontuavel.imputado, 'JOAO DA SILVA');
+  assert.throws(() => { reg.eventoPontuavel.indicador = 'ALTERADO'; }, TypeError);
+});
+
+test('RegistroCanonico: deve preservar pelotão com GTAR (1º PEL GTAR e 2º PEL GTAR)', () => {
+  const reg = new RegistroCanonico({
+    policiais: [{ matricula: '123456-7', nome: 'CB SOUZA', graduacao: 'CB', pelotao: '1º PEL GTAR' }]
+  });
+  assert.strictEqual(reg.policiais[0].pelotao, '1º PEL GTAR');
+});
+
+// 6. Testes de RegistroAnalitico
+test('RegistroAnalitico: deve separar Fatos de Indicadores e calcular médias dinâmicas', () => {
+  const analitico = new RegistroAnalitico({
+    matricula: '1234567',
+    nome: 'CB SOUZA',
+    grad: 'CB',
+    pelotao: '1º PEL GTAR',
+    fatos: { ocorrencias: 10, armas: 5, drogasTotal: 100, ocorrenciasComArma: 4, ocorrenciasComDroga: 3 },
+    indicadores: { pontosTotais: 50.5 }
+  });
+
+  assert.strictEqual(analitico.mediaPontos, 5.05);
+  assert.strictEqual(analitico.mediaArmas, 0.5);
+  assert.strictEqual(analitico.mediaDrogas, 10);
+  assert.strictEqual(analitico.percentualArmas, 0.4);
+  assert.strictEqual(analitico.percentualDrogas, 0.3);
+});
+
 test('Normalizador: deve normalizar 1º PEL GTAR e 2º PEL GTAR preservando a sigla GTAR', () => {
   const NormalizadorMod = require('../Core/Normalizador');
   const SyntheonUtils = require('../Core/Utils');
@@ -128,5 +170,3 @@ test('Normalizador: deve normalizar 1º PEL GTAR e 2º PEL GTAR preservando a si
 
 console.log(`\n🎉 Testes de Domínio concluídos: ${sucessos} testes passaram!`);
 }
-
-
