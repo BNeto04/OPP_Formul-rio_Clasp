@@ -1,26 +1,106 @@
 /**
  * ARQUIVO: Core/RegrasQualidade.js
- * DESCRICAO: Regras puras do Guardiao da Qualidade.
+ * DESCRICAO: Núcleo puro de diagnósticos e regras de qualidade do Guardião.
+ * 100% desvinculado de APIs do Google Apps Script (Utilities, Session, SpreadsheetApp).
  */
+
+const SEVERIDADES_GUARDIAO = Object.freeze({
+  ERRO_TECNICO: 'ERRO TECNICO',
+  CRITICO: 'CRITICO',
+  ALERTA: 'ALERTA',
+  OBSERVACAO: 'OBSERVACAO',
+  EXCECAO_MANUAL: 'EXCECAO MANUAL'
+});
+
 class RegrasQualidade {
+  /**
+   * Constrói um objeto padronizado de diagnóstico de auditoria.
+   */
+  static criarDiagnostico({
+    severidade = SEVERIDADES_GUARDIAO.ALERTA,
+    codigoRegra = 'REGRA_GERAL',
+    linha = 0,
+    tunel = '',
+    diagnostico = '',
+    evidencia = '',
+    acaoRecomendada = '',
+    condicaoExcecaoManual = false
+  }) {
+    return {
+      severidade,
+      codigoRegra,
+      linha,
+      tunel,
+      diagnostico,
+      evidencia,
+      acaoRecomendada,
+      condicaoExcecaoManual: !!condicaoExcecaoManual
+    };
+  }
+
   static validarTunel(tunel) {
     const alertas = [];
     tunel.eventos.forEach(evento => {
-      const indicador = SyntheonUtils.normalizarTexto(evento.indicador);
+      const indicador = typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(evento.indicador) : String(evento.indicador).toUpperCase();
+
       if (indicador.includes('MACONHA') && tunel.fatos.maconha <= 0) {
-        alertas.push({ linha: evento.linha, mensagem: 'Indicador sem fato correspondente: maconha zerada no tunel.' });
+        alertas.push(RegrasQualidade.criarDiagnostico({
+          severidade: SEVERIDADES_GUARDIAO.ALERTA,
+          codigoRegra: 'FATO_MACONHA_AUSENTE',
+          linha: evento.linha,
+          tunel: tunel.chave,
+          diagnostico: 'Indicador de maconha sem fato correspondente no túnel.',
+          evidencia: `Indicador: "${evento.indicador}" | Maconha no túnel: ${tunel.fatos.maconha}g`,
+          acaoRecomendada: 'Preencha a quantidade física de maconha ou revise o indicador OCORRÊNCIA PIP.'
+        }));
       }
+
       if (indicador.includes('CRACK') && tunel.fatos.crack <= 0) {
-        alertas.push({ linha: evento.linha, mensagem: 'Indicador sem fato correspondente: crack zerado no tunel.' });
+        alertas.push(RegrasQualidade.criarDiagnostico({
+          severidade: SEVERIDADES_GUARDIAO.ALERTA,
+          codigoRegra: 'FATO_CRACK_AUSENTE',
+          linha: evento.linha,
+          tunel: tunel.chave,
+          diagnostico: 'Indicador de crack sem fato correspondente no túnel.',
+          evidencia: `Indicador: "${evento.indicador}" | Crack no túnel: ${tunel.fatos.crack}g`,
+          acaoRecomendada: 'Preencha a quantidade física de crack ou revise o indicador OCORRÊNCIA PIP.'
+        }));
       }
+
       if (indicador.includes('COCAINA') && tunel.fatos.cocaina <= 0) {
-        alertas.push({ linha: evento.linha, mensagem: 'Indicador sem fato correspondente: cocaina zerada no tunel.' });
+        alertas.push(RegrasQualidade.criarDiagnostico({
+          severidade: SEVERIDADES_GUARDIAO.ALERTA,
+          codigoRegra: 'FATO_COCAINA_AUSENTE',
+          linha: evento.linha,
+          tunel: tunel.chave,
+          diagnostico: 'Indicador de cocaína sem fato correspondente no túnel.',
+          evidencia: `Indicador: "${evento.indicador}" | Cocaína no túnel: ${tunel.fatos.cocaina}g`,
+          acaoRecomendada: 'Preencha a quantidade física de cocaína ou revise o indicador OCORRÊNCIA PIP.'
+        }));
       }
+
       if ((indicador.includes('ARMA DE FOGO') || indicador.includes('ARMA LONGA')) && tunel.fatos.armas <= 0) {
-        alertas.push({ linha: evento.linha, mensagem: 'Indicador sem fato correspondente: arma zerada no tunel.' });
+        alertas.push(RegrasQualidade.criarDiagnostico({
+          severidade: SEVERIDADES_GUARDIAO.ALERTA,
+          codigoRegra: 'FATO_ARMA_AUSENTE',
+          linha: evento.linha,
+          tunel: tunel.chave,
+          diagnostico: 'Indicador de arma de fogo sem fato correspondente no túnel.',
+          evidencia: `Indicador: "${evento.indicador}" | Armas no túnel: ${tunel.fatos.armas}`,
+          acaoRecomendada: 'Preencha a quantidade física de armas apreendidas no túnel.'
+        }));
       }
+
       if (indicador.includes('MUNICAO') && tunel.fatos.municao <= 0) {
-        alertas.push({ linha: evento.linha, mensagem: 'Indicador sem fato correspondente: municao zerada no tunel.' });
+        alertas.push(RegrasQualidade.criarDiagnostico({
+          severidade: SEVERIDADES_GUARDIAO.ALERTA,
+          codigoRegra: 'FATO_MUNICAO_AUSENTE',
+          linha: evento.linha,
+          tunel: tunel.chave,
+          diagnostico: 'Indicador de munição sem fato correspondente no túnel.',
+          evidencia: `Indicador: "${evento.indicador}" | Munição no túnel: ${tunel.fatos.municao}`,
+          acaoRecomendada: 'Preencha a quantidade de munições apreendidas ou revise o indicador.'
+        }));
       }
     });
     return alertas;
@@ -52,7 +132,14 @@ class RegrasQualidade {
     colunasCalculadas.forEach(coluna => {
       if (!formulaRow || coluna.indice < 0 || coluna.indice >= formulaRow.length) return;
       if (!formulaRow[coluna.indice]) {
-        alertas.push(`Formula ausente em coluna calculada: ${coluna.nome}.`);
+        alertas.push(RegrasQualidade.criarDiagnostico({
+          severidade: SEVERIDADES_GUARDIAO.ALERTA,
+          codigoRegra: 'FORMULA_AUSENTE',
+          linha: 0,
+          diagnostico: `Fórmula ausente em coluna calculada: ${coluna.nome}.`,
+          evidencia: `Coluna: ${coluna.nome} (índice: ${coluna.indice}) sem fórmula`,
+          acaoRecomendada: `Restaure a fórmula de ${coluna.nome} a partir de uma linha válida ou justifique com nota EXCECAO:.`
+        }));
       }
     });
     return alertas;
@@ -85,7 +172,9 @@ class RegrasQualidade {
     if (idx.indicador === -1) faltantes.push('OCORRENCIA PIP');
     if (idx.imputado === -1) faltantes.push('IMPUTADO?');
     if (faltantes.length > 0) {
-      throw new Error(`Cabecalhos obrigatorios nao encontrados: ${faltantes.join(', ')}`);
+      const err = new Error(`Cabeçalhos obrigatórios não encontrados: ${faltantes.join(', ')}`);
+      err.severidade = SEVERIDADES_GUARDIAO.ERRO_TECNICO;
+      throw err;
     }
   }
 
@@ -101,7 +190,8 @@ class RegrasQualidade {
   }
 
   static localizarPorAliases(headers, aliases) {
-    const opcoes = aliases.map(alias => SyntheonUtils.normalizarTexto(alias));
+    const norm = (t) => typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(t) : String(t).toUpperCase().trim();
+    const opcoes = aliases.map(alias => norm(alias));
     for (const opcao of opcoes) {
       const idx = headers.indexOf(opcao);
       if (idx !== -1) return idx;
@@ -114,19 +204,25 @@ class RegrasQualidade {
   }
 
   static chaveTunel(data, mike, boe) {
-    const dataTexto = data instanceof Date
-      ? Utilities.formatDate(data, Session.getScriptTimeZone() || 'America/Sao_Paulo', 'dd/MM/yyyy')
-      : RegrasQualidade.texto(data);
+    let dataTexto = '';
+    if (data instanceof Date && !isNaN(data.getTime())) {
+      const dia = String(data.getDate()).padStart(2, '0');
+      const mes = String(data.getMonth() + 1).padStart(2, '0');
+      const ano = data.getFullYear();
+      dataTexto = `${dia}/${mes}/${ano}`;
+    } else {
+      dataTexto = RegrasQualidade.texto(data);
+    }
     return `${dataTexto}|${mike}|${boe}`;
   }
 
   static mikeSuspeito(mike) {
     const somenteNumeros = String(mike).replace(/\D/g, '');
-    return somenteNumeros === '2026' || somenteNumeros.length < 8;
+    return somenteNumeros === '2026' || (somenteNumeros.length > 0 && somenteNumeros.length < 8);
   }
 
   static imputadoValido(valor) {
-    const normalizado = SyntheonUtils.normalizarTexto(valor);
+    const normalizado = typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(valor) : String(valor).toUpperCase().trim();
     return normalizado === 'COM IMPUTADO' || normalizado === 'SEM IMPUTADO';
   }
 
@@ -135,10 +231,14 @@ class RegrasQualidade {
   }
 
   static numero(valor) {
-    return SyntheonUtils.converterNumero(valor);
+    return typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.converterNumero(valor) : (Number(valor) || 0);
   }
 
   static unicos(alertas) {
     return alertas.filter((alerta, index) => alertas.indexOf(alerta) === index);
   }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { RegrasQualidade, SEVERIDADES_GUARDIAO };
 }
