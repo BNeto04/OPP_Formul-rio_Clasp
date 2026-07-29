@@ -21,27 +21,29 @@ function criarMenuPip_() {
 // ============================================================================
 
 const CONFIG_PIP = {
-  abaEfetivo: 'EFETIVO',
+  abaEfetivo: (typeof CONSTANTES_SYNTHEON !== 'undefined' && CONSTANTES_SYNTHEON.ABA_EFETIVO) || 'EFETIVO',
 
   // EFETIVO
   efetivoNomeCol: 3,       // C
   efetivoGradCol: 4,       // D
   efetivoMatriculaCol: 5,  // E
 
-  meses: [
-    { nome: 'JAN2026', mes: 0, ano: 2026, label: 'JAN' },
-    { nome: 'FEV2026', mes: 1, ano: 2026, label: 'FEV' },
-    { nome: 'MAR2026', mes: 2, ano: 2026, label: 'MAR' },
-    { nome: 'ABR2026', mes: 3, ano: 2026, label: 'ABR' },
-    { nome: 'MAI2026', mes: 4, ano: 2026, label: 'MAI' },
-    { nome: 'JUN2026', mes: 5, ano: 2026, label: 'JUN' },
-    { nome: 'JUL2026', mes: 6, ano: 2026, label: 'JUL' },
-    { nome: 'AGO2026', mes: 7, ano: 2026, label: 'AGO' },
-    { nome: 'SET2026', mes: 8, ano: 2026, label: 'SET' },
-    { nome: 'OUT2026', mes: 9, ano: 2026, label: 'OUT' },
-    { nome: 'NOV2026', mes: 10, ano: 2026, label: 'NOV' },
-    { nome: 'DEZ2026', mes: 11, ano: 2026, label: 'DEZ' }
-  ]
+  meses: (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.ABAS && CONFIG_SYNTHEON.ABAS.MESES_2026)
+    ? CONFIG_SYNTHEON.ABAS.MESES_2026
+    : [
+        { nome: 'JAN2026', mes: 0, ano: 2026, label: 'JAN' },
+        { nome: 'FEV2026', mes: 1, ano: 2026, label: 'FEV' },
+        { nome: 'MAR2026', mes: 2, ano: 2026, label: 'MAR' },
+        { nome: 'ABR2026', mes: 3, ano: 2026, label: 'ABR' },
+        { nome: 'MAI2026', mes: 4, ano: 2026, label: 'MAI' },
+        { nome: 'JUN2026', mes: 5, ano: 2026, label: 'JUN' },
+        { nome: 'JUL2026', mes: 6, ano: 2026, label: 'JUL' },
+        { nome: 'AGO2026', mes: 7, ano: 2026, label: 'AGO' },
+        { nome: 'SET2026', mes: 8, ano: 2026, label: 'SET' },
+        { nome: 'OUT2026', mes: 9, ano: 2026, label: 'OUT' },
+        { nome: 'NOV2026', mes: 10, ano: 2026, label: 'NOV' },
+        { nome: 'DEZ2026', mes: 11, ano: 2026, label: 'DEZ' }
+      ]
 };
 
 // Dicionário de aliases — basta acrescentar uma string nova caso o cabeçalho mude no futuro.

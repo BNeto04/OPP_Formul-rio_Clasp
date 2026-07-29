@@ -7,7 +7,9 @@ function processarEntradaManual(payload) {
   try {
     const nomeAba = resolverNomeAbaMensal(payload.data);
 
-    const SS_ID = '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
+    const SS_ID = (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID)
+      ? CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID
+      : '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
     const ss = SpreadsheetApp.openById(SS_ID);
     let aba = ss.getSheetByName(nomeAba);
     if (!aba) throw new Error("Aba mensal " + nomeAba + " não encontrada!");
@@ -217,13 +219,21 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
  */
 function getEfetivo() {
   try {
-    const SS_ID  = '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
+    const SS_ID = (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID)
+      ? CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID
+      : '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
     const ss     = SpreadsheetApp.openById(SS_ID);
 
-    const sheet = ss.getSheetByName('EFETIVO')
-               || ss.getSheetByName('Efetivo')
-               || ss.getSheetByName('efetivo')
-               || ss.getSheets()[0];
+    const aliasesEfetivo = (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.ABAS && CONFIG_SYNTHEON.ABAS.EFETIVO_ALIASES)
+      ? CONFIG_SYNTHEON.ABAS.EFETIVO_ALIASES
+      : ['EFETIVO', 'Efetivo', 'efetivo'];
+
+    let sheet = null;
+    for (let i = 0; i < aliasesEfetivo.length; i++) {
+      sheet = ss.getSheetByName(aliasesEfetivo[i]);
+      if (sheet) break;
+    }
+    if (!sheet) sheet = ss.getSheets()[0];
 
     const dados = sheet.getDataRange().getValues();
 
