@@ -3,8 +3,8 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 
 /**
  * ARQUIVO: Testes/TestGuardiao.js
- * DESCRIÇÃO: Suíte de testes unitários e homologação final offline para o Guardião da Qualidade (M05).
- * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado com divisor PIP fixo = 4 (TASK-M05.1-04E), Tabela PIP, relatórios legíveis e homologação E2E.
+ * DESCRIÇÃO: Suíte de testes unitários e homologação final offline para o Guardião da Qualidade (M05/M06).
+ * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado com divisor PIP fixo = 4 (TASK-M05.1-04E), Tabela PIP, relatórios legíveis, estilização executiva (TASK-M06.1-02) e homologação E2E.
  */
 
 const assert = require('assert');
@@ -25,7 +25,7 @@ global.RendererAuditoriaSaude = RendererAuditoriaSaude;
 const GuardiaoQualidade = require('../Features/GuardiaoQualidade');
 global.GuardiaoQualidade = GuardiaoQualidade;
 
-console.log('🧪 Iniciando Testes Unitários e Homologação: Guardião da Qualidade Operacional (M05)...\n');
+console.log('🧪 Iniciando Testes Unitários e Homologação: Guardião da Qualidade Operacional (M05/M06)...\n');
 
 let sucessos = 0;
 
@@ -76,7 +76,15 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
       clearDataValidations: () => rangeObj,
       clearContent: () => rangeObj,
       clear: () => rangeObj,
-      setFontWeight: () => rangeObj
+      setFontWeight: () => rangeObj,
+      setFontColor: () => rangeObj,
+      setBackground: () => rangeObj,
+      setHorizontalAlignment: () => rangeObj,
+      setVerticalAlignment: () => rangeObj,
+      setFontSize: () => rangeObj,
+      setFontFamily: () => rangeObj,
+      setBorder: () => rangeObj,
+      createFilter: () => rangeObj
     };
     return rangeObj;
   };
@@ -94,6 +102,9 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
         getRange: (r, c, numR, numC) => createRangeMock(r, c, { storage: subStorage }),
         autoResizeColumns: () => {},
         setFontWeight: () => {},
+        setFrozenRows: () => {},
+        setHiddenGridlines: () => {},
+        setColumnWidth: () => {},
         obterDadosArmazenados: () => subStorage
       };
     }
@@ -126,7 +137,7 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
     getName: () => nomeAba,
     getLastRow: () => dadosTotais.length,
     getLastColumn: () => headers.length,
-    getRange: (row, col) => createRangeMock(row, col, mainRef),
+    getRange: (row, col, numR, numC) => createRangeMock(row, col, mainRef),
     getParent: () => parentMock,
     obterSaidaColunaAM: () => dadosColunaAM,
     obterSubAba: (n) => mapSubSheets[n]
@@ -597,6 +608,28 @@ test('GuardiaoQualidade: Homologação Final Offline End-to-End cobrindo 10 cen�
   const rangeOriginal = mockSheet.getRange(1, 1, 14, 16);
   assert.strictEqual(rangeOriginal.getValues()[1][0], '15/07/2026'); // L2 Data intacta
   assert.strictEqual(rangeOriginal.getValues()[3][3], '113921-5'); // L4 Matrícula intacta
+});
+
+// 22. Estilização Executiva do Renderizador de Auditoria (TASK-M06.1-02)
+test('RendererAuditoriaSaude: valida paleta de severidades e formatação de [AUDITORIA] Ocorrencias', () => {
+  const paleta = RendererAuditoriaSaude.PALETA_SEVERIDADES;
+  assert.strictEqual(paleta['CRITICO'].fundo, '#D9534F');
+  assert.strictEqual(paleta['ALERTA'].fundo, '#F0AD4E');
+  assert.strictEqual(paleta['OBSERVACAO'].fundo, '#5BC0DE');
+  assert.strictEqual(paleta['EXCECAO MANUAL'].fundo, '#6F42C1');
+  assert.strictEqual(paleta['APROVADO'].fundo, '#28A745');
+
+  const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
+  const dadosLinhas = [
+    ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
+  ];
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
+  GuardiaoQualidade.varrerAba(mockSheet);
+
+  const subLog = mockSheet.obterSubAba('[AUDITORIA] Ocorrencias');
+  assert.ok(subLog);
+  const dadosLog = subLog.obterDadosArmazenados();
+  assert.strictEqual(dadosLog[5][3], 'CRITICO');
 });
 
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);

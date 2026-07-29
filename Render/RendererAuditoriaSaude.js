@@ -102,7 +102,7 @@ class RendererAuditoriaSaude {
     logSheet.getRange(1, 1, dadosLog.length, 8).setValues(dadosLog);
 
     // Estilização Executiva e Paleta de Severidades para [AUDITORIA] Ocorrencias
-    RendererAuditoriaSaude.estilizarAbaAuditoria_(logSheet, dadosLog.length, statusFinal, registrosTabela);
+    RendererAuditoriaSaude.estilitarAbaAuditoria_(logSheet, dadosLog.length, statusFinal, registrosTabela);
 
     // 2. Anexo sem sobrescrever na Aba [HISTORICO] Auditoria Ocorrencias
     const registrosHistorico = registrosTabela.map(r => [agora, ...r]);
@@ -110,7 +110,7 @@ class RendererAuditoriaSaude {
     histSheet.getRange(proxLinhaHist, 1, registrosHistorico.length, 9).setValues(registrosHistorico);
   }
 
-  static estilizarAbaAuditoria_(logSheet, totalLinhasDoc, statusFinal, registrosTabela) {
+  static estilitarAbaAuditoria_(logSheet, totalLinhasDoc, statusFinal, registrosTabela) {
     if (!logSheet || typeof logSheet.getRange !== 'function') return;
 
     try {
@@ -155,10 +155,16 @@ class RendererAuditoriaSaude {
           cellRegra.setHorizontalAlignment('center').setFontWeight('bold');
         }
 
-        // Alinhamento central das colunas ABA, TÚNEL, LINHA
+        // Alinhamento central das colunas ABA, TÚNEL, LINHA (Colunas 1 a 3)
         const rangeCentralizado = logSheet.getRange(linhaReal, 1, 1, 3);
         if (typeof rangeCentralizado.setHorizontalAlignment === 'function') {
           rangeCentralizado.setHorizontalAlignment('center');
+        }
+
+        // Alinhamento à esquerda explicito das colunas DIAGNÓSTICO, EVIDÊNCIA, AÇÃO RECOMENDADA (Colunas 6 a 8)
+        const rangeEsquerdaTextos = logSheet.getRange(linhaReal, 6, 1, 3);
+        if (typeof rangeEsquerdaTextos.setHorizontalAlignment === 'function') {
+          rangeEsquerdaTextos.setHorizontalAlignment('left');
         }
 
         // Zebrado suave no restante da linha
