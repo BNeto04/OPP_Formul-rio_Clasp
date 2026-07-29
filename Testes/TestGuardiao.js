@@ -4,7 +4,7 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 /**
  * ARQUIVO: Testes/TestGuardiao.js
  * DESCRIÇÃO: Suíte de testes unitários para o Guardião da Qualidade Operacional (M05).
- * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado, normalização flexível e segurança da Tabela PIP (TASK-M05.1-04D).
+ * Valida diagnósticos, coerência do túnel, rateio acumulado/zerado, Tabela PIP e o formatador legível com histórico (TASK-M05.1-05).
  */
 
 const assert = require('assert');
@@ -40,25 +40,36 @@ function test(nome, fn) {
   }
 }
 
-function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas = [], abaPIPValues = null, nomeAbaPIP = 'Tabela PIP') {
+function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas = [], abaPIPValues = null, nomeAba = 'JUL2026_TESTE', nomeAbaPIP = 'Tabela PIP') {
   const dadosTotais = [headers, ...dadosLinhas];
   const formulasTotais = [headers.map(() => ''), ...formulasLinhas];
   const notasTotais = [headers.map(() => ''), ...notasLinhas];
 
   let dadosColunaAM = [];
+  const mapSubSheets = {};
 
-  const createRangeMock = (targetRow, targetCol) => {
+  const createRangeMock = (targetRow, targetCol, sheetDataRef) => {
     const rangeObj = {
-      getValues: () => dadosTotais,
-      getFormulas: () => formulasTotais,
-      getNotes: () => notasTotais,
+      getValues: () => sheetDataRef.values || dadosTotais,
+      getFormulas: () => sheetDataRef.formulas || formulasTotais,
+      getNotes: () => sheetDataRef.notes || notasTotais,
       setValue: (val) => {
-        if (targetCol && targetRow === 1) headers[targetCol - 1] = val;
+        if (targetCol && targetRow === 1 && sheetDataRef.values) sheetDataRef.values[0][targetCol - 1] = val;
         return rangeObj;
       },
       setValues: (vals) => {
-        if (targetRow === 2 && targetCol === headers.length) {
+        if (sheetDataRef.isMain && targetRow === 2 && targetCol === headers.length) {
           dadosColunaAM = vals;
+        }
+        if (sheetDataRef.storage) {
+          const startR = targetRow - 1;
+          const startC = targetCol - 1;
+          vals.forEach((r, ri) => {
+            if (!sheetDataRef.storage[startR + ri]) sheetDataRef.storage[startR + ri] = [];
+            r.forEach((c, ci) => {
+              sheetDataRef.storage[startR + ri][startC + ci] = c;
+            });
+          });
         }
         return rangeObj;
       },
@@ -70,6 +81,25 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
     return rangeObj;
   };
 
+  const mainRef = { values: dadosTotais, formulas: formulasTotais, notes: notasTotais, isMain: true };
+
+  const getSubSheet = (name) => {
+    if (!mapSubSheets[name]) {
+      const subStorage = [];
+      mapSubSheets[name] = {
+        getName: () => name,
+        getLastRow: () => subStorage.length,
+        getLastColumn: () => (subStorage[0] ? subStorage[0].length : 0),
+        clear: () => { subStorage.length = 0; },
+        getRange: (r, c, numR, numC) => createRangeMock(r, c, { storage: subStorage }),
+        autoResizeColumns: () => {},
+        setFontWeight: () => {},
+        obterDadosArmazenados: () => subStorage
+      };
+    }
+    return mapSubSheets[name];
+  };
+
   const pipSheetMock = abaPIPValues ? {
     getName: () => nomeAbaPIP,
     getDataRange: () => ({
@@ -77,26 +107,29 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
     })
   } : null;
 
+  const parentMock = {
+    getSheets: () => {
+      const list = [sheetMock];
+      if (pipSheetMock) list.push(pipSheetMock);
+      Object.keys(mapSubSheets).forEach(k => list.push(mapSubSheets[k]));
+      return list;
+    },
+    getSheetByName: (n) => {
+      if (pipSheetMock && (n === nomeAbaPIP || n === 'Tabela PIP')) return pipSheetMock;
+      if (mapSubSheets[n]) return mapSubSheets[n];
+      return null;
+    },
+    insertSheet: (n) => getSubSheet(n)
+  };
+
   const sheetMock = {
-    getName: () => 'JUL2026_TESTE',
+    getName: () => nomeAba,
     getLastRow: () => dadosTotais.length,
     getLastColumn: () => headers.length,
-    getRange: (row, col) => createRangeMock(row, col),
-    getParent: () => ({
-      getSheets: () => (pipSheetMock ? [sheetMock, pipSheetMock] : [sheetMock]),
-      getSheetByName: (nomeAba) => {
-        if (pipSheetMock && (nomeAba === nomeAbaPIP || nomeAba === 'Tabela PIP')) {
-          return pipSheetMock;
-        }
-        return null;
-      },
-      insertSheet: () => ({
-        clear: () => {},
-        getRange: (r, c) => createRangeMock(r, c),
-        autoResizeColumns: () => {}
-      })
-    }),
-    obterSaidaColunaAM: () => dadosColunaAM
+    getRange: (row, col) => createRangeMock(row, col, mainRef),
+    getParent: () => parentMock,
+    obterSaidaColunaAM: () => dadosColunaAM,
+    obterSubAba: (n) => mapSubSheets[n]
   };
 
   return sheetMock;
@@ -110,7 +143,7 @@ const headersPadrao = [
 
 const formulaCalculadaPadrao = ['', '', '', '', '', '', '', '', '=H2/2', '=I2', '=J2', '=K2/2', '=L2', '=M2/4', '=N2', '=O2'];
 
-// 1. Teste: Plantão Tranquilo (permitido sem alertas)
+// 1. Teste: Plantão Tranquilo
 test('GuardiaoQualidade: linha de plantão tranquilo (apenas data) não deve gerar alerta', () => {
   const dadosLinhas = [
     ['15/07/2026', '', '', '', '', 0, '', '', 0, 0, 0, 0, 0, 0, 0, '', '']
@@ -123,7 +156,7 @@ test('GuardiaoQualidade: linha de plantão tranquilo (apenas data) não deve ger
   assert.strictEqual(diagOrfaOuAlerta.length, 0);
 });
 
-// 2. Teste: Ocorrência órfã (participação sem MIKE -> CRITICO)
+// 2. Teste: Ocorrência órfã
 test('GuardiaoQualidade: ocorrência órfã (policial sem MIKE) deve gerar diagnóstico CRITICO', () => {
   const dadosLinhas = [
     ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
@@ -136,7 +169,7 @@ test('GuardiaoQualidade: ocorrência órfã (policial sem MIKE) deve gerar diagn
   assert.strictEqual(diagOrfa.severidade, 'CRITICO');
 });
 
-// 3. Teste: MIKE suspeito (ALERTA)
+// 3. Teste: MIKE suspeito
 test('GuardiaoQualidade: MIKE suspeito deve gerar ALERTA sem bloquear a execução', () => {
   const dadosLinhas = [
     ['15/07/2026', '2026', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
@@ -249,7 +282,7 @@ test('GuardiaoQualidade: célula sem fórmula mas com nota iniciada por EXCECAO:
   assert.strictEqual(diagExcecao.severidade, 'EXCECAO MANUAL');
 });
 
-// 11. Teste: Fato não auditável automaticamente (Numerário sem valor cadastrado)
+// 11. Teste: Fato não auditável automaticamente
 test('GuardiaoQualidade: numerário sem valor em reais registrado deve ser classificado como NÃO AUDITÁVEL AUTOMATICAMENTE', () => {
   const dadosLinhas = [
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'APREENSÃO DE NUMERÁRIO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
@@ -277,7 +310,7 @@ test('RegrasQualidade: rateio por túnel com 4 policiais e fatos de 80, 64 e 160
   assert.strictEqual(diagRateio, undefined);
 });
 
-// 13. Rateio Zerado (304 pontos, 4 policiais, um deles com PONTOS FICÇÃO = 0)
+// 13. Rateio Zerado
 test('RegrasQualidade: rateio por túnel com 304 pontos e 4 policiais onde um possui PONTOS FICÇÃO = 0 deve gerar RATEIO_PONTOS_INCOERENTE', () => {
   const dadosLinhas = [
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 80, 76, 'KEY', ''],
@@ -293,41 +326,43 @@ test('RegrasQualidade: rateio por túnel com 304 pontos e 4 policiais onde um po
   assert.strictEqual(diagRateioZerado.linha, 5);
 });
 
-// 14. Aba chamada TABELA-PIP (com hífen) (TASK-M05.1-04D)
+// 14. Nome alternativo da aba Tabela PIP
 test('GuardiaoQualidade: reconhece a Tabela PIP com hífen no nome (ex: TABELA-PIP)', () => {
   const abaPIPValores = [
     ['INDICADOR PIP'],
     ['PORTE ILEGAL DE ARMA DE FOGO']
   ];
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
   ];
 
-  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores, 'TABELA-PIP');
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores, 'JUL2026_TESTE', 'TABELA-PIP');
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
 
   const diagModoLimitado = resultado.diagnosticos.find(d => d.codigoRegra === 'MODO_LIMITADO_CATALOGO_PIP');
-  assert.strictEqual(diagModoLimitado, undefined); // Reconhecida com sucesso!
+  assert.strictEqual(diagModoLimitado, undefined);
 });
 
-// 15. Aba chamada tabela_pip (minúscula com underline) (TASK-M05.1-04D)
-test('GuardiaoQualidade: reconhece a Tabela PIP minúscula com underline no nome (ex: tabela_pip)', () => {
+// 15. Indicador PIP em outra coluna
+test('GuardiaoQualidade: localiza a coluna do indicador por cabeçalho em qualquer posição na Tabela PIP', () => {
   const abaPIPValores = [
-    ['INDICADOR PIP'],
-    ['PORTE ILEGAL DE ARMA DE FOGO']
+    ['CÓDIGO', 'CATEGORIA', 'INDICADOR PIP'],
+    ['001', 'ARMAS', 'PORTE ILEGAL DE ARMA DE FOGO']
   ];
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', ''],
+    ['15/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 1, 'INVENTADO_DESCONHECIDO', 'SEM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
   ];
 
-  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores, 'tabela_pip');
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao, formulaCalculadaPadrao], [], abaPIPValores, 'JUL2026_TESTE', 'Tabela PIP');
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
 
-  const diagModoLimitado = resultado.diagnosticos.find(d => d.codigoRegra === 'MODO_LIMITADO_CATALOGO_PIP');
-  assert.strictEqual(diagModoLimitado, undefined); // Reconhecida com sucesso!
+  const diagDesconhecido = resultado.diagnosticos.find(d => d.codigoRegra === 'INDICADOR_DESCONHECIDO');
+  assert.ok(diagDesconhecido);
+  assert.strictEqual(diagDesconhecido.linha, 3);
 });
 
-// 16. Aba existente sem coluna de indicador (com dados em A) não usa Coluna A como catálogo e ativa modo limitado (TASK-M05.1-04D)
+// 16. Aba sem cabeçalho válido de indicador
 test('GuardiaoQualidade: aba existente sem cabeçalho válido de indicador (com dados em A) ativa MODO_LIMITADO_CATALOGO_PIP e não vaza Coluna A', () => {
   const abaPIPSemCabecalhoIndicador = [
     ['CÓDIGO', 'CATEGORIA'],
@@ -335,19 +370,90 @@ test('GuardiaoQualidade: aba existente sem cabeçalho válido de indicador (com 
     ['002', 'DROGAS']
   ];
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
   ];
 
-  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPSemCabecalhoIndicador, 'Tabela PIP');
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPSemCabecalhoIndicador, 'JUL2026_TESTE', 'Tabela PIP');
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
 
   const diagModoLimitado = resultado.diagnosticos.find(d => d.codigoRegra === 'MODO_LIMITADO_CATALOGO_PIP');
-  assert.ok(diagModoLimitado); // Entra em modo limitado!
+  assert.ok(diagModoLimitado);
   assert.strictEqual(diagModoLimitado.severidade, 'OBSERVACAO');
+});
 
-  // Não usou '001' ou 'ARMAS' como catálogo (o que geraria falsos erros em 'PORTE ILEGAL DE ARMA DE FOGO')
-  const diagFalsoDesconhecido = resultado.diagnosticos.find(d => d.codigoRegra === 'INDICADOR_DESCONHECIDO');
-  assert.strictEqual(diagFalsoDesconhecido, undefined);
+// 17. Auditoria com alertas popula resumo e tabela de 8 colunas em [AUDITORIA] Ocorrencias (TASK-M05.1-05)
+test('RendererAuditoriaSaude: auditoria com alertas popula a aba [AUDITORIA] Ocorrencias com resumo e tabela de 8 colunas', () => {
+  const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
+  const dadosLinhas = [
+    ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+  ];
+
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
+  GuardiaoQualidade.varrerAba(mockSheet);
+
+  const subAbaLog = mockSheet.obterSubAba('[AUDITORIA] Ocorrencias');
+  assert.ok(subAbaLog);
+  const dadosLog = subAbaLog.obterDadosArmazenados();
+  assert.ok(dadosLog.length >= 6);
+
+  assert.deepStrictEqual(dadosLog[4], ['ABA', 'TÚNEL', 'LINHA', 'SEVERIDADE', 'REGRA', 'DIAGNÓSTICO', 'EVIDÊNCIA', 'AÇÃO RECOMENDADA']);
+  assert.strictEqual(dadosLog[5][0], 'JUL2026_TESTE');
+  assert.strictEqual(dadosLog[5][3], 'CRITICO');
+  assert.strictEqual(dadosLog[5][4], 'OCORRENCIA_ORFA');
+});
+
+// 18. Auditoria Aprovada (0 alertas -> exibe linha APROVADO) (TASK-M05.1-05)
+test('RendererAuditoriaSaude: auditoria aprovada sem alertas exibe a linha APROVADO na aba de auditoria', () => {
+  const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
+  const dadosLinhas = [
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+  ];
+
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
+  GuardiaoQualidade.varrerAba(mockSheet);
+
+  const subAbaLog = mockSheet.obterSubAba('[AUDITORIA] Ocorrencias');
+  assert.ok(subAbaLog);
+  const dadosLog = subAbaLog.obterDadosArmazenados();
+
+  assert.strictEqual(dadosLog[0][5], 'APROVADO');
+  assert.strictEqual(dadosLog[5][3], 'APROVADO');
+  assert.strictEqual(dadosLog[5][4], 'INTEGRIDADE_OK');
+});
+
+// 19. Histórico Preservando Múltiplas Execuções Cumulativas (TASK-M05.1-05)
+test('RendererAuditoriaSaude: aba [HISTORICO] Auditoria Ocorrencias preserva registros de múltiplas execuções sem sobrescrever', () => {
+  const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
+  const dadosLinhas = [
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
+  ];
+
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
+  
+  // Primeira execução
+  GuardiaoQualidade.varrerAba(mockSheet);
+  // Segunda execução
+  GuardiaoQualidade.varrerAba(mockSheet);
+
+  const subAbaHist = mockSheet.obterSubAba('[HISTORICO] Auditoria Ocorrencias');
+  assert.ok(subAbaHist);
+  const dadosHist = subAbaHist.obterDadosArmazenados();
+
+  assert.deepStrictEqual(dadosHist[0], ['DATA/HORA EXECUÇÃO', 'ABA', 'TÚNEL', 'LINHA', 'SEVERIDADE', 'REGRA', 'DIAGNÓSTICO', 'EVIDÊNCIA', 'AÇÃO RECOMENDADA']);
+  assert.strictEqual(dadosHist.length, 3);
+  assert.strictEqual(dadosHist[1][1], 'JUL2026_TESTE');
+  assert.strictEqual(dadosHist[2][1], 'JUL2026_TESTE');
+});
+
+// 20. Bloqueio de Execução sobre Abas de Relatório/Histórico (TASK-M05.1-05)
+test('GuardiaoQualidade: impede execução direta sobre as abas [AUDITORIA] Ocorrencias e [HISTORICO] Auditoria Ocorrencias', () => {
+  const mockSheetAuditoria = criarMockSheet(headersPadrao, [], [], [], null, '[AUDITORIA] Ocorrencias');
+
+  assert.throws(() => {
+    GuardiaoQualidade.varrerAba(mockSheetAuditoria);
+  }, (err) => {
+    return err.message.includes('O Guardião não deve ser executado sobre abas de relatório ou histórico') && err.severidade === 'ERRO TECNICO';
+  });
 });
 
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);

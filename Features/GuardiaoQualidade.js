@@ -16,6 +16,13 @@ class GuardiaoQualidade {
   }
 
   static varrerAba(sheet) {
+    const nomeAbaNorm = GuardiaoQualidade.normalizarNomeFlexivel(sheet.getName());
+    if (nomeAbaNorm.includes('AUDITORIA') || nomeAbaNorm.includes('HISTORICO')) {
+      const err = new Error('O Guardião não deve ser executado sobre abas de relatório ou histórico. Selecione uma aba mensal de ocorrências (ex: JUL2026).');
+      err.severidade = typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ERRO_TECNICO : 'ERRO TECNICO';
+      throw err;
+    }
+
     const lastRow = sheet.getLastRow();
     const lastCol = sheet.getLastColumn();
     if (lastRow < 2 || lastCol < 1) {
@@ -68,7 +75,6 @@ class GuardiaoQualidade {
                 }
               }
 
-              // Se não encontrou cabeçalho válido de indicador, NÃO assume coluna A!
               if (colIdx !== -1) {
                 const listaIndicadores = valsPIP.slice(1).map(r => String(r[colIdx] || '').trim()).filter(Boolean);
                 if (listaIndicadores.length > 0) {
@@ -296,9 +302,9 @@ class GuardiaoQualidade {
     RendererAuditoriaSaude.prepararColunaAlertas(sheet, idx.alerta, saida.length);
     sheet.getRange(2, idx.alerta + 1, saida.length, 1).setValues(saida);
 
-    RendererAuditoriaSaude.renderizarLog(sheet, saida, tuneis);
-
     const todosDiagnosticos = alertasPorLinha.flat();
+
+    RendererAuditoriaSaude.renderizarLog(sheet, todosDiagnosticos, tuneis, lastRow - 1);
 
     return {
       alertas: saida.filter(row => row[0]).length,
