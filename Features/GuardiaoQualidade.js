@@ -1,13 +1,14 @@
 /**
  * ARQUIVO: Features/GuardiaoQualidade.js
- * DESCRICAO: Observador de boas praticas de preenchimento das ocorrencias.
+ * DESCRICAO: Observador de boas práticas de preenchimento das ocorrências.
+ * Trabalha internamente com objetos de diagnóstico estruturados.
  */
 class GuardiaoQualidade {
   static varrerAba(sheet) {
     const lastRow = sheet.getLastRow();
     const lastCol = sheet.getLastColumn();
     if (lastRow < 2 || lastCol < 1) {
-      return { alertas: 0, linhas: 0, tuneis: 0 };
+      return { alertas: 0, linhas: 0, tuneis: 0, diagnosticos: [] };
     }
 
     const rangeDados = sheet.getRange(1, 1, lastRow, lastCol);
@@ -58,41 +59,90 @@ class GuardiaoQualidade {
       const temParticipacao = !!matricula || !!policial;
       const temEvento = !!indicador || !!imputado || temFato;
       const temLinhaOperacional = !!mike || temParticipacao || temEvento;
+      const chave = RegrasQualidade.chaveTunel(data, mike, boe);
 
       if (temLinhaOperacional) {
-        RegrasQualidade.validarFormulasObrigatorias(formulas[i], idx.calculadas).forEach(alerta => {
-          alertasPorLinha[i - 1].push(alerta);
+        RegrasQualidade.validarFormulasObrigatorias(formulas[i], idx.calculadas).forEach(diag => {
+          diag.linha = linha;
+          diag.tunel = chave;
+          alertasPorLinha[i - 1].push(diag);
         });
       }
 
       if (!mike) {
         if (temParticipacao || temEvento) {
-          alertasPorLinha[i - 1].push('Ocorrencia orfa: linha com participacao/evento sem MIKE.');
+          alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
+            severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.CRITICO : 'CRITICO',
+            codigoRegra: 'OCORRENCIA_ORFA',
+            linha,
+            diagnostico: 'Ocorrencia orfa: linha com participacao/evento sem MIKE.',
+            evidencia: `Policial: "${policial}", Matrícula: "${matricula}", Indicador: "${indicador}"`,
+            acaoRecomendada: 'Preencha o MIKE completo da ocorrência; a linha possui participação ou evento registrado.'
+          }));
         }
         continue;
       }
 
       if (RegrasQualidade.mikeSuspeito(mike)) {
-        alertasPorLinha[i - 1].push(`MIKE suspeito: ${mike}.`);
+        alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
+          severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
+          codigoRegra: 'MIKE_SUSPEITO',
+          linha,
+          tunel: chave,
+          diagnostico: `MIKE suspeito: ${mike}.`,
+          evidencia: `MIKE lido: "${mike}"`,
+          acaoRecomendada: 'Confirme o MIKE: número formatado ou tamanho de dígitos fora do padrão.'
+        }));
       }
 
       if (indicador && !imputado) {
-        alertasPorLinha[i - 1].push('Evento incompleto: AG preenchido sem IMPUTADO?.');
+        alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
+          severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
+          codigoRegra: 'EVENTO_INCOMPLETO_AG',
+          linha,
+          tunel: chave,
+          diagnostico: 'Evento incompleto: AG preenchido sem IMPUTADO?.',
+          evidencia: `OCORRÊNCIA PIP (AG): "${indicador}" | IMPUTADO? (AH): vazio`,
+          acaoRecomendada: 'Revise AG/AH: o evento foi declarado sem definir COM IMPUTADO ou SEM IMPUTADO em AH.'
+        }));
       }
 
       if (imputado && !indicador) {
-        alertasPorLinha[i - 1].push('Imputado sem evento: AH preenchido sem OCORRENCIA PIP.');
+        alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
+          severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
+          codigoRegra: 'IMPUTADO_SEM_EVENTO_AH',
+          linha,
+          tunel: chave,
+          diagnostico: 'Imputado sem evento: AH preenchido sem OCORRENCIA PIP.',
+          evidencia: `IMPUTADO? (AH): "${imputado}" | OCORRÊNCIA PIP (AG): vazio`,
+          acaoRecomendada: 'Preencha o indicador OCORRÊNCIA PIP em AG ou limpe o campo IMPUTADO? em AH.'
+        }));
       }
 
       if (imputado && !RegrasQualidade.imputadoValido(imputado)) {
-        alertasPorLinha[i - 1].push(`Valor de imputado invalido: ${imputado}.`);
+        alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
+          severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
+          codigoRegra: 'IMPUTADO_INVALIDO',
+          linha,
+          tunel: chave,
+          diagnostico: `Valor de imputado invalido: ${imputado}.`,
+          evidencia: `IMPUTADO? lido: "${imputado}"`,
+          acaoRecomendada: 'Selecione "COM IMPUTADO" ou "SEM IMPUTADO" na coluna AH.'
+        }));
       }
 
       if (policial && !matricula) {
-        alertasPorLinha[i - 1].push('Matricula ausente: linha com policial sem matricula.');
+        alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
+          severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
+          codigoRegra: 'MATRICULA_AUSENTE',
+          linha,
+          tunel: chave,
+          diagnostico: 'Matricula ausente: linha com policial sem matricula.',
+          evidencia: `Policial: "${policial}" | Matrícula: vazia`,
+          acaoRecomendada: 'Preencha a matrícula funcional do policial para garantir o cômputo da produtividade.'
+        }));
       }
 
-      const chave = RegrasQualidade.chaveTunel(data, mike, boe);
       if (!tuneis[chave]) {
         tuneis[chave] = RegrasQualidade.criarTunel(chave);
       }
@@ -100,24 +150,38 @@ class GuardiaoQualidade {
     }
 
     Object.values(tuneis).forEach(tunel => {
-      RegrasQualidade.validarTunel(tunel).forEach(alerta => {
-        alertasPorLinha[alerta.linha - 2].push(alerta.mensagem);
+      RegrasQualidade.validarTunel(tunel).forEach(diag => {
+        if (diag.linha >= 2 && diag.linha - 2 < alertasPorLinha.length) {
+          alertasPorLinha[diag.linha - 2].push(diag);
+        }
       });
     });
 
-    const saida = alertasPorLinha.map(alertas => [RegrasQualidade.unicos(alertas).join(' | ')]);
+    const saida = alertasPorLinha.map(diagnosticos => {
+      const textos = RegrasQualidade.unicos(
+        diagnosticos.map(d => typeof d === 'object' && d !== null ? (d.diagnostico || d.mensagem || '') : String(d))
+      ).filter(Boolean);
+      return [textos.join(' | ')];
+    });
+
     RendererAuditoriaSaude.prepararColunaAlertas(sheet, idx.alerta, saida.length);
     sheet.getRange(2, idx.alerta + 1, saida.length, 1).setValues(saida);
 
     RendererAuditoriaSaude.renderizarLog(sheet, saida, tuneis);
 
+    const todosDiagnosticos = alertasPorLinha.flat();
+
     return {
       alertas: saida.filter(row => row[0]).length,
       linhas: lastRow - 1,
-      tuneis: Object.keys(tuneis).length
+      tuneis: Object.keys(tuneis).length,
+      diagnosticos: todosDiagnosticos
     };
   }
+}
 
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = GuardiaoQualidade;
 }
 
 function executarGuardiaoQualidade() {

@@ -12,11 +12,17 @@ class RendererAuditoriaSaude {
     }
 
     const linhasComAlerta = RendererAuditoriaSaude.montarLinhasComAlerta(sheet.getName(), saida);
-    const agora = Utilities.formatDate(
-      new Date(),
-      Session.getScriptTimeZone() || 'America/Sao_Paulo',
-      'dd/MM/yyyy HH:mm:ss'
-    );
+    let agora = '';
+    if (typeof Utilities !== 'undefined' && typeof Session !== 'undefined') {
+      agora = Utilities.formatDate(
+        new Date(),
+        Session.getScriptTimeZone() || 'America/Sao_Paulo',
+        'dd/MM/yyyy HH:mm:ss'
+      );
+    } else {
+      const d = new Date();
+      agora = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+    }
 
     const dados = [
       ['Guardiao da Qualidade', agora, sheet.getName(), linhasComAlerta.length ? 'COM ALERTAS' : 'APROVADO'],
@@ -60,4 +66,8 @@ class RendererAuditoriaSaude {
     });
     return linhasComAlerta;
   }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = RendererAuditoriaSaude;
 }

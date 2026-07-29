@@ -18,6 +18,8 @@ require('./TestMotorAnaliticoRegressao');
 console.log('');
 require('./TestAdaptador2026');
 console.log('');
+require('./TestGuardiao');
+console.log('');
 require('./TestCentralAnalitica');
 
 console.log('\n====================================================');
