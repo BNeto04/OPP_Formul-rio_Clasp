@@ -1,19 +1,20 @@
 # M06 — Relatórios Oficiais e Formatação Visual (Tasks)
 
 > **Documento:** `planta/03_TASKS/M06_TASKS.md`  
-> **Status da Sprint:** EM REVISÃO DOCUMENTAL (TASK-M06.1-01A Pendente de Aprovação)  
+> **Status da Sprint:** EM REVISÃO DOCUMENTAL (TASK-M06.1-01B Pendente de Aprovação)  
 > **Contexto:** Ecossistema Synthéon GS Down Plant Offline  
 
 ---
 
 ## 🎯 Lista Integrada de Tarefas do M06
 
-### [PENDENTE REVISÃO] TASK-M06.1-01A — Correção e Completabilidade do Inventário de Relatórios
-- Atualizar `planta/01_SPRINTS/SPRINT_M06_RELATORIOS.md` criando a Tabela de Inventário para **PIP, COMPARATIVO_2026, ARMAS, DROGAS e CPM**, detalhando menu de origem, compilador, renderizador, aba de saída, fonte de dados, período, métricas e regras visuais protegidas.
-- Separar claramente **Relatórios Oficiais de Produtividade** (PIP, Comparativo, Armas, Drogas, CPM) dos **Relatórios de Apoio e Diagnóstico** (`[AUDITORIA]` e `[HISTORICO]`).
-- Vincular a `REGRA_TRANSVERSAL_FORMATACAO_RELATORIOS.md` registrando as cores oficiais de Pelotões/Oficiais e a Escala Oficial de Armas (0 em vermelho, 1-3, 4-5, 6-9, 10+).
-- Declarar expressamente que a paleta de severidades de auditoria **pertence exclusivamente aos relatórios de apoio** e jamais pode substituir a paleta oficial de produtividade.
-- Registrar a regra da **Coluna AM**: o alerta não pode limpar formatações estruturais das linhas (A-AL), aplicando/removendo destaque apenas na célula AM.
+### [PENDENTE REVISÃO] TASK-M06.1-01B — Revisão Fiel do Inventário do Código e Mapeamento de Módulos
+- Atualizar `planta/01_SPRINTS/SPRINT_M06_RELATORIOS.md` com o mapeamento fiel extraído diretamente do código para **COMPARATIVO_2026, PIP, ARMAS, DROGAS e CPM**, registrando funções reais, renderizadores, abas de saída reais (`COMPARATIVO_2026`, `PIP_<período>`, `COMP_ARMAS_<período>`, `COMP_DROGAS_<período>`, `CPM_<mes>`), fonte de dados, período e métricas.
+- Separar rigorosamente **Compiladores Visuais de Apresentação** dos **Motores/Métricas Internas** (aclarando que `PluginArmas` e `PluginEntorpecentes` são componentes conceituais do motor V2, não compiladores de tela).
+- Indicar para cada regra visual o status preciso: **IMPLEMENTADA NO CÓDIGO ATUAL** ou **CONTRATO VISUAL A IMPLEMENTAR NO M06**.
+- Vincular a `REGRA_TRANSVERSAL_FORMATACAO_RELATORIOS.md` registrando as cores oficiais de Pelotões/Oficiais/GTAR e a Escala Oficial de Armas.
+- Declarar expressamente o isolamento da paleta de severidades aos relatórios de apoio (`[AUDITORIA]` e `[HISTORICO]`).
+- Registrar que a Coluna AM só altera a célula AM e preserva intacta a formatação das colunas A a AL.
 - Manter a **Central Analítica SUSPENSA**.
 
 ### [PENDENTE] TASK-M06.1-02 — Estilização e Formatação Visual da Aba [AUDITORIA] Ocorrencias
