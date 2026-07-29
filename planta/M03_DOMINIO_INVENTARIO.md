@@ -35,3 +35,4 @@ Foi verificado que o modelo de Domínio preserva 100% das propriedades brutas e 
 - **Zero acoplamento a planilhas:** Nenhuma classe do Domínio lê ou grava diretamente no Google Sheets.
 - **Zero chamadas a APIs de UI:** Nenhuma chamada a `SpreadsheetApp`, `HtmlService` ou `Logger.log` da planilha.
 - **Imutabilidade Ativa:** `RegistroCanonico`, `ChaveOcorrencia`, `Arma` e `Droga` aplicam `Object.freeze` em suas estruturas.
+- **Relatório Completo de Pureza:** Ver [planta/M03_DOMINIO_PUREZA.md](file:///C:/Users/Bneto04/Documents/Codex/syntheon-gs-downplant-offline/planta/M03_DOMINIO_PUREZA.md).
