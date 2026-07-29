@@ -109,7 +109,7 @@ class RendererAuditoriaSaude {
     const proxLinhaHist = Math.max(histSheet.getLastRow() + 1, 2);
     histSheet.getRange(proxLinhaHist, 1, registrosHistorico.length, 9).setValues(registrosHistorico);
 
-    // Estilização Executiva cumulativa para [HISTORICO] Auditoria Ocorrencias
+    // Estilização Executiva acumulativa de TODAS as linhas do [HISTORICO] Auditoria Ocorrencias
     RendererAuditoriaSaude.estilizarAbaHistorico_(histSheet, registrosHistorico, proxLinhaHist);
   }
 
@@ -217,47 +217,66 @@ class RendererAuditoriaSaude {
           .setHorizontalAlignment('center');
       }
 
-      // Estilização das Linhas de Dados anexadas (da proxLinhaHist em diante)
-      (novosRegistros || []).forEach((rHist, idx) => {
-        const linhaReal = proxLinhaHist + idx;
-        const severidade = rHist[4]; // No Histórico, SEVERIDADE está na coluna 5 (índice 4)
-        const estilo = RendererAuditoriaSaude.PALETA_SEVERIDADES[severidade] || RendererAuditoriaSaude.PALETA_SEVERIDADES['ALERTA'];
-
-        // Centralizar colunas 1 a 4 (DATA/HORA EXECUÇÃO, ABA, TÚNEL, LINHA)
-        const rangeCentralizadoEsquerda = histSheet.getRange(linhaReal, 1, 1, 4);
-        if (typeof rangeCentralizadoEsquerda.setHorizontalAlignment === 'function') {
-          rangeCentralizadoEsquerda.setHorizontalAlignment('center');
+      const ultLinha = typeof histSheet.getLastRow === 'function' ? histSheet.getLastRow() : 1;
+      if (ultLinha >= 2) {
+        let todosDadosHist = [];
+        const rangeDadosHist = histSheet.getRange(2, 1, ultLinha - 1, 9);
+        if (typeof rangeDadosHist.getValues === 'function') {
+          todosDadosHist = rangeDadosHist.getValues();
         }
 
-        // Destacar a célula de SEVERIDADE (Coluna 5)
-        const cellSeveridade = histSheet.getRange(linhaReal, 5);
-        if (typeof cellSeveridade.setBackground === 'function') {
-          cellSeveridade.setBackground(estilo.fundo)
-            .setFontColor(estilo.fonte)
-            .setFontWeight(estilo.negrito ? 'bold' : 'normal')
-            .setHorizontalAlignment('center');
-        }
+        // Estilização de TODAS as linhas de dados do histórico (existentes + recém-anexadas)
+        for (let i = 0; i < ultLinha - 1; i++) {
+          const linhaReal = 2 + i;
+          let severidade = 'ALERTA';
 
-        // Destacar a célula de REGRA (Coluna 6)
-        const cellRegra = histSheet.getRange(linhaReal, 6);
-        if (typeof cellRegra.setHorizontalAlignment === 'function') {
-          cellRegra.setHorizontalAlignment('center').setFontWeight('bold');
-        }
+          if (todosDadosHist && todosDadosHist[i] && todosDadosHist[i][4]) {
+            severidade = todosDadosHist[i][4];
+          } else if (novosRegistros) {
+            const idxNovo = linhaReal - proxLinhaHist;
+            if (idxNovo >= 0 && novosRegistros[idxNovo]) {
+              severidade = novosRegistros[idxNovo][4];
+            }
+          }
 
-        // Alinhamento à esquerda explícito das colunas DIAGNÓSTICO, EVIDÊNCIA, AÇÃO RECOMENDADA (Colunas 7 a 9)
-        const rangeEsquerdaTextos = histSheet.getRange(linhaReal, 7, 1, 3);
-        if (typeof rangeEsquerdaTextos.setHorizontalAlignment === 'function') {
-          rangeEsquerdaTextos.setHorizontalAlignment('left');
-        }
+          const estilo = RendererAuditoriaSaude.PALETA_SEVERIDADES[severidade] || RendererAuditoriaSaude.PALETA_SEVERIDADES['ALERTA'];
 
-        // Zebrado discreto nas linhas pares de dados (sem apagar a célula de severidade na Coluna 5)
-        if (linhaReal % 2 === 0) {
-          const rangeEsquerda = histSheet.getRange(linhaReal, 1, 1, 4);
-          const rangeDireita = histSheet.getRange(linhaReal, 6, 1, 4);
-          if (typeof rangeEsquerda.setBackground === 'function') rangeEsquerda.setBackground('#F8F9FA');
-          if (typeof rangeDireita.setBackground === 'function') rangeDireita.setBackground('#F8F9FA');
+          // Centralizar colunas 1 a 4 (DATA/HORA EXECUÇÃO, ABA, TÚNEL, LINHA)
+          const rangeCentralizadoEsquerda = histSheet.getRange(linhaReal, 1, 1, 4);
+          if (typeof rangeCentralizadoEsquerda.setHorizontalAlignment === 'function') {
+            rangeCentralizadoEsquerda.setHorizontalAlignment('center');
+          }
+
+          // Destacar a célula de SEVERIDADE (Coluna 5)
+          const cellSeveridade = histSheet.getRange(linhaReal, 5);
+          if (typeof cellSeveridade.setBackground === 'function') {
+            cellSeveridade.setBackground(estilo.fundo)
+              .setFontColor(estilo.fonte)
+              .setFontWeight(estilo.negrito ? 'bold' : 'normal')
+              .setHorizontalAlignment('center');
+          }
+
+          // Destacar a célula de REGRA (Coluna 6)
+          const cellRegra = histSheet.getRange(linhaReal, 6);
+          if (typeof cellRegra.setHorizontalAlignment === 'function') {
+            cellRegra.setHorizontalAlignment('center').setFontWeight('bold');
+          }
+
+          // Alinhamento à esquerda explícito das colunas DIAGNÓSTICO, EVIDÊNCIA, AÇÃO RECOMENDADA (Colunas 7 a 9)
+          const rangeEsquerdaTextos = histSheet.getRange(linhaReal, 7, 1, 3);
+          if (typeof rangeEsquerdaTextos.setHorizontalAlignment === 'function') {
+            rangeEsquerdaTextos.setHorizontalAlignment('left');
+          }
+
+          // Zebrado discreto nas linhas pares de dados (sem apagar a célula de severidade na Coluna 5)
+          if (linhaReal % 2 === 0) {
+            const rangeEsquerda = histSheet.getRange(linhaReal, 1, 1, 4);
+            const rangeDireita = histSheet.getRange(linhaReal, 6, 1, 4);
+            if (typeof rangeEsquerda.setBackground === 'function') rangeEsquerda.setBackground('#F8F9FA');
+            if (typeof rangeDireita.setBackground === 'function') rangeDireita.setBackground('#F8F9FA');
+          }
         }
-      });
+      }
 
       // Larguras Fixas Recomendadas para Histórico
       if (typeof histSheet.setColumnWidth === 'function') {

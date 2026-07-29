@@ -48,9 +48,15 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
   let dadosColunaAM = [];
   const mapSubSheets = {};
 
-  const createRangeMock = (targetRow, targetCol, sheetDataRef, subTracker = null) => {
+  const createRangeMock = (targetRow, targetCol, sheetDataRef, subTracker = null, numRowsParam = 1) => {
     const rangeObj = {
-      getValues: () => sheetDataRef.values || dadosTotais,
+      getValues: () => {
+        if (sheetDataRef.storage) {
+          const startR = targetRow - 1;
+          return sheetDataRef.storage.slice(startR, startR + numRowsParam);
+        }
+        return sheetDataRef.values || dadosTotais;
+      },
       getFormulas: () => sheetDataRef.formulas || formulasTotais,
       getNotes: () => sheetDataRef.notes || notasTotais,
       setValue: (val) => {
@@ -78,7 +84,12 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
       clear: () => rangeObj,
       setFontWeight: () => rangeObj,
       setFontColor: () => rangeObj,
-      setBackground: () => rangeObj,
+      setBackground: (color) => {
+        if (subTracker && subTracker.coresBackground) {
+          subTracker.coresBackground.push({ row: targetRow, col: targetCol, color });
+        }
+        return rangeObj;
+      },
       setHorizontalAlignment: (align) => {
         if (subTracker && subTracker.alinhamentos) {
           subTracker.alinhamentos.push({ row: targetRow, col: targetCol, align });
@@ -99,13 +110,13 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
   const getSubSheet = (name) => {
     if (!mapSubSheets[name]) {
       const subStorage = [];
-      const subTracker = { linhasCongeladas: 0, alinhamentos: [] };
+      const subTracker = { linhasCongeladas: 0, alinhamentos: [], coresBackground: [] };
       mapSubSheets[name] = {
         getName: () => name,
         getLastRow: () => subStorage.length,
         getLastColumn: () => (subStorage[0] ? subStorage[0].length : 0),
         clear: () => { subStorage.length = 0; },
-        getRange: (r, c, numR, numC) => createRangeMock(r, c, { storage: subStorage }, subTracker),
+        getRange: (r, c, numR, numC) => createRangeMock(r, c, { storage: subStorage }, subTracker, numR || 1),
         autoResizeColumns: () => {},
         setFontWeight: () => {},
         setFrozenRows: (n) => { subTracker.linhasCongeladas = n; },
@@ -113,7 +124,8 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
         setColumnWidth: () => {},
         obterDadosArmazenados: () => subStorage,
         obterLinhasCongeladas: () => subTracker.linhasCongeladas,
-        obterAlinhamentos: () => subTracker.alinhamentos
+        obterAlinhamentos: () => subTracker.alinhamentos,
+        obterCoresBackground: () => subTracker.coresBackground
       };
     }
     return mapSubSheets[name];
@@ -549,7 +561,7 @@ test('GuardiaoQualidade: Homologação Final Offline End-to-End cobrindo 10 cen�
 
   const notas = dadosLinhas.map((r, i) => {
     if (i === 6) { // L8
-      return ['', '', '', '', '', '', '', '', 'EXCECAO: Ajuste autorizado por BOE', '', '', '', '', '', '', ''];
+      return ['', '', '', '', '', '', '', '', 'EXCECAO: Numerario de R$ 40,00 conforme BOE', '', '', '', '', '', '', ''];
     }
     return headersPadrao.map(() => '');
   });
@@ -649,7 +661,7 @@ test('RendererAuditoriaSaude: valida paleta de severidades, congelamento de pain
 });
 
 // 23. Estilização Executiva e Histórico Cumulativo em [HISTORICO] Auditoria Ocorrencias (TASK-M06.1-03)
-test('RendererAuditoriaSaude: valida histórico cumulativo, congelamento da linha 1, severidade na coluna 5 e alinhamento à esquerda das colunas 7-9', () => {
+test('RendererAuditoriaSaude: valida histórico cumulativo, congelamento da linha 1, severidade na coluna 5 (cor e texto) e alinhamento à esquerda das colunas 7-9', () => {
   const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
   const dadosLinhas = [
     ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
@@ -667,13 +679,21 @@ test('RendererAuditoriaSaude: valida histórico cumulativo, congelamento da linh
   // 1. Confirma histórico estritamente cumulativo (cabeçalho + 2 execuções)
   const dadosHist = subHist.obterDadosArmazenados();
   assert.strictEqual(dadosHist.length, 3);
-  assert.strictEqual(dadosHist[1][4], 'CRITICO'); // Coluna 5 (SEVERIDADE)
-  assert.strictEqual(dadosHist[2][4], 'CRITICO'); // Coluna 5 (SEVERIDADE)
+  assert.strictEqual(dadosHist[1][4], 'CRITICO'); // Coluna 5 (SEVERIDADE) na execução 1
+  assert.strictEqual(dadosHist[2][4], 'CRITICO'); // Coluna 5 (SEVERIDADE) na execução 2
 
   // 2. Confirma congelamento apenas da linha 1
   assert.strictEqual(subHist.obterLinhasCongeladas(), 1);
 
-  // 3. Confirma alinhamento à esquerda (left) das colunas 7 a 9
+  // 3. Confirma a cor aplicada na célula de severidade na Coluna 5 (#D9534F para CRITICO) nas execuções existentes
+  const coresBackground = subHist.obterCoresBackground();
+  const corCriticoLinha2Col5 = coresBackground.find(c => c.row === 2 && c.col === 5 && c.color === '#D9534F');
+  assert.ok(corCriticoLinha2Col5, 'A célula de severidade na Coluna 5 da linha 2 deve receber a cor de fundo #D9534F (CRITICO)');
+
+  const corCriticoLinha3Col5 = coresBackground.find(c => c.row === 3 && c.col === 5 && c.color === '#D9534F');
+  assert.ok(corCriticoLinha3Col5, 'A célula de severidade na Coluna 5 da linha 3 deve receber a cor de fundo #D9534F (CRITICO)');
+
+  // 4. Confirma alinhamento à esquerda (left) das colunas 7 a 9
   const alinhamentos = subHist.obterAlinhamentos();
   const alignLeftCols7To9 = alinhamentos.find(a => a.col === 7 && a.align === 'left');
   assert.ok(alignLeftCols7To9, 'As colunas 7 a 9 no Histórico devem ter alinhamento à esquerda (left)');
