@@ -15,7 +15,7 @@
 
 | ID | Tarefa | Arquivo(s) Afetado(s) | Status | Commit |
 | :--- | :--- | :--- | :--- | :--- |
-| `TASK-M04.1-01` | Inventário detalhado do Motor Analítico V2 e Plugins | `planta/M04_MOTOR_INVENTARIO.md` | **CONCLUÍDA** | `em_progresso` |
+| `TASK-M04.1-01` | Inventário detalhado do Motor Analítico V2 e Plugins | `planta/M04_MOTOR_INVENTARIO.md` | **CONCLUÍDA** | `3a50786` |
 | `TASK-M04.1-02` | Auditoria de pureza do Motor e Plugins (isolar I/O e GAS) | `planta/M04_MOTOR_PUREZA.md`, `Motor/*.js`, `Plugins/*.js` | **PENDENTE** | - |
 | `TASK-M04.1-03` | Blindar contratos e testes unitários dos plugins de métrica | `Testes/TestPlugins.js` | **PENDENTE** | - |
 | `TASK-M04.1-04` | Regressão da matemática homologada V1/V2 e deduplicação por túnel | `Testes/*.js` | **PENDENTE** | - |
