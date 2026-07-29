@@ -17,7 +17,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `TASK-M05.1-01` | Governança e inventário detalhado do Guardião | `planta/M05_GUARDIAO_INVENTARIO.md` | **CONCLUÍDA** | `0dff947` |
 | `TASK-M05.1-02` | Núcleo puro de diagnóstico e desacoplamento de Apps Script | `Core/RegrasQualidade.js`, `planta/M05_GUARDIAO_PUREZA.md` | **CONCLUÍDA** | `64e114e` |
-| `TASK-M05.1-02A` | Hotfix: compatibilizar diagnósticos estruturados com o Guardião e criar testes end-to-end | `Features/GuardiaoQualidade.js`, `Render/RendererAuditoriaSaude.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `em_progresso` |
+| `TASK-M05.1-02A` | Hotfix: compatibilizar diagnósticos estruturados com o Guardião e criar testes end-to-end | `Features/GuardiaoQualidade.js`, `Render/RendererAuditoriaSaude.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `59a5aeb` |
 | `TASK-M05.1-03` | Identidade e coerência do túnel (`MIKE|BOE`, datas, `AG`/`AH`) | `Core/RegrasQualidade.js` | **PENDENTE** | - |
 | `TASK-M05.1-04` | Auditoria de fórmulas, matemática e exceções por nota `EXCECAO:` | `Core/RegrasQualidade.js` | **PENDENTE** | - |
 | `TASK-M05.1-05` | Formatador de auditoria legível (`Ação Recomendada` e `Histórico`) | `Render/RendererAuditoriaSaude.js`, `Features/GuardiaoQualidade.js` | **PENDENTE** | - |
