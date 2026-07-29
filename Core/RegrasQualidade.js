@@ -102,14 +102,48 @@ class RegrasQualidade {
           acaoRecomendada: 'Preencha a quantidade de munições apreendidas ou revise o indicador.'
         }));
       }
+
+      // Validação de casos não auditáveis automaticamente (ex: Numerário sem valor cadastrado)
+      if (indicador.includes('NUMERARIO') || indicador.includes('DINHEIRO')) {
+        if (tunel.fatos.numerario <= 0) {
+          alertas.push(RegrasQualidade.criarDiagnostico({
+            severidade: SEVERIDADES_GUARDIAO.OBSERVACAO,
+            codigoRegra: 'FATO_NAO_AUDITAVEL_AUTOMATICAMENTE',
+            linha: evento.linha,
+            tunel: tunel.chave,
+            diagnostico: 'Ocorrência com indicador de numerário sem valor físico registrado. Classificado como NÃO AUDITÁVEL AUTOMATICAMENTE.',
+            evidencia: `Indicador: "${evento.indicador}" | Valor numérico lido: R$ 0,00`,
+            acaoRecomendada: 'Preservada decisão humana: revise os recibos e BOE para registrar o valor apreendido.'
+          }));
+        }
+      }
     });
+
+    // Validação matemática do Rateio de PONTOS FICÇÃO no túnel
+    const qtdPoliciaisDistintos = tunel.matriculas ? tunel.matriculas.size : 0;
+    if (qtdPoliciaisDistintos > 0 && tunel.pontosTotais > 0 && tunel.pontosFiccaoLido > 0) {
+      const esperado = tunel.pontosTotais / qtdPoliciaisDistintos;
+      const diff = Math.abs(tunel.pontosFiccaoLido - esperado);
+      if (diff > 0.01) {
+        alertas.push(RegrasQualidade.criarDiagnostico({
+          severidade: SEVERIDADES_GUARDIAO.ALERTA,
+          codigoRegra: 'RATEIO_PONTOS_INCOERENTE',
+          linha: tunel.linhaPrincipal || (tunel.eventos[0] ? tunel.eventos[0].linha : 0),
+          tunel: tunel.chave,
+          diagnostico: 'Rateio de PONTOS FICÇÃO incoerente com a quantidade de policiais distintos no túnel.',
+          evidencia: `Pontos Totais do túnel: ${tunel.pontosTotais} | Policiais distintos: ${qtdPoliciaisDistintos} | Rateio lido: ${tunel.pontosFiccaoLido} | Rateio esperado: ${esperado.toFixed(2)}`,
+          acaoRecomendada: 'Revise a fórmula de PONTOS FICÇÃO: o valor divergiu da divisão da pontuação pelo número de policiais distintos do túnel.'
+        }));
+      }
+    }
+
     return alertas;
   }
 
   static validarDataMike(data, mike, linha, tunel) {
     if (!data || !mike) return null;
     const somenteNumeros = String(mike).replace(/\D/g, '');
-    if (somenteNumeros.length < 8) return null; // Não exige tamanho fixo de MIKE
+    if (somenteNumeros.length < 8) return null;
 
     let diaData = 0, mesData = 0, anoData = 0;
     if (data instanceof Date && !isNaN(data.getTime())) {
@@ -127,7 +161,6 @@ class RegrasQualidade {
 
     if (!anoData || !mesData || !diaData) return null;
 
-    // Se o MIKE começa no padrão YYYYMMDD (ex: 20260715...)
     const mikeAno = parseInt(somenteNumeros.substring(0, 4), 10);
     const mikeMes = parseInt(somenteNumeros.substring(4, 6), 10);
     const mikeDia = parseInt(somenteNumeros.substring(6, 8), 10);
@@ -186,13 +219,13 @@ class RegrasQualidade {
   static indicadorConhecido(indicador) {
     if (!indicador) return true;
     const norm = typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(indicador) : String(indicador).toUpperCase().trim();
-    const padroesConhecidos = [
+    const catalogoPIP = [
       'PORTE', 'POSSE', 'TRAFICO', 'CUMPRIMENTO', 'MANDADO', 'MACONHA', 'CRACK',
       'COCAINA', 'ARMA', 'MUNICAO', 'VEICULO', 'RECUPERADO', 'DETENCAO', 'PRISAO',
       'APFD', 'TCO', 'BOC', 'AAFAI', 'HOMICIDIO', 'ROUBO', 'FURTO', 'RECEPTACAO',
-      'FLAGRANTE', 'OCORRENCIA PIP'
+      'FLAGRANTE', 'NUMERARIO', 'DINHEIRO', 'VALOR', 'MOEDA', 'OCORRENCIA PIP'
     ];
-    return padroesConhecidos.some(p => norm.includes(p));
+    return catalogoPIP.some(p => norm.includes(p));
   }
 
   static localizarColunasCalculadas(headers) {
@@ -216,19 +249,35 @@ class RegrasQualidade {
     });
   }
 
-  static validarFormulasObrigatorias(formulaRow, colunasCalculadas) {
+  static validarFormulasObrigatorias(formulaRow, noteRow, colunasCalculadas) {
     const alertas = [];
     colunasCalculadas.forEach(coluna => {
       if (!formulaRow || coluna.indice < 0 || coluna.indice >= formulaRow.length) return;
-      if (!formulaRow[coluna.indice]) {
-        alertas.push(RegrasQualidade.criarDiagnostico({
-          severidade: SEVERIDADES_GUARDIAO.ALERTA,
-          codigoRegra: 'FORMULA_AUSENTE',
-          linha: 0,
-          diagnostico: `Fórmula ausente em coluna calculada: ${coluna.nome}.`,
-          evidencia: `Coluna: ${coluna.nome} (índice: ${coluna.indice}) sem fórmula`,
-          acaoRecomendada: `Restaure a fórmula de ${coluna.nome} a partir de uma linha válida ou justifique com nota EXCECAO:.`
-        }));
+      const formula = formulaRow[coluna.indice];
+      const nota = (noteRow && noteRow[coluna.indice]) ? String(noteRow[coluna.indice]).trim() : '';
+
+      if (!formula) {
+        if (nota.toUpperCase().startsWith('EXCECAO:')) {
+          const motivo = nota.substring(8).trim();
+          alertas.push(RegrasQualidade.criarDiagnostico({
+            severidade: SEVERIDADES_GUARDIAO.EXCECAO_MANUAL,
+            codigoRegra: 'EXCECAO_MANUAL_JUSTIFICADA',
+            linha: 0,
+            diagnostico: `Ajuste manual em ${coluna.nome} justificado por nota: "${motivo}".`,
+            evidencia: `Nota de Exceção: "${nota}"`,
+            acaoRecomendada: 'Exceção manual justificada pelo operador. Nenhuma ação necessária.',
+            condicaoExcecaoManual: true
+          }));
+        } else {
+          alertas.push(RegrasQualidade.criarDiagnostico({
+            severidade: SEVERIDADES_GUARDIAO.ALERTA,
+            codigoRegra: 'FORMULA_AUSENTE',
+            linha: 0,
+            diagnostico: `Fórmula ausente em coluna calculada: ${coluna.nome}.`,
+            evidencia: `Coluna: ${coluna.nome} (índice: ${coluna.indice}) sem fórmula e sem nota EXCECAO:`,
+            acaoRecomendada: `Restaure a fórmula de ${coluna.nome} a partir de uma linha válida ou registre uma nota iniciada por EXCECAO: explicando o motivo.`
+          }));
+        }
       }
     });
     return alertas;
@@ -237,7 +286,11 @@ class RegrasQualidade {
   static criarTunel(chave) {
     return {
       chave,
-      fatos: { armas: 0, municao: 0, maconha: 0, crack: 0, cocaina: 0 },
+      fatos: { armas: 0, municao: 0, maconha: 0, crack: 0, cocaina: 0, numerario: 0 },
+      matriculas: new Set(),
+      pontosTotais: 0,
+      pontosFiccaoLido: 0,
+      linhaPrincipal: 0,
       eventos: []
     };
   }
@@ -248,6 +301,28 @@ class RegrasQualidade {
     tunel.fatos.maconha += RegrasQualidade.numero(row[idx.maconha]);
     tunel.fatos.crack += RegrasQualidade.numero(row[idx.crack]);
     tunel.fatos.cocaina += RegrasQualidade.numero(row[idx.cocaina]);
+
+    const matricula = RegrasQualidade.texto(row[idx.matricula]);
+    if (matricula) {
+      const matSanitizada = typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.limparMatricula(matricula) : matricula.replace(/\D/g, '');
+      if (matSanitizada) {
+        tunel.matriculas.add(matSanitizada);
+      }
+    }
+
+    const pontosTotaisLido = idx.pontosTotais !== -1 ? RegrasQualidade.numero(row[idx.pontosTotais]) : 0;
+    if (pontosTotaisLido > tunel.pontosTotais) {
+      tunel.pontosTotais = pontosTotaisLido;
+    }
+
+    const pontosFiccaoLido = idx.pontosFiccao !== -1 ? RegrasQualidade.numero(row[idx.pontosFiccao]) : 0;
+    if (pontosFiccaoLido > tunel.pontosFiccaoLido) {
+      tunel.pontosFiccaoLido = pontosFiccaoLido;
+    }
+
+    if (!tunel.linhaPrincipal) {
+      tunel.linhaPrincipal = linha;
+    }
 
     if (indicador) {
       tunel.eventos.push({ linha, indicador });

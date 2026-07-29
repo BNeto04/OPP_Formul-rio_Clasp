@@ -14,6 +14,10 @@ class GuardiaoQualidade {
     const rangeDados = sheet.getRange(1, 1, lastRow, lastCol);
     const dados = rangeDados.getValues();
     const formulas = rangeDados.getFormulas();
+    const notes = (rangeDados.getNotes && typeof rangeDados.getNotes === 'function')
+      ? rangeDados.getNotes()
+      : Array.from({ length: lastRow }, () => Array(lastCol).fill(''));
+
     const headers = dados[0].map(h => SyntheonUtils.normalizarTexto(h));
     const loc = (chaveAlias) => SyntheonUtils.localizarColuna(headers, chaveAlias);
 
@@ -31,6 +35,8 @@ class GuardiaoQualidade {
       cocaina: loc('COCAINA'),
       indicador: loc('INDICADOR_PIP'),
       imputado: loc('IMPUTADO'),
+      pontosTotais: loc('PONTOS_TOTAIS'),
+      pontosFiccao: loc('PONTOS_FICCAO'),
       alerta: loc('ALERTA_INTEGRIDADE'),
       calculadas: RegrasQualidade.localizarColunasCalculadas(headers)
     };
@@ -63,7 +69,7 @@ class GuardiaoQualidade {
       const chave = RegrasQualidade.chaveTunel(data, mike, boe);
 
       if (temLinhaOperacional) {
-        RegrasQualidade.validarFormulasObrigatorias(formulas[i], idx.calculadas).forEach(diag => {
+        RegrasQualidade.validarFormulasObrigatorias(formulas[i], notes[i], idx.calculadas).forEach(diag => {
           diag.linha = linha;
           diag.tunel = chave;
           alertasPorLinha[i - 1].push(diag);
@@ -81,7 +87,6 @@ class GuardiaoQualidade {
             acaoRecomendada: 'Preencha o MIKE completo da ocorrência; a linha possui participação ou evento registrado.'
           }));
         }
-        // Plantão tranquilo (linha com apenas data, sem MIKE, sem policial, sem fato) é permitido sem alerta
         continue;
       }
 
@@ -119,7 +124,7 @@ class GuardiaoQualidade {
           tunel: chave,
           diagnostico: 'Evento incompleto: AG preenchido sem IMPUTADO?.',
           evidencia: `OCORRÊNCIA PIP (AG): "${indicador}" | IMPUTADO? (AH): vazio`,
-          acaoRecomendada: 'Revise AG/AH: o evento foi declarado sem definir COM IMPUTADO ou SEM IMPUTADO em AH.'
+          acaoRecomendada: 'Revise AG/AH: o evento foi declared sem definir COM IMPUTADO ou SEM IMPUTADO em AH.'
         }));
       }
 
@@ -177,7 +182,7 @@ class GuardiaoQualidade {
       RegrasQualidade.acumularLinhaTunel(tuneis[chave], row, idx, linha, indicador);
     }
 
-    // Validações por túnel (fatos vs indicadores)
+    // Validações por túnel (fatos vs indicadores e rateio matemático)
     Object.values(tuneis).forEach(tunel => {
       RegrasQualidade.validarTunel(tunel).forEach(diag => {
         if (diag.linha >= 2 && diag.linha - 2 < alertasPorLinha.length) {

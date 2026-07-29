@@ -1,6 +1,6 @@
 # Mapeamento de Tarefas — Cômodo M05 Guardião da Qualidade
 
-> **Status Geral do Cômodo:** EM EXECUÇÃO (TASK-M05.1-01, TASK-M05.1-02, TASK-M05.1-02A, TASK-M05.1-03 e TASK-M05.1-03A CONCLUÍDAS)  
+> **Status Geral do Cômodo:** EM EXECUÇÃO (TASK-M05.1-01 a TASK-M05.1-04 CONCLUÍDAS)  
 
 ---
 
@@ -20,6 +20,6 @@
 | `TASK-M05.1-02A` | Hotfix: compatibilizar diagnósticos estruturados com o Guardião e criar testes end-to-end | `Features/GuardiaoQualidade.js`, `Render/RendererAuditoriaSaude.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `59a5aeb` |
 | `TASK-M05.1-03` | Identidade e coerência do túnel (`MIKE|BOE`, datas, `AG`/`AH`) | `Core/RegrasQualidade.js`, `Features/GuardiaoQualidade.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `6d4a3ea` |
 | `TASK-M05.1-03A` | Testes complementares para AH sem AG, MIKE com datas divergentes e objeto Date | `Testes/TestGuardiao.js` | **CONCLUÍDA** | `ecff70a` |
-| `TASK-M05.1-04` | Auditoria de fórmulas, matemática e exceções por nota `EXCECAO:` | `Core/RegrasQualidade.js` | **PENDENTE** | - |
+| `TASK-M05.1-04` | Auditoria de fórmulas, matemática e exceções por nota `EXCECAO:` | `Core/RegrasQualidade.js`, `Features/GuardiaoQualidade.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `em_progresso` |
 | `TASK-M05.1-05` | Formatador de auditoria legível (`Ação Recomendada` e `Histórico`) | `Render/RendererAuditoriaSaude.js`, `Features/GuardiaoQualidade.js` | **PENDENTE** | - |
 | `TASK-M05.1-06` | Suíte de testes automatizados puros do Guardião e homologação | `Testes/TestGuardiao.js` | **PENDENTE** | - |
