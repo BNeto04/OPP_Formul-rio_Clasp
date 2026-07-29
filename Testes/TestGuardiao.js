@@ -48,7 +48,7 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
   let dadosColunaAM = [];
   const mapSubSheets = {};
 
-  const createRangeMock = (targetRow, targetCol, sheetDataRef) => {
+  const createRangeMock = (targetRow, targetCol, sheetDataRef, subTracker = null) => {
     const rangeObj = {
       getValues: () => sheetDataRef.values || dadosTotais,
       getFormulas: () => sheetDataRef.formulas || formulasTotais,
@@ -79,7 +79,12 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
       setFontWeight: () => rangeObj,
       setFontColor: () => rangeObj,
       setBackground: () => rangeObj,
-      setHorizontalAlignment: () => rangeObj,
+      setHorizontalAlignment: (align) => {
+        if (subTracker && subTracker.alinhamentos) {
+          subTracker.alinhamentos.push({ row: targetRow, col: targetCol, align });
+        }
+        return rangeObj;
+      },
       setVerticalAlignment: () => rangeObj,
       setFontSize: () => rangeObj,
       setFontFamily: () => rangeObj,
@@ -94,18 +99,21 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
   const getSubSheet = (name) => {
     if (!mapSubSheets[name]) {
       const subStorage = [];
+      const subTracker = { linhasCongeladas: 0, alinhamentos: [] };
       mapSubSheets[name] = {
         getName: () => name,
         getLastRow: () => subStorage.length,
         getLastColumn: () => (subStorage[0] ? subStorage[0].length : 0),
         clear: () => { subStorage.length = 0; },
-        getRange: (r, c, numR, numC) => createRangeMock(r, c, { storage: subStorage }),
+        getRange: (r, c, numR, numC) => createRangeMock(r, c, { storage: subStorage }, subTracker),
         autoResizeColumns: () => {},
         setFontWeight: () => {},
-        setFrozenRows: () => {},
+        setFrozenRows: (n) => { subTracker.linhasCongeladas = n; },
         setHiddenGridlines: () => {},
         setColumnWidth: () => {},
-        obterDadosArmazenados: () => subStorage
+        obterDadosArmazenados: () => subStorage,
+        obterLinhasCongeladas: () => subTracker.linhasCongeladas,
+        obterAlinhamentos: () => subTracker.alinhamentos
       };
     }
     return mapSubSheets[name];
@@ -611,7 +619,7 @@ test('GuardiaoQualidade: Homologação Final Offline End-to-End cobrindo 10 cen�
 });
 
 // 22. Estilização Executiva do Renderizador de Auditoria (TASK-M06.1-02)
-test('RendererAuditoriaSaude: valida paleta de severidades e formatação de [AUDITORIA] Ocorrencias', () => {
+test('RendererAuditoriaSaude: valida paleta de severidades, congelamento de painéis (linha 5) e alinhamento à esquerda das colunas 6-8', () => {
   const paleta = RendererAuditoriaSaude.PALETA_SEVERIDADES;
   assert.strictEqual(paleta['CRITICO'].fundo, '#D9534F');
   assert.strictEqual(paleta['ALERTA'].fundo, '#F0AD4E');
@@ -630,6 +638,14 @@ test('RendererAuditoriaSaude: valida paleta de severidades e formatação de [AU
   assert.ok(subLog);
   const dadosLog = subLog.obterDadosArmazenados();
   assert.strictEqual(dadosLog[5][3], 'CRITICO');
+
+  // Validação do congelamento de painéis (setFrozenRows(5))
+  assert.strictEqual(subLog.obterLinhasCongeladas(), 5);
+
+  // Validação de alinhamento à esquerda (left) das colunas 6 a 8
+  const alinhamentos = subLog.obterAlinhamentos();
+  const alignLeftCols6To8 = alinhamentos.find(a => a.row === 6 && a.col === 6 && a.align === 'left');
+  assert.ok(alignLeftCols6To8, 'As colunas 6 a 8 na linha 6 devem ter alinhamento à esquerda (left)');
 });
 
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);
