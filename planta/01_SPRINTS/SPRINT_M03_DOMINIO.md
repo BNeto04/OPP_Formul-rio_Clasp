@@ -1,8 +1,9 @@
 # Sprint M03 — Camada de Domínio (Entidades & Value Objects)
 
-> **Status:** PLANEJADA (PRONTA PARA INICIAR EXECUÇÃO)  
+> **Status:** VERIFICADO OFFLINE - Sprint 1  
 > **Ambiente:** Bancada Offline (`refactor/down-plant-gs-offline`)  
 > **Cômodo Alvo:** M03 Domínio  
+> **Data de Conclusão:** 29/07/2026  
 
 ---
 
@@ -15,19 +16,18 @@
 
 ---
 
-## 📦 Entregáveis Planejados
+## 📦 Entregáveis Concluídos
 
-- **`planta/M03_DOMINIO_INVENTARIO.md`**: Inventário mapeando entidades, responsabilidades, dependências, entradas/saídas e status.
-- **`Dominio/RegistroCanonico.js`**: Entidade canônica pura representando o fato operacional imutável.
-- **`Dominio/RegistroAnalitico.js`**: Entidade agregadora para visualizações analíticas de produtividade.
-- **`Dominio/ValueObjects/ChaveOcorrencia.js`**: Value Object imutável de identificação única de ocorrência (`data|mike|boe`).
-- **`Dominio/Policial.js`**, **`Dominio/Ocorrencia.js`**, **`Dominio/OcorrenciaFactory.js`**, **`Dominio/Equipe.js`**, **`Dominio/Arma.js`**, **`Dominio/Droga.js`**.
+- **`planta/M03_DOMINIO_INVENTARIO.md`**: Inventário completo das 9 entidades e Value Objects.
+- **`planta/M03_DOMINIO_PUREZA.md`**: Relatório de pureza garantindo 0% de acoplamento a I/O ou Apps Script.
+- **`planta/02_SPECS/M03_DOMINIO_SPEC.md`**: Especificação técnica com seção formal de Invariantes do Domínio.
+- **`Testes/TestDominio.js`**: Cobertura expandida para 15 testes do Domínio (29 testes no total da suíte integral, todos aprovados).
 
 ---
 
-## 🟢 Critérios de Aceite da Sprint
+## 🟢 Critérios de Aceite Atendidos
 
-- [ ] Inventário das 9 entidades e Value Objects concluído e documentado.
-- [ ] Nenhuma classe do Domínio depende do `SpreadsheetApp` ou `Google Apps Script`.
-- [ ] Todos os dados necessários para o M06 aplicar as formatações visuais (cores por pelotão, escala de armas) são preservados na transição.
-- [ ] 25/25 testes unitários continuam passando com 100% de sucesso.
+- [x] Inventário das 9 entidades e Value Objects concluído e documentado.
+- [x] Nenhuma classe do Domínio depende do `SpreadsheetApp` ou `Google Apps Script` (0% de acoplamento).
+- [x] Todos os dados necessários para o M06 aplicar as formatações visuais (cores por pelotão, escala de armas, `eventoPontuavel`) são preservados sem perdas.
+- [x] Suíte integral de 29/29 testes unitários passando com 100% de sucesso.
