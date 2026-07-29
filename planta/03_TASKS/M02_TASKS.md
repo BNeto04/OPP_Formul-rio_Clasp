@@ -8,7 +8,7 @@
 
 | ID | Tarefa | Arquivo(s) Afetado(s) | Status | Commit |
 | :--- | :--- | :--- | :--- | :--- |
-| `TASK-M02.1-01` | Inventariar e analisar funções de leitura | `planta/M02_LEITURA_INVENTARIO.md` | **CONCLUÍDA** | `a1b2c3d` |
+| `TASK-M02.1-01` | Inventariar e analisar funções de leitura | `planta/M02_LEITURA_INVENTARIO.md` | **CONCLUÍDA** | `e171759` |
 | `TASK-M02.1-02` | Mapear e refatorar `Core/LeitorPlanilhas.js` para abstrair acesso a `SpreadsheetApp` | `Core/LeitorPlanilhas.js` | **PENDENTE** | - |
 | `TASK-M02.1-03` | Submeter `SS_ID` hardcoded à centralização de configuração | `Core/Config.js`, `Entrada/EntradaManual.js` | **PENDENTE** | - |
 | `TASK-M02.1-04` | Padronizar busca flexível de colunas por apelidos/aliases de cabeçalho | `Leitura/Adaptador2026.js` | **PENDENTE** | - |
