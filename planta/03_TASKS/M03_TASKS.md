@@ -16,7 +16,7 @@
 
 | ID | Tarefa | Arquivo(s) Afetado(s) | Status | Commit |
 | :--- | :--- | :--- | :--- | :--- |
-| `TASK-M03.1-01` | Inventário detalhado das entidades e Value Objects | `planta/M03_DOMINIO_INVENTARIO.md` | **CONCLUÍDA** | `em_progresso` |
+| `TASK-M03.1-01` | Inventário detalhado das entidades e Value Objects | `planta/M03_DOMINIO_INVENTARIO.md` | **CONCLUÍDA** | `a01d1b9` |
 | `TASK-M03.1-02` | Auditar pureza de `Dominio/RegistroCanonico.js` e `Dominio/RegistroAnalitico.js` | `Dominio/RegistroCanonico.js`, `Dominio/RegistroAnalitico.js` | **PENDENTE** | - |
 | `TASK-M03.1-03` | Validar imutabilidade e testes de `Dominio/ValueObjects/ChaveOcorrencia.js` | `Dominio/ValueObjects/ChaveOcorrencia.js` | **PENDENTE** | - |
 | `TASK-M03.1-04` | Auditar entidades secundárias (`Policial`, `Ocorrencia`, `Equipe`, `Arma`, `Droga`) | `Dominio/*.js` | **PENDENTE** | - |
