@@ -106,6 +106,95 @@ class RegrasQualidade {
     return alertas;
   }
 
+  static validarDataMike(data, mike, linha, tunel) {
+    if (!data || !mike) return null;
+    const somenteNumeros = String(mike).replace(/\D/g, '');
+    if (somenteNumeros.length < 8) return null; // Não exige tamanho fixo de MIKE
+
+    let diaData = 0, mesData = 0, anoData = 0;
+    if (data instanceof Date && !isNaN(data.getTime())) {
+      diaData = data.getDate();
+      mesData = data.getMonth() + 1;
+      anoData = data.getFullYear();
+    } else {
+      const matchData = String(data).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (matchData) {
+        diaData = parseInt(matchData[1], 10);
+        mesData = parseInt(matchData[2], 10);
+        anoData = parseInt(matchData[3], 10);
+      }
+    }
+
+    if (!anoData || !mesData || !diaData) return null;
+
+    // Se o MIKE começa no padrão YYYYMMDD (ex: 20260715...)
+    const mikeAno = parseInt(somenteNumeros.substring(0, 4), 10);
+    const mikeMes = parseInt(somenteNumeros.substring(4, 6), 10);
+    const mikeDia = parseInt(somenteNumeros.substring(6, 8), 10);
+
+    if (mikeAno >= 2020 && mikeAno <= 2030 && mikeMes >= 1 && mikeMes <= 12 && mikeDia >= 1 && mikeDia <= 31) {
+      if (mikeAno !== anoData || mikeMes !== mesData || mikeDia !== diaData) {
+        return RegrasQualidade.criarDiagnostico({
+          severidade: SEVERIDADES_GUARDIAO.ALERTA,
+          codigoRegra: 'MIKE_DATA_DIVERGENTE',
+          linha,
+          tunel,
+          diagnostico: 'Divergência entre data da planilha e estrutura temporal do MIKE.',
+          evidencia: `DATA na coluna: ${String(diaData).padStart(2,'0')}/${String(mesData).padStart(2,'0')}/${anoData} | Data no MIKE: ${String(mikeDia).padStart(2,'0')}/${String(mikeMes).padStart(2,'0')}/${mikeAno}`,
+          acaoRecomendada: 'Confirme a data e o MIKE da ocorrência para sanar a incompatibilidade cronológica.'
+        });
+      }
+    }
+
+    return null;
+  }
+
+  static validarCoerenciaCruzadaMikes(mikesMapa) {
+    const diagnosticos = [];
+    Object.values(mikesMapa).forEach(entry => {
+      if (entry.boes.size > 1) {
+        entry.linhas.forEach(item => {
+          diagnosticos.push(RegrasQualidade.criarDiagnostico({
+            severidade: SEVERIDADES_GUARDIAO.ALERTA,
+            codigoRegra: 'MIKE_BOE_DIVERGENTE',
+            linha: item.linha,
+            tunel: item.chave,
+            diagnostico: `Mesmo MIKE (${entry.mike}) associado a BOEs diferentes: ${Array.from(entry.boes).join(', ')}.`,
+            evidencia: `MIKE: ${entry.mike} | BOEs encontrados: ${Array.from(entry.boes).join(', ')}`,
+            acaoRecomendada: 'Confirme o BOE: o mesmo MIKE aparece associado a códigos de ocorrência/BOE diferentes.'
+          }));
+        });
+      }
+
+      if (entry.datas.size > 1) {
+        entry.linhas.forEach(item => {
+          diagnosticos.push(RegrasQualidade.criarDiagnostico({
+            severidade: SEVERIDADES_GUARDIAO.ALERTA,
+            codigoRegra: 'MIKE_DATAS_DIVERGENTES',
+            linha: item.linha,
+            tunel: item.chave,
+            diagnostico: `Mesmo MIKE (${entry.mike}) utilizado em datas incompatíveis: ${Array.from(entry.datas).join(', ')}.`,
+            evidencia: `MIKE: ${entry.mike} | Datas encontradas: ${Array.from(entry.datas).join(', ')}`,
+            acaoRecomendada: 'Verifique a data da ocorrência: o mesmo MIKE foi registrado em datas diferentes.'
+          }));
+        });
+      }
+    });
+    return diagnosticos;
+  }
+
+  static indicadorConhecido(indicador) {
+    if (!indicador) return true;
+    const norm = typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(indicador) : String(indicador).toUpperCase().trim();
+    const padroesConhecidos = [
+      'PORTE', 'POSSE', 'TRAFICO', 'CUMPRIMENTO', 'MANDADO', 'MACONHA', 'CRACK',
+      'COCAINA', 'ARMA', 'MUNICAO', 'VEICULO', 'RECUPERADO', 'DETENCAO', 'PRISAO',
+      'APFD', 'TCO', 'BOC', 'AAFAI', 'HOMICIDIO', 'ROUBO', 'FURTO', 'RECEPTACAO',
+      'FLAGRANTE', 'OCORRENCIA PIP'
+    ];
+    return padroesConhecidos.some(p => norm.includes(p));
+  }
+
   static localizarColunasCalculadas(headers) {
     const colunas = [
       { nome: 'TOTAL DE MACONHA', indicePadrao: 18, aliases: ['TOTAL DE MACONHA'] },

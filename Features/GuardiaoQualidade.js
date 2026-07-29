@@ -44,6 +44,7 @@ class GuardiaoQualidade {
 
     const alertasPorLinha = Array.from({ length: lastRow - 1 }, () => []);
     const tuneis = {};
+    const mikesMapa = {};
 
     for (let i = 1; i < dados.length; i++) {
       const row = dados[i];
@@ -80,8 +81,18 @@ class GuardiaoQualidade {
             acaoRecomendada: 'Preencha o MIKE completo da ocorrência; a linha possui participação ou evento registrado.'
           }));
         }
+        // Plantão tranquilo (linha com apenas data, sem MIKE, sem policial, sem fato) é permitido sem alerta
         continue;
       }
+
+      // Mapeamento cruzado do MIKE para validações entre linhas da planilha
+      if (!mikesMapa[mike]) {
+        mikesMapa[mike] = { mike, boes: new Set(), datas: new Set(), linhas: [] };
+      }
+      if (boe) mikesMapa[mike].boes.add(boe);
+      const dataFormatada = chave.split('|')[0];
+      if (dataFormatada) mikesMapa[mike].datas.add(dataFormatada);
+      mikesMapa[mike].linhas.push({ linha, boe, dataTexto: dataFormatada, chave });
 
       if (RegrasQualidade.mikeSuspeito(mike)) {
         alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
@@ -93,6 +104,11 @@ class GuardiaoQualidade {
           evidencia: `MIKE lido: "${mike}"`,
           acaoRecomendada: 'Confirme o MIKE: número formatado ou tamanho de dígitos fora do padrão.'
         }));
+      }
+
+      const diagDataMike = RegrasQualidade.validarDataMike(data, mike, linha, chave);
+      if (diagDataMike) {
+        alertasPorLinha[i - 1].push(diagDataMike);
       }
 
       if (indicador && !imputado) {
@@ -131,6 +147,18 @@ class GuardiaoQualidade {
         }));
       }
 
+      if (indicador && !RegrasQualidade.indicadorConhecido(indicador)) {
+        alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
+          severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.OBSERVACAO : 'OBSERVACAO',
+          codigoRegra: 'INDICADOR_DESCONHECIDO',
+          linha,
+          tunel: chave,
+          diagnostico: `Indicador PIP não mapeado na tabela padrão: "${indicador}". Registrado como observação.`,
+          evidencia: `Indicador: "${indicador}"`,
+          acaoRecomendada: 'Verifique se o indicador está correto ou se necessita inclusão na Tabela PIP.'
+        }));
+      }
+
       if (policial && !matricula) {
         alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
           severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
@@ -149,12 +177,20 @@ class GuardiaoQualidade {
       RegrasQualidade.acumularLinhaTunel(tuneis[chave], row, idx, linha, indicador);
     }
 
+    // Validações por túnel (fatos vs indicadores)
     Object.values(tuneis).forEach(tunel => {
       RegrasQualidade.validarTunel(tunel).forEach(diag => {
         if (diag.linha >= 2 && diag.linha - 2 < alertasPorLinha.length) {
           alertasPorLinha[diag.linha - 2].push(diag);
         }
       });
+    });
+
+    // Validações de coerência cruzada de MIKEs (BOEs e Datas conflitantes entre linhas)
+    RegrasQualidade.validarCoerenciaCruzadaMikes(mikesMapa).forEach(diag => {
+      if (diag.linha >= 2 && diag.linha - 2 < alertasPorLinha.length) {
+        alertasPorLinha[diag.linha - 2].push(diag);
+      }
     });
 
     const saida = alertasPorLinha.map(diagnosticos => {
