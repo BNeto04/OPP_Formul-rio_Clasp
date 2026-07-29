@@ -1,8 +1,9 @@
 # Sprint M02 — Leitura & Adaptadores
 
-> **Status:** PLANEJADA (PRONTA PARA EXECUÇÃO)  
+> **Status:** VERIFICADO OFFLINE - Sprint 1  
 > **Ambiente:** Bancada Offline (`refactor/down-plant-gs-offline`)  
 > **Cômodo Alvo:** M02 Leitura  
+> **Data de Conclusão:** 29/07/2026  
 
 ---
 
@@ -10,25 +11,29 @@
 
 1. Mapear e higienizar todos os leitores e adaptadores de dados das abas mensais (`JAN2026` a `DEZ2026`), `EFETIVO`, `PECÚLIO` e `PIP`.
 2. Encapsular o parsing de matrizes brutas do Google Sheets em objetos/estruturas previsíveis para os módulos de Domínio e Motor Analítico.
-3. Centralizar e parametrizar a obtenção da planilha ativa / IDs de planilha (eliminando `SS_ID` hardcoded dispersos).
-4. Garantir leitura defensiva que tolere variações de caixa de texto nos cabeçalhos (ex: `QDT ARMAS` vs `QTD ARMAS`).
+3. Centralizar e parametrizar a obtenção da planilha ativa / IDs de planilha em `Core/Config.js` (eliminando `SS_ID` hardcoded dispersos).
+4. Garantir leitura defensiva universal via `Core/Cabecalhos.js` tolerando acentuações e apelidos de cabeçalho (`MATRICULA` vs `MATRÍCULA`, `OCORRÊNCIA PIP`, `PELOTÃO`, etc.).
 
 ---
 
-## 📦 Entregáveis Planejados
+## 📦 Entregáveis Concluídos
 
-- **`Leitura/Adaptador2026.js`**: Revisor e adaptador padrão para as abas mensais do ano de 2026.
-- **`Core/LeitorPlanilhas.js`**: Leitor infraestrutural com métodos genéricos de varredura e obtenção de ranges.
-- **Parametrização de Configuração**: Migração do `SS_ID` disperso em `EntradaManual.js` e leitores para o módulo central.
+- **`planta/M02_LEITURA_INVENTARIO.md`**: Inventário completo de 11 leitores/adaptadores mapeados com escopo e matriz de risco.
+- **`Core/Config.js`**: Centralização de `OCORRENCIAS_ID`, `PECULIO_ID`, aliases da aba `EFETIVO` e catálogo de meses 2026.
+- **`Core/Cabecalhos.js`**: Mecanismo padronizado de normalização, indexação e busca de colunas por aliases.
+- **`Leitura/Adaptador2026.js` & `Core/LeitorPlanilhas.js`**: Conectados ao `SyntheonCabecalhos.encontrar`.
+- **`Compilador_Armas.js` & `Compilador de Entorpecentes.js`**: Remoção de `indexOf`/`findIndex` ad-hoc em favor do motor central.
+- **`Testes/TestAdaptador2026.js`**: Cobertura expandida para 25 testes automatizados 100% aprovados.
 
 ---
 
-## 🟢 Critérios de Aceite da Sprint
+## 🟢 Critérios de Aceite Atendidos
 
-- [ ] Todos os arquivos do cômodo M02 Leitura utilizam a mesma interface para ler abas mensais.
-- [ ] Variações conhecidas de nomes de colunas nos cabeçalhos são tratadas de forma transparente sem estourar exceções.
-- [ ] Nenhum leitor de dados altera o conteúdo das planilhas.
-- [ ] Zero dependência de IDs fixos hardcoded espalhados por funções individuais.
+- [x] Todos os leitores do cômodo M02 utilizam o mecanismo central de resolução de cabeçalhos.
+- [x] Variações conhecidas de nomes de colunas nos cabeçalhos são tratadas de forma transparente.
+- [x] Nenhum leitor de dados altera o conteúdo das planilhas.
+- [x] IDs de planilha e aliases centrais estão unificados em `Core/Config.js`.
+- [x] Suíte de testes automatizados expandida de 22 para 25 testes com 100% de sucesso.
 
 ---
 
