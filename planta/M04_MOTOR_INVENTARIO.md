@@ -32,3 +32,4 @@ Foi verificado que o Motor Analítico V2 e seus plugins não truncam nem alteram
 - **Zero acoplamento a I/O e GAS:** Nenhum arquivo em `Motor/`, `Plugins/` ou `Core/` (relacionado ao Motor) invoca `SpreadsheetApp` ou APIs de planilha.
 - **Orquestração Desacoplada:** O pipeline de plugins permite adicionar ou alterar regras de métricas sem tocar no core do motor.
 - **Testabilidade Total:** Toda a família do Motor V2 executa diretamente no Node.js via `Testes/TestPlugins.js` e `Testes/TestCentralAnalitica.js`.
+- **Relatório Completo de Pureza:** Ver [planta/M04_MOTOR_PUREZA.md](file:///C:/Users/Bneto04/Documents/Codex/syntheon-gs-downplant-offline/planta/M04_MOTOR_PUREZA.md).
