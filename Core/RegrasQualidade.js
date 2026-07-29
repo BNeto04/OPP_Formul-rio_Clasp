@@ -40,6 +40,8 @@ class RegrasQualidade {
 
   static validarTunel(tunel) {
     const alertas = [];
+
+    // 1. Validação Fatos Físicos vs Indicadores
     tunel.eventos.forEach(evento => {
       const indicador = typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(evento.indicador) : String(evento.indicador).toUpperCase();
 
@@ -103,7 +105,6 @@ class RegrasQualidade {
         }));
       }
 
-      // Validação de casos não auditáveis automaticamente (ex: Numerário sem valor cadastrado)
       if (indicador.includes('NUMERARIO') || indicador.includes('DINHEIRO')) {
         if (tunel.fatos.numerario <= 0) {
           alertas.push(RegrasQualidade.criarDiagnostico({
@@ -119,22 +120,50 @@ class RegrasQualidade {
       }
     });
 
-    // Validação matemática do Rateio de PONTOS FICÇÃO no túnel
+    // 2. Validação Matemática do Rateio de PONTOS FICÇÃO por Túnel
+    // Regra: Somar os PONTOS TOTAIS de cada fato válido no túnel (sem usar Math.max)
     const qtdPoliciaisDistintos = tunel.matriculas ? tunel.matriculas.size : 0;
-    if (qtdPoliciaisDistintos > 0 && tunel.pontosTotais > 0 && tunel.pontosFiccaoLido > 0) {
-      const esperado = tunel.pontosTotais / qtdPoliciaisDistintos;
-      const diff = Math.abs(tunel.pontosFiccaoLido - esperado);
-      if (diff > 0.01) {
-        alertas.push(RegrasQualidade.criarDiagnostico({
-          severidade: SEVERIDADES_GUARDIAO.ALERTA,
-          codigoRegra: 'RATEIO_PONTOS_INCOERENTE',
-          linha: tunel.linhaPrincipal || (tunel.eventos[0] ? tunel.eventos[0].linha : 0),
-          tunel: tunel.chave,
-          diagnostico: 'Rateio de PONTOS FICÇÃO incoerente com a quantidade de policiais distintos no túnel.',
-          evidencia: `Pontos Totais do túnel: ${tunel.pontosTotais} | Policiais distintos: ${qtdPoliciaisDistintos} | Rateio lido: ${tunel.pontosFiccaoLido} | Rateio esperado: ${esperado.toFixed(2)}`,
-          acaoRecomendada: 'Revise a fórmula de PONTOS FICÇÃO: o valor divergiu da divisão da pontuação pelo número de policiais distintos do túnel.'
-        }));
+    
+    // Calcula o total do túnel somando os pontos dos fatos únicos/válidos no túnel
+    const pontosFatosUnicos = new Map();
+    tunel.linhasFatos.forEach(lf => {
+      if (lf.pontosTotaisLido > 0) {
+        const chaveFato = lf.indicador ? `${lf.indicador}_${lf.pontosTotaisLido}` : `FATO_${lf.pontosTotaisLido}`;
+        if (!pontosFatosUnicos.has(chaveFato)) {
+          pontosFatosUnicos.set(chaveFato, lf.pontosTotaisLido);
+        }
       }
+    });
+
+    let totalPontosTunel = 0;
+    pontosFatosUnicos.forEach(p => { totalPontosTunel += p; });
+
+    // Fallback: se não houver fatos catalogados por chave, usa a soma direta dos pontos positivos
+    if (totalPontosTunel === 0 && tunel.linhasFatos.length > 0) {
+      const valoresUnicos = Array.from(new Set(tunel.linhasFatos.map(lf => lf.pontosTotaisLido).filter(p => p > 0)));
+      totalPontosTunel = valoresUnicos.reduce((a, b) => a + b, 0);
+    }
+
+    if (qtdPoliciaisDistintos > 0 && totalPontosTunel > 0) {
+      const rateioEsperado = totalPontosTunel / qtdPoliciaisDistintos;
+
+      // Valida CADA valor de PONTOS FICÇÃO preenchido nas linhas do túnel
+      tunel.linhasFatos.forEach(lf => {
+        if (lf.pontosFiccaoLido > 0) {
+          const diff = Math.abs(lf.pontosFiccaoLido - rateioEsperado);
+          if (diff > 0.01) {
+            alertas.push(RegrasQualidade.criarDiagnostico({
+              severidade: SEVERIDADES_GUARDIAO.ALERTA,
+              codigoRegra: 'RATEIO_PONTOS_INCOERENTE',
+              linha: lf.linha,
+              tunel: tunel.chave,
+              diagnostico: 'Rateio de PONTOS FICÇÃO incoerente com a quantidade de policiais distintos no túnel.',
+              evidencia: `Pontos Totais do túnel: ${totalPontosTunel} | Policiais distintos: ${qtdPoliciaisDistintos} | Rateio lido na linha: ${lf.pontosFiccaoLido} | Rateio esperado: ${rateioEsperado.toFixed(2)}`,
+              acaoRecomendada: 'Revise a fórmula de PONTOS FICÇÃO: o valor divergiu da divisão da pontuação total pelo número de policiais distintos do túnel.'
+            }));
+          }
+        }
+      });
     }
 
     return alertas;
@@ -216,16 +245,32 @@ class RegrasQualidade {
     return diagnosticos;
   }
 
-  static indicadorConhecido(indicador) {
+  /**
+   * Consulta o catálogo dinâmico da Tabela PIP ou fallback seguro.
+   */
+  static indicadorConhecido(indicador, catalogoExterno = null) {
     if (!indicador) return true;
     const norm = typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(indicador) : String(indicador).toUpperCase().trim();
-    const catalogoPIP = [
+
+    // 1. Se um catálogo dinâmico for fornecido (ex: Tabela PIP ou CONSTANTES_SYNTHEON), usa-o como fonte principal
+    let catalogo = catalogoExterno;
+    if (!catalogo && typeof CONSTANTES_SYNTHEON !== 'undefined' && CONSTANTES_SYNTHEON.CATALOGO_PIP) {
+      catalogo = CONSTANTES_SYNTHEON.CATALOGO_PIP;
+    }
+
+    if (Array.isArray(catalogo) && catalogo.length > 0) {
+      const normCat = catalogo.map(c => typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(c) : String(c).toUpperCase().trim());
+      return normCat.some(item => norm.includes(item) || item.includes(norm));
+    }
+
+    // Fallback seguro caso nenhum catálogo externo esteja disponível
+    const fallbackPadrao = [
       'PORTE', 'POSSE', 'TRAFICO', 'CUMPRIMENTO', 'MANDADO', 'MACONHA', 'CRACK',
       'COCAINA', 'ARMA', 'MUNICAO', 'VEICULO', 'RECUPERADO', 'DETENCAO', 'PRISAO',
       'APFD', 'TCO', 'BOC', 'AAFAI', 'HOMICIDIO', 'ROUBO', 'FURTO', 'RECEPTACAO',
       'FLAGRANTE', 'NUMERARIO', 'DINHEIRO', 'VALOR', 'MOEDA', 'OCORRENCIA PIP'
     ];
-    return catalogoPIP.some(p => norm.includes(p));
+    return fallbackPadrao.some(p => norm.includes(p));
   }
 
   static localizarColunasCalculadas(headers) {
@@ -288,9 +333,7 @@ class RegrasQualidade {
       chave,
       fatos: { armas: 0, municao: 0, maconha: 0, crack: 0, cocaina: 0, numerario: 0 },
       matriculas: new Set(),
-      pontosTotais: 0,
-      pontosFiccaoLido: 0,
-      linhaPrincipal: 0,
+      linhasFatos: [],
       eventos: []
     };
   }
@@ -311,18 +354,15 @@ class RegrasQualidade {
     }
 
     const pontosTotaisLido = idx.pontosTotais !== -1 ? RegrasQualidade.numero(row[idx.pontosTotais]) : 0;
-    if (pontosTotaisLido > tunel.pontosTotais) {
-      tunel.pontosTotais = pontosTotaisLido;
-    }
-
     const pontosFiccaoLido = idx.pontosFiccao !== -1 ? RegrasQualidade.numero(row[idx.pontosFiccao]) : 0;
-    if (pontosFiccaoLido > tunel.pontosFiccaoLido) {
-      tunel.pontosFiccaoLido = pontosFiccaoLido;
-    }
 
-    if (!tunel.linhaPrincipal) {
-      tunel.linhaPrincipal = linha;
-    }
+    tunel.linhasFatos.push({
+      linha,
+      matricula,
+      pontosTotaisLido,
+      pontosFiccaoLido,
+      indicador
+    });
 
     if (indicador) {
       tunel.eventos.push({ linha, indicador });

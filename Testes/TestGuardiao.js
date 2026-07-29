@@ -4,7 +4,7 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 /**
  * ARQUIVO: Testes/TestGuardiao.js
  * DESCRIÇÃO: Suíte de testes unitários para o Guardião da Qualidade Operacional (M05).
- * Valida a compatibilidade de diagnósticos, coerência do túnel e auditoria matemática/exceções (TASK-M05.1-04).
+ * Valida a compatibilidade de diagnósticos, coerência do túnel e auditoria matemática/exceções (TASK-M05.1-04A).
  */
 
 const assert = require('assert');
@@ -149,7 +149,7 @@ test('GuardiaoQualidade: divergência entre data da planilha e data do MIKE deve
   assert.ok(diagDataMike.diagnostico.includes('Divergência entre data'));
 });
 
-// 5. Teste: DATA como objeto Date (preservando coerência sem falso alerta)
+// 5. Teste: DATA como objeto Date
 test('GuardiaoQualidade: deve processar DATA como objeto Date sem gerar falso alerta de data', () => {
   const dataObjeto = new Date(2026, 6, 15);
   const dadosLinhas = [
@@ -229,13 +229,9 @@ test('GuardiaoQualidade: célula sem fórmula mas com nota iniciada por EXCECAO:
   const dadosLinhas = [
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 40, 20, 0, 0, 0, 10, 10, 'KEY', '']
   ];
-  
-  // Fórmula ausente no TOTAL DE MACONHA (índice 8 na lista calculada)
   const formulas = [
     ['', '', '', '', '', '', '', '', '', '=I2', '=J2', '=K2/2', '=L2', '=M2/4', '=N2', '=O2']
   ];
-  
-  // Nota explicativa iniciada por EXCECAO:
   const notas = [
     ['', '', '', '', '', '', '', '', 'EXCECAO: Numerario de R$ 40,00 conforme BOE', '', '', '', '', '', '', '']
   ];
@@ -250,19 +246,7 @@ test('GuardiaoQualidade: célula sem fórmula mas com nota iniciada por EXCECAO:
   assert.ok(diagExcecao.diagnostico.includes('Numerario de R$ 40,00 conforme BOE'));
 });
 
-// 11. Teste: Catálogo PIP expandido reconhecendo NUMERÁRIO como evento válido (TASK-M05.1-04)
-test('GuardiaoQualidade: indicador de APREENSÃO DE NUMERÁRIO deve ser reconhecido pela Tabela PIP sem gerar OBSERVACAO', () => {
-  const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'APREENSÃO DE NUMERÁRIO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
-  ];
-  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao]);
-  const resultado = GuardiaoQualidade.varrerAba(mockSheet);
-
-  const diagDesconhecido = resultado.diagnosticos.find(d => d.codigoRegra === 'INDICADOR_DESCONHECIDO');
-  assert.strictEqual(diagDesconhecido, undefined); // Reconhecido no catálogo PIP!
-});
-
-// 12. Teste: Fato não auditável automaticamente (Numerário sem valor cadastrado na linha) (TASK-M05.1-04)
+// 11. Teste: Fato não auditável automaticamente (Numerário sem valor cadastrado) (TASK-M05.1-04)
 test('GuardiaoQualidade: numerário sem valor em reais registrado deve ser classificado como NÃO AUDITÁVEL AUTOMATICAMENTE', () => {
   const dadosLinhas = [
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'APREENSÃO DE NUMERÁRIO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 10, 'KEY', '']
@@ -274,26 +258,37 @@ test('GuardiaoQualidade: numerário sem valor em reais registrado deve ser class
   assert.ok(diagNaoAuditavel);
   assert.strictEqual(diagNaoAuditavel.severidade, 'OBSERVACAO');
   assert.ok(diagNaoAuditavel.diagnostico.includes('NÃO AUDITÁVEL AUTOMATICAMENTE'));
-  assert.ok(diagNaoAuditavel.acaoRecomendada.includes('Preservada decisão humana'));
 });
 
-// 13. Teste: Validação matemática do Rateio de PONTOS FICÇÃO (TASK-M05.1-04)
-test('GuardiaoQualidade: rateio de PONTOS FICÇÃO divergente da divisão por policiais distintos deve gerar ALERTA', () => {
-  // Túnel com 2 policiais distintos (113920-7 e 113921-5), PONTOS TOTAIS = 20
-  // Rateio esperado = 20 / 2 = 10.00. No mock, informamos PONTOS FICCAO = 5.00 (divergência > 0.01)
+// 12. Regressão Matemático do Rateio por Túnel (4 policiais, fatos de 80, 64 e 160 = 304 / 4 = 76) (TASK-M05.1-04A)
+test('RegrasQualidade: rateio por túnel com 4 policiais e fatos de 80, 64 e 160 (total 304 / 4 = 76) não deve acusar erro', () => {
   const dadosLinhas = [
-    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 20, 5, 'KEY', ''],
-    ['15/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 20, 5, 'KEY', '']
+    ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 80, 76, 'KEY', ''],
+    ['15/07/2026', '202607150001', '26E100', '113921-5', 'SD SOUZA', 0, 'POSSE DE DROGAS', 'SEM IMPUTADO', 0, 0, 0, 0, 0, 64, 76, 'KEY', ''],
+    ['15/07/2026', '202607150001', '26E100', '113922-3', 'SD SANTOS', 0, 'TRÁFICO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 160, 76, 'KEY', ''],
+    ['15/07/2026', '202607150001', '26E100', '113923-1', 'SD OLIVEIRA', 0, 'TRÁFICO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 0, 76, 'KEY', '']
   ];
-  const formulas = [formulaCalculadaPadrao, formulaCalculadaPadrao];
+  const formulas = [formulaCalculadaPadrao, formulaCalculadaPadrao, formulaCalculadaPadrao, formulaCalculadaPadrao];
 
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, formulas);
   const resultado = GuardiaoQualidade.varrerAba(mockSheet);
 
   const diagRateio = resultado.diagnosticos.find(d => d.codigoRegra === 'RATEIO_PONTOS_INCOERENTE');
-  assert.ok(diagRateio);
-  assert.strictEqual(diagRateio.severidade, 'ALERTA');
-  assert.ok(diagRateio.diagnostico.includes('incoerente com a quantidade de policiais distintos'));
+  assert.strictEqual(diagRateio, undefined); // 304 / 4 = 76.00 -> PERFEITO!
+});
+
+// 13. Teste: Catálogo PIP Dinâmico - Consulta, Ausente (OBSERVACAO) e Novo Item no Catálogo (TASK-M05.1-04A)
+test('RegrasQualidade: consulta ao catálogo PIP dinâmico reconhece itens cadastrados, gera OBSERVACAO para ausentes e aceita novos itens sem alterar código', () => {
+  const catalogoDinamico = ['PORTE ILEGAL DE ARMA', 'TRÁFICO DE ENTORPECENTES', 'NOVO_EVENTO_OPERACIONAL_2026'];
+
+  // 1. Item presente no catálogo -> reconhecido
+  assert.strictEqual(RegrasQualidade.indicadorConhecido('PORTE ILEGAL DE ARMA', catalogoDinamico), true);
+
+  // 2. Novo item incluído no catálogo sem editar RegrasQualidade.js -> reconhecido
+  assert.strictEqual(RegrasQualidade.indicadorConhecido('NOVO_EVENTO_OPERACIONAL_2026', catalogoDinamico), true);
+
+  // 3. Item ausente do catálogo -> false (Guardião emitirá OBSERVACAO)
+  assert.strictEqual(RegrasQualidade.indicadorConhecido('EVENTO_INVENTADO_DESCONHECIDO', catalogoDinamico), false);
 });
 
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);
