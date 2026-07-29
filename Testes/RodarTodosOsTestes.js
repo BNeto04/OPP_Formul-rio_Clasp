@@ -14,6 +14,8 @@ require('./TestDominio');
 console.log('');
 require('./TestPlugins');
 console.log('');
+require('./TestMotorAnaliticoRegressao');
+console.log('');
 require('./TestAdaptador2026');
 console.log('');
 require('./TestCentralAnalitica');
