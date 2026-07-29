@@ -11,6 +11,28 @@ class GuardiaoQualidade {
       return { alertas: 0, linhas: 0, tuneis: 0, diagnosticos: [] };
     }
 
+    // Leitura do catálogo da Tabela PIP
+    let catalogoPIP = null;
+    let modoLimitadoPIP = false;
+    if (sheet && typeof sheet.getParent === 'function') {
+      try {
+        const parent = sheet.getParent();
+        if (parent && typeof parent.getSheetByName === 'function') {
+          const abaPIP = parent.getSheetByName('Tabela PIP');
+          if (abaPIP) {
+            const valsPIP = abaPIP.getDataRange().getValues();
+            catalogoPIP = valsPIP.slice(1).map(r => String(r[0] || '').trim()).filter(Boolean);
+          }
+        }
+      } catch (e) {
+        catalogoPIP = null;
+      }
+    }
+
+    if (catalogoPIP === null) {
+      modoLimitadoPIP = true;
+    }
+
     const rangeDados = sheet.getRange(1, 1, lastRow, lastCol);
     const dados = rangeDados.getValues();
     const formulas = rangeDados.getFormulas();
@@ -51,6 +73,17 @@ class GuardiaoQualidade {
     const alertasPorLinha = Array.from({ length: lastRow - 1 }, () => []);
     const tuneis = {};
     const mikesMapa = {};
+
+    if (modoLimitadoPIP && alertasPorLinha.length > 0) {
+      alertasPorLinha[0].push(RegrasQualidade.criarDiagnostico({
+        severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.OBSERVACAO : 'OBSERVACAO',
+        codigoRegra: 'MODO_LIMITADO_CATALOGO_PIP',
+        linha: 2,
+        diagnostico: 'Aba "Tabela PIP" não encontrada no arquivo. Auditoria de indicadores operando em modo limitado.',
+        evidencia: 'Catálogo PIP indisponível',
+        acaoRecomendada: 'Certifique-se de que a aba Tabela PIP esteja presente na planilha para validação de indicadores.'
+      }));
+    }
 
     for (let i = 1; i < dados.length; i++) {
       const row = dados[i];
@@ -124,7 +157,7 @@ class GuardiaoQualidade {
           tunel: chave,
           diagnostico: 'Evento incompleto: AG preenchido sem IMPUTADO?.',
           evidencia: `OCORRÊNCIA PIP (AG): "${indicador}" | IMPUTADO? (AH): vazio`,
-          acaoRecomendada: 'Revise AG/AH: o evento foi declared sem definir COM IMPUTADO ou SEM IMPUTADO em AH.'
+          acaoRecomendada: 'Revise AG/AH: o evento foi declarado sem definir COM IMPUTADO ou SEM IMPUTADO em AH.'
         }));
       }
 
@@ -152,7 +185,7 @@ class GuardiaoQualidade {
         }));
       }
 
-      if (indicador && !RegrasQualidade.indicadorConhecido(indicador)) {
+      if (indicador && !RegrasQualidade.indicadorConhecido(indicador, catalogoPIP)) {
         alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
           severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.OBSERVACAO : 'OBSERVACAO',
           codigoRegra: 'INDICADOR_DESCONHECIDO',

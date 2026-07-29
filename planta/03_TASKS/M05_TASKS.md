@@ -1,6 +1,6 @@
 # Mapeamento de Tarefas — Cômodo M05 Guardião da Qualidade
 
-> **Status Geral do Cômodo:** EM EXECUÇÃO (TASK-M05.1-01 a TASK-M05.1-04A CONCLUÍDAS)  
+> **Status Geral do Cômodo:** EM EXECUÇÃO (TASK-M05.1-01 a TASK-M05.1-04B CONCLUÍDAS)  
 
 ---
 
@@ -22,5 +22,6 @@
 | `TASK-M05.1-03A` | Testes complementares para AH sem AG, MIKE com datas divergentes e objeto Date | `Testes/TestGuardiao.js` | **CONCLUÍDA** | `ecff70a` |
 | `TASK-M05.1-04` | Auditoria de fórmulas, matemática e exceções por nota `EXCECAO:` | `Core/RegrasQualidade.js`, `Features/GuardiaoQualidade.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `e89747e` |
 | `TASK-M05.1-04A` | Correção da validação matemática do rateio (soma de fatos) e consulta dinâmica ao catálogo PIP | `Core/RegrasQualidade.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `09d1973` |
+| `TASK-M05.1-04B` | Integração real do catálogo PIP via aba e cobertura de rateio zerado | `Core/RegrasQualidade.js`, `Features/GuardiaoQualidade.js`, `Testes/TestGuardiao.js` | **CONCLUÍDA** | `em_progresso` |
 | `TASK-M05.1-05` | Formatador de auditoria legível (`Ação Recomendada` e `Histórico`) | `Render/RendererAuditoriaSaude.js`, `Features/GuardiaoQualidade.js` | **PENDENTE** | - |
 | `TASK-M05.1-06` | Suíte de testes automatizados puros do Guardião e homologação | `Testes/TestGuardiao.js` | **PENDENTE** | - |

@@ -121,7 +121,6 @@ class RegrasQualidade {
     });
 
     // 2. Validação Matemática do Rateio de PONTOS FICÇÃO por Túnel
-    // Regra: Somar os PONTOS TOTAIS de cada fato válido no túnel (sem usar Math.max)
     const qtdPoliciaisDistintos = tunel.matriculas ? tunel.matriculas.size : 0;
     
     // Calcula o total do túnel somando os pontos dos fatos únicos/válidos no túnel
@@ -138,7 +137,6 @@ class RegrasQualidade {
     let totalPontosTunel = 0;
     pontosFatosUnicos.forEach(p => { totalPontosTunel += p; });
 
-    // Fallback: se não houver fatos catalogados por chave, usa a soma direta dos pontos positivos
     if (totalPontosTunel === 0 && tunel.linhasFatos.length > 0) {
       const valoresUnicos = Array.from(new Set(tunel.linhasFatos.map(lf => lf.pontosTotaisLido).filter(p => p > 0)));
       totalPontosTunel = valoresUnicos.reduce((a, b) => a + b, 0);
@@ -147,17 +145,17 @@ class RegrasQualidade {
     if (qtdPoliciaisDistintos > 0 && totalPontosTunel > 0) {
       const rateioEsperado = totalPontosTunel / qtdPoliciaisDistintos;
 
-      // Valida CADA valor de PONTOS FICÇÃO preenchido nas linhas do túnel
+      // Valida CADA valor de PONTOS FICÇÃO preenchido ou zerado nas linhas de policiais do túnel
       tunel.linhasFatos.forEach(lf => {
-        if (lf.pontosFiccaoLido > 0) {
+        if (lf.matricula) {
           const diff = Math.abs(lf.pontosFiccaoLido - rateioEsperado);
-          if (diff > 0.01) {
+          if (lf.pontosFiccaoLido === 0 || diff > 0.01) {
             alertas.push(RegrasQualidade.criarDiagnostico({
               severidade: SEVERIDADES_GUARDIAO.ALERTA,
               codigoRegra: 'RATEIO_PONTOS_INCOERENTE',
               linha: lf.linha,
               tunel: tunel.chave,
-              diagnostico: 'Rateio de PONTOS FICÇÃO incoerente com a quantidade de policiais distintos no túnel.',
+              diagnostico: 'Rateio de PONTOS FICÇÃO incoerente ou zerado para policial no túnel.',
               evidencia: `Pontos Totais do túnel: ${totalPontosTunel} | Policiais distintos: ${qtdPoliciaisDistintos} | Rateio lido na linha: ${lf.pontosFiccaoLido} | Rateio esperado: ${rateioEsperado.toFixed(2)}`,
               acaoRecomendada: 'Revise a fórmula de PONTOS FICÇÃO: o valor divergiu da divisão da pontuação total pelo número de policiais distintos do túnel.'
             }));
@@ -246,31 +244,25 @@ class RegrasQualidade {
   }
 
   /**
-   * Consulta o catálogo dinâmico da Tabela PIP ou fallback seguro.
+   * Consulta o catálogo dinâmico da Tabela PIP.
+   * Se o catálogo for null (aba indisponível), retorna true para não gerar falso erro/observação.
    */
-  static indicadorConhecido(indicador, catalogoExterno = null) {
+  static indicadorConhecido(indicador, catalogoPIP = null) {
     if (!indicador) return true;
-    const norm = typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(indicador) : String(indicador).toUpperCase().trim();
-
-    // 1. Se um catálogo dinâmico for fornecido (ex: Tabela PIP ou CONSTANTES_SYNTHEON), usa-o como fonte principal
-    let catalogo = catalogoExterno;
-    if (!catalogo && typeof CONSTANTES_SYNTHEON !== 'undefined' && CONSTANTES_SYNTHEON.CATALOGO_PIP) {
-      catalogo = CONSTANTES_SYNTHEON.CATALOGO_PIP;
+    
+    // Se a Tabela PIP não esteve disponível na varredura (catalogoPIP === null), não assume lista fixa nem gera erro falso
+    if (catalogoPIP === null) {
+      return true;
     }
 
-    if (Array.isArray(catalogo) && catalogo.length > 0) {
-      const normCat = catalogo.map(c => typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(c) : String(c).toUpperCase().trim());
+    const norm = typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(indicador) : String(indicador).toUpperCase().trim();
+
+    if (Array.isArray(catalogoPIP) && catalogoPIP.length > 0) {
+      const normCat = catalogoPIP.map(c => typeof SyntheonUtils !== 'undefined' ? SyntheonUtils.normalizarTexto(c) : String(c).toUpperCase().trim());
       return normCat.some(item => norm.includes(item) || item.includes(norm));
     }
 
-    // Fallback seguro caso nenhum catálogo externo esteja disponível
-    const fallbackPadrao = [
-      'PORTE', 'POSSE', 'TRAFICO', 'CUMPRIMENTO', 'MANDADO', 'MACONHA', 'CRACK',
-      'COCAINA', 'ARMA', 'MUNICAO', 'VEICULO', 'RECUPERADO', 'DETENCAO', 'PRISAO',
-      'APFD', 'TCO', 'BOC', 'AAFAI', 'HOMICIDIO', 'ROUBO', 'FURTO', 'RECEPTACAO',
-      'FLAGRANTE', 'NUMERARIO', 'DINHEIRO', 'VALOR', 'MOEDA', 'OCORRENCIA PIP'
-    ];
-    return fallbackPadrao.some(p => norm.includes(p));
+    return false;
   }
 
   static localizarColunasCalculadas(headers) {
