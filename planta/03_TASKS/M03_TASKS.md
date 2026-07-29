@@ -18,6 +18,6 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `TASK-M03.1-01` | Inventário detalhado das entidades e Value Objects | `planta/M03_DOMINIO_INVENTARIO.md` | **CONCLUÍDA** | `a01d1b9` |
 | `TASK-M03.1-02` | Blindar contratos semânticos do Domínio e testes de preservação visual | `Testes/TestDominio.js` | **CONCLUÍDA** | `5e44488` |
-| `TASK-M03.1-03` | Auditoria de pureza arquitetural da camada de Domínio (isolar I/O e GAS) | `planta/M03_DOMINIO_PUREZA.md`, `Dominio/*.js` | **CONCLUÍDA** | `em_progresso` |
+| `TASK-M03.1-03` | Auditoria de pureza arquitetural da camada de Domínio (isolar I/O e GAS) | `planta/M03_DOMINIO_PUREZA.md`, `Dominio/*.js` | **CONCLUÍDA** | `7430361` |
 | `TASK-M03.1-04` | Auditar entidades secundárias (`Policial`, `Ocorrencia`, `Equipe`, `Arma`, `Droga`) | `Dominio/*.js` | **PENDENTE** | - |
 | `TASK-M03.1-05` | Garantir suíte de testes do Domínio cobrindo a integridade dos dados visuais | `Testes/TestDominio.js` | **PENDENTE** | - |
