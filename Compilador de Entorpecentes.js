@@ -365,9 +365,9 @@ function executarCompiladorDrogas(mesesAlvo, modo) {
     abaLog.getRange(1, 1, conteudoLog.length, 2).setValues(conteudoLog.map(l => l.length === 1 ? [l[0], ''] : l));
     abaLog.autoResizeColumns(1, 2);
 
-    ui.alert('✅ Sucesso!', `Compilação finalizada!\nAba gerada: ${nomeFinal}`, ui.ButtonSet.OK);
+    ui.alert('Sucesso!', `Compilação finalizada!\nAba gerada: ${nomeFinal}`, ui.ButtonSet.OK);
 
   } catch (error) {
-    ui.alert('🛑 ERRO BLOQUEANTE', error.message, ui.ButtonSet.OK);
+    ui.alert('Erro bloqueante', error.message, ui.ButtonSet.OK);
   }
 }

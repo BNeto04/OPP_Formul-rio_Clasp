@@ -312,6 +312,6 @@ function executarCompilador(mesesAlvo, modo) {
     ui.alert('Sucesso!', `Compilação concluída.\nAba: ${nomeFinalAba}`, ui.ButtonSet.OK);
 
   } catch (error) {
-    ui.alert('🛑 ERRO BLOQUEANTE', error.message, ui.ButtonSet.OK);
+    ui.alert('Erro bloqueante', error.message, ui.ButtonSet.OK);
   }
 }
