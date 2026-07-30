@@ -8,6 +8,55 @@
 
 class CompiladorGxt {
   /**
+   * Normaliza o nome de uma aba removendo acentos, pontuações, espaços e caracteres especiais.
+   * Exemplo: 'abr.2026' -> 'ABR2026', 'ABR-2026' -> 'ABR2026'
+   */
+  static normalizarNomeAba(nome) {
+    return String(nome || '')
+      .toUpperCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Z0-9]/g, '')
+      .trim();
+  }
+
+  /**
+   * Localiza a aba do mês na planilha por nome exato ou por aproximação normalizada.
+   */
+  static localizarAbaMes(fonte, nomeSolicitado) {
+    if (!fonte) return null;
+    if (typeof fonte.getSheetByName === 'function') {
+      let sh = fonte.getSheetByName(nomeSolicitado);
+      if (sh) return sh;
+
+      if (typeof fonte.getSheets === 'function') {
+        const targetNorm = this.normalizarNomeAba(nomeSolicitado);
+        try {
+          const allSheets = fonte.getSheets();
+          for (const s of allSheets) {
+            if (s && typeof s.getName === 'function') {
+              if (this.normalizarNomeAba(s.getName()) === targetNorm) {
+                return s;
+              }
+            }
+          }
+        } catch (e) {}
+      }
+    } else if (Array.isArray(fonte)) {
+      return fonte;
+    } else if (typeof fonte === 'object') {
+      if (fonte[nomeSolicitado]) return fonte[nomeSolicitado];
+      const targetNorm = this.normalizarNomeAba(nomeSolicitado);
+      for (const k of Object.keys(fonte)) {
+        if (this.normalizarNomeAba(k) === targetNorm) {
+          return fonte[k];
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Executa a compilação do relatório Gxt para uma lista de nomes de abas mensais.
    * @param {SpreadsheetApp.Spreadsheet|Array<Object>} fonte - Planilha ativa ou matriz/mock de dados.
    * @param {Array<string>} listaMeses - Nomes das abas mensais (ex: ['JAN2026', 'FEV2026', 'MAR2026']).
@@ -43,23 +92,36 @@ class CompiladorGxt {
       if (fPeculio) {
         resPeculio = LeitorPeculioMod.lerMapaAntiguidade(fPeculio);
       }
+
+      // Se não carregou da fonte externa, tenta na própria planilha (ex: em cópias descartáveis onde o Pecúlio está na mesma planilha)
+      if ((!resPeculio.mapa || Object.keys(resPeculio.mapa).length === 0) && fonte && typeof fonte.getSheetByName === 'function') {
+        const resLocal = LeitorPeculioMod.lerMapaAntiguidade(fonte);
+        if (resLocal.mapa && Object.keys(resLocal.mapa).length > 0) {
+          resPeculio = resLocal;
+        }
+      }
     }
 
     const mapaAntiguidade = resPeculio.mapa || {};
     const mapaCompleto = resPeculio.mapaCompleto || {};
+    const erroPeculio = resPeculio.erro || (Object.keys(mapaAntiguidade).length === 0 ? 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA' : null);
 
     const resultadoPorMes = {};
+    const diagnosticoGxt = {
+      peculioValido: !erroPeculio && Object.keys(mapaAntiguidade).length > 0,
+      peculioErro: erroPeculio,
+      totalFatosLidos: 0,
+      totalTuneisArmados: 0,
+      totalTuneisProcessados: 0,
+      totalTuneisPendentes: 0,
+      motivosPendencia: {}
+    };
+
+    resultadoPorMes._diagnostico = diagnosticoGxt;
 
     // 2. Processa cada mês selecionado
     listaMeses.forEach(nomeAba => {
-      let sheetData = null;
-      if (fonte && typeof fonte.getSheetByName === 'function') {
-        sheetData = fonte.getSheetByName(nomeAba);
-      } else if (Array.isArray(fonte)) {
-        sheetData = fonte;
-      } else if (fonte && fonte[nomeAba]) {
-        sheetData = fonte[nomeAba];
-      }
+      let sheetData = CompiladorGxt.localizarAbaMes(fonte, nomeAba);
 
       if (!sheetData) {
         resultadoPorMes[nomeAba] = { registros: [], resumo: {} };
@@ -163,11 +225,24 @@ class CompiladorGxt {
         };
       });
 
+      diagnosticoGxt.totalFatosLidos += ocorrenciasNormalizadas.length;
+
       if (PoliticaMeritoMod) {
         const resultadosTuneis = PoliticaMeritoMod.processarMeritoArmas(ocorrenciasNormalizadas, mapaAntiguidade);
         
+        diagnosticoGxt.totalTuneisArmados += resultadosTuneis.length;
+
         // FILTRO ESTRITO: Envia APENAS itens com status 'PROCESSADO' ao renderizador
         const processados = resultadosTuneis.filter(item => item.status === 'PROCESSADO');
+        const pendentes = resultadosTuneis.filter(item => item.status !== 'PROCESSADO');
+
+        diagnosticoGxt.totalTuneisProcessados += processados.length;
+        diagnosticoGxt.totalTuneisPendentes += pendentes.length;
+
+        pendentes.forEach(p => {
+          const st = p.status || 'PENDENTE_AUDITORIA';
+          diagnosticoGxt.motivosPendencia[st] = (diagnosticoGxt.motivosPendencia[st] || 0) + 1;
+        });
 
         // Enriquece cada registro processado com os metadados oficiais do Pecúlio/Efetivo se disponíveis
         const registrosFormatados = processados.map((item, idxSeq) => {
@@ -251,10 +326,11 @@ function abrirMenuGxtSelecaoLivre() {
 }
 
 /**
- * Orquestrador da Seleção Livre do Gxt.
+ * Orquestrador da Seleção Livre do Gxt com bloqueios e diagnósticos claros.
  * Nome de saída: GXT_ACUMULADO_<primeiro_mes>_<ultimo_mes>
  * @param {Array<string>} meses - Lista dos meses selecionados.
  * @param {Object} [fontePeculio=null] - Fonte opcional do Pecúlio.
+ * @param {Object} [fonteSS=null] - Fonte opcional da Planilha.
  */
 function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
   if (!Array.isArray(meses) || meses.length === 0) {
@@ -290,6 +366,32 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
   }
 
   const dados = CompiladorGxt.compilar(ss, mesesOrdenados, fontePeculio);
+  const diag = dados._diagnostico || {};
+
+  // BLOQUEIO 1: Fonte de antiguidade do Pecúlio ausente ou inválida
+  if (!diag.peculioValido) {
+    const msgErro = `FALHA NO GXT: A fonte oficial de antiguidade do Pecúlio não foi localizada ou não contém as colunas N e MATRÍCULA válidas.\nStatus: ${diag.peculioErro || 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA'}\nNenhum relatório foi gerado para proteger a integridade funcional.`;
+    if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
+      SpreadsheetApp.getUi().alert(msgErro);
+    }
+    if (RendererMod && ss) {
+      RendererMod.renderizarAlertaErro(ss, nomeAbaSaida, msgErro);
+    }
+    return dados;
+  }
+
+  // BLOQUEIO 2: Relatório silenciosamente vazio com túneis armados pendentes
+  if (diag.totalTuneisArmados > 0 && diag.totalTuneisProcessados === 0) {
+    const msgAviso = `ATENÇÃO GXT: Nenhum registro pôde ser processado para o relatório.\n- Fatos lidos: ${diag.totalFatosLidos}\n- Túneis armados encontrados: ${diag.totalTuneisArmados}\n- Túneis processados: 0\n- Túneis pendentes: ${diag.totalTuneisPendentes}\nMotivo: Todos os túneis armados possuem pendências de antiguidade.`;
+    if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
+      SpreadsheetApp.getUi().alert(msgAviso);
+    }
+    if (RendererMod && ss) {
+      RendererMod.renderizarAlertaErro(ss, nomeAbaSaida, msgAviso);
+    }
+    return dados;
+  }
+
   if (RendererMod && ss) {
     RendererMod.renderizar(ss, dados, nomeAbaSaida);
   }
@@ -325,7 +427,20 @@ function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
   trimestres.forEach(tri => {
     const dadosTri = CompiladorGxt.compilar(ss, tri.meses, fontePeculio);
     resultadosTrimestrais[tri.nomeAba] = dadosTri;
-    if (RendererMod && ss) {
+    const diag = dadosTri._diagnostico || {};
+
+    if (!diag.peculioValido || (diag.totalTuneisArmados > 0 && diag.totalTuneisProcessados === 0)) {
+      const msg = !diag.peculioValido
+        ? `FALHA NO GXT (${tri.nomeAba}): Pecúlio indisponível ou sem colunas N/MATRÍCULA.`
+        : `ATENÇÃO GXT (${tri.nomeAba}): ${diag.totalTuneisArmados} túneis armados pendentes de antiguidade.`;
+
+      if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
+        SpreadsheetApp.getUi().alert(msg);
+      }
+      if (RendererMod && ss) {
+        RendererMod.renderizarAlertaErro(ss, tri.nomeAba, msg);
+      }
+    } else if (RendererMod && ss) {
       RendererMod.renderizar(ss, dadosTri, tri.nomeAba);
     }
   });

@@ -80,7 +80,7 @@ class RendererGxt {
       targetSheet.clear();
     }
 
-    const meses = Object.keys(dadosPorMes);
+    const meses = Object.keys(dadosPorMes).filter(k => !k.startsWith('_'));
     if (meses.length === 0) return targetSheet;
 
     // Divide os meses em painéis verticais de no máximo 3 meses cada (lado a lado por painel)
@@ -257,6 +257,54 @@ class RendererGxt {
         if (typeof targetSheet.setFrozenRows === 'function') {
           targetSheet.setFrozenRows(2);
         }
+      } catch (e) {}
+    }
+
+    return targetSheet;
+  }
+
+  /**
+   * Renderiza um painel destacado de alerta de erro na aba de saída quando o Gxt é interrompido com segurança.
+   */
+  static renderizarAlertaErro(ss, nomeAbaSaida, mensagem) {
+    if (!ss) return null;
+
+    let targetSheet = null;
+    if (typeof ss.getSheetByName === 'function') {
+      targetSheet = ss.getSheetByName(nomeAbaSaida);
+      if (!targetSheet && typeof ss.insertSheet === 'function') {
+        targetSheet = ss.insertSheet(nomeAbaSaida);
+      }
+    }
+
+    if (!targetSheet) return null;
+
+    if (typeof targetSheet.clear === 'function') {
+      targetSheet.clear();
+    }
+
+    const val = [[mensagem]];
+    const fundos = [['#F44336']];
+    const texto = [['#FFFFFF']];
+    const neg = [[true]];
+    const align = [['left']];
+
+    if (typeof targetSheet._definirDadosMatriz === 'function') {
+      targetSheet._definirDadosMatriz({
+        valores: val,
+        fundos: fundos,
+        coresTexto: texto,
+        negritos: neg,
+        alinhamentos: align,
+        formatos: [['@']]
+      });
+    } else if (typeof targetSheet.getRange === 'function') {
+      try {
+        const rng = targetSheet.getRange(1, 1, 1, 1);
+        rng.setValue(mensagem);
+        rng.setBackground('#F44336');
+        rng.setFontColor('#FFFFFF');
+        rng.setFontWeight('bold');
       } catch (e) {}
     }
 

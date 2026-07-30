@@ -308,6 +308,75 @@ function executarTestesGxt() {
     assert.strictEqual(matrizCompilada.valores[rowPainel2][6], 'MAI2026');
   });
 
+  // 9. Localização Flexível de Abas Mensais por Aproximação Normalizada (TASK-M06.3-05C)
+  test('CompiladorGxt.localizarAbaMes: encontra abas com pontos, traços e variações como abr.2026', () => {
+    const mockSheetAbr = { getName: () => 'abr.2026' };
+    const mockSS = {
+      getSheetByName: (n) => (n === 'abr.2026' ? mockSheetAbr : null),
+      getSheets: () => [mockSheetAbr]
+    };
+
+    const achado = CompiladorGxt.localizarAbaMes(mockSS, 'ABR2026');
+    assert.ok(achado);
+    assert.strictEqual(achado.getName(), 'abr.2026');
+  });
+
+  // 10. Bloqueio Seguro quando o Pecúlio é Indisponível ou Inválido (TASK-M06.3-05C)
+  test('gerarGxtSelecaoLivre: bloqueia geração com erro explicito quando Pecúlio é indisponível', () => {
+    let matrizAlerta = null;
+    const mockSS = {
+      getSheetByName: () => null,
+      insertSheet: (n) => ({
+        clear: () => {},
+        _definirDadosMatriz: (m) => { matrizAlerta = m; }
+      })
+    };
+
+    const fontePeculioInvalida = []; // Sem cabeçalhos válidos
+    const res = gerarGxtSelecaoLivre(['JAN2026'], fontePeculioInvalida, mockSS);
+
+    assert.ok(res._diagnostico);
+    assert.strictEqual(res._diagnostico.peculioValido, false);
+    assert.strictEqual(res._diagnostico.peculioErro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+    assert.ok(matrizAlerta);
+    assert.ok(matrizAlerta.valores[0][0].includes('FALHA NO GXT'));
+  });
+
+  // 11. Diagnóstico Claro quando Túneis Armados Possuem Pendências (TASK-M06.3-05C)
+  test('gerarGxtSelecaoLivre: informa estatísticas de fatos e pendências quando há túneis armados não processados', () => {
+    let matrizAlerta = null;
+    const mockSheetJan = [
+      {
+        data: '15/01/2026',
+        mike: '26E100',
+        boe: 'BOE123',
+        armas: 1,
+        policiais: [
+          { matricula: '999999-9', nome: 'POLICIAL SEM N', grad: 'SD', pelotao: '1º PEL', armas: 1 }
+        ]
+      }
+    ];
+
+    const mockSS = {
+      getSheetByName: (n) => (n === 'JAN2026' ? mockSheetJan : null),
+      insertSheet: (n) => ({
+        clear: () => {},
+        _definirDadosMatriz: (m) => { matrizAlerta = m; }
+      })
+    };
+
+    // Pecúlio válido mas não contém a matrícula 999999-9
+    const res = gerarGxtSelecaoLivre(['JAN2026'], mockPeculioOficial, mockSS);
+    assert.ok(res._diagnostico);
+    assert.strictEqual(res._diagnostico.totalFatosLidos, 1);
+    assert.strictEqual(res._diagnostico.totalTuneisArmados, 1);
+    assert.strictEqual(res._diagnostico.totalTuneisProcessados, 0);
+    assert.strictEqual(res._diagnostico.totalTuneisPendentes, 1);
+
+    assert.ok(matrizAlerta);
+    assert.ok(matrizAlerta.valores[0][0].includes('ATENÇÃO GXT'));
+  });
+
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);
 }
 

@@ -32,11 +32,32 @@ const LeitorAntiguidadePeculio = {
       let sheet = fonte.getSheetByName(nomeAbaAlvo);
       if (!sheet) {
         // Aliases de aba reconhecidos exclusivamente para localização do Pecúlio/Efetivo
-        const aliasesAbas = ['EFETIVO', 'PECULIO', 'PECÚLIO', 'EFETIVO 2026', 'Cópia de Pecúlio com Pontuação '];
+        const aliasesAbas = [
+          'EFETIVO', 'PECULIO', 'PECÚLIO', 'EFETIVO 2026',
+          'CÓPIA DE PECÚLIO COM PONTUAÇÃO', 'COPIA DE PECULIO COM PONTUACAO',
+          'CÓPIA DE PECÚLIO COM PONTUAÇÃO ', 'PECÚLIO 2026', 'PECULIO 2026',
+          'PONTUAÇÃO', 'PONTUACAO'
+        ];
         for (const alias of aliasesAbas) {
           sheet = fonte.getSheetByName(alias);
           if (sheet) break;
         }
+      }
+
+      // Busca por aproximação normalizada caso não encontre por nome exato
+      if (!sheet && typeof fonte.getSheets === 'function') {
+        try {
+          const allSheets = fonte.getSheets();
+          for (const s of allSheets) {
+            if (s && typeof s.getName === 'function') {
+              const nameNorm = String(s.getName() || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+              if (nameNorm.includes('PECULIO') || nameNorm.includes('EFETIVO') || nameNorm.includes('PONTUACAO')) {
+                sheet = s;
+                break;
+              }
+            }
+          }
+        } catch (e) {}
       }
 
       // REGRA ESTRITA: Proibido usar sheets[0] como fallback arbitrário
@@ -65,7 +86,7 @@ const LeitorAntiguidadePeculio = {
       };
     }
 
-    // Procura a linha do cabeçalho nas primeiras 5 linhas exigindo N e MATRÍCULA explícitos
+    // Procura a linha do cabeçalho nas primeiras 10 linhas exigindo N e MATRÍCULA explícitos
     let idxCabecalho = -1;
     let colMatricula = -1;
     let colN = -1;
@@ -73,14 +94,14 @@ const LeitorAntiguidadePeculio = {
     let colGrad = -1;
     let colPelotao = -1;
 
-    for (let r = 0; r < Math.min(5, dados.length); r++) {
-      const linha = dados[r].map(c => String(c || '').toUpperCase().trim());
+    for (let r = 0; r < Math.min(10, dados.length); r++) {
+      const linha = dados[r].map(c => String(c || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim());
       
-      const cMat = linha.findIndex(h => h === 'MATRICULA' || h === 'MATRÍCULA' || h === 'MAT.' || h === 'MAT');
-      const cN = linha.findIndex(h => h === 'N' || h === 'Nº' || h === 'ANTIGUIDADE' || h === 'ORDEM' || h === 'POSIÇÃO' || h === 'POSICAO');
-      const cNome = linha.findIndex(h => h === 'NOME' || h === 'N GUERRA' || h === 'NOME COMPLETO' || h === 'POLICIAL');
-      const cGrad = linha.findIndex(h => h === 'GRAD' || h === 'GRADUAÇÃO' || h === 'GRADUACAO');
-      const cPel = linha.findIndex(h => h === 'P' || h === 'PELOTÃO' || h === 'PELOTAO' || h === 'DESIGNAÇÃO' || h === 'DESIGNACAO' || h === 'LOTAÇÃO');
+      const cMat = linha.findIndex(h => h === 'MATRICULA' || h === 'MAT' || h === 'MAT.' || h.includes('MATRICULA'));
+      const cN = linha.findIndex(h => h === 'N' || h === 'Nº' || h === 'N°' || h === 'ANTIGUIDADE' || h === 'ORDEM' || h === 'POSICAO' || h.includes('ANTIGUIDADE'));
+      const cNome = linha.findIndex(h => h === 'NOME' || h === 'N GUERRA' || h === 'NOME COMPLETO' || h === 'POLICIAL' || h === 'MILITAR');
+      const cGrad = linha.findIndex(h => h === 'GRAD' || h === 'GRADUACAO' || h.includes('GRAD'));
+      const cPel = linha.findIndex(h => h === 'P' || h === 'PELOTAO' || h === 'DESIGNACAO' || h === 'LOTACAO');
 
       if (cMat !== -1 && cN !== -1) {
         idxCabecalho = r;
