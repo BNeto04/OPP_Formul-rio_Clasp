@@ -69,7 +69,7 @@ test('Armas: corPorGrupoArmas_ e corPorArmasArmas_ cobrem todas as regras proteg
   assert.deepStrictEqual(corPorGrupoArmas_('SD', '2º PEL'), { fundo: '#6d9eeb', fonte: '#000000' });
   assert.deepStrictEqual(corPorGrupoArmas_('SGT', '3º PEL'), { fundo: '#ffffff', fonte: '#000000' });
 
-  // Escala de Armas
+  // Escala de Armas (5 faixas: 0, 1-3, 4-5, 6-9, 10+)
   assert.deepStrictEqual(corPorArmasArmas_(0), { fundo: '#ff0000', fonte: '#ff0000' }); // Zero vermelho/vermelho
   assert.deepStrictEqual(corPorArmasArmas_(2), { fundo: '#ff9900', fonte: '#000000' }); // 1 a 3
   assert.deepStrictEqual(corPorArmasArmas_(5), { fundo: '#ffff00', fonte: '#000000' }); // 4 a 5
@@ -279,6 +279,11 @@ test('Armas: executarCompilador() real gera aba de saída com paleta oficial, es
   assert.strictEqual(tracker.backgrounds['3:5'], '#93c47d'); // 7 armas (6 a 9)
   assert.strictEqual(tracker.backgrounds['4:5'], '#ffff00'); // 4 armas (4 a 5)
   assert.strictEqual(tracker.backgrounds['5:5'], '#ff9900'); // 2 armas (1 a 3)
+
+  // Validação explícita do destaque de 0 armas (vermelho/vermelho #ff0000)
+  const corZeroArmas = corPorArmasArmas_(0);
+  assert.strictEqual(corZeroArmas.fundo, '#ff0000');
+  assert.strictEqual(corZeroArmas.fonte, '#ff0000');
 });
 
 console.log(`\n🎉 Testes do Relatório de ARMAS concluídos: ${sucessos} testes passaram!`);
