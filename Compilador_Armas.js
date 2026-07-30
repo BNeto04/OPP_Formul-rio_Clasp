@@ -11,9 +11,9 @@ function criarMenuArmas_() {
 
   const ui = SpreadsheetApp.getUi();
 
-  ui.createMenu('🔫 ARMAS')
-    .addItem('📅 Seleção Livre', 'abrirMenuSelecaoLivre')
-    .addItem('📊 Anual', 'iniciarModoAnual')
+  ui.createMenu('Armas')
+    .addItem('Selecao livre', 'abrirMenuSelecaoLivre')
+    .addItem('Anual', 'iniciarModoAnual')
     .addToUi();
 }
 

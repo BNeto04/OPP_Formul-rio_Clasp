@@ -7,27 +7,27 @@ function onOpen() {
 
   try {
     ui.createMenu('Formulario')
-      .addItem('Nova Ocorrencia (Formulario)', 'abrirFormularioEntrada')
+      .addItem('Nova ocorrencia (formulario)', 'abrirFormularioEntrada')
       .addToUi();
   } catch (e) {
     Logger.log('Erro ao criar menu Formulario: ' + e.message);
   }
 
   if (typeof criarMenuArmas_ === 'function') {
-    try { criarMenuArmas_(); } catch (e) { Logger.log('Erro ao criar menu ARMAS: ' + e.message); }
+    try { criarMenuArmas_(); } catch (e) { Logger.log('Erro ao criar menu Armas: ' + e.message); }
   }
 
   try {
-    ui.createMenu('PRODUTIVIDADE')
-      .addItem('Gerar Produtividade / Comparativo 2026', 'abrirMenuComparativo2026')
+    ui.createMenu('Produtividade')
+      .addItem('Gerar produtividade / comparativo 2026', 'abrirMenuComparativo2026')
       .addSeparator()
-      .addItem('Executar Guardiao da Qualidade', 'executarGuardiaoQualidade')
-      .addItem('Sincronizar EFETIVO pelo PECULIO', 'normalizarEfetivo')
+      .addItem('Executar guardiao da qualidade', 'executarGuardiaoQualidade')
+      .addItem('Sincronizar efetivo pelo peculio', 'normalizarEfetivo')
       .addSeparator()
-      .addItem('[DEV] Rodar Teste Homologacao V1 x V2', 'rodarTesteDeHomologacao')
+      .addItem('[Dev] Rodar teste de homologacao V1 x V2', 'rodarTesteDeHomologacao')
       .addToUi();
   } catch (e) {
-    Logger.log('Erro ao criar menu PRODUTIVIDADE: ' + e.message);
+    Logger.log('Erro ao criar menu Produtividade: ' + e.message);
   }
 
   try {
@@ -42,24 +42,24 @@ function onOpen() {
 }
 
 /**
- * Menu Unificado PIP e CPM (TASK-M01.3-01).
- * Unifica o acesso sob um único menu principal "🏆 PIP", sem alterar
+ * Menu Unificado PIP e CPM (TASK-M01.3-01 / TASK-M01.3-02).
+ * Unifica o acesso sob um único menu principal "Pip", sem alterar
  * os compiladores, regras de apuração (29-28 vs Mês Civil) ou abas de saída.
  */
 function criarMenuUnificadoPipCPM_() {
   const ui = SpreadsheetApp.getUi();
 
-  const subMenuPip = ui.createMenu('PIP | Ciclo 29–28')
-    .addItem('▶ Gerar Mensal', 'abrirMenuPipMensal')
-    .addItem('📅 Seleção Livre', 'abrirMenuPipLivre')
-    .addItem('📊 Anual', 'gerarPipAnual');
+  const subMenuPip = ui.createMenu('Pip | Ciclo 29–28')
+    .addItem('Gerar mensal', 'abrirMenuPipMensal')
+    .addItem('Selecao livre', 'abrirMenuPipLivre')
+    .addItem('Anual', 'gerarPipAnual');
 
-  const subMenuCpm = ui.createMenu('CPM | Mês civil')
-    .addItem('▶ Gerar Mensal', 'abrirMenuCPMMensal')
-    .addItem('📅 Seleção Livre', 'abrirMenuCPMLivre')
-    .addItem('📊 Anual', 'gerarCPMAnual');
+  const subMenuCpm = ui.createMenu('Cpm | Mes civil')
+    .addItem('Gerar mensal', 'abrirMenuCPMMensal')
+    .addItem('Selecao livre', 'abrirMenuCPMLivre')
+    .addItem('Anual', 'gerarCPMAnual');
 
-  ui.createMenu('🏆 PIP')
+  ui.createMenu('Pip')
     .addSubMenu(subMenuPip)
     .addSubMenu(subMenuCpm)
     .addToUi();

@@ -57,9 +57,9 @@ function corPorTotalDrogas_(total) {
 // ============================================================================
 function criarMenuDrogas_() {
   const ui = SpreadsheetApp.getUi();
-  ui.createMenu('💊 DROGAS')
-    .addItem('📅 Seleção Livre', 'abrirMenuSelecaoLivreDrogas')
-    .addItem('📊 Anual', 'iniciarModoAnualDrogas')
+  ui.createMenu('Drogas')
+    .addItem('Selecao livre', 'abrirMenuSelecaoLivreDrogas')
+    .addItem('Anual', 'iniciarModoAnualDrogas')
     .addToUi();
 }
 
