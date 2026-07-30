@@ -5,6 +5,54 @@
  */
 
 // ============================================================================
+// AUXILIARES DE PALETA E FORMATO VISUAL (M06.2-05)
+// ============================================================================
+
+/**
+ * Retorna o mapa de cores oficial para os grupos de lotação / pelotões.
+ * @param {string} grad 
+ * @param {string} pelotao 
+ * @returns {{ fundo: string, fonte: string, negrito: boolean }}
+ */
+function corPorGrupoDrogas_(grad, pelotao) {
+  const pelStr = String(pelotao || '').toUpperCase().trim();
+  const gradStr = String(grad || '').toUpperCase().trim();
+
+  if (pelStr.includes('OFICIAIS') || gradStr.includes('TEN') || gradStr.includes('CAP') || gradStr.includes('MAJ') || gradStr.includes('CEL')) {
+    return { fundo: '#F1C232', fonte: '#000000', negrito: false };
+  }
+  if (pelStr.includes('GTAR')) {
+    if (pelStr.includes('1') || pelStr.includes('1º') || pelStr.includes('1º PEL')) {
+      return { fundo: '#00CC00', fonte: '#000000', negrito: true };
+    }
+    if (pelStr.includes('2') || pelStr.includes('2º') || pelStr.includes('2º PEL')) {
+      return { fundo: '#3C78D8', fonte: '#FFFFFF', negrito: true };
+    }
+    return { fundo: '#00CC00', fonte: '#000000', negrito: true };
+  }
+  if (pelStr.includes('1º PEL') || pelStr.includes('1 PEL') || pelStr === '1') {
+    return { fundo: '#00FF00', fonte: '#000000', negrito: false };
+  }
+  if (pelStr.includes('2º PEL') || pelStr.includes('2 PEL') || pelStr === '2') {
+    return { fundo: '#6D9EEB', fonte: '#000000', negrito: false };
+  }
+  return { fundo: '#FFFFFF', fonte: '#000000', negrito: false };
+}
+
+/**
+ * Retorna o mapa de cores da escala oficial de total de entorpecentes (coluna H).
+ * @param {number} total 
+ * @returns {{ fundo: string, fonte: string, negrito: boolean }}
+ */
+function corPorTotalDrogas_(total) {
+  if (total >= 1000) return { fundo: '#38761D', fonte: '#FFFFFF', negrito: true };
+  if (total >= 500) return { fundo: '#93C47D', fonte: '#000000', negrito: false };
+  if (total >= 200) return { fundo: '#FFFF00', fonte: '#000000', negrito: false };
+  if (total >= 50) return { fundo: '#FF9900', fonte: '#000000', negrito: false };
+  return { fundo: '#FFFFFF', fonte: '#000000', negrito: false };
+}
+
+// ============================================================================
 // MENU
 // ============================================================================
 function criarMenuDrogas_() {
@@ -208,49 +256,91 @@ function executarCompiladorDrogas(mesesAlvo, modo) {
 
     const novaAba = ss.insertSheet(nomeFinal);
     const cabecalho = [['POS', 'PELOTÃO', 'GRADUAÇÃO', 'MATRÍCULA', 'POLICIAL', 'MACONHA (g)', 'COCAÍNA (g)', 'TOTAL (g)', 'OCORRÊNCIAS', 'BOEs']];
+    const borderStyle = (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.BorderStyle)
+      ? SpreadsheetApp.BorderStyle.SOLID
+      : 'SOLID';
     
-    novaAba.getRange(1, 1, 1, 10).setValues(cabecalho).setFontWeight("bold").setBackground("#e0e0e0");
+    novaAba.getRange(1, 1, 1, 10)
+      .setValues(cabecalho)
+      .setFontFamily('Arial')
+      .setFontSize(10)
+      .setFontWeight('bold')
+      .setBackground('#e0e0e0')
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle')
+      .setBorder(true, true, true, true, true, true, '#000000', borderStyle);
+
+    novaAba.setFrozenRows(1);
 
     if (ranking.length > 0) {
       const dadosFormatados = ranking.map((row, i) => [i + 1, ...row]);
-      novaAba.getRange(2, 1, dadosFormatados.length, 10).setValues(dadosFormatados);
+      const dataRange = novaAba.getRange(2, 1, dadosFormatados.length, 10);
+      dataRange
+        .setValues(dadosFormatados)
+        .setFontFamily('Arial')
+        .setFontSize(10)
+        .setVerticalAlignment('middle')
+        .setBorder(true, true, true, true, true, true, '#000000', borderStyle);
 
       let backgrounds = [];
       let fontColors = [];
+      let fontWeights = [];
 
       ranking.forEach(row => {
-        const pelStr = String(row[0]).toUpperCase();
+        const pel = row[0];
+        const grad = row[1];
         const total = row[6];
 
-        let corPel = '#FFFFFF';
-        if (pelStr.includes('OFICIAIS')) corPel = '#F1C232';
-        else if (/1[º°]?\s*PEL/.test(pelStr)) corPel = '#00FF00';
-        else if (/2[º°]?\s*PEL/.test(pelStr)) corPel = '#6D9EEB';
+        const cPel = corPorGrupoDrogas_(grad, pel);
+        const cTot = corPorTotalDrogas_(total);
 
-        let corTotal = '#FFFFFF', corFonte = '#000000';
-        if (total >= 1000) { corTotal = '#38761D'; corFonte = '#FFFFFF'; }
-        else if (total >= 500) corTotal = '#93C47D';
-        else if (total >= 200) corTotal = '#FFFF00';
-        else if (total >= 50) corTotal = '#FF9900';
+        backgrounds.push([
+          cPel.fundo, cPel.fundo, cPel.fundo, cPel.fundo, cPel.fundo, cPel.fundo, cPel.fundo,
+          cTot.fundo,
+          cPel.fundo, cPel.fundo
+        ]);
 
-        backgrounds.push([corPel, corPel, corPel, corPel, corPel, corPel, corPel, corTotal, corPel, corPel]);
-        fontColors.push(Array(10).fill('#000000').map((v, i) => i === 7 ? corFonte : v));
+        fontColors.push([
+          cPel.fonte, cPel.fonte, cPel.fonte, cPel.fonte, cPel.fonte, cPel.fonte, cPel.fonte,
+          cTot.fonte,
+          cPel.fonte, cPel.fonte
+        ]);
+
+        const wPel = cPel.negrito ? 'bold' : 'normal';
+        const wTot = cTot.negrito ? 'bold' : 'normal';
+
+        fontWeights.push([
+          wPel, wPel, wPel, wPel, wPel, wPel, wPel,
+          wTot,
+          wPel, wPel
+        ]);
       });
 
-      const range = novaAba.getRange(2, 1, ranking.length, 10);
-      range.setBackgrounds(backgrounds);
-      range.setFontColors(fontColors);
-      range.setHorizontalAlignment("center");
-      novaAba.getRange(2, 5, ranking.length, 1).setHorizontalAlignment("left");
+      dataRange.setBackgrounds(backgrounds);
+      dataRange.setFontColors(fontColors);
+      dataRange.setFontWeights(fontWeights);
+
+      // Alinhamentos: POS, Pelotão, Graduação, Matrícula centralizados; Policial à esquerda; Métricas à direita
+      novaAba.getRange(2, 1, ranking.length, 4).setHorizontalAlignment('center');
+      novaAba.getRange(2, 5, ranking.length, 1).setHorizontalAlignment('left');
+      novaAba.getRange(2, 6, ranking.length, 5).setHorizontalAlignment('right');
+
+      // Formatos: Gramagem F:H em #,##0.00" g"; Ocorrências e BOEs I:J em #,##0
+      novaAba.getRange(2, 6, ranking.length, 3).setNumberFormat('#,##0.00" g"');
+      novaAba.getRange(2, 9, ranking.length, 2).setNumberFormat('#,##0');
+
+      // Cria filtro de dados
+      novaAba.getRange(1, 1, ranking.length + 1, 10).createFilter();
     }
 
     novaAba.autoResizeColumns(1, 10);
 
     const duration = (new Date() - startTime) / 1000;
     const nomeLog = modo === 'ANUAL' ? 'LOG_DROGAS_ANUAL' : 'LOG_DROGAS_LIVRE';
-    let abaLog = ss.getSheetByName(nomeLog) || ss.insertSheet(nomeLog);
-    abaLog.clear();
+    let abaLog = ss.getSheetByName(nomeLog);
+    if (!abaLog) abaLog = ss.insertSheet(nomeLog);
 
+    abaLog.clear();
     const conteudoLog = [
       ['RELATÓRIO DE EXECUÇÃO - COMPILADOR DE ENTORPECENTES'],
       ['Modo:', modo],

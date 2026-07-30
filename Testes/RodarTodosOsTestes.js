@@ -28,6 +28,8 @@ require('./TestRelatoriosPipCpm');
 console.log('');
 require('./TestRelatorioArmas');
 console.log('');
+require('./TestRelatorioDrogas');
+console.log('');
 require('./TestCentralAnalitica');
 
 console.log('\n====================================================');
