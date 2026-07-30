@@ -71,6 +71,41 @@ function processarMenuLivre(mesesSelecionados) {
   executarCompilador(mesesSelecionados, 'LIVRE');
 }
 
+function corPorGrupoArmas_(grad, pelotao) {
+  const g = (typeof SyntheonUtils !== 'undefined' && SyntheonUtils.normalizarTexto)
+    ? SyntheonUtils.normalizarTexto(grad || '')
+    : String(grad || '').toUpperCase();
+  const p = (typeof SyntheonUtils !== 'undefined' && SyntheonUtils.normalizarTexto)
+    ? SyntheonUtils.normalizarTexto(pelotao || '')
+    : String(pelotao || '').toUpperCase();
+
+  if (/(MAJ|CAP|TEN|ASP|CEL|TC)/.test(g) || p.includes('OFICIAIS')) {
+    return { fundo: '#f1c232', fonte: '#000000' };
+  }
+  if (p.includes('GTAR') && p.includes('1')) {
+    return { fundo: '#00cc00', fonte: '#000000', negrito: true };
+  }
+  if (p.includes('GTAR') && p.includes('2')) {
+    return { fundo: '#3c78d8', fonte: '#ffffff', negrito: true };
+  }
+  if (p.includes('1') && p.includes('PEL')) {
+    return { fundo: '#00ff00', fonte: '#000000' };
+  }
+  if (p.includes('2') && p.includes('PEL')) {
+    return { fundo: '#6d9eeb', fonte: '#000000' };
+  }
+  return { fundo: '#ffffff', fonte: '#000000' };
+}
+
+function corPorArmasArmas_(qtd) {
+  if (qtd === 0) return { fundo: '#ff0000', fonte: '#ff0000' };
+  if (qtd >= 10) return { fundo: '#38761d', fonte: '#ffffff' };
+  if (qtd >= 6) return { fundo: '#93c47d', fonte: '#000000' };
+  if (qtd >= 4) return { fundo: '#ffff00', fonte: '#000000' };
+  if (qtd >= 1) return { fundo: '#ff9900', fonte: '#000000' };
+  return { fundo: '#ffffff', fonte: '#000000' };
+}
+
 // ============================================================================
 // MOTOR PRINCIPAL DO COMPILADOR
 // ============================================================================
@@ -191,49 +226,58 @@ function executarCompilador(mesesAlvo, modo) {
     const novaAba = ss.insertSheet(nomeFinalAba);
     
     const cabecalhoResultado = [['PELOTÃO', 'GRADUAÇÃO', 'MATRÍCULA', 'POLICIAL', 'SCORE ACUMULADO (ARMAS)']];
-    novaAba.getRange(1, 1, 1, 5).setValues(cabecalhoResultado).setFontWeight("bold").setBackground("#e0e0e0");
+    const borderStyle = (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.BorderStyle)
+      ? SpreadsheetApp.BorderStyle.SOLID
+      : 'SOLID';
+
+    novaAba.getRange(1, 1, 1, 5)
+      .setValues(cabecalhoResultado)
+      .setFontFamily('Arial')
+      .setFontSize(10)
+      .setFontWeight('bold')
+      .setBackground('#e0e0e0')
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle')
+      .setBorder(true, true, true, true, true, true, '#000000', borderStyle);
     
     if (ranking.length > 0) {
-      novaAba.getRange(2, 1, ranking.length, 5).setValues(ranking);
+      const rangeDados = novaAba.getRange(2, 1, ranking.length, 5);
+      rangeDados.setValues(ranking)
+        .setFontFamily('Arial')
+        .setFontSize(10)
+        .setVerticalAlignment('middle')
+        .setBorder(true, true, true, true, true, true, '#000000', borderStyle);
       
       let backgrounds = [];
       let fontColors = [];
+      let fontWeights = [];
       
       ranking.forEach(row => {
-        const pelotaoStr = String(row[0]).toUpperCase();
-        const score = Number(row[4]);
+        const pelotaoStr = String(row[0] || '');
+        const gradStr = String(row[1] || '');
+        const score = Number(row[4] || 0);
         
-        let corPel = '#FFFFFF';
-        if (pelotaoStr.includes('OFICIAIS')) corPel = '#F1C232';
-        else if (/1[º°O]?\s*PEL/i.test(pelotaoStr)) corPel = '#00FF00';
-        else if (/2[º°O]?\s*PEL/i.test(pelotaoStr)) corPel = '#6D9EEB';
-        else if (/3[º°O]?\s*PEL/i.test(pelotaoStr)) corPel = '#FFFFFF';
+        const corPel = corPorGrupoArmas_(gradStr, pelotaoStr);
+        const corArma = corPorArmasArmas_(score);
         
-        let corArma = '#FFFFFF';
-        let corFonteArma = '#000000';
+        const fwRow = corPel.negrito ? 'bold' : 'normal';
         
-        if (score >= 10) {
-          corArma = '#38761D';
-          corFonteArma = '#FFFFFF';
-        } else if (score >= 6) {
-          corArma = '#93C47D';
-        } else if (score >= 4) {
-          corArma = '#FFFF00';
-        } else if (score >= 1) {
-          corArma = '#FF9900';
-        }
-        
-        backgrounds.push([corPel, corPel, corPel, corPel, corArma]);
-        fontColors.push(['#000000', '#000000', '#000000', '#000000', corFonteArma]);
+        backgrounds.push([corPel.fundo, corPel.fundo, corPel.fundo, corPel.fundo, corArma.fundo]);
+        fontColors.push([corPel.fonte, corPel.fonte, corPel.fonte, corPel.fonte, corArma.fonte]);
+        fontWeights.push([fwRow, fwRow, fwRow, fwRow, score >= 10 ? 'bold' : fwRow]);
       });
       
-      const dataRange = novaAba.getRange(2, 1, ranking.length, 5);
-      dataRange.setBackgrounds(backgrounds);
-      dataRange.setFontColors(fontColors);
-      dataRange.setHorizontalAlignment("center");
-      novaAba.getRange(2, 4, ranking.length, 1).setHorizontalAlignment("left");
+      rangeDados.setBackgrounds(backgrounds);
+      rangeDados.setFontColors(fontColors);
+      rangeDados.setFontWeights(fontWeights);
+      
+      novaAba.getRange(2, 1, ranking.length, 3).setHorizontalAlignment('center'); // PELOTÃO, GRAD, MAT
+      novaAba.getRange(2, 4, ranking.length, 1).setHorizontalAlignment('left');   // POLICIAL
+      novaAba.getRange(2, 5, ranking.length, 1).setHorizontalAlignment('right').setNumberFormat('#,##0'); // SCORE ARMAS
     }
-    
+
+    novaAba.setFrozenRows(1);
+    novaAba.getRange(1, 1, Math.max(1, ranking.length + 1), 5).createFilter();
     novaAba.autoResizeColumns(1, 5);
     
     const nomeLog = modo === 'ANUAL' ? 'LOG_ANUAL' : 'LOG_LIVRE';

@@ -26,6 +26,8 @@ require('./TestRendererComparativo2026');
 console.log('');
 require('./TestRelatoriosPipCpm');
 console.log('');
+require('./TestRelatorioArmas');
+console.log('');
 require('./TestCentralAnalitica');
 
 console.log('\n====================================================');
