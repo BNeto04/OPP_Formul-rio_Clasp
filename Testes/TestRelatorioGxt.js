@@ -157,8 +157,8 @@ function executarTestesGxt() {
     assert.strictEqual(matrizDados.fundos[2][0], '#00CC00');
     assert.strictEqual(matrizDados.negritos[2][0], true);
 
-    // Valida o destaque de armas (qtd 2 -> #5CB85C)
-    assert.strictEqual(matrizDados.fundos[2][3], '#5CB85C');
+    // Valida o destaque de armas na escala oficial consagrada (qtd 2 -> #F0AD4E laranja)
+    assert.strictEqual(matrizDados.fundos[2][3], '#F0AD4E');
 
     // Valida o Mês 2 (FEV2026) na Coluna G (colStart 6, idx 6)
     assert.strictEqual(matrizDados.valores[0][6], 'FEV2026');
@@ -166,6 +166,36 @@ function executarTestesGxt() {
     // Valida a cor oficial do 2º PEL GTAR (#3C78D8, texto #FFFFFF)
     assert.strictEqual(matrizDados.fundos[2][6], '#3C78D8');
     assert.strictEqual(matrizDados.coresTexto[2][6], '#FFFFFF');
+  });
+
+  // 4. Teste Integrado com Adaptador2026.extrairFatos() e Planilha Simulada (TASK-M06.3-04B)
+  test('CompiladorGxt + Adaptador2026: pipeline completo converte RegistroCanonico e seleciona líder correto', () => {
+    const rawHeaders = ['DATA', 'HORA', 'MIKE', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO', 'ARMAS', 'INDICADOR PIP'];
+    const rawDataJan = [
+      rawHeaders,
+      ['15/01/2026', '10:00', '26E100', '102950-9', 'SAULO ALVES', '2º SGT', '2º PEL GTAR', 2, 'PORTE ILEGAL DE ARMA DE FOGO'],
+      ['15/01/2026', '10:00', '26E100', '108394-5', 'IRAN SILVA', '3º SGT', '1º PEL GTAR', 0, 'PORTE ILEGAL DE ARMA DE FOGO'] // IRAN (N=1) em linha sem arma no mesmo túnel
+    ];
+
+    const mockSheetJan = {
+      getName: () => 'JAN2026',
+      getLastRow: () => 3,
+      getLastColumn: () => 9,
+      getRange: () => ({
+        getValues: () => rawDataJan
+      })
+    };
+
+    const fonteSS = {
+      getSheetByName: (n) => (n === 'JAN2026' ? mockSheetJan : null)
+    };
+
+    const resultado = CompiladorGxt.compilar(fonteSS, ['JAN2026'], mockPeculioOficial);
+
+    assert.ok(resultado['JAN2026']);
+    assert.strictEqual(resultado['JAN2026'].registros.length, 1);
+    assert.strictEqual(resultado['JAN2026'].registros[0].matricula, '108394-5', 'Deve selecionar IRAN SILVA (N=1) como líder');
+    assert.strictEqual(resultado['JAN2026'].registros[0].qtdArmas, 2, 'Deve atribuir 100% das 2 armas do túnel ao líder');
   });
 
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);

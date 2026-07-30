@@ -1,9 +1,10 @@
 /**
  * ARQUIVO: Render/RendererGxt.js
- * DESCRIÇÃO: Renderizador Executivo do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-04A).
+ * DESCRIÇÃO: Renderizador Executivo do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-04B).
  * REGRA DE OURO: Renderiza os blocos mensais lado a lado com as 5 colunas protegidas:
  * Nº | GRAD. / MATRÍCULA | NOME | QTD ARMAS | DESIGNAÇÃO
- * Aplica as cores oficiais de Pelotão e GTAR, destaca a quantidade de armas e gera resumos por Pelotão.
+ * Aplica cores oficiais de Pelotão/GTAR, escala oficial consagrada de armas, negritos, alinhamentos,
+ * formatos numéricos, larguras e congelamento na planilha.
  */
 
 class RendererGxt {
@@ -19,14 +20,20 @@ class RendererGxt {
     };
   }
 
+  /**
+   * Escala Oficial Consagrada de Destaque de Armas:
+   * 1–3: laranja (#F0AD4E, texto #000000)
+   * 4–5: amarelo (#F1C232, texto #000000)
+   * 6–9: verde claro (#5CB85C, texto #000000)
+   * 10+: verde escuro (#00CC00, texto #FFFFFF, negrito)
+   */
   static corPorArmas(qtd) {
     const q = Number(qtd) || 0;
-    if (q >= 5) return { fundo: '#D9534F', texto: '#FFFFFF' };
-    if (q === 4) return { fundo: '#F0AD4E', texto: '#000000' };
-    if (q === 3) return { fundo: '#5BC0DE', texto: '#000000' };
-    if (q === 2) return { fundo: '#5CB85C', texto: '#FFFFFF' };
-    if (q === 1) return { fundo: '#E6F3FF', texto: '#000000' };
-    return { fundo: '#FFFFFF', texto: '#CC0000' };
+    if (q >= 10) return { fundo: '#00CC00', texto: '#FFFFFF', negrito: true };
+    if (q >= 6)  return { fundo: '#5CB85C', texto: '#000000', negrito: false };
+    if (q >= 4)  return { fundo: '#F1C232', texto: '#000000', negrito: false };
+    if (q >= 1)  return { fundo: '#F0AD4E', texto: '#000000', negrito: false };
+    return { fundo: '#FFFFFF', texto: '#CC0000', negrito: false };
   }
 
   static obterEstiloPelotao(designacao) {
@@ -89,6 +96,8 @@ class RendererGxt {
     const matrixFundos = Array.from({ length: totalLinhasGrid }, () => Array(18).fill('#FFFFFF'));
     const matrixCoresTexto = Array.from({ length: totalLinhasGrid }, () => Array(18).fill('#000000'));
     const matrixNegritos = Array.from({ length: totalLinhasGrid }, () => Array(18).fill(false));
+    const matrixAlinhamentos = Array.from({ length: totalLinhasGrid }, () => Array(18).fill('left'));
+    const matrixFormatos = Array.from({ length: totalLinhasGrid }, () => Array(18).fill('@'));
 
     // Renderiza cada bloco mensal
     meses.forEach((mes) => {
@@ -104,11 +113,15 @@ class RendererGxt {
 
       // Linha 2: Cabeçalhos das 5 Colunas
       const cabecalhos = ['Nº', 'GRAD. / MATRÍCULA', 'NOME', 'QTD ARMAS', 'DESIGNAÇÃO'];
+      const alignCab = ['center', 'center', 'left', 'center', 'center'];
+
       cabecalhos.forEach((c, cIdx) => {
-        matrixValores[1][colStart + cIdx] = c;
-        matrixFundos[1][colStart + cIdx] = '#20124D';
-        matrixCoresTexto[1][colStart + cIdx] = '#FFFFFF';
-        matrixNegritos[1][colStart + cIdx] = true;
+        const colActual = colStart + cIdx;
+        matrixValores[1][colActual] = c;
+        matrixFundos[1][colActual] = '#20124D';
+        matrixCoresTexto[1][colActual] = '#FFFFFF';
+        matrixNegritos[1][colActual] = true;
+        matrixAlinhamentos[1][colActual] = alignCab[cIdx];
       });
 
       // Linhas 3+: Registros do Mês
@@ -125,6 +138,15 @@ class RendererGxt {
         matrixValores[rowIdx][colStart + 3] = reg.qtdArmas;
         matrixValores[rowIdx][colStart + 4] = reg.designacao || '';
 
+        matrixAlinhamentos[rowIdx][colStart + 0] = 'center';
+        matrixAlinhamentos[rowIdx][colStart + 1] = 'center';
+        matrixAlinhamentos[rowIdx][colStart + 2] = 'left';
+        matrixAlinhamentos[rowIdx][colStart + 3] = 'center';
+        matrixAlinhamentos[rowIdx][colStart + 4] = 'center';
+
+        matrixFormatos[rowIdx][colStart + 0] = '0';
+        matrixFormatos[rowIdx][colStart + 3] = '0';
+
         // Estilização por Pelotão nas colunas de identificação
         for (let c = 0; c < 5; c++) {
           matrixFundos[rowIdx][colStart + c] = estiloPel.fundo;
@@ -132,15 +154,15 @@ class RendererGxt {
           matrixNegritos[rowIdx][colStart + c] = estiloPel.negrito;
         }
 
-        // Destaque específico na coluna QTD ARMAS (coluna 4, idx 3)
+        // Destaque específico na coluna QTD ARMAS (coluna 4, idx 3) usando a escala oficial consagrada
         matrixFundos[rowIdx][colStart + 3] = estiloArmas.fundo;
         matrixCoresTexto[rowIdx][colStart + 3] = estiloArmas.texto;
-        matrixNegritos[rowIdx][colStart + 3] = true;
+        matrixNegritos[rowIdx][colStart + 3] = estiloArmas.negrito;
       });
 
-      // Resumo por Pelotão abaixo da tabela do mês (linha maxLinhasDados + 4)
+      // Resumo por Pelotão abaixo da tabela do mês
       const resumoStartRow = Math.max(registros.length + 3, 4);
-      
+
       matrixValores[resumoStartRow][colStart] = 'RESUMO POR PELOTÃO';
       matrixFundos[resumoStartRow][colStart] = '#073763';
       matrixCoresTexto[resumoStartRow][colStart] = '#FFFFFF';
@@ -162,6 +184,11 @@ class RendererGxt {
         matrixValores[currRow][colStart] = g.chave;
         matrixValores[currRow][colStart + 3] = totalGrupo;
 
+        matrixAlinhamentos[currRow][colStart] = 'left';
+        matrixAlinhamentos[currRow][colStart + 3] = 'center';
+
+        matrixFormatos[currRow][colStart + 3] = '0';
+
         matrixFundos[currRow][colStart] = g.estilo.fundo;
         matrixCoresTexto[currRow][colStart] = g.estilo.texto;
         matrixNegritos[currRow][colStart] = g.estilo.negrito;
@@ -172,13 +199,15 @@ class RendererGxt {
       });
     });
 
-    // Se for mock de testes, popula os dados armazenados
+    // Se for mock de testes, popula os dados armazenados completos
     if (typeof targetSheet._definirDadosMatriz === 'function') {
       targetSheet._definirDadosMatriz({
         valores: matrixValores,
         fundos: matrixFundos,
         coresTexto: matrixCoresTexto,
-        negritos: matrixNegritos
+        negritos: matrixNegritos,
+        alinhamentos: matrixAlinhamentos,
+        formatos: matrixFormatos
       });
     } else if (typeof targetSheet.getRange === 'function') {
       try {
@@ -186,6 +215,34 @@ class RendererGxt {
         rng.setValues(matrixValores);
         rng.setBackgrounds(matrixFundos);
         rng.setFontColors(matrixCoresTexto);
+
+        if (typeof rng.setFontWeights === 'function') {
+          const weights = matrixNegritos.map(row => row.map(b => b ? 'bold' : 'normal'));
+          rng.setFontWeights(weights);
+        }
+        if (typeof rng.setHorizontalAlignments === 'function') {
+          rng.setHorizontalAlignments(matrixAlinhamentos);
+        }
+        if (typeof rng.setNumberFormats === 'function') {
+          rng.setNumberFormats(matrixFormatos);
+        }
+
+        // Aplica larguras de colunas e congelamento na planilha real Google Sheets
+        if (typeof targetSheet.setColumnWidth === 'function') {
+          const larguraColunas = [40, 130, 180, 90, 120, 20];
+          meses.forEach((mes, idx) => {
+            const startColIdx = idx * 6 + 1; // 1-indexed
+            larguraColunas.forEach((w, cOffset) => {
+              if (startColIdx + cOffset <= 18) {
+                targetSheet.setColumnWidth(startColIdx + cOffset, w);
+              }
+            });
+          });
+        }
+
+        if (typeof targetSheet.setFrozenRows === 'function') {
+          targetSheet.setFrozenRows(2);
+        }
       } catch (e) {}
     }
 

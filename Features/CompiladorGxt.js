@@ -1,10 +1,9 @@
 /**
  * ARQUIVO: Features/CompiladorGxt.js
- * DESCRIÇÃO: Compilador do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-04A).
- * REGRA DE OURO: Processa os meses selecionados, consulta a antiguidade N oficial pelo Pecúlio,
- * agrupa ocorrências por túnel, atribui 100% das armas ao líder resolvido e envia
- * EXCLUSIVAMENTE os registros com status 'PROCESSADO' para o renderizador.
- * Ocorrências pendentes de auditoria são desconsideradas do mérito.
+ * DESCRIÇÃO: Compilador do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-04B).
+ * REGRA DE OURO: Traduz os Registros Canônicos do Adaptador2026 para o DTO plano esperado pela política,
+ * preservando a integridade dos túneis e dos policiais.
+ * Envia EXCLUSIVAMENTE os registros com status 'PROCESSADO' para o renderizador.
  */
 
 class CompiladorGxt {
@@ -72,7 +71,7 @@ class CompiladorGxt {
       if (Array.isArray(sheetData)) {
         ocorrenciasBrutas = sheetData;
       } else if (AdaptadorMod && typeof AdaptadorMod.extrairFatos === 'function') {
-        ocorrenciasBrutas = AdaptadorMod.extrairFatos(sheetData, { aba: nomeAba }, {});
+        ocorrenciasBrutas = AdaptadorMod.extrairFatos(sheetData, { aba: nomeAba, versao: '2026' }, {});
       } else if (sheetData && typeof sheetData.getRange === 'function') {
         const lr = sheetData.getLastRow();
         const lc = sheetData.getLastColumn();
@@ -113,8 +112,59 @@ class CompiladorGxt {
         }
       }
 
+      // Converte explicitamente os Registros Canônicos / DTOs brutos no objeto plano esperado pela Política de Armas
+      const ocorrenciasNormalizadas = ocorrenciasBrutas.map(reg => {
+        // Se já for um objeto totalmente plano com data, mike, boe e policiais
+        if (reg.data !== undefined && reg.mike !== undefined && Array.isArray(reg.policiais) && typeof reg.armas === 'number' && reg.ocorrencia === undefined) {
+          return reg;
+        }
+
+        // Se for um RegistroCanonico (gerado por Adaptador2026)
+        const ocInfo = reg.ocorrencia || {};
+        const pmsRaw = Array.isArray(reg.policiais) ? reg.policiais : [];
+
+        let totalArmasFogo = 0;
+        let totalArmasArtesanais = 0;
+        let tipoArmaDetectado = reg.tipoArma || '';
+
+        const pmsFormatados = pmsRaw.map(p => {
+          const armasP = Number(p.armas || p.qtdArmas || 0);
+          const armasArtP = Number(p.armasArtesanais || p.qtdArtesanal || 0);
+
+          if (p.isArtesanal || String(p.tipoArma || '').toUpperCase() === 'ARTESANAL') {
+            totalArmasArtesanais += (armasArtP || armasP || 1);
+            tipoArmaDetectado = 'ARTESANAL';
+          } else {
+            totalArmasFogo += armasP;
+            totalArmasArtesanais += armasArtP;
+          }
+
+          return {
+            matricula: p.matricula || '',
+            nome: p.nome || p.militar || p.policial || '',
+            grad: p.graduacao || p.grad || '',
+            pelotao: p.pelotao || p.designacao || ''
+          };
+        });
+
+        const indStr = String(reg.eventoPontuavel?.indicador || reg.indicadorPip || '').toUpperCase();
+        if (indStr.includes('ARTESANAL')) {
+          tipoArmaDetectado = 'ARTESANAL';
+        }
+
+        return {
+          data: ocInfo.data || reg.data || '',
+          mike: ocInfo.mike || ocInfo.chaveOcorrencia || reg.mike || '',
+          boe: ocInfo.boe || ocInfo.numeroBOE || reg.boe || '',
+          armas: totalArmasFogo,
+          armasArtesanais: totalArmasArtesanais,
+          tipoArma: tipoArmaDetectado,
+          policiais: pmsFormatados
+        };
+      });
+
       if (PoliticaMeritoMod) {
-        const resultadosTuneis = PoliticaMeritoMod.processarMeritoArmas(ocorrenciasBrutas, mapaAntiguidade);
+        const resultadosTuneis = PoliticaMeritoMod.processarMeritoArmas(ocorrenciasNormalizadas, mapaAntiguidade);
         
         // FILTRO ESTRITO: Envia APENAS itens com status 'PROCESSADO' ao renderizador
         const processados = resultadosTuneis.filter(item => item.status === 'PROCESSADO');
