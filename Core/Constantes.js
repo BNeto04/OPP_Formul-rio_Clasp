@@ -3,8 +3,9 @@
  */
 const CONSTANTES_SYNTHEON = (() => {
 const constantes = {
-  // Aba padrão de referência
+  // Aba padrão de referência e ID da fonte oficial de antiguidade (Pecúlio)
   ABA_EFETIVO: "EFETIVO",
+  ID_PLANILHA_PECULIO: "",
 
   // Divisor Fixo Oficial para Rateio PIP de Pontos Ficção (independente da quantidade de policiais no túnel)
   DIVISOR_RATEIO_PIP: 4,

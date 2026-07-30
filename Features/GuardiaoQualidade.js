@@ -16,7 +16,7 @@ class GuardiaoQualidade {
     return norm.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  static varrerAba(sheet) {
+  static varrerAba(sheet, fontePeculioExterna = null) {
     const nomeAbaNorm = GuardiaoQualidade.normalizarNomeFlexivel(sheet.getName());
     if (nomeAbaNorm.includes('AUDITORIA') || nomeAbaNorm.includes('HISTORICO')) {
       const err = new Error('O Guardião não deve ser executado sobre abas de relatório ou histórico. Selecione uma aba mensal de ocorrências (ex: JUL2026).');
@@ -277,16 +277,30 @@ class GuardiaoQualidade {
       RegrasQualidade.acumularLinhaTunel(tuneis[chave], row, idx, linha, indicador);
     }
 
-    // Leitura oficial de antiguidade N via LeitorAntiguidadePeculio (TASK-M06.3-03)
+    // Leitura oficial de antiguidade N via LeitorAntiguidadePeculio (TASK-M06.3-03C)
     let resPeculio = { mapa: {}, mapaCompleto: {}, erro: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA' };
     let LeitorMod = typeof LeitorAntiguidadePeculio !== 'undefined' ? LeitorAntiguidadePeculio : null;
     if (!LeitorMod && typeof require !== 'undefined') {
       try { LeitorMod = require('../Leitura/LeitorAntiguidadePeculio'); } catch (e) {}
     }
     if (LeitorMod) {
-      const parentSS = (sheet && typeof sheet.getParent === 'function') ? sheet.getParent() : null;
-      resPeculio = LeitorMod.lerMapaAntiguidade(parentSS || sheet);
+      let fonteParaPeculio = fontePeculioExterna;
+      if (!fonteParaPeculio && typeof CONSTANTES_SYNTHEON !== 'undefined' && CONSTANTES_SYNTHEON.ID_PLANILHA_PECULIO) {
+        if (typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.openById === 'function') {
+          try {
+            fonteParaPeculio = SpreadsheetApp.openById(CONSTANTES_SYNTHEON.ID_PLANILHA_PECULIO);
+          } catch (e) {}
+        }
+      }
+      if (!fonteParaPeculio && sheet && typeof sheet.getParent === 'function') {
+        fonteParaPeculio = sheet.getParent();
+      }
+      if (fonteParaPeculio) {
+        resPeculio = LeitorMod.lerMapaAntiguidade(fonteParaPeculio);
+      }
     }
+
+    let observacaoFonteEmitida = false;
 
     // Validações por túnel (fatos vs indicadores, rateio matemático e mérito por armas)
     Object.values(tuneis).forEach(tunel => {
@@ -296,8 +310,12 @@ class GuardiaoQualidade {
         }
       });
 
-      // Validação do Mérito por Armas (TASK-M06.3-03)
-      RegrasQualidade.validarMeritoArmasTunel(tunel, resPeculio).forEach(diag => {
+      // Validação do Mérito por Armas (TASK-M06.3-03C)
+      const diagsMerito = RegrasQualidade.validarMeritoArmasTunel(tunel, resPeculio, observacaoFonteEmitida);
+      diagsMerito.forEach(diag => {
+        if (diag.codigoRegra === 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA') {
+          observacaoFonteEmitida = true;
+        }
         if (diag.linha >= 2 && diag.linha - 2 < alertasPorLinha.length) {
           alertasPorLinha[diag.linha - 2].push(diag);
         }

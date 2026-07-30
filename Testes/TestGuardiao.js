@@ -930,5 +930,84 @@ test('RegrasQualidade: fonte oficial de antiguidade indisponível gera OBSERVACA
   assert.strictEqual(diags[0].codigoRegra, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
 });
 
+// 31. Mérito por Armas: Fonte Externa Injetável de Pecúlio (TASK-M06.3-03C)
+test('GuardiaoQualidade: varrerAba aceita fonte externa injetável do Pecúlio para leitura de antiguidade', () => {
+  const mockPeculioExterno = {
+    getSheetByName: (n) => {
+      if (n === 'EFETIVO' || n === 'PECULIO') {
+        return {
+          getLastRow: () => 3,
+          getLastColumn: () => 5,
+          getRange: () => ({
+            getValues: () => [
+              ['N', 'MATRÍCULA', 'GRAD', 'NOME', 'DESIGNAÇÃO'],
+              [1, '108394-5', '3º SGT', 'IRAN SILVA', '1º PEL GTAR'],
+              [5, '102950-9', '2º SGT', 'SAULO ALVES', '2º PEL GTAR']
+            ]
+          })
+        };
+      }
+      return null;
+    }
+  };
+
+  const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
+  const dadosLinhas = [
+    ['15/07/2026', '202607151000', '26E100', '108394-5', 'IRAN SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY1', '']
+  ];
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
+
+  // Executa o Guardião injetando o mockPeculioExterno
+  const resultado = GuardiaoQualidade.varrerAba(mockSheet, mockPeculioExterno);
+
+  const diagSemN = resultado.diagnosticos.find(d => d.codigoRegra === 'MERITO_ARMAS_ANTIGUIDADE_AUSENTE');
+  assert.strictEqual(diagSemN, undefined, 'Não deve emitir ausência de N pois o Pecúlio externo foi injetado com sucesso');
+});
+
+// 32. Mérito por Armas: Líder Mais Antigo em Linha Sem Arma no Mesmo Túnel (TASK-M06.3-03C)
+test('RegrasQualidade: considera líder mais antigo (menor N) mesmo que esteja em linha sem arma no mesmo túnel', () => {
+  const tunelMock = {
+    chave: '2026-07-15_26E100_BOE_MULTILINHA',
+    data: '2026-07-15',
+    mike: '26E100',
+    boe: 'BOE_MULTILINHA',
+    fatos: { armas: 1, armasArtesanais: 0 },
+    linhasFatos: [
+      { linha: 2, matricula: '102950-9', policial: 'SAULO ALVES', grad: '2º SGT', armas: 1 },
+      { linha: 3, matricula: '108394-5', policial: 'IRAN SILVA', grad: '3º SGT', armas: 0 } // IRAN tem N=1 (mais antigo) mas 0 armas na sua linha
+    ]
+  };
+
+  const resPeculio = {
+    mapa: { '1083945': 1, '1029509': 15 } // IRAN (N=1), SAULO (N=15)
+  };
+
+  const diags = RegrasQualidade.validarMeritoArmasTunel(tunelMock, resPeculio);
+  assert.strictEqual(diags.length, 0, 'O líder IRAN (N=1) deve ser reconhecido a partir do túnel sem gerar alertas');
+});
+
+// 33. Mérito por Armas: Emissão Única de ANTIGUIDADE_FONTE_NAO_LOCALIZADA por Varredura (TASK-M06.3-03C)
+test('GuardiaoQualidade: vários túneis armados com fonte indisponível geram exatamente 1 única observação ANTIGUIDADE_FONTE_NAO_LOCALIZADA', () => {
+  const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
+  const dadosLinhas = [
+    // Túnel 1 (Armado)
+    ['15/07/2026', '202607151000', '26E100', '108394-5', 'IRAN SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY1', ''],
+    // Túnel 2 (Armado)
+    ['16/07/2026', '202607161000', '26E200', '102950-9', 'SAULO ALVES', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY2', ''],
+    // Túnel 3 (Armado)
+    ['17/07/2026', '202607171000', '26E300', '113920-7', 'MARCONI LIMA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY3', '']
+  ];
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao, formulaCalculadaPadrao, formulaCalculadaPadrao], [], abaPIPValores);
+
+  const mockPeculioSemEfetivo = {
+    getSheetByName: () => null
+  };
+
+  const resultado = GuardiaoQualidade.varrerAba(mockSheet, mockPeculioSemEfetivo);
+
+  const obsFonte = resultado.diagnosticos.filter(d => d.codigoRegra === 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+  assert.strictEqual(obsFonte.length, 1, 'Deve emitir EXATAMENTE UMA observação técnica por varredura');
+});
+
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);
 }

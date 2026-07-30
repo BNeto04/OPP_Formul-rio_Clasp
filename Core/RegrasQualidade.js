@@ -170,12 +170,13 @@ class RegrasQualidade {
   }
 
   /**
-   * Valida a política de mérito por armas para um túnel de ocorrência (TASK-M06.3-03).
+   * Valida a política de mérito por armas para um túnel de ocorrência (TASK-M06.3-03C).
    * @param {Object} tunel - Objeto do túnel acumulado pelo Guardião.
    * @param {Object} resPeculio - Resultado do LeitorAntiguidadePeculio.lerMapaAntiguidade.
+   * @param {boolean} [jaEmitiuObservacaoFonte=false] - Se true, não reemite a observação de fonte indisponível.
    * @returns {Array<Object>} Lista de diagnósticos de mérito por armas.
    */
-  static validarMeritoArmasTunel(tunel, resPeculio) {
+  static validarMeritoArmasTunel(tunel, resPeculio, jaEmitiuObservacaoFonte = false) {
     if (!tunel || !tunel.fatos) return [];
 
     // Regra estrita: audita APENAS túneis com arma física (fogo ou artesanal)
@@ -191,6 +192,9 @@ class RegrasQualidade {
 
     // Se a fonte oficial de antiguidade não foi localizada
     if (resPeculio && resPeculio.erro === 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA') {
+      if (jaEmitiuObservacaoFonte) {
+        return []; // Garante emissão ÚNICA por varredura de auditoria
+      }
       return [RegrasQualidade.criarDiagnostico({
         severidade: SEVERIDADES_GUARDIAO.OBSERVACAO,
         codigoRegra: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA',
@@ -204,22 +208,31 @@ class RegrasQualidade {
 
     const mapa = resPeculio?.mapa || resPeculio || {};
 
-    // Reconstrói a lista de policiais a partir das linhas do túnel
+    // Reconstrói a lista de TODOS os policiais participantes do túnel (inclusive os de linhas sem armas)
     const integrantesMap = {};
+    const adicionarPolicial = (p) => {
+      if (!p) return;
+      const mat = String(p.matricula || p.mat || '').trim();
+      if (!mat) return;
+      if (!integrantesMap[mat]) {
+        integrantesMap[mat] = {
+          matricula: mat,
+          nome: p.policial || p.nome || '',
+          grad: p.grad || p.graduacao || '',
+          pelotao: p.pelotao || p.designacao || ''
+        };
+      } else {
+        if (!integrantesMap[mat].nome && (p.policial || p.nome)) integrantesMap[mat].nome = p.policial || p.nome;
+        if (!integrantesMap[mat].grad && (p.grad || p.graduacao)) integrantesMap[mat].grad = p.grad || p.graduacao;
+        if (!integrantesMap[mat].pelotao && (p.pelotao || p.designacao)) integrantesMap[mat].pelotao = p.pelotao || p.designacao;
+      }
+    };
+
     if (Array.isArray(tunel.linhasFatos)) {
-      tunel.linhasFatos.forEach(lf => {
-        if (lf.matricula) {
-          const mat = String(lf.matricula).trim();
-          if (!integrantesMap[mat]) {
-            integrantesMap[mat] = {
-              matricula: mat,
-              nome: lf.policial || '',
-              grad: lf.grad || '',
-              pelotao: lf.pelotao || ''
-            };
-          }
-        }
-      });
+      tunel.linhasFatos.forEach(adicionarPolicial);
+    }
+    if (Array.isArray(tunel.policiais)) {
+      tunel.policiais.forEach(adicionarPolicial);
     }
 
     const listaIntegrantes = Object.values(integrantesMap);
