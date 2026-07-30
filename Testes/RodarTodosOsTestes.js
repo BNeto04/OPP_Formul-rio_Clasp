@@ -31,6 +31,8 @@ console.log('');
 require('./TestRelatorioDrogas');
 console.log('');
 require('./TestCentralAnalitica');
+console.log('');
+require('./TestMeritoEquipeArmas');
 
 console.log('\n====================================================');
 console.log('✨ TODAS AS SUÍTES FORAM EXECUTADAS COM SUCESSO!');
