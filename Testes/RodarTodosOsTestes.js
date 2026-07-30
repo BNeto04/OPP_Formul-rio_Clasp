@@ -33,6 +33,8 @@ console.log('');
 require('./TestCentralAnalitica');
 console.log('');
 require('./TestMeritoEquipeArmas');
+console.log('');
+require('./TestLeitorAntiguidadePeculio');
 
 console.log('\n====================================================');
 console.log('✨ TODAS AS SUÍTES FORAM EXECUTADAS COM SUCESSO!');

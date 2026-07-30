@@ -117,7 +117,8 @@ const PoliticaMeritoArmas = {
       let temIntegranteSemN = false;
 
       listaIntegrantes.forEach(pm => {
-        const n = mapaAntiguidade[pm.matricula];
+        const normMat = String(pm.matricula || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().trim();
+        const n = mapaAntiguidade[pm.matricula] !== undefined ? mapaAntiguidade[pm.matricula] : mapaAntiguidade[normMat];
         const numN = Number(n);
 
         if (n === undefined || n === null || isNaN(numN) || numN <= 0) {
