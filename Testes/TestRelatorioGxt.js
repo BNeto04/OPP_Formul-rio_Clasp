@@ -5,7 +5,9 @@
  */
 
 const assert = require('assert');
-const CompiladorGxt = require('../Features/CompiladorGxt');
+const ModGxt = require('../Features/CompiladorGxt');
+const CompiladorGxt = ModGxt.CompiladorGxt || ModGxt;
+const { gerarGxtSelecaoLivre, gerarGxtAnual } = ModGxt;
 const RendererGxt = require('../Render/RendererGxt');
 
 function executarTestesGxt() {
@@ -225,6 +227,49 @@ function executarTestesGxt() {
     assert.strictEqual(f4.fundo, '#38761D');
     assert.strictEqual(f4.texto, '#FFFFFF');
     assert.strictEqual(f4.negrito, true);
+  });
+
+  // 6. Seleção Livre Encaminha Apenas os Meses Marcados para Nome de Saída Padronizado (TASK-M06.3-04D)
+  test('gerarGxtSelecaoLivre: encaminha apenas os meses selecionados e cria aba GXT_ACUMULADO_<primeiro>_<ultimo>', () => {
+    const abasCriadas = [];
+    const mockSS = {
+      getSheetByName: (n) => null,
+      insertSheet: (n) => {
+        abasCriadas.push(n);
+        return { clear: () => {}, _definirDadosMatriz: () => {} };
+      }
+    };
+
+    const resultado = gerarGxtSelecaoLivre(['JAN2026', 'FEV2026'], mockPeculioOficial, mockSS);
+    assert.ok(resultado['JAN2026']);
+    assert.ok(resultado['FEV2026']);
+    assert.strictEqual(resultado['MAR2026'], undefined);
+    assert.strictEqual(abasCriadas.length, 1);
+    assert.strictEqual(abasCriadas[0], 'GXT_ACUMULADO_JAN2026_FEV2026');
+  });
+
+  // 7. Modo Anual Separa os 12 Meses em 4 Saídas Trimestrais (TASK-M06.3-04D)
+  test('gerarGxtAnual: divide os 12 meses em 4 saídas trimestrais GXT_1T..4T sem sobrescrever abas existentes', () => {
+    const abasCriadas = [];
+    const mockSS = {
+      getSheetByName: (n) => {
+        if (n === 'OUTRO_RELATORIO') return { name: 'OUTRO_RELATORIO' };
+        return null;
+      },
+      insertSheet: (n) => {
+        abasCriadas.push(n);
+        return { clear: () => {}, _definirDadosMatriz: () => {} };
+      }
+    };
+
+    const resAnual = gerarGxtAnual(mockSS, mockPeculioOficial);
+    assert.ok(resAnual['GXT_1T_2026']);
+    assert.ok(resAnual['GXT_2T_2026']);
+    assert.ok(resAnual['GXT_3T_2026']);
+    assert.ok(resAnual['GXT_4T_2026']);
+
+    assert.strictEqual(abasCriadas.length, 4);
+    assert.deepStrictEqual(abasCriadas, ['GXT_1T_2026', 'GXT_2T_2026', 'GXT_3T_2026', 'GXT_4T_2026']);
   });
 
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);

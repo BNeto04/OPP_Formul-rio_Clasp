@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <base target="_top">
+    <style>
+      body { font-family: Arial, sans-serif; padding: 18px; color: #111827; }
+      h3 { margin: 0 0 6px; font-size: 17px; }
+      p { margin: 0 0 14px; color: #4b5563; font-size: 13px; line-height: 1.35; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+      .mes { display: flex; align-items: center; gap: 7px; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; cursor: pointer; }
+      .mes:hover { background: #f3f4f6; }
+      .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+      button { border: 0; border-radius: 6px; padding: 8px 12px; font-weight: 700; cursor: pointer; }
+      .secondary { background: #e5e7eb; color: #111827; }
+      .primary { background: #073763; color: white; }
+    </style>
+  </head>
+  <body>
+    <h3>Gxt - Relatório Trimestral de Mérito</h3>
+    <p>Selecione os meses para compilar o relatório acumulado por armas.</p>
+    <div class="grid">
+      <label class="mes"><input type="checkbox" name="mes" value="JAN2026"> JAN</label>
+      <label class="mes"><input type="checkbox" name="mes" value="FEV2026"> FEV</label>
+      <label class="mes"><input type="checkbox" name="mes" value="MAR2026"> MAR</label>
+      <label class="mes"><input type="checkbox" name="mes" value="ABR2026"> ABR</label>
+      <label class="mes"><input type="checkbox" name="mes" value="MAI2026"> MAI</label>
+      <label class="mes"><input type="checkbox" name="mes" value="JUN2026"> JUN</label>
+      <label class="mes"><input type="checkbox" name="mes" value="JUL2026"> JUL</label>
+      <label class="mes"><input type="checkbox" name="mes" value="AGO2026"> AGO</label>
+      <label class="mes"><input type="checkbox" name="mes" value="SET2026"> SET</label>
+      <label class="mes"><input type="checkbox" name="mes" value="OUT2026"> OUT</label>
+      <label class="mes"><input type="checkbox" name="mes" value="NOV2026"> NOV</label>
+      <label class="mes"><input type="checkbox" name="mes" value="DEZ2026"> DEZ</label>
+    </div>
+    <div class="actions">
+      <button class="secondary" onclick="marcarTodos()">Todos</button>
+      <button class="secondary" onclick="google.script.host.close()">Cancelar</button>
+      <button class="primary" onclick="gerar()">Gerar</button>
+    </div>
+    <script>
+      function marcarTodos() {
+        document.querySelectorAll('input[name="mes"]').forEach(cb => cb.checked = true);
+      }
+      function gerar() {
+        const selecionados = Array.from(document.querySelectorAll('input[name="mes"]:checked')).map(cb => cb.value);
+        if (selecionados.length === 0) {
+          alert('Selecione pelo menos um mês.');
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(() => google.script.host.close())
+          .withFailureHandler(err => alert('Erro: ' + err.message))
+          .gerarGxtSelecaoLivre(selecionados);
+      }
+    </script>
+  </body>
+</html>

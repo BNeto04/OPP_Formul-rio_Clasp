@@ -39,6 +39,25 @@ function onOpen() {
   if (typeof criarMenuDrogas_ === 'function') {
     try { criarMenuDrogas_(); } catch (e) { Logger.log('Erro ao criar menu Drogas: ' + e.message); }
   }
+
+  try {
+    criarMenuGxt_();
+  } catch (e) {
+    Logger.log('Erro ao criar menu Gxt: ' + e.message);
+  }
+}
+
+/**
+ * Menu do Relatório Trimestral Gxt (TASK-M06.3-04D).
+ * Itens em caixa normal, sem emojis.
+ */
+function criarMenuGxt_() {
+  const ui = SpreadsheetApp.getUi();
+
+  ui.createMenu('Gxt')
+    .addItem('Selecao livre', 'abrirMenuGxtSelecaoLivre')
+    .addItem('Anual', 'gerarGxtAnual')
+    .addToUi();
 }
 
 /**

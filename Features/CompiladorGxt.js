@@ -237,6 +237,95 @@ class CompiladorGxt {
   }
 }
 
+/**
+ * Entry point para o modal de Seleção Livre do Gxt.
+ */
+function abrirMenuGxtSelecaoLivre() {
+  if (typeof HtmlService !== 'undefined' && typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
+    const html = HtmlService.createHtmlOutputFromFile('Entrada/DialogGxtSelecaoLivre')
+      .setWidth(450)
+      .setHeight(350)
+      .setTitle('Gxt - Seleção Livre');
+    SpreadsheetApp.getUi().showModalDialog(html, 'Gxt - Seleção Livre');
+  }
+}
+
+/**
+ * Orquestrador da Seleção Livre do Gxt.
+ * Nome de saída: GXT_ACUMULADO_<primeiro_mes>_<ultimo_mes>
+ * @param {Array<string>} meses - Lista dos meses selecionados.
+ * @param {Object} [fontePeculio=null] - Fonte opcional do Pecúlio.
+ */
+function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
+  if (!Array.isArray(meses) || meses.length === 0) {
+    if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
+      SpreadsheetApp.getUi().alert('Selecione pelo menos um mês.');
+    }
+    return null;
+  }
+
+  const ss = fonteSS || ((typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.getActiveSpreadsheet === 'function')
+    ? SpreadsheetApp.getActiveSpreadsheet()
+    : null);
+
+  const primeiroMes = meses[0];
+  const ultimoMes = meses[meses.length - 1];
+  const nomeAbaSaida = `GXT_ACUMULADO_${primeiroMes}_${ultimoMes}`;
+
+  let RendererMod = typeof RendererGxt !== 'undefined' ? RendererGxt : null;
+  if (!RendererMod && typeof require !== 'undefined') {
+    try { RendererMod = require('../Render/RendererGxt'); } catch (e) {}
+  }
+
+  const dados = CompiladorGxt.compilar(ss, meses, fontePeculio);
+  if (RendererMod && ss) {
+    RendererMod.renderizar(ss, dados, nomeAbaSaida);
+  }
+  return dados;
+}
+
+/**
+ * Orquestrador do Modo Anual do Gxt.
+ * Divide os 12 meses em 4 saídas trimestrais preservando o modelo de 3 blocos mensais por aba:
+ * GXT_1T_2026, GXT_2T_2026, GXT_3T_2026 e GXT_4T_2026.
+ * @param {Object} [fonteSS=null] - Planilha ou fonte de dados.
+ * @param {Object} [fontePeculio=null] - Fonte opcional do Pecúlio.
+ */
+function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
+  const ss = fonteSS || ((typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.getActiveSpreadsheet === 'function')
+    ? SpreadsheetApp.getActiveSpreadsheet()
+    : null);
+
+  let RendererMod = typeof RendererGxt !== 'undefined' ? RendererGxt : null;
+  if (!RendererMod && typeof require !== 'undefined') {
+    try { RendererMod = require('../Render/RendererGxt'); } catch (e) {}
+  }
+
+  const trimestres = [
+    { nomeAba: 'GXT_1T_2026', meses: ['JAN2026', 'FEV2026', 'MAR2026'] },
+    { nomeAba: 'GXT_2T_2026', meses: ['ABR2026', 'MAI2026', 'JUN2026'] },
+    { nomeAba: 'GXT_3T_2026', meses: ['JUL2026', 'AGO2026', 'SET2026'] },
+    { nomeAba: 'GXT_4T_2026', meses: ['OUT2026', 'NOV2026', 'DEZ2026'] }
+  ];
+
+  const resultadosTrimestrais = {};
+
+  trimestres.forEach(tri => {
+    const dadosTri = CompiladorGxt.compilar(ss, tri.meses, fontePeculio);
+    resultadosTrimestrais[tri.nomeAba] = dadosTri;
+    if (RendererMod && ss) {
+      RendererMod.renderizar(ss, dadosTri, tri.nomeAba);
+    }
+  });
+
+  return resultadosTrimestrais;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = CompiladorGxt;
+  module.exports = {
+    CompiladorGxt,
+    abrirMenuGxtSelecaoLivre,
+    gerarGxtSelecaoLivre,
+    gerarGxtAnual
+  };
 }
