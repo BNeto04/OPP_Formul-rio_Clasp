@@ -86,17 +86,37 @@ class CompiladorGxt {
       if (!fPeculio && typeof CONFIG_SYNTHEON !== 'undefined' && typeof CONFIG_SYNTHEON.obterIdPeculio === 'function') {
         const idPeculio = CONFIG_SYNTHEON.obterIdPeculio();
         if (idPeculio && typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.openById === 'function') {
-          try { fPeculio = SpreadsheetApp.openById(idPeculio); } catch (e) {}
+          try {
+            fPeculio = SpreadsheetApp.openById(idPeculio);
+          } catch (e) {
+            resPeculio = {
+              mapa: {},
+              mapaCompleto: {},
+              erro: 'PECULIO_ACESSO_NEGADO',
+              detalheErro: e.message || String(e),
+              estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
+            };
+          }
         }
       }
-      if (fPeculio) {
-        resPeculio = LeitorPeculioMod.lerMapaAntiguidade(fPeculio);
+
+      if (!resPeculio.erro) {
+        if (fPeculio) {
+          resPeculio = LeitorPeculioMod.lerMapaAntiguidade(fPeculio);
+        } else {
+          resPeculio = {
+            mapa: {},
+            mapaCompleto: {},
+            erro: 'PECULIO_ACESSO_NEGADO',
+            estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
+          };
+        }
       }
     }
 
     const mapaAntiguidade = resPeculio.mapa || {};
     const mapaCompleto = resPeculio.mapaCompleto || {};
-    const erroPeculio = resPeculio.erro || (Object.keys(mapaAntiguidade).length === 0 ? 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA' : null);
+    const erroPeculio = resPeculio.erro || (Object.keys(mapaAntiguidade).length === 0 ? 'PECULIO_SEM_REGISTROS_VALIDOS' : null);
 
     const resultadoPorMes = {};
     const diagnosticoGxt = {
@@ -362,7 +382,23 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
 
   // BLOQUEIO 1: Fonte de antiguidade do Pecúlio ausente ou inválida
   if (!diag.peculioValido) {
-    const msgErro = `FALHA NO GXT: A fonte oficial de antiguidade do Pecúlio não foi localizada ou não contém as colunas N e MATRÍCULA válidas.\nStatus: ${diag.peculioErro || 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA'}\nNenhum relatório foi alterado para proteger a integridade funcional.`;
+    let acaoRecomendada = '';
+    const codErro = diag.peculioErro || 'PECULIO_ABA_NAO_LOCALIZADA';
+
+    if (codErro === 'PECULIO_ACESSO_NEGADO') {
+      acaoRecomendada = 'Ação recomendada: Autorizar a execução do script e verificar as permissões de compartilhamento do arquivo do Pecúlio no Google Drive.';
+    } else if (codErro === 'PECULIO_ABA_NAO_LOCALIZADA') {
+      acaoRecomendada = 'Ação recomendada: Verificar se a aba contendo a lista de antiguidade no arquivo do Pecúlio chama-se EFETIVO, PECULIO ou CÓPIA DE PECÚLIO COM PONTUAÇÃO.';
+    } else if (codErro === 'PECULIO_CABECALHO_NAO_LOCALIZADO') {
+      acaoRecomendada = 'Ação recomendada: Verificar se os cabeçalhos ORD (ou N) e MAT. (ou MATRÍCULA) existem nas primeiras 25 linhas da aba do Pecúlio.';
+    } else if (codErro === 'PECULIO_SEM_REGISTROS_VALIDOS') {
+      acaoRecomendada = 'Ação recomendada: Verificar se a aba do Pecúlio contém linhas válidas com valores de ORD e MAT. preenchidos.';
+    } else {
+      acaoRecomendada = `Ação recomendada: Verificar a integridade do arquivo do Pecúlio (${codErro}).`;
+    }
+
+    const msgErro = `FALHA NO GXT: A fonte oficial de antiguidade do Pecúlio não pôde ser processada.\n\nDiagnóstico: ${codErro}\n${diag.detalheErro ? 'Detalhe: ' + diag.detalheErro + '\n' : ''}${acaoRecomendada}\n\nNenhum relatório foi alterado para proteger a integridade funcional.`;
+
     if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
       SpreadsheetApp.getUi().alert(msgErro);
     }
@@ -418,9 +454,8 @@ function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
     const diag = dadosTri._diagnostico || {};
 
     if (!diag.peculioValido || (diag.totalTuneisArmados > 0 && diag.totalTuneisProcessados === 0)) {
-      const msg = !diag.peculioValido
-        ? `FALHA NO GXT (${tri.nomeAba}): Pecúlio indisponível ou sem colunas N/MATRÍCULA.`
-        : `ATENÇÃO GXT (${tri.nomeAba}): ${diag.totalTuneisArmados} túneis armados pendentes de antiguidade.`;
+      const codErro = diag.peculioErro || 'PECULIO_ABA_NAO_LOCALIZADA';
+      const msg = `FALHA NO GXT (${tri.nomeAba}): ${codErro}.`;
 
       if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
         SpreadsheetApp.getUi().alert(msg);

@@ -20,32 +20,41 @@ const LeitorAntiguidadePeculio = {
   /**
    * Lê o mapa de antiguidade a partir de uma planilha (objeto SpreadsheetApp.Spreadsheet ou matriz 2D).
    * @param {SpreadsheetApp.Spreadsheet|Array<Array>} fonte - Planilha do Google Sheets ou matriz 2D.
-   * @param {string} [nomeAbaAlvo='EFETIVO'] - Nome da aba a procurar no projeto.
+   * @param {string} [nomeAba='EFETIVO'] - Nome da aba a procurar no projeto.
    * @returns {{ mapa: Object.<string, number>, mapaCompleto: Object.<string, Object>, erro?: string, estatisticas: Object }}
    */
-  lerMapaAntiguidade(fonte, nomeAbaAlvo = 'EFETIVO') {
-    let dados = [];
+  lerMapaAntiguidade(fonte, nomeAba = null) {
+    if (!fonte) {
+      return {
+        mapa: {},
+        mapaCompleto: {},
+        erro: 'PECULIO_ACESSO_NEGADO',
+        estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
+      };
+    }
+
+    let sheet = null;
+    let dados = null;
 
     if (Array.isArray(fonte)) {
       dados = fonte;
     } else if (fonte && typeof fonte.getSheetByName === 'function') {
-      let sheet = fonte.getSheetByName(nomeAbaAlvo);
-      if (!sheet) {
-        // Aliases de aba reconhecidos exclusivamente para localização do Pecúlio/Efetivo
-        const aliasesAbas = [
-          'EFETIVO', 'PECULIO', 'PECÚLIO', 'EFETIVO 2026',
-          'CÓPIA DE PECÚLIO COM PONTUAÇÃO', 'COPIA DE PECULIO COM PONTUACAO',
-          'CÓPIA DE PECÚLIO COM PONTUAÇÃO ', 'PECÚLIO 2026', 'PECULIO 2026'
-        ];
-        for (const alias of aliasesAbas) {
-          sheet = fonte.getSheetByName(alias);
-          if (sheet) break;
+      const nomeAbaAlvo = nomeAba || 'EFETIVO';
+      try {
+        sheet = fonte.getSheetByName(nomeAbaAlvo);
+        if (!sheet) {
+          const aliasesAbas = [
+            'EFETIVO', 'PECULIO', 'PECÚLIO', 'EFETIVO 2026',
+            'CÓPIA DE PECÚLIO COM PONTUAÇÃO', 'COPIA DE PECULIO COM PONTUACAO',
+            'CÓPIA DE PECÚLIO COM PONTUAÇÃO ', 'PECÚLIO 2026', 'PECULIO 2026'
+          ];
+          for (const alias of aliasesAbas) {
+            sheet = fonte.getSheetByName(alias);
+            if (sheet) break;
+          }
         }
-      }
 
-      // Busca por aproximação normalizada caso não encontre por nome exato (restrito a PECULIO ou EFETIVO)
-      if (!sheet && typeof fonte.getSheets === 'function') {
-        try {
+        if (!sheet && typeof fonte.getSheets === 'function') {
           const allSheets = fonte.getSheets();
           for (const s of allSheets) {
             if (s && typeof s.getName === 'function') {
@@ -56,23 +65,40 @@ const LeitorAntiguidadePeculio = {
               }
             }
           }
-        } catch (e) {}
-      }
-
-      // REGRA ESTRITA: Proibido usar sheets[0] como fallback arbitrário
-      if (!sheet) {
+        }
+      } catch (e) {
         return {
           mapa: {},
           mapaCompleto: {},
-          erro: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA',
+          erro: 'PECULIO_ACESSO_NEGADO',
+          detalheErro: e.message || String(e),
           estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
         };
       }
 
-      const lastRow = sheet.getLastRow();
-      const lastCol = sheet.getLastColumn();
-      if (lastRow >= 2 && lastCol >= 1) {
-        dados = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+      if (!sheet) {
+        return {
+          mapa: {},
+          mapaCompleto: {},
+          erro: 'PECULIO_ABA_NAO_LOCALIZADA',
+          estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
+        };
+      }
+
+      try {
+        const lastRow = sheet.getLastRow();
+        const lastCol = sheet.getLastColumn();
+        if (lastRow >= 2 && lastCol >= 1) {
+          dados = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+        }
+      } catch (e) {
+        return {
+          mapa: {},
+          mapaCompleto: {},
+          erro: 'PECULIO_ACESSO_NEGADO',
+          detalheErro: e.message || String(e),
+          estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
+        };
       }
     }
 
@@ -80,12 +106,12 @@ const LeitorAntiguidadePeculio = {
       return {
         mapa: {},
         mapaCompleto: {},
-        erro: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA',
+        erro: 'PECULIO_ABA_NAO_LOCALIZADA',
         estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
       };
     }
 
-    // Procura a linha do cabeçalho nas primeiras 10 linhas exigindo N e MATRÍCULA explícitos
+    // Procura a linha do cabeçalho nas primeiras 25 linhas exigindo N e MATRÍCULA explícitos
     let idxCabecalho = -1;
     let colMatricula = -1;
     let colN = -1;
@@ -118,7 +144,7 @@ const LeitorAntiguidadePeculio = {
       return {
         mapa: {},
         mapaCompleto: {},
-        erro: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA',
+        erro: 'PECULIO_CABECALHO_NAO_LOCALIZADO',
         estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
       };
     }
@@ -170,6 +196,15 @@ const LeitorAntiguidadePeculio = {
       };
 
       estatisticas.validos++;
+    }
+
+    if (estatisticas.validos === 0) {
+      return {
+        mapa: {},
+        mapaCompleto: {},
+        erro: 'PECULIO_SEM_REGISTROS_VALIDOS',
+        estatisticas
+      };
     }
 
     return { mapa, mapaCompleto, estatisticas };

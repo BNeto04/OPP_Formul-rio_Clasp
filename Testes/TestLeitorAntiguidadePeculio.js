@@ -94,8 +94,8 @@ test('LeitorAntiguidade: trata duplicidades de matrícula mantendo a primeira oc
   assert.strictEqual(resultado.mapaCompleto['1083945'].nome, 'SGT IRAN (Linha 1)');
 });
 
-// 5. Teste (TASK-M06.3-03B): Aba ausente na planilha resulta em erro ANTIGUIDADE_FONTE_NAO_LOCALIZADA
-test('LeitorAntiguidade: aba ausente na planilha retorna erro ANTIGUIDADE_FONTE_NAO_LOCALIZADA sem ler abas arbitrarias', () => {
+// 5. Teste (TASK-M06.3-05G): Aba ausente na planilha resulta em erro PECULIO_ABA_NAO_LOCALIZADA
+test('LeitorAntiguidade: aba ausente na planilha retorna erro PECULIO_ABA_NAO_LOCALIZADA sem ler abas arbitrarias', () => {
   const mockSS = {
     getSheetByName: () => null, // Nenhuma das abas reconhecidas existe
     getSheets: () => [{ getName: () => 'JAN2026' }] // Tenta enganar com relatorio mensal como primeira aba
@@ -103,12 +103,12 @@ test('LeitorAntiguidade: aba ausente na planilha retorna erro ANTIGUIDADE_FONTE_
 
   const resultado = LeitorAntiguidadePeculio.lerMapaAntiguidade(mockSS, 'EFETIVO');
 
-  assert.strictEqual(resultado.erro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+  assert.strictEqual(resultado.erro, 'PECULIO_ABA_NAO_LOCALIZADA');
   assert.strictEqual(Object.keys(resultado.mapa).length, 0);
 });
 
-// 6. Teste (TASK-M06.3-03B): Cabeçalho sem coluna N resulta em erro ANTIGUIDADE_FONTE_NAO_LOCALIZADA sem usar indices fixos
-test('LeitorAntiguidade: cabeçalho sem coluna N explicita retorna erro ANTIGUIDADE_FONTE_NAO_LOCALIZADA', () => {
+// 6. Teste (TASK-M06.3-05G): Cabeçalho sem coluna N resulta em erro PECULIO_CABECALHO_NAO_LOCALIZADO
+test('LeitorAntiguidade: cabeçalho sem coluna N explicita retorna erro PECULIO_CABECALHO_NAO_LOCALIZADO', () => {
   const dadosMockSemN = [
     ['RANK', 'MATRÍCULA', 'NOME', 'OCORRÊNCIAS', 'PONTOS'], // N ausente no cabecalho
     [1, '101001-0', 'MAJ CORREIA', 10, 100.0]
@@ -116,11 +116,11 @@ test('LeitorAntiguidade: cabeçalho sem coluna N explicita retorna erro ANTIGUID
 
   const resultado = LeitorAntiguidadePeculio.lerMapaAntiguidade(dadosMockSemN);
 
-  assert.strictEqual(resultado.erro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+  assert.strictEqual(resultado.erro, 'PECULIO_CABECALHO_NAO_LOCALIZADO');
   assert.strictEqual(Object.keys(resultado.mapa).length, 0);
 });
 
-// 7. Teste (TASK-M06.3-03B): Primeira aba sendo relatório não relacionado não vaza antiguidade falsa
+// 7. Teste (TASK-M06.3-05G): Primeira aba sendo relatório não relacionado retorna erro sem ler dados falsos
 test('LeitorAntiguidade: primeira aba sendo relatório não relacionado retorna erro sem ler dados falsos', () => {
   const mockRelatorioMensal = {
     getName: () => 'COMPILADO_DROGAS_JAN2026',
@@ -141,7 +141,7 @@ test('LeitorAntiguidade: primeira aba sendo relatório não relacionado retorna 
 
   const resultado = LeitorAntiguidadePeculio.lerMapaAntiguidade(mockSS);
 
-  assert.strictEqual(resultado.erro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+  assert.strictEqual(resultado.erro, 'PECULIO_ABA_NAO_LOCALIZADA');
   assert.strictEqual(resultado.mapa['1083945'], undefined, 'Nao pode atribuir N=1 a partir da coluna ITEM do relatorio');
 });
 

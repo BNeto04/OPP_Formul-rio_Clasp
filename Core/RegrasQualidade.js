@@ -191,7 +191,7 @@ class RegrasQualidade {
       : (tunel.eventos && tunel.eventos.length > 0 ? tunel.eventos[0].linha : 2);
 
     // Se a fonte oficial de antiguidade não foi localizada
-    if (resPeculio && resPeculio.erro === 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA') {
+    if (resPeculio && resPeculio.erro) {
       if (jaEmitiuObservacaoFonte) {
         return []; // Garante emissão ÚNICA por varredura de auditoria
       }

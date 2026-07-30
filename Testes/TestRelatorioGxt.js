@@ -321,7 +321,7 @@ function executarTestesGxt() {
     assert.strictEqual(achado.getName(), 'abr.2026');
   });
 
-  // 10. Bloqueio Seguro quando o Pecúlio é Indisponível (TASK-M06.3-05D)
+  // 10. Bloqueio Seguro quando o Pecúlio é Indisponível (TASK-M06.3-05G)
   test('gerarGxtSelecaoLivre: bloqueia geração e NÃO altera a planilha de saída quando Pecúlio é indisponível', () => {
     let folhaLimpa = false;
     const mockSS = {
@@ -338,11 +338,11 @@ function executarTestesGxt() {
 
     assert.ok(res._diagnostico);
     assert.strictEqual(res._diagnostico.peculioValido, false);
-    assert.strictEqual(res._diagnostico.peculioErro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+    assert.strictEqual(res._diagnostico.peculioErro, 'PECULIO_ABA_NAO_LOCALIZADA');
     assert.strictEqual(folhaLimpa, false, 'A folha existente NUNCA deve ser limpa quando o Pecúlio falha');
   });
 
-  // 11. Diagnóstico Claro quando Túneis Armados Possuem Pendências (TASK-M06.3-05D)
+  // 11. Diagnóstico Claro quando Túneis Armados Possuem Pendências (TASK-M06.3-05G)
   test('gerarGxtSelecaoLivre: informa estatísticas de fatos e pendências sem sobrescrever a aba existente', () => {
     let folhaLimpa = false;
     const mockSheetJan = [
@@ -372,7 +372,7 @@ function executarTestesGxt() {
     assert.strictEqual(folhaLimpa, false, 'A folha existente NUNCA deve ser limpa quando há pendências');
   });
 
-  // 12. Proibição Estrita de Fallback para a Planilha Ativa (TASK-M06.3-05D)
+  // 12. Proibição Estrita de Fallback para a Planilha Ativa (TASK-M06.3-05G)
   test('CompiladorGxt.compilar: NUNCA usa a própria planilha de ocorrências como fallback para o Pecúlio', () => {
     const mockSheetEfetivo = [
       ['N', 'MATRÍCULA', 'NOME'],
@@ -385,10 +385,10 @@ function executarTestesGxt() {
     // Chamada sem fontePeculio explicitada nem CONFIG_SYNTHEON ativo
     const res = CompiladorGxt.compilar(mockSS, ['JAN2026'], null);
     assert.strictEqual(res._diagnostico.peculioValido, false);
-    assert.strictEqual(res._diagnostico.peculioErro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+    assert.strictEqual(res._diagnostico.peculioErro, 'PECULIO_ACESSO_NEGADO');
   });
 
-  // 13. Rejeição Estrita de Alias Genérico "Pontuação" para Pecúlio (TASK-M06.3-05D)
+  // 13. Rejeição Estrita de Alias Genérico "Pontuação" para Pecúlio (TASK-M06.3-05G)
   test('LeitorAntiguidadePeculio: NUNCA aceita uma aba chamada "PONTUAÇÃO" ou "PONTUACAO" como Pecúlio', () => {
     const mockSheetPontuacao = {
       getName: () => 'PONTUAÇÃO',
@@ -406,7 +406,7 @@ function executarTestesGxt() {
 
     const LeitorMod = require('../Leitura/LeitorAntiguidadePeculio');
     const res = LeitorMod.lerMapaAntiguidade(mockSS);
-    assert.strictEqual(res.erro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+    assert.strictEqual(res.erro, 'PECULIO_ABA_NAO_LOCALIZADA');
     assert.strictEqual(Object.keys(res.mapa).length, 0);
   });
 
