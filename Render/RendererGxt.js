@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: Render/RendererGxt.js
- * DESCRIÇÃO: Renderizador Executivo do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-04B).
+ * DESCRIÇÃO: Renderizador Executivo do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-04C).
  * REGRA DE OURO: Renderiza os blocos mensais lado a lado com as 5 colunas protegidas:
  * Nº | GRAD. / MATRÍCULA | NOME | QTD ARMAS | DESIGNAÇÃO
  * Aplica cores oficiais de Pelotão/GTAR, escala oficial consagrada de armas, negritos, alinhamentos,
@@ -22,18 +22,19 @@ class RendererGxt {
 
   /**
    * Escala Oficial Consagrada de Destaque de Armas:
-   * 1–3: laranja (#F0AD4E, texto #000000)
-   * 4–5: amarelo (#F1C232, texto #000000)
-   * 6–9: verde claro (#5CB85C, texto #000000)
-   * 10+: verde escuro (#00CC00, texto #FFFFFF, negrito)
+   * 0: #FF0000, fundo e fonte vermelhos
+   * 1–3: #FF9900 (fundo laranja, texto #000000)
+   * 4–5: #FFFF00 (fundo amarelo, texto #000000)
+   * 6–9: #93C47D (fundo verde claro, texto #000000)
+   * 10+: #38761D (fundo verde escuro, texto #FFFFFF, negrito)
    */
   static corPorArmas(qtd) {
     const q = Number(qtd) || 0;
-    if (q >= 10) return { fundo: '#00CC00', texto: '#FFFFFF', negrito: true };
-    if (q >= 6)  return { fundo: '#5CB85C', texto: '#000000', negrito: false };
-    if (q >= 4)  return { fundo: '#F1C232', texto: '#000000', negrito: false };
-    if (q >= 1)  return { fundo: '#F0AD4E', texto: '#000000', negrito: false };
-    return { fundo: '#FFFFFF', texto: '#CC0000', negrito: false };
+    if (q >= 10) return { fundo: '#38761D', texto: '#FFFFFF', negrito: true };
+    if (q >= 6)  return { fundo: '#93C47D', texto: '#000000', negrito: false };
+    if (q >= 4)  return { fundo: '#FFFF00', texto: '#000000', negrito: false };
+    if (q >= 1)  return { fundo: '#FF9900', texto: '#000000', negrito: false };
+    return { fundo: '#FF0000', texto: '#FF0000', negrito: false };
   }
 
   static obterEstiloPelotao(designacao) {

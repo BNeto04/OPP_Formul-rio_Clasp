@@ -157,8 +157,8 @@ function executarTestesGxt() {
     assert.strictEqual(matrizDados.fundos[2][0], '#00CC00');
     assert.strictEqual(matrizDados.negritos[2][0], true);
 
-    // Valida o destaque de armas na escala oficial consagrada (qtd 2 -> #F0AD4E laranja)
-    assert.strictEqual(matrizDados.fundos[2][3], '#F0AD4E');
+    // Valida o destaque de armas na escala oficial consagrada (qtd 2 -> #FF9900 laranja)
+    assert.strictEqual(matrizDados.fundos[2][3], '#FF9900');
 
     // Valida o Mês 2 (FEV2026) na Coluna G (colStart 6, idx 6)
     assert.strictEqual(matrizDados.valores[0][6], 'FEV2026');
@@ -196,6 +196,35 @@ function executarTestesGxt() {
     assert.strictEqual(resultado['JAN2026'].registros.length, 1);
     assert.strictEqual(resultado['JAN2026'].registros[0].matricula, '108394-5', 'Deve selecionar IRAN SILVA (N=1) como líder');
     assert.strictEqual(resultado['JAN2026'].registros[0].qtdArmas, 2, 'Deve atribuir 100% das 2 armas do túnel ao líder');
+  });
+
+  // 5. Validação Estrita das Cinco Faixas da Escala Oficial de Armas (TASK-M06.3-04C)
+  test('RendererGxt.corPorArmas: valida fielmente as cinco faixas da escala oficial de destaque de armas', () => {
+    // Faixa 0: 0 armas -> fundo #FF0000, texto #FF0000
+    const f0 = RendererGxt.corPorArmas(0);
+    assert.strictEqual(f0.fundo, '#FF0000');
+    assert.strictEqual(f0.texto, '#FF0000');
+
+    // Faixa 1-3: 2 armas -> fundo #FF9900, texto #000000
+    const f1 = RendererGxt.corPorArmas(2);
+    assert.strictEqual(f1.fundo, '#FF9900');
+    assert.strictEqual(f1.texto, '#000000');
+
+    // Faixa 4-5: 5 armas -> fundo #FFFF00, texto #000000
+    const f2 = RendererGxt.corPorArmas(5);
+    assert.strictEqual(f2.fundo, '#FFFF00');
+    assert.strictEqual(f2.texto, '#000000');
+
+    // Faixa 6-9: 8 armas -> fundo #93C47D, texto #000000
+    const f3 = RendererGxt.corPorArmas(8);
+    assert.strictEqual(f3.fundo, '#93C47D');
+    assert.strictEqual(f3.texto, '#000000');
+
+    // Faixa 10+: 12 armas -> fundo #38761D, texto #FFFFFF, negrito true
+    const f4 = RendererGxt.corPorArmas(12);
+    assert.strictEqual(f4.fundo, '#38761D');
+    assert.strictEqual(f4.texto, '#FFFFFF');
+    assert.strictEqual(f4.negrito, true);
   });
 
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);
