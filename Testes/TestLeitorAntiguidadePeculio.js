@@ -3,13 +3,13 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
 
 /**
  * ARQUIVO: Testes/TestLeitorAntiguidadePeculio.js
- * DESCRIÇÃO: Suíte de testes unitários para a leitura oficial do mapa de antiguidade N no Pecúlio/Efetivo (TASK-M06.3-03A).
+ * DESCRIÇÃO: Suíte de testes unitários para a leitura oficial do mapa de antiguidade N no Pecúlio/Efetivo (TASK-M06.3-03B).
  */
 
 const assert = require('assert');
 const LeitorAntiguidadePeculio = require('../Leitura/LeitorAntiguidadePeculio');
 
-console.log('🧪 Iniciando Testes Unitários: Leitor de Antiguidade do Pecúlio (M06.3-03A)...\n');
+console.log('🧪 Iniciando Testes Unitários: Leitor de Antiguidade do Pecúlio (M06.3-03B)...\n');
 
 let sucessos = 0;
 
@@ -92,6 +92,57 @@ test('LeitorAntiguidade: trata duplicidades de matrícula mantendo a primeira oc
   assert.strictEqual(resultado.estatisticas.duplicados, 1);
   assert.strictEqual(resultado.mapa['1083945'], 10, 'Deve manter o N=10 da primeira linha');
   assert.strictEqual(resultado.mapaCompleto['1083945'].nome, 'SGT IRAN (Linha 1)');
+});
+
+// 5. Teste (TASK-M06.3-03B): Aba ausente na planilha resulta em erro ANTIGUIDADE_FONTE_NAO_LOCALIZADA
+test('LeitorAntiguidade: aba ausente na planilha retorna erro ANTIGUIDADE_FONTE_NAO_LOCALIZADA sem ler abas arbitrarias', () => {
+  const mockSS = {
+    getSheetByName: () => null, // Nenhuma das abas reconhecidas existe
+    getSheets: () => [{ getName: () => 'JAN2026' }] // Tenta enganar com relatorio mensal como primeira aba
+  };
+
+  const resultado = LeitorAntiguidadePeculio.lerMapaAntiguidade(mockSS, 'EFETIVO');
+
+  assert.strictEqual(resultado.erro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+  assert.strictEqual(Object.keys(resultado.mapa).length, 0);
+});
+
+// 6. Teste (TASK-M06.3-03B): Cabeçalho sem coluna N resulta em erro ANTIGUIDADE_FONTE_NAO_LOCALIZADA sem usar indices fixos
+test('LeitorAntiguidade: cabeçalho sem coluna N explicita retorna erro ANTIGUIDADE_FONTE_NAO_LOCALIZADA', () => {
+  const dadosMockSemN = [
+    ['RANK', 'MATRÍCULA', 'NOME', 'OCORRÊNCIAS', 'PONTOS'], // N ausente no cabecalho
+    [1, '101001-0', 'MAJ CORREIA', 10, 100.0]
+  ];
+
+  const resultado = LeitorAntiguidadePeculio.lerMapaAntiguidade(dadosMockSemN);
+
+  assert.strictEqual(resultado.erro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+  assert.strictEqual(Object.keys(resultado.mapa).length, 0);
+});
+
+// 7. Teste (TASK-M06.3-03B): Primeira aba sendo relatório não relacionado não vaza antiguidade falsa
+test('LeitorAntiguidade: primeira aba sendo relatório não relacionado retorna erro sem ler dados falsos', () => {
+  const mockRelatorioMensal = {
+    getName: () => 'COMPILADO_DROGAS_JAN2026',
+    getLastRow: () => 10,
+    getLastColumn: () => 5,
+    getRange: () => ({
+      getValues: () => [
+        ['ITEM', 'POLICIAL', 'MACONHA', 'COCAINA', 'TOTAL'],
+        [1, '108394-5', 500, 200, 700]
+      ]
+    })
+  };
+
+  const mockSS = {
+    getSheetByName: (nome) => (nome === 'EFETIVO' ? null : null),
+    getSheets: () => [mockRelatorioMensal] // Primeira aba e um relatorio mensal
+  };
+
+  const resultado = LeitorAntiguidadePeculio.lerMapaAntiguidade(mockSS);
+
+  assert.strictEqual(resultado.erro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+  assert.strictEqual(resultado.mapa['1083945'], undefined, 'Nao pode atribuir N=1 a partir da coluna ITEM do relatorio');
 });
 
 console.log(`\n🎉 Testes do Leitor de Antiguidade do Pecúlio concluídos: ${sucessos} testes passaram!`);

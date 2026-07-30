@@ -1,8 +1,8 @@
 /**
  * ARQUIVO: Leitura/LeitorAntiguidadePeculio.js
- * DESCRIÇÃO: Leitor oficial do mapa de antiguidade N a partir do Pecúlio / Efetivo (TASK-M06.3-03A).
- * REGRA: Extrai a coluna N (Senioridade/Ordem) e normaliza a matrícula (removendo hífens, pontos e espaços)
- * para garantir busca exata na resolução de líderes por antiguidade.
+ * DESCRIÇÃO: Leitor oficial do mapa de antiguidade N a partir do Pecúlio / Efetivo (TASK-M06.3-03B).
+ * REGRA ESTRITA: Exige presença explícita de aba válida e colunas de N e MATRÍCULA.
+ * Sem fallbacks para primeira aba arbitrária ou índices fixos de colunas.
  */
 
 const LeitorAntiguidadePeculio = {
@@ -21,7 +21,7 @@ const LeitorAntiguidadePeculio = {
    * Lê o mapa de antiguidade a partir de uma planilha (objeto SpreadsheetApp.Spreadsheet ou matriz 2D).
    * @param {SpreadsheetApp.Spreadsheet|Array<Array>} fonte - Planilha do Google Sheets ou matriz 2D.
    * @param {string} [nomeAbaAlvo='EFETIVO'] - Nome da aba a procurar no projeto.
-   * @returns {{ mapa: Object.<string, number>, mapaCompleto: Object.<string, Object>, estatisticas: Object }}
+   * @returns {{ mapa: Object.<string, number>, mapaCompleto: Object.<string, Object>, erro?: string, estatisticas: Object }}
    */
   lerMapaAntiguidade(fonte, nomeAbaAlvo = 'EFETIVO') {
     let dados = [];
@@ -31,7 +31,7 @@ const LeitorAntiguidadePeculio = {
     } else if (fonte && typeof fonte.getSheetByName === 'function') {
       let sheet = fonte.getSheetByName(nomeAbaAlvo);
       if (!sheet) {
-        // Aliases de aba defensivos para localização do Pecúlio/Efetivo
+        // Aliases de aba reconhecidos exclusivamente para localização do Pecúlio/Efetivo
         const aliasesAbas = ['EFETIVO', 'PECULIO', 'PECÚLIO', 'EFETIVO 2026', 'Cópia de Pecúlio com Pontuação '];
         for (const alias of aliasesAbas) {
           sheet = fonte.getSheetByName(alias);
@@ -39,26 +39,34 @@ const LeitorAntiguidadePeculio = {
         }
       }
 
-      if (!sheet && typeof fonte.getSheets === 'function') {
-        const sheets = fonte.getSheets();
-        if (sheets.length > 0) sheet = sheets[0];
+      // REGRA ESTRITA: Proibido usar sheets[0] como fallback arbitrário
+      if (!sheet) {
+        return {
+          mapa: {},
+          mapaCompleto: {},
+          erro: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA',
+          estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
+        };
       }
 
-      if (sheet) {
-        const lastRow = sheet.getLastRow();
-        const lastCol = sheet.getLastColumn();
-        if (lastRow >= 2 && lastCol >= 1) {
-          dados = sheet.getRange(1, 1, lastRow, lastCol).getValues();
-        }
+      const lastRow = sheet.getLastRow();
+      const lastCol = sheet.getLastColumn();
+      if (lastRow >= 2 && lastCol >= 1) {
+        dados = sheet.getRange(1, 1, lastRow, lastCol).getValues();
       }
     }
 
     if (!Array.isArray(dados) || dados.length < 2) {
-      return { mapa: {}, mapaCompleto: {}, estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 } };
+      return {
+        mapa: {},
+        mapaCompleto: {},
+        erro: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA',
+        estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
+      };
     }
 
-    // Tenta encontrar a linha do cabeçalho nas primeiras 5 linhas
-    let idxCabecalho = 0;
+    // Procura a linha do cabeçalho nas primeiras 5 linhas exigindo N e MATRÍCULA explícitos
+    let idxCabecalho = -1;
     let colMatricula = -1;
     let colN = -1;
     let colNome = -1;
@@ -68,25 +76,32 @@ const LeitorAntiguidadePeculio = {
     for (let r = 0; r < Math.min(5, dados.length); r++) {
       const linha = dados[r].map(c => String(c || '').toUpperCase().trim());
       
-      // Localização de colunas por cabeçalhos conhecidos
-      colMatricula = linha.findIndex(h => h === 'MATRICULA' || h === 'MATRÍCULA' || h === 'MAT.' || h === 'MAT');
-      colN = linha.findIndex(h => h === 'N' || h === 'Nº' || h === 'ANTIGUIDADE' || h === 'ORDEM' || h === 'POSIÇÃO' || h === 'POSICAO');
-      colNome = linha.findIndex(h => h === 'NOME' || h === 'N GUERRA' || h === 'NOME COMPLETO' || h === 'POLICIAL');
-      colGrad = linha.findIndex(h => h === 'GRAD' || h === 'GRADUAÇÃO' || h === 'GRADUACAO');
-      colPelotao = linha.findIndex(h => h === 'P' || h === 'PELOTÃO' || h === 'PELOTAO' || h === 'DESIGNAÇÃO' || h === 'DESIGNACAO' || h === 'LOTAÇÃO');
+      const cMat = linha.findIndex(h => h === 'MATRICULA' || h === 'MATRÍCULA' || h === 'MAT.' || h === 'MAT');
+      const cN = linha.findIndex(h => h === 'N' || h === 'Nº' || h === 'ANTIGUIDADE' || h === 'ORDEM' || h === 'POSIÇÃO' || h === 'POSICAO');
+      const cNome = linha.findIndex(h => h === 'NOME' || h === 'N GUERRA' || h === 'NOME COMPLETO' || h === 'POLICIAL');
+      const cGrad = linha.findIndex(h => h === 'GRAD' || h === 'GRADUAÇÃO' || h === 'GRADUACAO');
+      const cPel = linha.findIndex(h => h === 'P' || h === 'PELOTÃO' || h === 'PELOTAO' || h === 'DESIGNAÇÃO' || h === 'DESIGNACAO' || h === 'LOTAÇÃO');
 
-      if (colMatricula !== -1 && (colN !== -1 || colNome !== -1)) {
+      if (cMat !== -1 && cN !== -1) {
         idxCabecalho = r;
+        colMatricula = cMat;
+        colN = cN;
+        colNome = cNome;
+        colGrad = cGrad;
+        colPelotao = cPel;
         break;
       }
     }
 
-    // Fallbacks padrão de índices caso o cabeçalho explícito não seja localizado
-    if (colMatricula === -1) colMatricula = 1; // Coluna B (0-indexed 1)
-    if (colN === -1) colN = 0;                  // Coluna A (0-indexed 0)
-    if (colNome === -1) colNome = 3;               // Coluna D (0-indexed 3)
-    if (colGrad === -1) colGrad = 2;               // Coluna C (0-indexed 2)
-    if (colPelotao === -1) colPelotao = 5;            // Coluna F (0-indexed 5)
+    // REGRA ESTRITA: Sem fallbacks fixos de índices! Se N ou MATRÍCULA não forem encontrados, falha.
+    if (idxCabecalho === -1 || colMatricula === -1 || colN === -1) {
+      return {
+        mapa: {},
+        mapaCompleto: {},
+        erro: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA',
+        estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
+      };
+    }
 
     const mapa = {};
     const mapaCompleto = {};
