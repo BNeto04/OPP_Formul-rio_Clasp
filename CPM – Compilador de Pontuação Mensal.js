@@ -271,17 +271,32 @@ function criarAbaResultadoCPM_(ss, ranking, dataInicio, dataFim, modo) {
     'PONTUAÇÃO'
   ]];
 
+  const borderStyle = (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.BorderStyle)
+    ? SpreadsheetApp.BorderStyle.SOLID
+    : 'SOLID';
+
   sheet.getRange(1, 1, 1, 6)
     .setValues(cabecalho)
+    .setFontFamily('Arial')
+    .setFontSize(10)
     .setFontWeight('bold')
     .setBackground('#d9ead3')
-    .setHorizontalAlignment('center');
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle')
+    .setBorder(true, true, true, true, true, true, '#000000', borderStyle);
 
   if (ranking.length > 0) {
-    sheet.getRange(2, 1, ranking.length, 6).setValues(ranking);
-    sheet.getRange(2, 6, ranking.length, 1).setNumberFormat('#,##0.00');
-    sheet.getRange(2, 1, ranking.length, 3).setHorizontalAlignment('center');
-    sheet.getRange(2, 5, ranking.length, 2).setHorizontalAlignment('center');
+    const rangeDados = sheet.getRange(2, 1, ranking.length, 6);
+    rangeDados.setValues(ranking)
+      .setFontFamily('Arial')
+      .setFontSize(10)
+      .setVerticalAlignment('middle')
+      .setBorder(true, true, true, true, true, true, '#000000', borderStyle);
+
+    sheet.getRange(2, 1, ranking.length, 3).setHorizontalAlignment('center'); // RANK, GRAD, MAT
+    sheet.getRange(2, 4, ranking.length, 1).setHorizontalAlignment('left');   // NOME COMPLETO
+    sheet.getRange(2, 5, ranking.length, 1).setHorizontalAlignment('right').setNumberFormat('#,##0');   // OCORRÊNCIAS
+    sheet.getRange(2, 6, ranking.length, 1).setHorizontalAlignment('right').setNumberFormat('#,##0.00'); // PONTUAÇÃO
   }
 
   sheet.setFrozenRows(1);

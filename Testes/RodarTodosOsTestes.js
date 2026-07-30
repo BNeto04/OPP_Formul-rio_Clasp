@@ -24,6 +24,8 @@ require('./TestRenderers');
 console.log('');
 require('./TestRendererComparativo2026');
 console.log('');
+require('./TestRelatoriosPipCpm');
+console.log('');
 require('./TestCentralAnalitica');
 
 console.log('\n====================================================');

@@ -247,6 +247,28 @@ function executarCompiladorPip(abasAlvo, dataInicio, dataFim, modo) {
   }
 }
 
+function corPorGrupoPip_(grad, designacao) {
+  const g = SyntheonUtils.normalizarTexto(grad || '');
+  const d = SyntheonUtils.normalizarTexto(designacao || '');
+
+  if (/(MAJ|CAP|TEN|ASP|CEL|TC)/.test(g)) {
+    return { fundo: '#f1c232', fonte: '#000000' };
+  }
+  if (d.includes('GTAR') && d.includes('1')) {
+    return { fundo: '#00cc00', fonte: '#000000', negrito: true };
+  }
+  if (d.includes('GTAR') && d.includes('2')) {
+    return { fundo: '#3c78d8', fonte: '#ffffff', negrito: true };
+  }
+  if (d.includes('1') && d.includes('PEL')) {
+    return { fundo: '#00ff00', fonte: '#000000' };
+  }
+  if (d.includes('2') && d.includes('PEL')) {
+    return { fundo: '#6d9eeb', fonte: '#000000' };
+  }
+  return { fundo: '#ffffff', fonte: '#000000' };
+}
+
 function criarAbaResultado_(ss, ranking, dataInicio, dataFim, modo) {
   let nomeBase;
 
@@ -278,18 +300,42 @@ function criarAbaResultado_(ss, ranking, dataInicio, dataFim, modo) {
     'QTD OC.'
   ]];
 
+  const borderStyle = (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.BorderStyle)
+    ? SpreadsheetApp.BorderStyle.SOLID
+    : 'SOLID';
+
   sheet.getRange(1, 1, 1, 7)
     .setValues(cabecalho)
+    .setFontFamily('Arial')
+    .setFontSize(10)
     .setFontWeight('bold')
     .setBackground('#d9ead3')
-    .setHorizontalAlignment('center');
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle')
+    .setBorder(true, true, true, true, true, true, '#000000', borderStyle);
 
   if (ranking.length > 0) {
-    sheet.getRange(2, 1, ranking.length, 7).setValues(ranking);
-    sheet.getRange(2, 6, ranking.length, 1).setNumberFormat('#,##0.00'); // PONTUAÇÃO (Col 6)
+    const rangeDados = sheet.getRange(2, 1, ranking.length, 7);
+    rangeDados.setValues(ranking)
+      .setFontFamily('Arial')
+      .setFontSize(10)
+      .setVerticalAlignment('middle')
+      .setBorder(true, true, true, true, true, true, '#000000', borderStyle);
+
     sheet.getRange(2, 1, ranking.length, 3).setHorizontalAlignment('center'); // RANK, GRAD, MAT
-    sheet.getRange(2, 5, ranking.length, 1).setHorizontalAlignment('center'); // DESIGNAÇÃO
-    sheet.getRange(2, 7, ranking.length, 1).setHorizontalAlignment('center'); // QTD OC.
+    sheet.getRange(2, 4, ranking.length, 2).setHorizontalAlignment('left');   // NOME COMPLETO, DESIGNAÇÃO
+    sheet.getRange(2, 6, ranking.length, 1).setHorizontalAlignment('right').setNumberFormat('#,##0.00'); // PONTUAÇÃO
+    sheet.getRange(2, 7, ranking.length, 1).setHorizontalAlignment('right').setNumberFormat('#,##0'); // QTD OC.
+
+    ranking.forEach((r, idx) => {
+      const lin = 2 + idx;
+      const cor = corPorGrupoPip_(r[1], r[4]);
+      const rangeLin = sheet.getRange(lin, 1, 1, 7);
+      rangeLin.setBackground(cor.fundo).setFontColor(cor.fonte);
+      if (cor.negrito) {
+        rangeLin.setFontWeight('bold');
+      }
+    });
   }
 
   sheet.setFrozenRows(1);
