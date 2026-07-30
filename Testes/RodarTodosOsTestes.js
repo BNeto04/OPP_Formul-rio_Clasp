@@ -22,6 +22,8 @@ require('./TestGuardiao');
 console.log('');
 require('./TestRenderers');
 console.log('');
+require('./TestRendererComparativo2026');
+console.log('');
 require('./TestCentralAnalitica');
 
 console.log('\n====================================================');
