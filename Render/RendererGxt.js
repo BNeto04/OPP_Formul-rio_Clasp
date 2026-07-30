@@ -1,8 +1,8 @@
 /**
  * ARQUIVO: Render/RendererGxt.js
- * DESCRIÇÃO: Renderizador Executivo do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-04C).
- * REGRA DE OURO: Renderiza os blocos mensais lado a lado com as 5 colunas protegidas:
- * Nº | GRAD. / MATRÍCULA | NOME | QTD ARMAS | DESIGNAÇÃO
+ * DESCRIÇÃO: Renderizador Executivo do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-04E).
+ * REGRA DE OURO: Organiza os meses em painéis verticais de no máximo 3 blocos mensais lado a lado cada.
+ * Se a Seleção Livre contiver mais de 3 meses (ex: 4, 8 ou 12 meses), renderiza os painéis subsequentes empilhados verticalmente na mesma aba.
  * Aplica cores oficiais de Pelotão/GTAR, escala oficial consagrada de armas, negritos, alinhamentos,
  * formatos numéricos, larguras e congelamento na planilha.
  */
@@ -58,7 +58,7 @@ class RendererGxt {
   }
 
   /**
-   * Renderiza a aba de saída trimestral com os blocos mensais lado a lado.
+   * Renderiza a aba de saída acumulada com painéis de até 3 blocos mensais empilhados verticalmente.
    * @param {SpreadsheetApp.Spreadsheet} ss - Planilha Google Apps Script ou mock.
    * @param {Object} dadosPorMes - Objeto com os dados de cada mês compilado.
    * @param {string} [nomeAbaSaida='GTAR X TROPA ARMAS 2026'] - Nome da aba de saída.
@@ -83,15 +83,21 @@ class RendererGxt {
     const meses = Object.keys(dadosPorMes);
     if (meses.length === 0) return targetSheet;
 
-    // Constrói a estrutura dos 3 blocos mensais lado a lado
-    // Mês 1: Colunas A..E (1..5) | Espaço: Col F (6) | Mês 2: Colunas G..K (7..11) | Espaço: Col L (12) | Mês 3: Colunas M..Q (13..17)
-    const colOffsetPorMes = {};
-    meses.forEach((mes, idx) => {
-      colOffsetPorMes[mes] = idx * 6; // 0, 6, 12
+    // Divide os meses em painéis verticais de no máximo 3 meses cada (lado a lado por painel)
+    const chunksPaineis = [];
+    for (let i = 0; i < meses.length; i += 3) {
+      chunksPaineis.push(meses.slice(i, i + 3));
+    }
+
+    // Calcula a altura total da matriz acumulada
+    let alturaTotal = 0;
+    chunksPaineis.forEach(chunk => {
+      const maxLinhasPainel = Math.max(...chunk.map(m => (dadosPorMes[m]?.registros?.length || 0)), 1);
+      const alturaPainel = Math.max(maxLinhasPainel + 12, 18);
+      alturaTotal += alturaPainel + 3; // 3 linhas de respiro entre painéis verticais
     });
 
-    const maxLinhasDados = Math.max(...meses.map(m => (dadosPorMes[m]?.registros?.length || 0)), 1);
-    const totalLinhasGrid = Math.max(maxLinhasDados + 15, 30);
+    const totalLinhasGrid = Math.max(alturaTotal, 30);
 
     const matrixValores = Array.from({ length: totalLinhasGrid }, () => Array(18).fill(''));
     const matrixFundos = Array.from({ length: totalLinhasGrid }, () => Array(18).fill('#FFFFFF'));
@@ -100,104 +106,112 @@ class RendererGxt {
     const matrixAlinhamentos = Array.from({ length: totalLinhasGrid }, () => Array(18).fill('left'));
     const matrixFormatos = Array.from({ length: totalLinhasGrid }, () => Array(18).fill('@'));
 
-    // Renderiza cada bloco mensal
-    meses.forEach((mes) => {
-      const colStart = colOffsetPorMes[mes]; // 0-indexed
-      const dadosMes = dadosPorMes[mes] || { registros: [], resumo: {} };
-      const registros = dadosMes.registros || [];
+    let currentStartRow = 0;
 
-      // Linha 1: Título do Mês (ex: JAN/2026)
-      matrixValores[0][colStart] = mes.toUpperCase();
-      matrixFundos[0][colStart] = '#073763';
-      matrixCoresTexto[0][colStart] = '#FFFFFF';
-      matrixNegritos[0][colStart] = true;
+    // Renderiza cada painel vertical trimestral
+    chunksPaineis.forEach((chunk) => {
+      const maxLinhasNoPainel = Math.max(...chunk.map(m => (dadosPorMes[m]?.registros?.length || 0)), 1);
 
-      // Linha 2: Cabeçalhos das 5 Colunas
-      const cabecalhos = ['Nº', 'GRAD. / MATRÍCULA', 'NOME', 'QTD ARMAS', 'DESIGNAÇÃO'];
-      const alignCab = ['center', 'center', 'left', 'center', 'center'];
+      chunk.forEach((mes, idxNoPainel) => {
+        const colStart = idxNoPainel * 6; // 0, 6, 12
+        const dadosMes = dadosPorMes[mes] || { registros: [], resumo: {} };
+        const registros = dadosMes.registros || [];
 
-      cabecalhos.forEach((c, cIdx) => {
-        const colActual = colStart + cIdx;
-        matrixValores[1][colActual] = c;
-        matrixFundos[1][colActual] = '#20124D';
-        matrixCoresTexto[1][colActual] = '#FFFFFF';
-        matrixNegritos[1][colActual] = true;
-        matrixAlinhamentos[1][colActual] = alignCab[cIdx];
+        // Linha 1 do Painel: Título do Mês (ex: JAN2026)
+        matrixValores[currentStartRow][colStart] = mes.toUpperCase();
+        matrixFundos[currentStartRow][colStart] = '#073763';
+        matrixCoresTexto[currentStartRow][colStart] = '#FFFFFF';
+        matrixNegritos[currentStartRow][colStart] = true;
+
+        // Linha 2 do Painel: Cabeçalhos das 5 Colunas
+        const cabecalhos = ['Nº', 'GRAD. / MATRÍCULA', 'NOME', 'QTD ARMAS', 'DESIGNAÇÃO'];
+        const alignCab = ['center', 'center', 'left', 'center', 'center'];
+
+        cabecalhos.forEach((c, cIdx) => {
+          const colActual = colStart + cIdx;
+          matrixValores[currentStartRow + 1][colActual] = c;
+          matrixFundos[currentStartRow + 1][colActual] = '#20124D';
+          matrixCoresTexto[currentStartRow + 1][colActual] = '#FFFFFF';
+          matrixNegritos[currentStartRow + 1][colActual] = true;
+          matrixAlinhamentos[currentStartRow + 1][colActual] = alignCab[cIdx];
+        });
+
+        // Linhas 3+ do Painel: Registros do Mês
+        registros.forEach((reg, rIdx) => {
+          const rowIdx = currentStartRow + 2 + rIdx;
+          const estiloPel = this.obterEstiloPelotao(reg.designacao);
+          const estiloArmas = this.corPorArmas(reg.qtdArmas);
+
+          const gradMat = `${reg.grad || ''} ${reg.matricula || ''}`.trim();
+
+          matrixValores[rowIdx][colStart + 0] = reg.numSeq; // Nº Sequencial do mês (1, 2, 3...)
+          matrixValores[rowIdx][colStart + 1] = gradMat;
+          matrixValores[rowIdx][colStart + 2] = reg.nome || '';
+          matrixValores[rowIdx][colStart + 3] = reg.qtdArmas;
+          matrixValores[rowIdx][colStart + 4] = reg.designacao || '';
+
+          matrixAlinhamentos[rowIdx][colStart + 0] = 'center';
+          matrixAlinhamentos[rowIdx][colStart + 1] = 'center';
+          matrixAlinhamentos[rowIdx][colStart + 2] = 'left';
+          matrixAlinhamentos[rowIdx][colStart + 3] = 'center';
+          matrixAlinhamentos[rowIdx][colStart + 4] = 'center';
+
+          matrixFormatos[rowIdx][colStart + 0] = '0';
+          matrixFormatos[rowIdx][colStart + 3] = '0';
+
+          for (let c = 0; c < 5; c++) {
+            matrixFundos[rowIdx][colStart + c] = estiloPel.fundo;
+            matrixCoresTexto[rowIdx][colStart + c] = estiloPel.texto;
+            matrixNegritos[rowIdx][colStart + c] = estiloPel.negrito;
+          }
+
+          matrixFundos[rowIdx][colStart + 3] = estiloArmas.fundo;
+          matrixCoresTexto[rowIdx][colStart + 3] = estiloArmas.texto;
+          matrixNegritos[rowIdx][colStart + 3] = estiloArmas.negrito;
+        });
+
+        // Resumo por Pelotão abaixo da tabela do mês
+        const resumoStartRow = currentStartRow + Math.max(registros.length + 3, 4);
+
+        matrixValores[resumoStartRow][colStart] = 'RESUMO POR PELOTÃO';
+        matrixFundos[resumoStartRow][colStart] = '#073763';
+        matrixCoresTexto[resumoStartRow][colStart] = '#FFFFFF';
+        matrixNegritos[resumoStartRow][colStart] = true;
+
+        const gruposResumo = [
+          { chave: '1º PEL GTAR', estilo: this.CORES_PELOTAO['1º PEL GTAR'] },
+          { chave: '2º PEL GTAR', estilo: this.CORES_PELOTAO['2º PEL GTAR'] },
+          { chave: '1º PEL', estilo: this.CORES_PELOTAO['1º PEL'] },
+          { chave: '2º PEL', estilo: this.CORES_PELOTAO['2º PEL'] },
+          { chave: '3º PEL', estilo: this.CORES_PELOTAO['3º PEL'] },
+          { chave: 'TOTAL', estilo: this.CORES_PELOTAO['TOTAL'] }
+        ];
+
+        gruposResumo.forEach((g, gIdx) => {
+          const currRow = resumoStartRow + 1 + gIdx;
+          const totalGrupo = dadosMes.resumo ? (dadosMes.resumo[g.chave] || 0) : 0;
+
+          matrixValores[currRow][colStart] = g.chave;
+          matrixValores[currRow][colStart + 3] = totalGrupo;
+
+          matrixAlinhamentos[currRow][colStart] = 'left';
+          matrixAlinhamentos[currRow][colStart + 3] = 'center';
+
+          matrixFormatos[currRow][colStart + 3] = '0';
+
+          matrixFundos[currRow][colStart] = g.estilo.fundo;
+          matrixCoresTexto[currRow][colStart] = g.estilo.texto;
+          matrixNegritos[currRow][colStart] = g.estilo.negrito;
+
+          matrixFundos[currRow][colStart + 3] = g.estilo.fundo;
+          matrixCoresTexto[currRow][colStart + 3] = g.estilo.texto;
+          matrixNegritos[currRow][colStart + 3] = g.estilo.negrito;
+        });
       });
 
-      // Linhas 3+: Registros do Mês
-      registros.forEach((reg, rIdx) => {
-        const rowIdx = 2 + rIdx;
-        const estiloPel = this.obterEstiloPelotao(reg.designacao);
-        const estiloArmas = this.corPorArmas(reg.qtdArmas);
-
-        const gradMat = `${reg.grad || ''} ${reg.matricula || ''}`.trim();
-
-        matrixValores[rowIdx][colStart + 0] = reg.numSeq; // Nº Sequencial do mês (1, 2, 3...)
-        matrixValores[rowIdx][colStart + 1] = gradMat;
-        matrixValores[rowIdx][colStart + 2] = reg.nome || '';
-        matrixValores[rowIdx][colStart + 3] = reg.qtdArmas;
-        matrixValores[rowIdx][colStart + 4] = reg.designacao || '';
-
-        matrixAlinhamentos[rowIdx][colStart + 0] = 'center';
-        matrixAlinhamentos[rowIdx][colStart + 1] = 'center';
-        matrixAlinhamentos[rowIdx][colStart + 2] = 'left';
-        matrixAlinhamentos[rowIdx][colStart + 3] = 'center';
-        matrixAlinhamentos[rowIdx][colStart + 4] = 'center';
-
-        matrixFormatos[rowIdx][colStart + 0] = '0';
-        matrixFormatos[rowIdx][colStart + 3] = '0';
-
-        // Estilização por Pelotão nas colunas de identificação
-        for (let c = 0; c < 5; c++) {
-          matrixFundos[rowIdx][colStart + c] = estiloPel.fundo;
-          matrixCoresTexto[rowIdx][colStart + c] = estiloPel.texto;
-          matrixNegritos[rowIdx][colStart + c] = estiloPel.negrito;
-        }
-
-        // Destaque específico na coluna QTD ARMAS (coluna 4, idx 3) usando a escala oficial consagrada
-        matrixFundos[rowIdx][colStart + 3] = estiloArmas.fundo;
-        matrixCoresTexto[rowIdx][colStart + 3] = estiloArmas.texto;
-        matrixNegritos[rowIdx][colStart + 3] = estiloArmas.negrito;
-      });
-
-      // Resumo por Pelotão abaixo da tabela do mês
-      const resumoStartRow = Math.max(registros.length + 3, 4);
-
-      matrixValores[resumoStartRow][colStart] = 'RESUMO POR PELOTÃO';
-      matrixFundos[resumoStartRow][colStart] = '#073763';
-      matrixCoresTexto[resumoStartRow][colStart] = '#FFFFFF';
-      matrixNegritos[resumoStartRow][colStart] = true;
-
-      const gruposResumo = [
-        { chave: '1º PEL GTAR', estilo: this.CORES_PELOTAO['1º PEL GTAR'] },
-        { chave: '2º PEL GTAR', estilo: this.CORES_PELOTAO['2º PEL GTAR'] },
-        { chave: '1º PEL', estilo: this.CORES_PELOTAO['1º PEL'] },
-        { chave: '2º PEL', estilo: this.CORES_PELOTAO['2º PEL'] },
-        { chave: '3º PEL', estilo: this.CORES_PELOTAO['3º PEL'] },
-        { chave: 'TOTAL', estilo: this.CORES_PELOTAO['TOTAL'] }
-      ];
-
-      gruposResumo.forEach((g, gIdx) => {
-        const currRow = resumoStartRow + 1 + gIdx;
-        const totalGrupo = dadosMes.resumo ? (dadosMes.resumo[g.chave] || 0) : 0;
-
-        matrixValores[currRow][colStart] = g.chave;
-        matrixValores[currRow][colStart + 3] = totalGrupo;
-
-        matrixAlinhamentos[currRow][colStart] = 'left';
-        matrixAlinhamentos[currRow][colStart + 3] = 'center';
-
-        matrixFormatos[currRow][colStart + 3] = '0';
-
-        matrixFundos[currRow][colStart] = g.estilo.fundo;
-        matrixCoresTexto[currRow][colStart] = g.estilo.texto;
-        matrixNegritos[currRow][colStart] = g.estilo.negrito;
-
-        matrixFundos[currRow][colStart + 3] = g.estilo.fundo;
-        matrixCoresTexto[currRow][colStart + 3] = g.estilo.texto;
-        matrixNegritos[currRow][colStart + 3] = g.estilo.negrito;
-      });
+      // Avança o ponteiro de linha vertical para o próximo painel trimestral
+      const alturaUsadaNoPainel = Math.max(maxLinhasNoPainel + 12, 18);
+      currentStartRow += alturaUsadaNoPainel + 3;
     });
 
     // Se for mock de testes, popula os dados armazenados completos
@@ -228,10 +242,9 @@ class RendererGxt {
           rng.setNumberFormats(matrixFormatos);
         }
 
-        // Aplica larguras de colunas e congelamento na planilha real Google Sheets
         if (typeof targetSheet.setColumnWidth === 'function') {
           const larguraColunas = [40, 130, 180, 90, 120, 20];
-          meses.forEach((mes, idx) => {
+          [0, 1, 2].forEach((idx) => {
             const startColIdx = idx * 6 + 1; // 1-indexed
             larguraColunas.forEach((w, cOffset) => {
               if (startColIdx + cOffset <= 18) {

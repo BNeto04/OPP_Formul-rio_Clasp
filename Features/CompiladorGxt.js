@@ -268,8 +268,20 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
     ? SpreadsheetApp.getActiveSpreadsheet()
     : null);
 
-  const primeiroMes = meses[0];
-  const ultimoMes = meses[meses.length - 1];
+  const ORDEM_INSTITUCIONAL_MESES = [
+    'JAN2026', 'FEV2026', 'MAR2026', 'ABR2026', 'MAI2026', 'JUN2026',
+    'JUL2026', 'AGO2026', 'SET2026', 'OUT2026', 'NOV2026', 'DEZ2026'
+  ];
+
+  // Ordenação cronológica institucional independente da ordem recebida do operador
+  const mesesOrdenados = [...meses].sort((a, b) => {
+    const idxA = ORDEM_INSTITUCIONAL_MESES.indexOf(String(a).toUpperCase().trim());
+    const idxB = ORDEM_INSTITUCIONAL_MESES.indexOf(String(b).toUpperCase().trim());
+    return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
+  });
+
+  const primeiroMes = mesesOrdenados[0];
+  const ultimoMes = mesesOrdenados[mesesOrdenados.length - 1];
   const nomeAbaSaida = `GXT_ACUMULADO_${primeiroMes}_${ultimoMes}`;
 
   let RendererMod = typeof RendererGxt !== 'undefined' ? RendererGxt : null;
@@ -277,7 +289,7 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
     try { RendererMod = require('../Render/RendererGxt'); } catch (e) {}
   }
 
-  const dados = CompiladorGxt.compilar(ss, meses, fontePeculio);
+  const dados = CompiladorGxt.compilar(ss, mesesOrdenados, fontePeculio);
   if (RendererMod && ss) {
     RendererMod.renderizar(ss, dados, nomeAbaSaida);
   }

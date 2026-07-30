@@ -272,6 +272,42 @@ function executarTestesGxt() {
     assert.deepStrictEqual(abasCriadas, ['GXT_1T_2026', 'GXT_2T_2026', 'GXT_3T_2026', 'GXT_4T_2026']);
   });
 
+  // 8. Seleção Livre com 4 ou Mais Meses Empilha Painéis Verticais sem Perda de Dados (TASK-M06.3-04E)
+  test('gerarGxtSelecaoLivre: 5 meses desordenados são ordenados e empilhados em painéis verticais na mesma aba acumulada', () => {
+    let matrizCompilada = null;
+    const mockSheetTarget = {
+      getName: () => 'GXT_ACUMULADO_JAN2026_MAI2026',
+      clear: () => {},
+      _definirDadosMatriz: (m) => { matrizCompilada = m; }
+    };
+
+    const mockSS = {
+      getSheetByName: () => mockSheetTarget,
+      insertSheet: () => mockSheetTarget
+    };
+
+    // Operador envia 5 meses fora de ordem
+    const mesesDesordenados = ['MAI2026', 'FEV2026', 'JAN2026', 'ABR2026', 'MAR2026'];
+    const res = gerarGxtSelecaoLivre(mesesDesordenados, mockPeculioOficial, mockSS);
+
+    assert.ok(res['JAN2026']);
+    assert.ok(res['FEV2026']);
+    assert.ok(res['MAR2026']);
+    assert.ok(res['ABR2026']);
+    assert.ok(res['MAI2026']);
+    assert.ok(matrizCompilada);
+
+    // Painel 1 (linha 1): JAN2026 na col A (idx 0), FEV2026 na col G (idx 6), MAR2026 na col M (idx 12)
+    assert.strictEqual(matrizCompilada.valores[0][0], 'JAN2026');
+    assert.strictEqual(matrizCompilada.valores[0][6], 'FEV2026');
+    assert.strictEqual(matrizCompilada.valores[0][12], 'MAR2026');
+
+    // Painel 2 (linha empilhada verticalmente): ABR2026 na col A (idx 0), MAI2026 na col G (idx 6)
+    const rowPainel2 = 21; // Altura do painel 1 + respiro
+    assert.strictEqual(matrizCompilada.valores[rowPainel2][0], 'ABR2026');
+    assert.strictEqual(matrizCompilada.valores[rowPainel2][6], 'MAI2026');
+  });
+
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);
 }
 
