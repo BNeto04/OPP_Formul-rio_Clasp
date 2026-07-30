@@ -145,5 +145,32 @@ test('LeitorAntiguidade: primeira aba sendo relatório não relacionado retorna 
   assert.strictEqual(resultado.mapa['1083945'], undefined, 'Nao pode atribuir N=1 a partir da coluna ITEM do relatorio');
 });
 
+// 8. Teste (TASK-M06.3-05F): Leitura com estrutura real do Pecúlio (cabeçalho na linha 11 com ORD, GRAD., MAT., NOME DE GUERRA e SUB-UNIDADE)
+test('LeitorAntiguidade: extrai mapa de antiguidade N com cabeçalho na linha 11 usando ORD, MAT. e NOME DE GUERRA', () => {
+  const matrizRealPeculio = [];
+  // Linhas 1 a 10: Título, imagens e notas institucionais do Pecúlio
+  for (let i = 1; i <= 10; i++) {
+    matrizRealPeculio.push(['', '', `CABEÇALHO INSTITUCIONAL LINHA ${i}`, '', '']);
+  }
+  // Linha 11 (índice 10): Cabeçalho real oficial da planilha do Pecúlio
+  matrizRealPeculio.push(['ORD', 'GRAD.', 'MAT.', 'NOME DE GUERRA', 'SUB-UNIDADE']);
+
+  // Linhas de dados de militares (linha 12 em diante)
+  matrizRealPeculio.push([1, 'MAJ', '101.001-0', 'JOSUÉ CORREIA', '3º PEL']);
+  matrizRealPeculio.push([10, '3º SGT', '108.394-5', 'IRAN SILVA', '1º PEL GTAR']);
+  matrizRealPeculio.push([12, '2º SGT', '102.950-9', 'SAULO ALVES', '2º PEL GTAR']);
+
+  const resultado = LeitorAntiguidadePeculio.lerMapaAntiguidade(matrizRealPeculio);
+
+  assert.strictEqual(resultado.estatisticas.validos, 3);
+  assert.strictEqual(resultado.mapa['1010010'], 1);
+  assert.strictEqual(resultado.mapa['1083945'], 10);
+  assert.strictEqual(resultado.mapa['1029509'], 12);
+
+  assert.strictEqual(resultado.mapaCompleto['1083945'].nome, 'IRAN SILVA');
+  assert.strictEqual(resultado.mapaCompleto['1083945'].grad, '3º SGT');
+  assert.strictEqual(resultado.mapaCompleto['1083945'].designacao, '1º PEL GTAR');
+});
+
 console.log(`\n🎉 Testes do Leitor de Antiguidade do Pecúlio concluídos: ${sucessos} testes passaram!`);
 }

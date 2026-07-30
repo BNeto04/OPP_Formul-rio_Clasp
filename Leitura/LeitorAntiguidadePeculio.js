@@ -93,14 +93,14 @@ const LeitorAntiguidadePeculio = {
     let colGrad = -1;
     let colPelotao = -1;
 
-    for (let r = 0; r < Math.min(10, dados.length); r++) {
+    for (let r = 0; r < Math.min(25, dados.length); r++) {
       const linha = dados[r].map(c => String(c || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim());
       
       const cMat = linha.findIndex(h => h === 'MATRICULA' || h === 'MAT' || h === 'MAT.' || h.includes('MATRICULA'));
-      const cN = linha.findIndex(h => h === 'N' || h === 'Nº' || h === 'N°' || h === 'ANTIGUIDADE' || h === 'ORDEM' || h === 'POSICAO' || h.includes('ANTIGUIDADE'));
-      const cNome = linha.findIndex(h => h === 'NOME' || h === 'N GUERRA' || h === 'NOME COMPLETO' || h === 'POLICIAL' || h === 'MILITAR');
-      const cGrad = linha.findIndex(h => h === 'GRAD' || h === 'GRADUACAO' || h.includes('GRAD'));
-      const cPel = linha.findIndex(h => h === 'P' || h === 'PELOTAO' || h === 'DESIGNACAO' || h === 'LOTACAO');
+      const cN = linha.findIndex(h => h === 'N' || h === 'Nº' || h === 'N°' || h === 'ORD' || h === 'ORD.' || h === 'ANTIGUIDADE' || h === 'ORDEM' || h === 'POSICAO' || h.includes('ANTIGUIDADE'));
+      const cNome = linha.findIndex(h => h === 'NOME' || h === 'N GUERRA' || h === 'NOME DE GUERRA' || h === 'NOME COMPLETO' || h === 'POLICIAL' || h === 'MILITAR');
+      const cGrad = linha.findIndex(h => h === 'GRAD' || h === 'GRAD.' || h === 'GRADUACAO' || h.includes('GRAD'));
+      const cPel = linha.findIndex(h => h === 'P' || h === 'PELOTAO' || h === 'DESIGNACAO' || h === 'LOTACAO' || h.includes('SUB-UNIDADE') || h.includes('UNIDADE'));
 
       if (cMat !== -1 && cN !== -1) {
         idxCabecalho = r;
