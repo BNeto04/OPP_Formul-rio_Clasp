@@ -1,6 +1,9 @@
 .git/**
 node_modules/**
 Testes/**
+Homologacao/**
+planta/**
+scratch/**
 package.json
 package-lock.json
 check_all_syntax.js
