@@ -57,14 +57,14 @@ const MeritoArmasFixture = {
     }
   ],
 
-  // Cenário 3: Arma Artesanal (1 artesanal = 1 arma de mérito)
+  // Cenário 3: Arma Artesanal (tipoArma: 'ARTESANAL', armas: 1 -> total 1)
   tunelArmaArtesanal: [
     {
       data: '2026-07-20',
       mike: '26E300',
       boe: '30003',
-      armas: 0,
-      armasArtesanais: 1,
+      tipoArma: 'ARTESANAL',
+      armas: 1,
       policiais: [
         { matricula: '108394-5', nome: 'SGT IRAN', grad: '3º SGT', pelotao: '1º PEL GTAR' }
       ]

@@ -45,9 +45,18 @@ const PoliticaMeritoArmas = {
       t.linhas.push(oc);
 
       // Soma de armas físicas (fogo + artesanais, onde 1 artesanal = 1)
-      const qtdFogo = Number(oc.armas || oc.qtdArmas || 0);
-      const qtdArtesanal = Number(oc.armasArtesanais || oc.qtdArtesanal || (oc.tipoArma === 'ARTESANAL' ? (oc.armas || 1) : 0));
-      
+      const isArtesanal = (oc.tipoArma === 'ARTESANAL' || oc.isArtesanal === true || String(oc.descricaoArma || '').toUpperCase().includes('ARTESANAL'));
+
+      let qtdFogo = 0;
+      let qtdArtesanal = 0;
+
+      if (isArtesanal) {
+        qtdArtesanal = Number(oc.armasArtesanais || oc.qtdArtesanal || oc.armas || oc.qtdArmas || 1);
+      } else {
+        qtdFogo = Number(oc.armas || oc.qtdArmas || 0);
+        qtdArtesanal = Number(oc.armasArtesanais || oc.qtdArtesanal || 0);
+      }
+
       t.armasFogo += (isNaN(qtdFogo) ? 0 : qtdFogo);
       t.armasArtesanais += (isNaN(qtdArtesanal) ? 0 : qtdArtesanal);
 

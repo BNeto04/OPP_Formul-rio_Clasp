@@ -51,13 +51,14 @@ test('Mérito de Armas: atribuição de 100% das armas (3 armas) do túnel ao l�
   assert.strictEqual(res[0].matricula, '102950-9');
 });
 
-// 3. Teste: Arma Artesanal equivale a 1 arma de mérito
-test('Mérito de Armas: arma artesanal equivale a 1 arma de mérito', () => {
+// 3. Teste: Arma Artesanal equivale a 1 arma de mérito sem dupla contagem (TASK-M06.3-02A)
+test('Mérito de Armas: arma artesanal (tipoArma: ARTESANAL, armas: 1) resulta em qtdArmas === 1, armasFogo === 0 e armasArtesanais === 1', () => {
   const res = PoliticaMeritoArmas.processarMeritoArmas(Fixture.tunelArmaArtesanal, Fixture.mapaAntiguidade);
   assert.strictEqual(res.length, 1);
   assert.strictEqual(res[0].status, 'PROCESSADO');
-  assert.strictEqual(res[0].qtdArmas, 1);
-  assert.strictEqual(res[0].armasArtesanais, 1);
+  assert.strictEqual(res[0].qtdArmas, 1, 'Quantidade total de armas deve ser 1');
+  assert.strictEqual(res[0].armasFogo, 0, 'Armas de fogo deve ser 0');
+  assert.strictEqual(res[0].armasArtesanais, 1, 'Armas artesanais deve ser 1');
   assert.strictEqual(res[0].matricula, '108394-5');
 });
 
