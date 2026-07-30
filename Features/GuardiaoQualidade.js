@@ -277,7 +277,7 @@ class GuardiaoQualidade {
       RegrasQualidade.acumularLinhaTunel(tuneis[chave], row, idx, linha, indicador);
     }
 
-    // Leitura oficial de antiguidade N via LeitorAntiguidadePeculio (TASK-M06.3-03C)
+    // Leitura oficial de antiguidade N via LeitorAntiguidadePeculio (TASK-M06.3-03D)
     let resPeculio = { mapa: {}, mapaCompleto: {}, erro: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA' };
     let LeitorMod = typeof LeitorAntiguidadePeculio !== 'undefined' ? LeitorAntiguidadePeculio : null;
     if (!LeitorMod && typeof require !== 'undefined') {
@@ -285,16 +285,23 @@ class GuardiaoQualidade {
     }
     if (LeitorMod) {
       let fonteParaPeculio = fontePeculioExterna;
-      if (!fonteParaPeculio && typeof CONSTANTES_SYNTHEON !== 'undefined' && CONSTANTES_SYNTHEON.ID_PLANILHA_PECULIO) {
-        if (typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.openById === 'function') {
+
+      // Obtém o ID do Pecúlio exclusivamente via CONFIG_SYNTHEON.obterIdPeculio()
+      let ConfigMod = typeof CONFIG_SYNTHEON !== 'undefined' ? CONFIG_SYNTHEON : null;
+      if (!ConfigMod && typeof require !== 'undefined') {
+        try { ConfigMod = require('../Core/Config'); } catch (e) {}
+      }
+
+      if (!fonteParaPeculio && ConfigMod && typeof ConfigMod.obterIdPeculio === 'function') {
+        const idPeculio = ConfigMod.obterIdPeculio();
+        if (idPeculio && typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.openById === 'function') {
           try {
-            fonteParaPeculio = SpreadsheetApp.openById(CONSTANTES_SYNTHEON.ID_PLANILHA_PECULIO);
+            fonteParaPeculio = SpreadsheetApp.openById(idPeculio);
           } catch (e) {}
         }
       }
-      if (!fonteParaPeculio && sheet && typeof sheet.getParent === 'function') {
-        fonteParaPeculio = sheet.getParent();
-      }
+
+      // PROIBIDO fallback para sheet.getParent()! O Pecúlio NUNCA é lido da planilha de ocorrências.
       if (fonteParaPeculio) {
         resPeculio = LeitorMod.lerMapaAntiguidade(fonteParaPeculio);
       }

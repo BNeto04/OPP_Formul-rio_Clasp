@@ -19,7 +19,7 @@ const CONFIG_SYNTHEON = (() => {
 
     PLANILHAS: {
       OCORRENCIAS_ID: "1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY",
-      PECULIO_ID: "1PJnA8d9sf5CNj0-rt3yIxnwS8BEGfqxRvoyOjCitVHNE"
+      PECULIO_ID: "1PJnA8d9sf5CNj0-rt3yIxnwS8BEGfqxRvoyOjCtVHNE"
     },
 
     ABAS: {

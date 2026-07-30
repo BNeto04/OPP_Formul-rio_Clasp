@@ -511,8 +511,16 @@ test('RendererAuditoriaSaude: auditoria aprovada sem alertas exibe a linha APROV
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
 
+  const mockPeculioValido = {
+    getSheetByName: (n) => ({
+      getLastRow: () => 2,
+      getLastColumn: () => 2,
+      getRange: () => ({ getValues: () => [['N', 'MATRÍCULA'], [10, '113920-7']] })
+    })
+  };
+
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
-  GuardiaoQualidade.varrerAba(mockSheet);
+  GuardiaoQualidade.varrerAba(mockSheet, mockPeculioValido);
 
   const subAbaLog = mockSheet.obterSubAba('[AUDITORIA] Ocorrencias');
   assert.ok(subAbaLog);
@@ -530,12 +538,20 @@ test('RendererAuditoriaSaude: aba [HISTORICO] Auditoria Ocorrencias preserva reg
     ['15/07/2026', '202607150001', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
   ];
 
+  const mockPeculioValido = {
+    getSheetByName: (n) => ({
+      getLastRow: () => 2,
+      getLastColumn: () => 2,
+      getRange: () => ({ getValues: () => [['N', 'MATRÍCULA'], [10, '113920-7']] })
+    })
+  };
+
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
   
   // Primeira execução
-  GuardiaoQualidade.varrerAba(mockSheet);
+  GuardiaoQualidade.varrerAba(mockSheet, mockPeculioValido);
   // Segunda execução
-  GuardiaoQualidade.varrerAba(mockSheet);
+  GuardiaoQualidade.varrerAba(mockSheet, mockPeculioValido);
 
   const subAbaHist = mockSheet.obterSubAba('[HISTORICO] Auditoria Ocorrencias');
   assert.ok(subAbaHist);
@@ -1007,6 +1023,27 @@ test('GuardiaoQualidade: vários túneis armados com fonte indisponível geram e
 
   const obsFonte = resultado.diagnosticos.filter(d => d.codigoRegra === 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
   assert.strictEqual(obsFonte.length, 1, 'Deve emitir EXATAMENTE UMA observação técnica por varredura');
+});
+
+// 34. Fonte de Pecúlio Oficial Configurável por ID (TASK-M06.3-03D)
+test('CONFIG_SYNTHEON: obterIdPeculio retorna o ID oficial correto do Pecúlio', () => {
+  const ConfigMod = require('../Core/Config');
+  assert.strictEqual(ConfigMod.obterIdPeculio(), '1PJnA8d9sf5CNj0-rt3yIxnwS8BEGfqxRvoyOjCtVHNE');
+});
+
+// 35. Ausência de Fallback sheet.getParent() (TASK-M06.3-03D)
+test('GuardiaoQualidade: planilha de ocorrências (sheet.getParent) NUNCA é usada como fallback de Pecúlio', () => {
+  const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
+  const dadosLinhas = [
+    ['15/07/2026', '202607151000', '26E100', '108394-5', 'IRAN SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY1', '']
+  ];
+  const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
+
+  // Sem fonte externa e sem SpreadsheetApp.openById, o Guardião NÃO usa sheet.getParent()
+  const resultado = GuardiaoQualidade.varrerAba(mockSheet, null);
+
+  const obsFonte = resultado.diagnosticos.find(d => d.codigoRegra === 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+  assert.ok(obsFonte, 'Deve emitir a observação técnica de fonte indisponível sem tentar ler a planilha pai');
 });
 
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);
