@@ -122,6 +122,7 @@ class CompiladorGxt {
     const diagnosticoGxt = {
       peculioValido: !erroPeculio && Object.keys(mapaAntiguidade).length > 0,
       peculioErro: erroPeculio,
+      peculioDetalhe: resPeculio.detalheErro || '',
       totalFatosLidos: 0,
       totalTuneisArmados: 0,
       totalTuneisProcessados: 0,
@@ -397,7 +398,7 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
       acaoRecomendada = `Ação recomendada: Verificar a integridade do arquivo do Pecúlio (${codErro}).`;
     }
 
-    const msgErro = `FALHA NO GXT: A fonte oficial de antiguidade do Pecúlio não pôde ser processada.\n\nDiagnóstico: ${codErro}\n${diag.detalheErro ? 'Detalhe: ' + diag.detalheErro + '\n' : ''}${acaoRecomendada}\n\nNenhum relatório foi alterado para proteger a integridade funcional.`;
+    const msgErro = `FALHA NO GXT: A fonte oficial de antiguidade do Pecúlio não pôde ser processada.\n\nDiagnóstico: ${codErro}\n${diag.peculioDetalhe ? 'Detalhe: ' + diag.peculioDetalhe + '\n' : ''}${acaoRecomendada}\n\nNenhum relatório foi alterado para proteger a integridade funcional.`;
 
     if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
       SpreadsheetApp.getUi().alert(msgErro);

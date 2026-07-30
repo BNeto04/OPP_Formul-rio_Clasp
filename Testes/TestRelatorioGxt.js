@@ -430,6 +430,30 @@ function executarTestesGxt() {
     assert.strictEqual(dadosPreservados, 'DADOS_ANTIGOS_INTACTOS');
   });
 
+  // 15. Preservação da Exceção de Acesso ao Pecúlio no Diagnóstico (TASK-M06.3-05G.1)
+  test('CompiladorGxt.compilar: captura exceção do SpreadsheetApp.openById e repassa peculioDetalhe no diagnóstico', () => {
+    const prevSpreadsheetApp = global.SpreadsheetApp;
+    global.SpreadsheetApp = {
+      openById: () => { throw new Error('Exception: Access denied to spreadsheet 1PJnA8d9sf5CNj0'); }
+    };
+
+    const prevConfig = global.CONFIG_SYNTHEON;
+    global.CONFIG_SYNTHEON = {
+      obterIdPeculio: () => '1PJnA8d9sf5CNj0'
+    };
+
+    try {
+      const res = CompiladorGxt.compilar({}, ['JAN2026'], null);
+      assert.ok(res._diagnostico);
+      assert.strictEqual(res._diagnostico.peculioValido, false);
+      assert.strictEqual(res._diagnostico.peculioErro, 'PECULIO_ACESSO_NEGADO');
+      assert.ok(res._diagnostico.peculioDetalhe.includes('Access denied'));
+    } finally {
+      global.SpreadsheetApp = prevSpreadsheetApp;
+      global.CONFIG_SYNTHEON = prevConfig;
+    }
+  });
+
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);
 }
 
