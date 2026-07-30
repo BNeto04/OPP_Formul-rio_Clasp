@@ -216,8 +216,10 @@ function executarCompiladorCPM(abasAlvo, dataInicio, dataFim, modo) {
       (p.indicadores && p.indicadores.pontosCPM !== undefined) ? p.indicadores.pontosCPM : (p.pontosCPM || 0)
     ]);
 
+    const pelotoes = rankingOrdenado.map(p => p.pelotao || p.lote || p.designacao || p.grupo || '');
+
     // 5. Criar aba de resultados com a formatação original intocada
-    const nomeAbaResultado = criarAbaResultadoCPM_(ss, rankingFormatado, dataInicio, dataFim, modo);
+    const nomeAbaResultado = criarAbaResultadoCPM_(ss, rankingFormatado, dataInicio, dataFim, modo, pelotoes);
 
     // 6. Gravar log de auditoria estruturado
     logger.gravarPlanilha('LOG_CPM', nomeAbaResultado);
@@ -241,7 +243,35 @@ function executarCompiladorCPM(abasAlvo, dataInicio, dataFim, modo) {
   }
 }
 
-function criarAbaResultadoCPM_(ss, ranking, dataInicio, dataFim, modo) {
+/**
+ * Retorna a paleta oficial de cores para o CPM com base na graduação e lotação (TASK-M06.2-03A).
+ * @param {string} grad 
+ * @param {string} pelotao 
+ * @returns {{ fundo: string, fonte: string, negrito: boolean }}
+ */
+function corPorGrupoCpm_(grad, pelotao) {
+  const pelStr = String(pelotao || '').toUpperCase().trim();
+  const gradStr = String(grad || '').toUpperCase().trim();
+
+  if (pelStr.includes('OFICIAIS') || gradStr.includes('TEN') || gradStr.includes('CAP') || gradStr.includes('MAJ') || gradStr.includes('CEL')) {
+    return { fundo: '#F1C232', fonte: '#000000', negrito: false };
+  }
+  if (pelStr.includes('GTAR')) {
+    if (pelStr.includes('1') || pelStr.includes('1º') || pelStr.includes('1º PEL')) {
+      return { fundo: '#00CC00', fonte: '#000000', negrito: true };
+    }
+    return { fundo: '#3C78D8', fonte: '#FFFFFF', negrito: true };
+  }
+  if (pelStr.includes('1º PEL') || pelStr.includes('1 PEL') || pelStr === '1') {
+    return { fundo: '#00FF00', fonte: '#000000', negrito: false };
+  }
+  if (pelStr.includes('2º PEL') || pelStr.includes('2 PEL') || pelStr === '2') {
+    return { fundo: '#6D9EEB', fonte: '#000000', negrito: false };
+  }
+  return { fundo: '#FFFFFF', fonte: '#000000', negrito: false };
+}
+
+function criarAbaResultadoCPM_(ss, ranking, dataInicio, dataFim, modo, pelotoes) {
   let nomeBase;
 
   if (modo && modo.startsWith('CPM_')) {
@@ -295,8 +325,20 @@ function criarAbaResultadoCPM_(ss, ranking, dataInicio, dataFim, modo) {
 
     sheet.getRange(2, 1, ranking.length, 3).setHorizontalAlignment('center'); // RANK, GRAD, MAT
     sheet.getRange(2, 4, ranking.length, 1).setHorizontalAlignment('left');   // NOME COMPLETO
-    sheet.getRange(2, 5, ranking.length, 1).setHorizontalAlignment('right').setNumberFormat('#,##0');   // OCORRÊNCIAS
-    sheet.getRange(2, 6, ranking.length, 1).setHorizontalAlignment('right').setNumberFormat('#,##0.00'); // PONTUAÇÃO
+    sheet.getRange(2, 5, ranking.length, 1).setHorizontalAlignment('center').setNumberFormat('#,##0');   // OCORRÊNCIAS
+    sheet.getRange(2, 6, ranking.length, 1).setHorizontalAlignment('center').setNumberFormat('#,##0.00'); // PONTUAÇÃO
+
+    ranking.forEach((r, idx) => {
+      const lin = 2 + idx;
+      const grad = r[1];
+      const pelotao = (pelotoes && pelotoes[idx]) ? pelotoes[idx] : (r.length > 6 ? r[6] : (r.pelotao || ''));
+      const cor = corPorGrupoCpm_(grad, pelotao);
+      const rangeLin = sheet.getRange(lin, 1, 1, 6);
+      rangeLin.setBackground(cor.fundo).setFontColor(cor.fonte);
+      if (cor.negrito) {
+        rangeLin.setFontWeight('bold');
+      }
+    });
   }
 
   sheet.setFrozenRows(1);

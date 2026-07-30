@@ -237,13 +237,50 @@ test('CPM: preserva 6 colunas originais, cabeçalho #d9ead3, formato #,##0.00 e 
   assert.strictEqual(tracker.linhasCongeladas, 1);
   assert.strictEqual(tracker.filterCreated, true);
 
-  // Formatos e Alinhamentos
+  // Formatos e Alinhamentos Centralizados para Metricas Numericas
   assert.strictEqual(tracker.numberFormats['2:5'], '#,##0');    // OCORRÊNCIAS (Col 5)
   assert.strictEqual(tracker.numberFormats['2:6'], '#,##0.00'); // PONTUAÇÃO (Col 6)
   assert.strictEqual(tracker.alignments['2:1'], 'center');     // RANK
   assert.strictEqual(tracker.alignments['2:4'], 'left');       // NOME COMPLETO
-  assert.strictEqual(tracker.alignments['2:5'], 'right');      // OCORRÊNCIAS
-  assert.strictEqual(tracker.alignments['2:6'], 'right');      // PONTUAÇÃO
+  assert.strictEqual(tracker.alignments['2:5'], 'center');     // OCORRÊNCIAS (Centralizado)
+  assert.strictEqual(tracker.alignments['2:6'], 'center');     // PONTUAÇÃO (Centralizado)
+});
+
+// 4. Teste: Validação das Cores Oficiais e GTAR no CPM por Metadado Interno (TASK-M06.2-03A)
+test('CPM: aplica paleta oficial nos seis grupos de lotação (inclusive os 2 GTAR) sem alterar as 6 colunas', () => {
+  const { mockSS, tracker } = criarMockSSGenerico('CPM_MOCK_CORES');
+
+  const rankingCPM = [
+    [1, '1º TEN', '100001-0', 'TEN SILVA', 15, 200.0],
+    [2, 'SD', '100002-8', 'SD GTAR1', 12, 180.0],
+    [3, 'SD', '100003-6', 'SD PEL1', 10, 150.0],
+    [4, 'CB', '100004-4', 'CB GTAR2', 8, 120.0],
+    [5, 'SD', '100005-2', 'SD PEL2', 6, 90.0],
+    [6, '1º SGT', '100006-0', 'SGT PEL3', 4, 50.0]
+  ];
+
+  const pelotoes = ['OFICIAIS', '1º PEL GTAR', '1º PEL', '2º PEL GTAR', '2º PEL', '3º PEL'];
+
+  criarAbaResultadoCPM_(mockSS, rankingCPM, null, null, 'CPM_MOCK_CORES', pelotoes);
+
+  // Confirma estritamente 6 colunas no cabeçalho
+  assert.strictEqual(tracker.valores['1:6'], 'PONTUAÇÃO');
+  assert.strictEqual(tracker.valores['1:7'], undefined);
+
+  // Confirma cores e fontes para cada grupo de lotação
+  assert.strictEqual(String(tracker.backgrounds['2:1']).toUpperCase(), '#F1C232'); // Oficiais (Amarelo Ouro)
+  assert.strictEqual(String(tracker.backgrounds['3:1']).toUpperCase(), '#00CC00'); // 1º PEL GTAR (Verde Escuro)
+  assert.strictEqual(tracker.fontWeights['3:1'], 'bold');
+  assert.strictEqual(String(tracker.backgrounds['4:1']).toUpperCase(), '#00FF00'); // 1º PEL (Verde Claro)
+  assert.strictEqual(String(tracker.backgrounds['5:1']).toUpperCase(), '#3C78D8'); // 2º PEL GTAR (Azul Escuro)
+  assert.strictEqual(String(tracker.fontColors['5:1']).toUpperCase(), '#FFFFFF');  // Fonte Branca
+  assert.strictEqual(tracker.fontWeights['5:1'], 'bold');    // Negrito
+  assert.strictEqual(String(tracker.backgrounds['6:1']).toUpperCase(), '#6D9EEB'); // 2º PEL (Azul Claro)
+  assert.strictEqual(String(tracker.backgrounds['7:1']).toUpperCase(), '#FFFFFF'); // 3º PEL (Branco)
+
+  // Confirma alinhamentos
+  assert.strictEqual(tracker.alignments['2:5'], 'center'); // Ocorrencias
+  assert.strictEqual(tracker.alignments['2:6'], 'center'); // Pontuação
 });
 
 console.log(`\n🎉 Testes do PIP & CPM concluídos: ${sucessos} testes passaram!`);
