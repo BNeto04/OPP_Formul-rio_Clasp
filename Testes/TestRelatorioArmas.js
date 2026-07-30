@@ -195,7 +195,7 @@ test('Armas: executarCompilador() real gera aba de saída com paleta oficial, es
   const mockJanSheet = {
     getName: () => 'JAN2026',
     getLastColumn: () => 6,
-    getLastRow: () => 6,
+    getLastRow: () => 7,
     getRange: (r, c, numR, numC) => ({
       getValues: () => {
         if (r === 1) return [['BOE', 'PELOTÃO', 'MATRICULA', 'POLICIAL', 'GRAD', 'QTD ARMAS']];
@@ -204,7 +204,8 @@ test('Armas: executarCompilador() real gera aba de saída com paleta oficial, es
           ['BOE102', '1º PEL GTAR', '100002', 'SD SOUZA', 'SD', 7],
           ['BOE103', '1º PEL', '100003', 'SD SANTOS', 'SD', 4],
           ['BOE104', '2º PEL GTAR', '100004', 'CB OLIVEIRA', 'CB', 2],
-          ['BOE105', '3º PEL', '100006', 'SGT FERREIRA', '1º SGT', 1]
+          ['BOE105', '2º PEL', '100005', 'SD LIMA', 'SD', 0], // Registro com 0 armas (ignorado no compilador L177)
+          ['BOE106', '3º PEL', '100006', 'SGT FERREIRA', '1º SGT', 1]
         ];
       }
     })
@@ -279,11 +280,12 @@ test('Armas: executarCompilador() real gera aba de saída com paleta oficial, es
   assert.strictEqual(tracker.backgrounds['3:5'], '#93c47d'); // 7 armas (6 a 9)
   assert.strictEqual(tracker.backgrounds['4:5'], '#ffff00'); // 4 armas (4 a 5)
   assert.strictEqual(tracker.backgrounds['5:5'], '#ff9900'); // 2 armas (1 a 3)
+  assert.strictEqual(tracker.backgrounds['6:5'], '#ff9900'); // 1 arma (1 a 3)
 
-  // Validação explícita do destaque de 0 armas (vermelho/vermelho #ff0000)
-  const corZeroArmas = corPorArmasArmas_(0);
-  assert.strictEqual(corZeroArmas.fundo, '#ff0000');
-  assert.strictEqual(corZeroArmas.fonte, '#ff0000');
+  // Validação explícita da função de escala de armas para zero em vermelho
+  const corZero = corPorArmasArmas_(0);
+  assert.strictEqual(corZero.fundo, '#ff0000');
+  assert.strictEqual(corZero.fonte, '#ff0000');
 });
 
 console.log(`\n🎉 Testes do Relatório de ARMAS concluídos: ${sucessos} testes passaram!`);
