@@ -277,9 +277,27 @@ class GuardiaoQualidade {
       RegrasQualidade.acumularLinhaTunel(tuneis[chave], row, idx, linha, indicador);
     }
 
-    // Validações por túnel (fatos vs indicadores e rateio matemático)
+    // Leitura oficial de antiguidade N via LeitorAntiguidadePeculio (TASK-M06.3-03)
+    let resPeculio = { mapa: {}, mapaCompleto: {}, erro: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA' };
+    let LeitorMod = typeof LeitorAntiguidadePeculio !== 'undefined' ? LeitorAntiguidadePeculio : null;
+    if (!LeitorMod && typeof require !== 'undefined') {
+      try { LeitorMod = require('../Leitura/LeitorAntiguidadePeculio'); } catch (e) {}
+    }
+    if (LeitorMod) {
+      const parentSS = (sheet && typeof sheet.getParent === 'function') ? sheet.getParent() : null;
+      resPeculio = LeitorMod.lerMapaAntiguidade(parentSS || sheet);
+    }
+
+    // Validações por túnel (fatos vs indicadores, rateio matemático e mérito por armas)
     Object.values(tuneis).forEach(tunel => {
       RegrasQualidade.validarTunel(tunel).forEach(diag => {
+        if (diag.linha >= 2 && diag.linha - 2 < alertasPorLinha.length) {
+          alertasPorLinha[diag.linha - 2].push(diag);
+        }
+      });
+
+      // Validação do Mérito por Armas (TASK-M06.3-03)
+      RegrasQualidade.validarMeritoArmasTunel(tunel, resPeculio).forEach(diag => {
         if (diag.linha >= 2 && diag.linha - 2 < alertasPorLinha.length) {
           alertasPorLinha[diag.linha - 2].push(diag);
         }

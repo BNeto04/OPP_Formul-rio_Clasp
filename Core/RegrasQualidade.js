@@ -169,6 +169,122 @@ class RegrasQualidade {
     return alertas;
   }
 
+  /**
+   * Valida a política de mérito por armas para um túnel de ocorrência (TASK-M06.3-03).
+   * @param {Object} tunel - Objeto do túnel acumulado pelo Guardião.
+   * @param {Object} resPeculio - Resultado do LeitorAntiguidadePeculio.lerMapaAntiguidade.
+   * @returns {Array<Object>} Lista de diagnósticos de mérito por armas.
+   */
+  static validarMeritoArmasTunel(tunel, resPeculio) {
+    if (!tunel || !tunel.fatos) return [];
+
+    // Regra estrita: audita APENAS túneis com arma física (fogo ou artesanal)
+    const qtdFogo = Number(tunel.fatos.armas || 0);
+    const qtdArtesanais = Number(tunel.fatos.armasArtesanais || 0);
+    if (qtdFogo <= 0 && qtdArtesanais <= 0) {
+      return []; // Túnel sem arma -> Zero diagnósticos de mérito
+    }
+
+    const linhaAlvo = (tunel.linhasFatos && tunel.linhasFatos.length > 0)
+      ? tunel.linhasFatos[0].linha
+      : (tunel.eventos && tunel.eventos.length > 0 ? tunel.eventos[0].linha : 2);
+
+    // Se a fonte oficial de antiguidade não foi localizada
+    if (resPeculio && resPeculio.erro === 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA') {
+      return [RegrasQualidade.criarDiagnostico({
+        severidade: SEVERIDADES_GUARDIAO.OBSERVACAO,
+        codigoRegra: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA',
+        linha: linhaAlvo,
+        tunel: tunel.chave,
+        diagnostico: 'Fonte oficial de antiguidade (EFETIVO / PECÚLIO) não localizada na planilha.',
+        evidencia: `Túnel: "${tunel.chave}" | Ocorrência armada sem acesso ao mapa de antiguidade N.`,
+        acaoRecomendada: 'Disponibilize a aba EFETIVO ou PECÚLIO com as colunas N e MATRÍCULA.'
+      })];
+    }
+
+    const mapa = resPeculio?.mapa || resPeculio || {};
+
+    // Reconstrói a lista de policiais a partir das linhas do túnel
+    const integrantesMap = {};
+    if (Array.isArray(tunel.linhasFatos)) {
+      tunel.linhasFatos.forEach(lf => {
+        if (lf.matricula) {
+          const mat = String(lf.matricula).trim();
+          if (!integrantesMap[mat]) {
+            integrantesMap[mat] = {
+              matricula: mat,
+              nome: lf.policial || '',
+              grad: lf.grad || '',
+              pelotao: lf.pelotao || ''
+            };
+          }
+        }
+      });
+    }
+
+    const listaIntegrantes = Object.values(integrantesMap);
+    if (listaIntegrantes.length === 0) return [];
+
+    // Constrói objeto de ocorrência sintético para o PoliticaMeritoArmas
+    const ocorrenciaSintetica = {
+      data: tunel.data || '',
+      mike: tunel.mike || '',
+      boe: tunel.boe || '',
+      armas: qtdFogo,
+      armasArtesanais: qtdArtesanais,
+      policiais: listaIntegrantes
+    };
+
+    let PoliticaMod = typeof PoliticaMeritoArmas !== 'undefined' ? PoliticaMeritoArmas : null;
+    if (!PoliticaMod && typeof require !== 'undefined') {
+      try { PoliticaMod = require('../Motor/PoliticaMeritoArmas'); } catch (e) {}
+    }
+
+    if (!PoliticaMod) return [];
+
+    const resMerito = PoliticaMod.processarMeritoArmas([ocorrenciaSintetica], mapa);
+    if (!Array.isArray(resMerito) || resMerito.length === 0) return [];
+
+    const item = resMerito[0];
+    if (item.status === 'PROCESSADO') {
+      return []; // Líder resolvido sem alerta
+    }
+
+    const alertas = [];
+
+    if (item.motivoPendente === 'ANTIGUIDADE_AUSENTE') {
+      const pmsSemN = (item.integrantes || []).filter(p => p.numN === null || p.numN === undefined);
+      const nomesSemN = pmsSemN.map(p => `${p.grad ? p.grad + ' ' : ''}${p.nome || ''} (${p.matricula})`.trim()).join(', ');
+
+      alertas.push(RegrasQualidade.criarDiagnostico({
+        severidade: SEVERIDADES_GUARDIAO.CRITICO,
+        codigoRegra: 'MERITO_ARMAS_ANTIGUIDADE_AUSENTE',
+        linha: linhaAlvo,
+        tunel: tunel.chave,
+        diagnostico: 'Antiguidade N ausente no Pecúlio para integrante(s) de ocorrência com arma.',
+        evidencia: `Túnel: "${tunel.chave}" | Integrante(s) sem N: "${nomesSemN}"`,
+        acaoRecomendada: 'Cadastre a antiguidade N dos policiais envolvidos na aba EFETIVO/PECÚLIO para permitir o cômputo do mérito.'
+      }));
+    } else if (item.motivoPendente === 'EMPATE_ANTIGUIDADE') {
+      const pmsComN = (item.integrantes || []).filter(p => p.numN !== null && p.numN !== undefined);
+      const menorNVal = pmsComN.length > 0 ? Math.min(...pmsComN.map(p => Number(p.numN))) : (item.menorN || '');
+      const pmsEmpatados = (item.integrantes || []).filter(p => Number(p.numN) === Number(menorNVal));
+      const nomesEmpatados = pmsEmpatados.map(p => `${p.grad ? p.grad + ' ' : ''}${p.nome || ''} (${p.matricula})`.trim()).join(', ');
+
+      alertas.push(RegrasQualidade.criarDiagnostico({
+        severidade: SEVERIDADES_GUARDIAO.CRITICO,
+        codigoRegra: 'MERITO_ARMAS_EMPATE_ANTIGUIDADE',
+        linha: linhaAlvo,
+        tunel: tunel.chave,
+        diagnostico: 'Empate de antiguidade N entre integrantes de ocorrência com arma.',
+        evidencia: `Túnel: "${tunel.chave}" | Policiais empatados no menor N (${menorNVal}): "${nomesEmpatados}"`,
+        acaoRecomendada: 'Ajuste a ordem N dos integrantes no Pecúlio para desempate do líder.'
+      }));
+    }
+
+    return alertas;
+  }
+
   static validarDataMike(data, mike, linha, tunel) {
     if (!data || !mike) return null;
     const somenteNumeros = String(mike).replace(/\D/g, '');
@@ -349,9 +465,16 @@ class RegrasQualidade {
     const pontosTotaisLido = idx.pontosTotais !== -1 ? RegrasQualidade.numero(row[idx.pontosTotais]) : 0;
     const pontosFiccaoLido = idx.pontosFiccao !== -1 ? RegrasQualidade.numero(row[idx.pontosFiccao]) : 0;
 
+    const policial = idx.policial !== -1 ? RegrasQualidade.texto(row[idx.policial]) : '';
+    const grad = idx.grad !== -1 ? RegrasQualidade.texto(row[idx.grad]) : '';
+    const pelotao = idx.pelotao !== -1 ? RegrasQualidade.texto(row[idx.pelotao]) : '';
+
     tunel.linhasFatos.push({
       linha,
       matricula,
+      policial,
+      grad,
+      pelotao,
       pontosTotaisLido,
       pontosFiccaoLido,
       indicador

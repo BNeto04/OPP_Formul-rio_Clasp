@@ -162,14 +162,30 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
     })
   } : null;
 
+  const efetivoSheetMock = {
+    getName: () => 'EFETIVO',
+    getLastRow: () => 4,
+    getLastColumn: () => 5,
+    getRange: () => ({
+      getValues: () => [
+        ['N', 'MATRÍCULA', 'GRAD', 'NOME', 'DESIGNAÇÃO'],
+        [10, '113920-7', 'CB', 'SD SILVA', '1º PEL'],
+        [12, '108394-5', '3º SGT', 'IRAN SILVA', '1º PEL GTAR'],
+        [15, '102950-9', '2º SGT', 'SAULO ALVES', '2º PEL GTAR']
+      ]
+    })
+  };
+
   const parentMock = {
     getSheets: () => {
       const list = [sheetMock];
       if (pipSheetMock) list.push(pipSheetMock);
+      list.push(efetivoSheetMock);
       Object.keys(mapSubSheets).forEach(k => list.push(mapSubSheets[k]));
       return list;
     },
     getSheetByName: (n) => {
+      if (n === 'EFETIVO' || n === 'PECULIO' || n === 'PECÚLIO') return efetivoSheetMock;
       if (pipSheetMock && (n === nomeAbaPIP || n === 'Tabela PIP')) return pipSheetMock;
       if (mapSubSheets[n]) return mapSubSheets[n];
       return null;
@@ -796,6 +812,122 @@ test('RendererAuditoriaSaude: com coluna adicional após AM, o destaque permanec
   const vazaColunaExtraFonte = fontesMain.find(c => c.row === 2 && c.col === colExtra && c.color === '#856404');
   assert.strictEqual(vazaColunaExtraFundo, undefined, 'A coluna extra após AM não deve receber o fundo de alerta');
   assert.strictEqual(vazaColunaExtraFonte, undefined, 'A coluna extra após AM não deve receber a fonte de alerta');
+});
+
+// 26. Mérito por Armas: Líder Resolvido Sem Alerta (TASK-M06.3-03)
+test('RegrasQualidade: mérito por armas com líder resolvido não gera diagnóstico de alerta', () => {
+  const tunelMock = {
+    chave: '2026-07-15_26E100_BOE1',
+    data: '2026-07-15',
+    mike: '26E100',
+    boe: 'BOE1',
+    fatos: { armas: 1, armasArtesanais: 0 },
+    linhasFatos: [
+      { linha: 2, matricula: '108394-5', policial: 'IRAN SILVA', grad: '3º SGT' },
+      { linha: 3, matricula: '102950-9', policial: 'SAULO ALVES', grad: '2º SGT' }
+    ]
+  };
+
+  const resPeculio = {
+    mapa: { '1083945': 10, '1029509': 12 }
+  };
+
+  const diags = RegrasQualidade.validarMeritoArmasTunel(tunelMock, resPeculio);
+  assert.strictEqual(diags.length, 0, 'Líder resolvido não deve gerar nenhum diagnóstico de alerta');
+});
+
+// 27. Mérito por Armas: Ausência de N Gera CRITICO MERITO_ARMAS_ANTIGUIDADE_AUSENTE (TASK-M06.3-03)
+test('RegrasQualidade: ausência de N para integrante de ocorrência com arma gera CRITICO MERITO_ARMAS_ANTIGUIDADE_AUSENTE', () => {
+  const tunelMock = {
+    chave: '2026-07-15_26E100_BOE2',
+    data: '2026-07-15',
+    mike: '26E100',
+    boe: 'BOE2',
+    fatos: { armas: 1, armasArtesanais: 0 },
+    linhasFatos: [
+      { linha: 2, matricula: '108394-5', policial: 'IRAN SILVA', grad: '3º SGT' },
+      { linha: 3, matricula: '999999-9', policial: 'PM SEM N', grad: 'SD' }
+    ]
+  };
+
+  const resPeculio = {
+    mapa: { '1083945': 10 } // 999999-9 sem N no mapa
+  };
+
+  const diags = RegrasQualidade.validarMeritoArmasTunel(tunelMock, resPeculio);
+  assert.strictEqual(diags.length, 1);
+  assert.strictEqual(diags[0].severidade, SEVERIDADES_GUARDIAO.CRITICO);
+  assert.strictEqual(diags[0].codigoRegra, 'MERITO_ARMAS_ANTIGUIDADE_AUSENTE');
+  assert.ok(diags[0].evidencia.includes('999999-9'));
+});
+
+// 28. Mérito por Armas: Empate de N Gera CRITICO MERITO_ARMAS_EMPATE_ANTIGUIDADE (TASK-M06.3-03)
+test('RegrasQualidade: empate no menor N entre integrantes de ocorrência com arma gera CRITICO MERITO_ARMAS_EMPATE_ANTIGUIDADE', () => {
+  const tunelMock = {
+    chave: '2026-07-15_26E100_BOE3',
+    data: '2026-07-15',
+    mike: '26E100',
+    boe: 'BOE3',
+    fatos: { armas: 2, armasArtesanais: 0 },
+    linhasFatos: [
+      { linha: 2, matricula: '108394-5', policial: 'IRAN SILVA', grad: '3º SGT' },
+      { linha: 3, matricula: '102950-9', policial: 'SAULO ALVES', grad: '2º SGT' }
+    ]
+  };
+
+  const resPeculio = {
+    mapa: { '1083945': 10, '1029509': 10 } // Empate no menor N = 10
+  };
+
+  const diags = RegrasQualidade.validarMeritoArmasTunel(tunelMock, resPeculio);
+  assert.strictEqual(diags.length, 1);
+  assert.strictEqual(diags[0].severidade, SEVERIDADES_GUARDIAO.CRITICO);
+  assert.strictEqual(diags[0].codigoRegra, 'MERITO_ARMAS_EMPATE_ANTIGUIDADE');
+  assert.ok(diags[0].evidencia.includes('IRAN SILVA') && diags[0].evidencia.includes('SAULO ALVES'));
+});
+
+// 29. Mérito por Armas: Túnel Sem Arma Não Gera Diagnóstico (TASK-M06.3-03)
+test('RegrasQualidade: túnel sem arma apreendida não gera nenhum diagnóstico de mérito por armas', () => {
+  const tunelMock = {
+    chave: '2026-07-15_26E100_BOE4',
+    data: '2026-07-15',
+    mike: '26E100',
+    boe: 'BOE4',
+    fatos: { armas: 0, armasArtesanais: 0 },
+    linhasFatos: [
+      { linha: 2, matricula: '999999-9', policial: 'PM SEM N', grad: 'SD' }
+    ]
+  };
+
+  const resPeculio = { mapa: {} };
+
+  const diags = RegrasQualidade.validarMeritoArmasTunel(tunelMock, resPeculio);
+  assert.strictEqual(diags.length, 0, 'Túnel sem arma não deve auditar mérito por armas');
+});
+
+// 30. Mérito por Armas: Fonte de Antiguidade Indisponível Gera OBSERVACAO ANTIGUIDADE_FONTE_NAO_LOCALIZADA (TASK-M06.3-03)
+test('RegrasQualidade: fonte oficial de antiguidade indisponível gera OBSERVACAO ANTIGUIDADE_FONTE_NAO_LOCALIZADA para túnel com arma', () => {
+  const tunelMock = {
+    chave: '2026-07-15_26E100_BOE5',
+    data: '2026-07-15',
+    mike: '26E100',
+    boe: 'BOE5',
+    fatos: { armas: 1, armasArtesanais: 0 },
+    linhasFatos: [
+      { linha: 2, matricula: '108394-5', policial: 'IRAN SILVA', grad: '3º SGT' }
+    ]
+  };
+
+  const resPeculio = {
+    mapa: {},
+    mapaCompleto: {},
+    erro: 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA'
+  };
+
+  const diags = RegrasQualidade.validarMeritoArmasTunel(tunelMock, resPeculio);
+  assert.strictEqual(diags.length, 1);
+  assert.strictEqual(diags[0].severidade, SEVERIDADES_GUARDIAO.OBSERVACAO);
+  assert.strictEqual(diags[0].codigoRegra, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
 });
 
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);
