@@ -321,30 +321,30 @@ function executarTestesGxt() {
     assert.strictEqual(achado.getName(), 'abr.2026');
   });
 
-  // 10. Bloqueio Seguro quando o Pecúlio é Indisponível ou Inválido (TASK-M06.3-05C)
-  test('gerarGxtSelecaoLivre: bloqueia geração com erro explicito quando Pecúlio é indisponível', () => {
-    let matrizAlerta = null;
+  // 10. Bloqueio Seguro quando o Pecúlio é Indisponível (TASK-M06.3-05D)
+  test('gerarGxtSelecaoLivre: bloqueia geração e NÃO altera a planilha de saída quando Pecúlio é indisponível', () => {
+    let folhaLimpa = false;
     const mockSS = {
-      getSheetByName: () => null,
-      insertSheet: (n) => ({
-        clear: () => {},
-        _definirDadosMatriz: (m) => { matrizAlerta = m; }
+      getSheetByName: () => ({
+        clear: () => { folhaLimpa = true; }
+      }),
+      insertSheet: () => ({
+        clear: () => { folhaLimpa = true; }
       })
     };
 
-    const fontePeculioInvalida = []; // Sem cabeçalhos válidos
+    const fontePeculioInvalida = []; // Sem fonte de Pecúlio
     const res = gerarGxtSelecaoLivre(['JAN2026'], fontePeculioInvalida, mockSS);
 
     assert.ok(res._diagnostico);
     assert.strictEqual(res._diagnostico.peculioValido, false);
     assert.strictEqual(res._diagnostico.peculioErro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
-    assert.ok(matrizAlerta);
-    assert.ok(matrizAlerta.valores[0][0].includes('FALHA NO GXT'));
+    assert.strictEqual(folhaLimpa, false, 'A folha existente NUNCA deve ser limpa quando o Pecúlio falha');
   });
 
-  // 11. Diagnóstico Claro quando Túneis Armados Possuem Pendências (TASK-M06.3-05C)
-  test('gerarGxtSelecaoLivre: informa estatísticas de fatos e pendências quando há túneis armados não processados', () => {
-    let matrizAlerta = null;
+  // 11. Diagnóstico Claro quando Túneis Armados Possuem Pendências (TASK-M06.3-05D)
+  test('gerarGxtSelecaoLivre: informa estatísticas de fatos e pendências sem sobrescrever a aba existente', () => {
+    let folhaLimpa = false;
     const mockSheetJan = [
       {
         data: '15/01/2026',
@@ -358,11 +358,8 @@ function executarTestesGxt() {
     ];
 
     const mockSS = {
-      getSheetByName: (n) => (n === 'JAN2026' ? mockSheetJan : null),
-      insertSheet: (n) => ({
-        clear: () => {},
-        _definirDadosMatriz: (m) => { matrizAlerta = m; }
-      })
+      getSheetByName: (n) => (n === 'JAN2026' ? mockSheetJan : { clear: () => { folhaLimpa = true; } }),
+      insertSheet: () => ({ clear: () => { folhaLimpa = true; } })
     };
 
     // Pecúlio válido mas não contém a matrícula 999999-9
@@ -372,9 +369,65 @@ function executarTestesGxt() {
     assert.strictEqual(res._diagnostico.totalTuneisArmados, 1);
     assert.strictEqual(res._diagnostico.totalTuneisProcessados, 0);
     assert.strictEqual(res._diagnostico.totalTuneisPendentes, 1);
+    assert.strictEqual(folhaLimpa, false, 'A folha existente NUNCA deve ser limpa quando há pendências');
+  });
 
-    assert.ok(matrizAlerta);
-    assert.ok(matrizAlerta.valores[0][0].includes('ATENÇÃO GXT'));
+  // 12. Proibição Estrita de Fallback para a Planilha Ativa (TASK-M06.3-05D)
+  test('CompiladorGxt.compilar: NUNCA usa a própria planilha de ocorrências como fallback para o Pecúlio', () => {
+    const mockSheetEfetivo = [
+      ['N', 'MATRÍCULA', 'NOME'],
+      [1, '123456-7', 'SD TESTE FALLBACK']
+    ];
+    const mockSS = {
+      getSheetByName: (n) => (n === 'EFETIVO' ? mockSheetEfetivo : null)
+    };
+
+    // Chamada sem fontePeculio explicitada nem CONFIG_SYNTHEON ativo
+    const res = CompiladorGxt.compilar(mockSS, ['JAN2026'], null);
+    assert.strictEqual(res._diagnostico.peculioValido, false);
+    assert.strictEqual(res._diagnostico.peculioErro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+  });
+
+  // 13. Rejeição Estrita de Alias Genérico "Pontuação" para Pecúlio (TASK-M06.3-05D)
+  test('LeitorAntiguidadePeculio: NUNCA aceita uma aba chamada "PONTUAÇÃO" ou "PONTUACAO" como Pecúlio', () => {
+    const mockSheetPontuacao = {
+      getName: () => 'PONTUAÇÃO',
+      getRange: () => ({
+        getValues: () => [
+          ['N', 'MATRÍCULA', 'NOME'],
+          [1, '123456-7', 'SD PIP TESTE']
+        ]
+      })
+    };
+    const mockSS = {
+      getSheetByName: (n) => (n === 'PONTUAÇÃO' ? mockSheetPontuacao : null),
+      getSheets: () => [mockSheetPontuacao]
+    };
+
+    const LeitorMod = require('../Leitura/LeitorAntiguidadePeculio');
+    const res = LeitorMod.lerMapaAntiguidade(mockSS);
+    assert.strictEqual(res.erro, 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA');
+    assert.strictEqual(Object.keys(res.mapa).length, 0);
+  });
+
+  // 14. Preservação Fiel de Aba Existente em Caso de Falha (TASK-M06.3-05D)
+  test('gerarGxtSelecaoLivre: preserva integralmente os dados de uma aba de relatório existente em falha de fonte', () => {
+    let dadosPreservados = 'DADOS_ANTIGOS_INTACTOS';
+    let foiApagado = false;
+
+    const mockSheetSaida = {
+      getName: () => 'GXT_ACUMULADO_JAN2026_JAN2026',
+      clear: () => { foiApagado = true; },
+      getRange: () => ({ getValues: () => [[dadosPreservados]] })
+    };
+
+    const mockSS = {
+      getSheetByName: (n) => (n === 'GXT_ACUMULADO_JAN2026_JAN2026' ? mockSheetSaida : null)
+    };
+
+    gerarGxtSelecaoLivre(['JAN2026'], null, mockSS);
+    assert.strictEqual(foiApagado, false);
+    assert.strictEqual(dadosPreservados, 'DADOS_ANTIGOS_INTACTOS');
   });
 
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);

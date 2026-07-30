@@ -35,8 +35,7 @@ const LeitorAntiguidadePeculio = {
         const aliasesAbas = [
           'EFETIVO', 'PECULIO', 'PECÚLIO', 'EFETIVO 2026',
           'CÓPIA DE PECÚLIO COM PONTUAÇÃO', 'COPIA DE PECULIO COM PONTUACAO',
-          'CÓPIA DE PECÚLIO COM PONTUAÇÃO ', 'PECÚLIO 2026', 'PECULIO 2026',
-          'PONTUAÇÃO', 'PONTUACAO'
+          'CÓPIA DE PECÚLIO COM PONTUAÇÃO ', 'PECÚLIO 2026', 'PECULIO 2026'
         ];
         for (const alias of aliasesAbas) {
           sheet = fonte.getSheetByName(alias);
@@ -44,14 +43,14 @@ const LeitorAntiguidadePeculio = {
         }
       }
 
-      // Busca por aproximação normalizada caso não encontre por nome exato
+      // Busca por aproximação normalizada caso não encontre por nome exato (restrito a PECULIO ou EFETIVO)
       if (!sheet && typeof fonte.getSheets === 'function') {
         try {
           const allSheets = fonte.getSheets();
           for (const s of allSheets) {
             if (s && typeof s.getName === 'function') {
               const nameNorm = String(s.getName() || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-              if (nameNorm.includes('PECULIO') || nameNorm.includes('EFETIVO') || nameNorm.includes('PONTUACAO')) {
+              if (nameNorm.includes('PECULIO') || nameNorm.includes('EFETIVO')) {
                 sheet = s;
                 break;
               }

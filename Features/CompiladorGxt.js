@@ -92,14 +92,6 @@ class CompiladorGxt {
       if (fPeculio) {
         resPeculio = LeitorPeculioMod.lerMapaAntiguidade(fPeculio);
       }
-
-      // Se não carregou da fonte externa, tenta na própria planilha (ex: em cópias descartáveis onde o Pecúlio está na mesma planilha)
-      if ((!resPeculio.mapa || Object.keys(resPeculio.mapa).length === 0) && fonte && typeof fonte.getSheetByName === 'function') {
-        const resLocal = LeitorPeculioMod.lerMapaAntiguidade(fonte);
-        if (resLocal.mapa && Object.keys(resLocal.mapa).length > 0) {
-          resPeculio = resLocal;
-        }
-      }
     }
 
     const mapaAntiguidade = resPeculio.mapa || {};
@@ -370,13 +362,11 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
 
   // BLOQUEIO 1: Fonte de antiguidade do Pecúlio ausente ou inválida
   if (!diag.peculioValido) {
-    const msgErro = `FALHA NO GXT: A fonte oficial de antiguidade do Pecúlio não foi localizada ou não contém as colunas N e MATRÍCULA válidas.\nStatus: ${diag.peculioErro || 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA'}\nNenhum relatório foi gerado para proteger a integridade funcional.`;
+    const msgErro = `FALHA NO GXT: A fonte oficial de antiguidade do Pecúlio não foi localizada ou não contém as colunas N e MATRÍCULA válidas.\nStatus: ${diag.peculioErro || 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA'}\nNenhum relatório foi alterado para proteger a integridade funcional.`;
     if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
       SpreadsheetApp.getUi().alert(msgErro);
     }
-    if (RendererMod && ss) {
-      RendererMod.renderizarAlertaErro(ss, nomeAbaSaida, msgErro);
-    }
+    // PRESERVA INTEGRALMENTE ABA EXISTENTE (sem renderizar nem limpar nada)
     return dados;
   }
 
@@ -386,9 +376,7 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
     if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
       SpreadsheetApp.getUi().alert(msgAviso);
     }
-    if (RendererMod && ss) {
-      RendererMod.renderizarAlertaErro(ss, nomeAbaSaida, msgAviso);
-    }
+    // PRESERVA INTEGRALMENTE ABA EXISTENTE (sem renderizar nem limpar nada)
     return dados;
   }
 
@@ -437,9 +425,7 @@ function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
       if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
         SpreadsheetApp.getUi().alert(msg);
       }
-      if (RendererMod && ss) {
-        RendererMod.renderizarAlertaErro(ss, tri.nomeAba, msg);
-      }
+      // PRESERVA INTEGRALMENTE ABA EXISTENTE (sem renderizar nem limpar nada)
     } else if (RendererMod && ss) {
       RendererMod.renderizar(ss, dadosTri, tri.nomeAba);
     }
