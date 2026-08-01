@@ -23,45 +23,126 @@ const LeitorAntiguidadePeculio = {
    * @param {string} [nomeAba='EFETIVO'] - Nome da aba a procurar no projeto.
    * @returns {{ mapa: Object.<string, number>, mapaCompleto: Object.<string, Object>, erro?: string, estatisticas: Object }}
    */
+  /**
+   * Examina as primeiras 25 linhas de uma matriz de dados para localizar a combinação de cabeçalhos de antiguidade e matrícula.
+   * @param {Array<Array>} dados - Matriz 2D da aba.
+   * @returns {{ valido: boolean, idxCabecalho?: number, colMatricula?: number, colN?: number, colNome?: number, colGrad?: number, colPelotao?: number }}
+   */
+  localizarCabecalhoEmMatriz(dados) {
+    if (!Array.isArray(dados) || dados.length < 2) {
+      return { valido: false };
+    }
+
+    for (let r = 0; r < Math.min(25, dados.length); r++) {
+      const linha = dados[r].map(c => String(c || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim());
+      
+      const cMat = linha.findIndex(h => h === 'MATRICULA' || h === 'MAT' || h === 'MAT.' || h.includes('MATRICULA'));
+      const cN = linha.findIndex(h => h === 'N' || h === 'Nº' || h === 'N°' || h === 'ORD' || h === 'ORD.' || h === 'ANTIGUIDADE' || h === 'ORDEM' || h === 'POSICAO' || h.includes('ANTIGUIDADE'));
+      const cNome = linha.findIndex(h => h === 'NOME' || h === 'N GUERRA' || h === 'NOME DE GUERRA' || h === 'NOME COMPLETO' || h === 'POLICIAL' || h === 'MILITAR');
+      const cGrad = linha.findIndex(h => h === 'GRAD' || h === 'GRAD.' || h === 'GRADUACAO' || h.includes('GRAD'));
+      const cPel = linha.findIndex(h => h === 'P' || h === 'PELOTAO' || h === 'DESIGNACAO' || h === 'LOTACAO' || h.includes('SUB-UNIDADE') || h.includes('UNIDADE'));
+
+      if (cMat !== -1 && cN !== -1) {
+        return {
+          valido: true,
+          idxCabecalho: r,
+          colMatricula: cMat,
+          colN: cN,
+          colNome: cNome,
+          colGrad: cGrad,
+          colPelotao: cPel
+        };
+      }
+    }
+
+    return { valido: false };
+  },
+
+  /**
+   * Lê o mapa de antiguidade a partir de uma planilha (objeto SpreadsheetApp.Spreadsheet ou matriz 2D).
+   * Realiza a seleção semântica da aba examinando o cabeçalho antes de se fixar no primeiro nome.
+   * @param {SpreadsheetApp.Spreadsheet|Array<Array>} fonte - Planilha do Google Sheets ou matriz 2D.
+   * @param {string} [nomeAba=null] - Nome preferencial da aba a procurar no projeto.
+   * @returns {{ mapa: Object.<string, number>, mapaCompleto: Object.<string, Object>, erro?: string, detalheErro?: string, estatisticas: Object, nomeAba?: string }}
+   */
   lerMapaAntiguidade(fonte, nomeAba = null) {
     if (!fonte) {
       return {
         mapa: {},
         mapaCompleto: {},
         erro: 'PECULIO_ACESSO_NEGADO',
+        detalheErro: 'Fonte do Pecúlio nula ou indefinida.',
         estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
       };
     }
 
-    let sheet = null;
     let dados = null;
+    let infoCabecalho = null;
+    let nomeAbaSelecionada = '';
 
     if (Array.isArray(fonte)) {
+      if (fonte.length === 0) {
+        return {
+          mapa: {},
+          mapaCompleto: {},
+          erro: 'PECULIO_ABA_NAO_LOCALIZADA',
+          detalheErro: 'Fonte do Pecúlio é uma matriz vazia.',
+          estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
+        };
+      }
       dados = fonte;
+      infoCabecalho = this.localizarCabecalhoEmMatriz(dados);
+      if (!infoCabecalho.valido) {
+        return {
+          mapa: {},
+          mapaCompleto: {},
+          erro: 'PECULIO_CABECALHO_NAO_LOCALIZADO',
+          detalheErro: 'Matriz fornecida não contém os cabeçalhos ORD (ou N) e MAT. (ou MATRÍCULA) nas primeiras 25 linhas.',
+          estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
+        };
+      }
     } else if (fonte && typeof fonte.getSheetByName === 'function') {
-      const nomeAbaAlvo = nomeAba || 'EFETIVO';
-      try {
-        sheet = fonte.getSheetByName(nomeAbaAlvo);
-        if (!sheet) {
-          const aliasesAbas = [
-            'EFETIVO', 'PECULIO', 'PECÚLIO', 'EFETIVO 2026',
-            'CÓPIA DE PECÚLIO COM PONTUAÇÃO', 'COPIA DE PECULIO COM PONTUACAO',
-            'CÓPIA DE PECÚLIO COM PONTUAÇÃO ', 'PECÚLIO 2026', 'PECULIO 2026'
-          ];
-          for (const alias of aliasesAbas) {
-            sheet = fonte.getSheetByName(alias);
-            if (sheet) break;
+      const candidatas = [];
+      const candidatasOutras = [];
+      const nomesVistos = new Set();
+
+      const adicionarCandidata = (s, ehOutra = false) => {
+        if (s) {
+          const nome = typeof s.getName === 'function' ? s.getName() : ('ABA_' + (candidatas.length + candidatasOutras.length));
+          if (!nomesVistos.has(nome)) {
+            nomesVistos.add(nome);
+            if (ehOutra) {
+              candidatasOutras.push(s);
+            } else {
+              candidatas.push(s);
+            }
           }
         }
+      };
 
-        if (!sheet && typeof fonte.getSheets === 'function') {
-          const allSheets = fonte.getSheets();
+      try {
+        const nomeAbaAlvo = nomeAba || 'EFETIVO';
+        adicionarCandidata(fonte.getSheetByName(nomeAbaAlvo));
+
+        const aliasesAbas = [
+          'EFETIVO', 'PECULIO', 'PECÚLIO', 'EFETIVO 2026',
+          'CÓPIA DE PECÚLIO COM PONTUAÇÃO', 'COPIA DE PECULIO COM PONTUACAO',
+          'CÓPIA DE PECÚLIO COM PONTUAÇÃO ', 'PECÚLIO 2026', 'PECULIO 2026'
+        ];
+        for (const alias of aliasesAbas) {
+          adicionarCandidata(fonte.getSheetByName(alias));
+        }
+
+        if (typeof fonte.getSheets === 'function') {
+          const allSheets = fonte.getSheets() || [];
           for (const s of allSheets) {
-            if (s && typeof s.getName === 'function') {
-              const nameNorm = String(s.getName() || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+            if (s) {
+              const nameRaw = typeof s.getName === 'function' ? s.getName() : '';
+              const nameNorm = String(nameRaw || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
               if (nameNorm.includes('PECULIO') || nameNorm.includes('EFETIVO')) {
-                sheet = s;
-                break;
+                adicionarCandidata(s);
+              } else {
+                adicionarCandidata(s, true);
               }
             }
           }
@@ -76,79 +157,77 @@ const LeitorAntiguidadePeculio = {
         };
       }
 
-      if (!sheet) {
+      if (candidatas.length === 0 && candidatasOutras.length === 0) {
         return {
           mapa: {},
           mapaCompleto: {},
           erro: 'PECULIO_ABA_NAO_LOCALIZADA',
+          detalheErro: 'Nenhuma aba encontrada na planilha do Pecúlio.',
           estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
         };
       }
 
-      try {
-        const lastRow = sheet.getLastRow();
-        const lastCol = sheet.getLastColumn();
-        if (lastRow >= 2 && lastCol >= 1) {
-          dados = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+      const todasCandidatas = candidatas.concat(candidatasOutras);
+      const abasExaminadas = [];
+
+      for (const s of todasCandidatas) {
+        const nomeAbaItem = typeof s.getName === 'function' ? s.getName() : 'Aba';
+        abasExaminadas.push(nomeAbaItem);
+        try {
+          const lastRow = typeof s.getLastRow === 'function' ? s.getLastRow() : 0;
+          const lastCol = typeof s.getLastColumn === 'function' ? s.getLastColumn() : 0;
+          
+          let matrizValores = null;
+          if (typeof s.getRange === 'function' && lastRow >= 2 && lastCol >= 1) {
+            matrizValores = s.getRange(1, 1, Math.min(lastRow, 3000), lastCol).getValues();
+          } else if (Array.isArray(s.dados)) {
+            matrizValores = s.dados;
+          }
+
+          if (Array.isArray(matrizValores)) {
+            const cab = this.localizarCabecalhoEmMatriz(matrizValores);
+            if (cab.valido) {
+              dados = matrizValores;
+              infoCabecalho = cab;
+              nomeAbaSelecionada = nomeAbaItem;
+              break;
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (!dados || !infoCabecalho || !infoCabecalho.valido) {
+        if (candidatas.length === 0) {
+          return {
+            mapa: {},
+            mapaCompleto: {},
+            erro: 'PECULIO_ABA_NAO_LOCALIZADA',
+            detalheErro: `Nenhuma aba com o nome EFETIVO ou PECÚLIO foi encontrada. Abas no arquivo: [${abasExaminadas.join(', ')}].`,
+            estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
+          };
         }
-      } catch (e) {
+
         return {
           mapa: {},
           mapaCompleto: {},
-          erro: 'PECULIO_ACESSO_NEGADO',
-          detalheErro: e.message || String(e),
+          erro: 'PECULIO_CABECALHO_NAO_LOCALIZADO',
+          detalheErro: `Abas examinadas: [${abasExaminadas.join(', ')}]. Nenhuma continha a combinação de cabeçalhos ORD (ou N) e MAT. (ou MATRÍCULA) nas primeiras 25 linhas.`,
           estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
         };
       }
     }
 
-    if (!Array.isArray(dados) || dados.length < 2) {
+    if (!Array.isArray(dados) || !infoCabecalho || !infoCabecalho.valido) {
       return {
         mapa: {},
         mapaCompleto: {},
         erro: 'PECULIO_ABA_NAO_LOCALIZADA',
+        detalheErro: 'Não foi possível extrair dados da aba de antiguidade.',
         estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
       };
     }
 
-    // Procura a linha do cabeçalho nas primeiras 25 linhas exigindo N e MATRÍCULA explícitos
-    let idxCabecalho = -1;
-    let colMatricula = -1;
-    let colN = -1;
-    let colNome = -1;
-    let colGrad = -1;
-    let colPelotao = -1;
-
-    for (let r = 0; r < Math.min(25, dados.length); r++) {
-      const linha = dados[r].map(c => String(c || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim());
-      
-      const cMat = linha.findIndex(h => h === 'MATRICULA' || h === 'MAT' || h === 'MAT.' || h.includes('MATRICULA'));
-      const cN = linha.findIndex(h => h === 'N' || h === 'Nº' || h === 'N°' || h === 'ORD' || h === 'ORD.' || h === 'ANTIGUIDADE' || h === 'ORDEM' || h === 'POSICAO' || h.includes('ANTIGUIDADE'));
-      const cNome = linha.findIndex(h => h === 'NOME' || h === 'N GUERRA' || h === 'NOME DE GUERRA' || h === 'NOME COMPLETO' || h === 'POLICIAL' || h === 'MILITAR');
-      const cGrad = linha.findIndex(h => h === 'GRAD' || h === 'GRAD.' || h === 'GRADUACAO' || h.includes('GRAD'));
-      const cPel = linha.findIndex(h => h === 'P' || h === 'PELOTAO' || h === 'DESIGNACAO' || h === 'LOTACAO' || h.includes('SUB-UNIDADE') || h.includes('UNIDADE'));
-
-      if (cMat !== -1 && cN !== -1) {
-        idxCabecalho = r;
-        colMatricula = cMat;
-        colN = cN;
-        colNome = cNome;
-        colGrad = cGrad;
-        colPelotao = cPel;
-        break;
-      }
-    }
-
-    // REGRA ESTRITA: Sem fallbacks fixos de índices! Se N ou MATRÍCULA não forem encontrados, falha.
-    if (idxCabecalho === -1 || colMatricula === -1 || colN === -1) {
-      return {
-        mapa: {},
-        mapaCompleto: {},
-        erro: 'PECULIO_CABECALHO_NAO_LOCALIZADO',
-        estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
-      };
-    }
-
+    const { idxCabecalho, colMatricula, colN, colNome, colGrad, colPelotao } = infoCabecalho;
     const mapa = {};
     const mapaCompleto = {};
     const estatisticas = { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 };
@@ -203,11 +282,12 @@ const LeitorAntiguidadePeculio = {
         mapa: {},
         mapaCompleto: {},
         erro: 'PECULIO_SEM_REGISTROS_VALIDOS',
+        detalheErro: `Aba "${nomeAbaSelecionada || 'Desconhecida'}" contém os cabeçalhos válidos, mas zero registros com ORD e MAT. preenchidos.`,
         estatisticas
       };
     }
 
-    return { mapa, mapaCompleto, estatisticas };
+    return { mapa, mapaCompleto, estatisticas, nomeAba: nomeAbaSelecionada };
   }
 };
 

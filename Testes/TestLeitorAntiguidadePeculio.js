@@ -172,5 +172,52 @@ test('LeitorAntiguidade: extrai mapa de antiguidade N com cabeçalho na linha 11
   assert.strictEqual(resultado.mapaCompleto['1083945'].designacao, '1º PEL GTAR');
 });
 
+// 9. Seleção Semântica de Aba Ignorando Primeira Aba Inválida (TASK-M06.3-05H)
+test('LeitorAntiguidade: ignora a primeira aba EFETIVO sem cabeçalhos e seleciona semântica a aba válida CÓPIA DE PECÚLIO COM PONTUAÇÃO', () => {
+  const abaEfetivoSemCabecalhos = {
+    getName: () => 'EFETIVO',
+    getLastRow: () => 5,
+    getLastColumn: () => 3,
+    getRange: () => ({
+      getValues: () => [
+        ['SUMÁRIO DO EFETIVO', '', ''],
+        ['OFICIAIS: 10', '', ''],
+        ['PRAÇAS: 50', '', ''],
+        ['TOTAL: 60', '', ''],
+        ['', '', '']
+      ]
+    })
+  };
+
+  const matrizValidaLinha11 = Array(10).fill(null).map(() => ['', '', '', '', '']);
+  matrizValidaLinha11.push(['ORD.', 'GRAD.', 'MAT.', 'NOME DE GUERRA', 'SUB-UNIDADE']);
+  matrizValidaLinha11.push([1, 'CB', '123456-7', 'SILVA', 'GTAR']);
+  matrizValidaLinha11.push([2, 'SD', '987654-3', 'SOUZA', '1º PEL']);
+
+  const abaPeculioOficial = {
+    getName: () => 'CÓPIA DE PECÚLIO COM PONTUAÇÃO',
+    getLastRow: () => matrizValidaLinha11.length,
+    getLastColumn: () => 5,
+    getRange: () => ({
+      getValues: () => matrizValidaLinha11
+    })
+  };
+
+  const mockSS = {
+    getSheetByName: (nome) => {
+      if (nome === 'EFETIVO') return abaEfetivoSemCabecalhos;
+      if (nome === 'CÓPIA DE PECÚLIO COM PONTUAÇÃO') return abaPeculioOficial;
+      return null;
+    },
+    getSheets: () => [abaEfetivoSemCabecalhos, abaPeculioOficial]
+  };
+
+  const res = LeitorAntiguidadePeculio.lerMapaAntiguidade(mockSS);
+  assert.strictEqual(res.erro, undefined, 'Não deve retornar erro ao encontrar a segunda aba válida');
+  assert.strictEqual(res.nomeAba, 'CÓPIA DE PECÚLIO COM PONTUAÇÃO');
+  assert.strictEqual(res.mapa['1234567'], 1);
+  assert.strictEqual(res.mapa['9876543'], 2);
+});
+
 console.log(`\n🎉 Testes do Leitor de Antiguidade do Pecúlio concluídos: ${sucessos} testes passaram!`);
 }
