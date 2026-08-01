@@ -168,10 +168,10 @@ function criarMockSheet(headers, dadosLinhas, formulasLinhas = [], notasLinhas =
     getLastColumn: () => 5,
     getRange: () => ({
       getValues: () => [
-        ['N', 'MATRÍCULA', 'GRAD', 'NOME', 'DESIGNAÇÃO'],
-        [10, '113920-7', 'CB', 'SD SILVA', '1º PEL'],
-        [12, '108394-5', '3º SGT', 'IRAN SILVA', '1º PEL GTAR'],
-        [15, '102950-9', '2º SGT', 'SAULO ALVES', '2º PEL GTAR']
+        ['ORD.', 'GRAD.', 'MAT.', 'NOME DE GUERRA', 'SUB-UNIDADE'],
+        [10, 'CB', '113920-7', 'SD SILVA', '1º PEL'],
+        [12, '3º SGT', '108394-5', 'IRAN SILVA', '1º PEL GTAR'],
+        [15, '2º SGT', '102950-9', 'SAULO ALVES', '2º PEL GTAR']
       ]
     })
   };
@@ -215,6 +215,26 @@ const headersPadrao = [
 ];
 
 const formulaCalculadaPadrao = ['', '', '', '', '', '', '', '', '=H2/2', '=I2', '=J2', '=K2/2', '=L2', '=M2/4', '=N2', '=O2'];
+
+const mockPeculioExterno = {
+  getSheetByName: (n) => {
+    if (n === 'EFETIVO' || n === 'PECULIO' || n === 'PECÚLIO' || n === 'CÓPIA DE PECÚLIO COM PONTUAÇÃO') {
+      return {
+        getName: () => 'CÓPIA DE PECÚLIO COM PONTUAÇÃO',
+        getLastRow: () => 3,
+        getLastColumn: () => 5,
+        getRange: () => ({
+          getValues: () => [
+            ['ORD.', 'GRAD.', 'MAT.', 'NOME DE GUERRA', 'SUB-UNIDADE'],
+            [1, '3º SGT', '108394-5', 'IRAN SILVA', '1º PEL GTAR'],
+            [5, '2º SGT', '102950-9', 'SAULO ALVES', '2º PEL GTAR']
+          ]
+        })
+      };
+    }
+    return null;
+  }
+};
 
 // 1. Teste: Plantão Tranquilo
 test('GuardiaoQualidade: linha de plantão tranquilo (apenas data) não deve gerar alerta', () => {
@@ -513,9 +533,13 @@ test('RendererAuditoriaSaude: auditoria aprovada sem alertas exibe a linha APROV
 
   const mockPeculioValido = {
     getSheetByName: (n) => ({
+      getName: () => 'CÓPIA DE PECÚLIO COM PONTUAÇÃO',
       getLastRow: () => 2,
-      getLastColumn: () => 2,
-      getRange: () => ({ getValues: () => [['N', 'MATRÍCULA'], [10, '113920-7']] })
+      getLastColumn: () => 5,
+      getRange: () => ({ getValues: () => [
+        ['ORD.', 'GRAD.', 'MAT.', 'NOME DE GUERRA', 'SUB-UNIDADE'],
+        [10, 'SD', '113920-7', 'SD SILVA', '1º PEL']
+      ] })
     })
   };
 
@@ -540,9 +564,13 @@ test('RendererAuditoriaSaude: aba [HISTORICO] Auditoria Ocorrencias preserva reg
 
   const mockPeculioValido = {
     getSheetByName: (n) => ({
+      getName: () => 'CÓPIA DE PECÚLIO COM PONTUAÇÃO',
       getLastRow: () => 2,
-      getLastColumn: () => 2,
-      getRange: () => ({ getValues: () => [['N', 'MATRÍCULA'], [10, '113920-7']] })
+      getLastColumn: () => 5,
+      getRange: () => ({ getValues: () => [
+        ['ORD.', 'GRAD.', 'MAT.', 'NOME DE GUERRA', 'SUB-UNIDADE'],
+        [10, 'SD', '113920-7', 'SD SILVA', '1º PEL']
+      ] })
     })
   };
 
@@ -769,7 +797,7 @@ test('RendererAuditoriaSaude: aplica destaque fundo #FFF3CD e fonte #856404 excl
   const mockSheet = criarMockSheet(headersPadrao, dadosLinhas, [formulaCalculadaPadrao, ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']], [], abaPIPValores);
 
   // Executa o Guardião
-  GuardiaoQualidade.varrerAba(mockSheet);
+  GuardiaoQualidade.varrerAba(mockSheet, mockPeculioExterno);
 
   const coresMain = mockSheet.obterCoresMainBackground();
   const colAMIdx = SyntheonUtils.localizarColuna(headersPadrao, 'ALERTA_INTEGRIDADE') + 1; // Coluna 17 (39 em prod)
@@ -785,7 +813,7 @@ test('RendererAuditoriaSaude: aplica destaque fundo #FFF3CD e fonte #856404 excl
   const corAMSemAlerta = coresMain.find(c => c.row === 3 && c.col === colAMIdx && c.color === '#FFF3CD');
   assert.strictEqual(corAMSemAlerta, undefined, 'A célula AM da Linha 3 (sem alerta) não deve receber fundo de alerta');
 
-  // 4. Confirmar que NENHUMA formatação de background foi aplicada nas colunas A a AL (colunas 1 a 16 no mock)
+  // 4. Confirmar que NENHUMA formatação de background foi applied nas colunas A a AL (colunas 1 a 16 no mock)
   const formatacaoNasColunasA_AL = coresMain.filter(c => c.col >= 1 && c.col < colAMIdx);
   assert.strictEqual(formatacaoNasColunasA_AL.length, 0, 'Nenhuma formatação de fundo deve ser aplicada às colunas A até AL (1 a 38)');
 
@@ -809,7 +837,7 @@ test('RendererAuditoriaSaude: com coluna adicional após AM, o destaque permanec
   const mockSheet = criarMockSheet(headersComColunaExtra, dadosLinhas, [formulaCalculadaPadrao], [], abaPIPValores);
 
   // Executa o Guardião
-  GuardiaoQualidade.varrerAba(mockSheet);
+  GuardiaoQualidade.varrerAba(mockSheet, mockPeculioExterno);
 
   const colAlerta = SyntheonUtils.localizarColuna(headersComColunaExtra, 'ALERTA_INTEGRIDADE') + 1; // Coluna 17 (AM em prod: 39)
   const colExtra = headersComColunaExtra.length; // Coluna 18 (última coluna, AN em prod: 40)
@@ -950,15 +978,16 @@ test('RegrasQualidade: fonte oficial de antiguidade indisponível gera OBSERVACA
 test('GuardiaoQualidade: varrerAba aceita fonte externa injetável do Pecúlio para leitura de antiguidade', () => {
   const mockPeculioExterno = {
     getSheetByName: (n) => {
-      if (n === 'EFETIVO' || n === 'PECULIO') {
+      if (n === 'EFETIVO' || n === 'PECULIO' || n === 'PECÚLIO' || n === 'CÓPIA DE PECÚLIO COM PONTUAÇÃO') {
         return {
+          getName: () => 'CÓPIA DE PECÚLIO COM PONTUAÇÃO',
           getLastRow: () => 3,
           getLastColumn: () => 5,
           getRange: () => ({
             getValues: () => [
-              ['N', 'MATRÍCULA', 'GRAD', 'NOME', 'DESIGNAÇÃO'],
-              [1, '108394-5', '3º SGT', 'IRAN SILVA', '1º PEL GTAR'],
-              [5, '102950-9', '2º SGT', 'SAULO ALVES', '2º PEL GTAR']
+              ['ORD.', 'GRAD.', 'MAT.', 'NOME DE GUERRA', 'SUB-UNIDADE'],
+              [1, '3º SGT', '108394-5', 'IRAN SILVA', '1º PEL GTAR'],
+              [5, '2º SGT', '102950-9', 'SAULO ALVES', '2º PEL GTAR']
             ]
           })
         };

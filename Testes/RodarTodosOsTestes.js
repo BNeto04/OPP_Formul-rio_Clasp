@@ -38,7 +38,15 @@ require('./TestLeitorAntiguidadePeculio');
 console.log('');
 require('./TestRelatorioGxt');
 
-console.log('\n====================================================');
-console.log('✨ TODAS AS SUÍTES FORAM EXECUTADAS COM SUCESSO!');
-console.log('====================================================');
+if (process.exitCode && process.exitCode !== 0) {
+  console.error('\n====================================================');
+  console.error('❌ SUÍTE DE TESTES FALHOU! VERIFIQUE OS ERROS ACIMA.');
+  console.error('====================================================\n');
+  process.exit(1);
+} else {
+  console.log('\n====================================================');
+  console.log('✨ TODAS AS SUÍTES FORAM EXECUTADAS COM SUCESSO!');
+  console.log('====================================================\n');
+  process.exit(0);
+}
 }
