@@ -61,12 +61,12 @@ test('LeitorAntiguidade: lê matriz 2D oficial e extrai mapa de antiguidade N no
 // 3. Teste: Ignora N ausente, nulo, vazio ou inválido (<= 0 ou texto não numérico)
 test('LeitorAntiguidade: ignora linhas com N ausente, nulo ou inválido', () => {
   const dadosMock = [
-    ['N', 'MATRÍCULA', 'NOME'],
-    [1, '101001-0', 'MAJ CORREIA'],
-    ['', '102002-8', 'MAJ ALISSON'], // N vazio
-    [0, '103003-6', 'CAP SILVA'],   // N zerado
-    [-5, '104004-4', 'TEN SOUZA'],   // N negativo
-    ['N/I', '105005-2', 'SD LIMA']  // N texto inválido
+    ['N', 'GRAD.', 'MATRÍCULA', 'NOME'],
+    [1, 'SD', '101001-0', 'MAJ CORREIA'],
+    ['', 'SD', '102002-8', 'MAJ ALISSON'], // N vazio
+    [0, 'SD', '103003-6', 'CAP SILVA'],   // N zerado
+    [-5, 'SD', '104004-4', 'TEN SOUZA'],   // N negativo
+    ['N/I', 'SD', '105005-2', 'SD LIMA']  // N texto inválido
   ];
 
   const resultado = LeitorAntiguidadePeculio.lerMapaAntiguidade(dadosMock);
@@ -81,9 +81,9 @@ test('LeitorAntiguidade: ignora linhas com N ausente, nulo ou inválido', () => 
 // 4. Teste: Trata duplicidade de matrícula preservando a primeira ocorrência válida
 test('LeitorAntiguidade: trata duplicidades de matrícula mantendo a primeira ocorrência', () => {
   const dadosMock = [
-    ['N', 'MATRÍCULA', 'NOME'],
-    [10, '108394-5', 'SGT IRAN (Linha 1)'],
-    [15, '108394-5', 'SGT IRAN (Linha Duplicada 2)']
+    ['N', 'GRAD.', 'MATRÍCULA', 'NOME'],
+    [10, 'SGT', '108394-5', 'SGT IRAN (Linha 1)'],
+    [15, 'SGT', '108394-5', 'SGT IRAN (Linha Duplicada 2)']
   ];
 
   const resultado = LeitorAntiguidadePeculio.lerMapaAntiguidade(dadosMock);
@@ -217,6 +217,31 @@ test('LeitorAntiguidade: ignora a primeira aba EFETIVO sem cabeçalhos e selecio
   assert.strictEqual(res.nomeAba, 'CÓPIA DE PECÚLIO COM PONTUAÇÃO');
   assert.strictEqual(res.mapa['1234567'], 1);
   assert.strictEqual(res.mapa['9876543'], 2);
+});
+
+// 10. Rejeição de Aba Não Relacionada ou sem Contrato Estrito (TASK-M06.3-05H.1)
+test('LeitorAntiguidade: rejeita aba que possui ORD e MAT. mas carece de 2 marcadores de identidade', () => {
+  const abaRelatorioNaoRelacionado = {
+    getName: () => 'PECÚLIO_RELATORIO_OCORRENCIAS',
+    getLastRow: () => 5,
+    getLastColumn: () => 4,
+    getRange: () => ({
+      getValues: () => [
+        ['ORD.', 'MAT.', 'SITUAÇÃO', 'DESCRICAO'],
+        [1, '123456-7', 'CONCLUÍDO', 'SEM IDENTIFICADORES DE MILITAR'],
+        [2, '987654-3', 'PENDENTE', 'APENAS DUAS COLUNAS PADRAO']
+      ]
+    })
+  };
+
+  const mockSS = {
+    getSheetByName: (n) => (n === 'PECÚLIO_RELATORIO_OCORRENCIAS' ? abaRelatorioNaoRelacionado : null),
+    getSheets: () => [abaRelatorioNaoRelacionado]
+  };
+
+  const res = LeitorAntiguidadePeculio.lerMapaAntiguidade(mockSS);
+  assert.strictEqual(res.erro, 'PECULIO_CABECALHO_NAO_LOCALIZADO');
+  assert.ok(res.detalheErro.includes('contrato estrito'));
 });
 
 console.log(`\n🎉 Testes do Leitor de Antiguidade do Pecúlio concluídos: ${sucessos} testes passaram!`);

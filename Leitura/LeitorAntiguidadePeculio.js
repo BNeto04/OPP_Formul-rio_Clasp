@@ -39,10 +39,17 @@ const LeitorAntiguidadePeculio = {
       const cMat = linha.findIndex(h => h === 'MATRICULA' || h === 'MAT' || h === 'MAT.' || h.includes('MATRICULA'));
       const cN = linha.findIndex(h => h === 'N' || h === 'Nº' || h === 'N°' || h === 'ORD' || h === 'ORD.' || h === 'ANTIGUIDADE' || h === 'ORDEM' || h === 'POSICAO' || h.includes('ANTIGUIDADE'));
       const cNome = linha.findIndex(h => h === 'NOME' || h === 'N GUERRA' || h === 'NOME DE GUERRA' || h === 'NOME COMPLETO' || h === 'POLICIAL' || h === 'MILITAR');
-      const cGrad = linha.findIndex(h => h === 'GRAD' || h === 'GRAD.' || h === 'GRADUACAO' || h.includes('GRAD'));
+      const cGrad = linha.findIndex(h => h === 'GRAD' || h === 'GRAD.' || h === 'GRADUACAO' || h === 'POSTO' || h.includes('GRAD'));
       const cPel = linha.findIndex(h => h === 'P' || h === 'PELOTAO' || h === 'DESIGNACAO' || h === 'LOTACAO' || h.includes('SUB-UNIDADE') || h.includes('UNIDADE'));
 
-      if (cMat !== -1 && cN !== -1) {
+      const temGrad = cGrad !== -1;
+      const temNome = cNome !== -1;
+      const temPelotao = cPel !== -1;
+      const countIdentidade = (temGrad ? 1 : 0) + (temNome ? 1 : 0) + (temPelotao ? 1 : 0);
+
+      // EXIGÊNCIA ESTRITA DO CONTRATO DE ANTIGUIDADE:
+      // Exige ORD/N + MAT./MATRÍCULA + pelo menos 2 marcadores de identidade (GRAD., NOME DE GUERRA, SUB-UNIDADE)
+      if (cMat !== -1 && cN !== -1 && countIdentidade >= 2) {
         return {
           valido: true,
           idxCabecalho: r,
@@ -60,7 +67,7 @@ const LeitorAntiguidadePeculio = {
 
   /**
    * Lê o mapa de antiguidade a partir de uma planilha (objeto SpreadsheetApp.Spreadsheet ou matriz 2D).
-   * Realiza a seleção semântica da aba examinando o cabeçalho antes de se fixar no primeiro nome.
+   * Realiza a seleção semântica estrita da aba examinando o cabeçalho completo antes de se fixar.
    * @param {SpreadsheetApp.Spreadsheet|Array<Array>} fonte - Planilha do Google Sheets ou matriz 2D.
    * @param {string} [nomeAba=null] - Nome preferencial da aba a procurar no projeto.
    * @returns {{ mapa: Object.<string, number>, mapaCompleto: Object.<string, Object>, erro?: string, detalheErro?: string, estatisticas: Object, nomeAba?: string }}
@@ -97,25 +104,20 @@ const LeitorAntiguidadePeculio = {
           mapa: {},
           mapaCompleto: {},
           erro: 'PECULIO_CABECALHO_NAO_LOCALIZADO',
-          detalheErro: 'Matriz fornecida não contém os cabeçalhos ORD (ou N) e MAT. (ou MATRÍCULA) nas primeiras 25 linhas.',
+          detalheErro: 'Matriz fornecida não atende ao contrato estrito do Pecúlio (exige ORD/N, MAT./MATRÍCULA e ao menos 2 marcadores de identidade: GRAD., NOME DE GUERRA, SUB-UNIDADE).',
           estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
         };
       }
     } else if (fonte && typeof fonte.getSheetByName === 'function') {
       const candidatas = [];
-      const candidatasOutras = [];
       const nomesVistos = new Set();
 
-      const adicionarCandidata = (s, ehOutra = false) => {
+      const adicionarCandidata = (s) => {
         if (s) {
-          const nome = typeof s.getName === 'function' ? s.getName() : ('ABA_' + (candidatas.length + candidatasOutras.length));
+          const nome = typeof s.getName === 'function' ? s.getName() : ('ABA_' + candidatas.length);
           if (!nomesVistos.has(nome)) {
             nomesVistos.add(nome);
-            if (ehOutra) {
-              candidatasOutras.push(s);
-            } else {
-              candidatas.push(s);
-            }
+            candidatas.push(s);
           }
         }
       };
@@ -141,8 +143,6 @@ const LeitorAntiguidadePeculio = {
               const nameNorm = String(nameRaw || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
               if (nameNorm.includes('PECULIO') || nameNorm.includes('EFETIVO')) {
                 adicionarCandidata(s);
-              } else {
-                adicionarCandidata(s, true);
               }
             }
           }
@@ -157,20 +157,19 @@ const LeitorAntiguidadePeculio = {
         };
       }
 
-      if (candidatas.length === 0 && candidatasOutras.length === 0) {
+      if (candidatas.length === 0) {
         return {
           mapa: {},
           mapaCompleto: {},
           erro: 'PECULIO_ABA_NAO_LOCALIZADA',
-          detalheErro: 'Nenhuma aba encontrada na planilha do Pecúlio.',
+          detalheErro: 'Nenhuma aba com o nome EFETIVO ou PECÚLIO foi encontrada na planilha do Pecúlio.',
           estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
         };
       }
 
-      const todasCandidatas = candidatas.concat(candidatasOutras);
       const abasExaminadas = [];
 
-      for (const s of todasCandidatas) {
+      for (const s of candidatas) {
         const nomeAbaItem = typeof s.getName === 'function' ? s.getName() : 'Aba';
         abasExaminadas.push(nomeAbaItem);
         try {
@@ -197,21 +196,11 @@ const LeitorAntiguidadePeculio = {
       }
 
       if (!dados || !infoCabecalho || !infoCabecalho.valido) {
-        if (candidatas.length === 0) {
-          return {
-            mapa: {},
-            mapaCompleto: {},
-            erro: 'PECULIO_ABA_NAO_LOCALIZADA',
-            detalheErro: `Nenhuma aba com o nome EFETIVO ou PECÚLIO foi encontrada. Abas no arquivo: [${abasExaminadas.join(', ')}].`,
-            estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
-          };
-        }
-
         return {
           mapa: {},
           mapaCompleto: {},
           erro: 'PECULIO_CABECALHO_NAO_LOCALIZADO',
-          detalheErro: `Abas examinadas: [${abasExaminadas.join(', ')}]. Nenhuma continha a combinação de cabeçalhos ORD (ou N) e MAT. (ou MATRÍCULA) nas primeiras 25 linhas.`,
+          detalheErro: `Abas examinadas: [${abasExaminadas.join(', ')}]. Nenhuma continha o contrato estrito (ORD/N + MAT. + ao menos 2 de: GRAD., NOME DE GUERRA, SUB-UNIDADE) nas primeiras 25 linhas.`,
           estatisticas: { lidos: 0, validos: 0, invalidos: 0, duplicados: 0 }
         };
       }
