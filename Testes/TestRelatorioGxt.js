@@ -228,8 +228,9 @@ function executarTestesGxt() {
   // 6. Seleção Livre Encaminha Apenas os Meses Marcados para Nome de Saída Padronizado (TASK-M06.3-04D)
   test('gerarGxtSelecaoLivre: encaminha apenas os meses selecionados e cria aba GXT_ACUMULADO_<primeiro>_<ultimo>', () => {
     const abasCriadas = [];
+    const dummyLogSheet = { clear: () => {}, getRange: () => ({ setValues: () => {} }) };
     const mockSS = {
-      getSheetByName: (n) => null,
+      getSheetByName: (n) => n === '[LOG] Gxt' ? dummyLogSheet : null,
       insertSheet: (n) => {
         abasCriadas.push(n);
         return { clear: () => {}, _definirDadosMatriz: () => {} };
@@ -247,8 +248,10 @@ function executarTestesGxt() {
   // 7. Modo Anual Divide os 12 Meses em 4 Saídas Trimestrais (TASK-M06.3-04D)
   test('gerarGxtAnual: divide os 12 meses em 4 saídas trimestrais GXT_1T..4T sem sobrescrever abas existentes', () => {
     const abasCriadas = [];
+    const dummyLogSheet = { clear: () => {}, getRange: () => ({ setValues: () => {} }) };
     const mockSS = {
       getSheetByName: (n) => {
+        if (n === '[LOG] Gxt') return dummyLogSheet;
         if (n === 'OUTRO_RELATORIO') return { name: 'OUTRO_RELATORIO' };
         return null;
       },
@@ -317,11 +320,12 @@ function executarTestesGxt() {
   // 10. Bloqueio Seguro quando o Pecúlio é Indisponível (TASK-M06.3-05G)
   test('gerarGxtSelecaoLivre: bloqueia geração e NÃO altera a planilha de saída quando Pecúlio é indisponível', () => {
     let folhaLimpa = false;
+    const dummyLogSheet = { clear: () => {}, getRange: () => ({ setValues: () => {} }) };
     const mockSS = {
-      getSheetByName: () => ({
+      getSheetByName: (n) => (n === '[LOG] Gxt' ? dummyLogSheet : {
         clear: () => { folhaLimpa = true; }
       }),
-      insertSheet: () => ({
+      insertSheet: (n) => (n === '[LOG] Gxt' ? dummyLogSheet : {
         clear: () => { folhaLimpa = true; }
       })
     };
@@ -338,6 +342,7 @@ function executarTestesGxt() {
   // 11. Diagnóstico Claro quando Túneis Armados Possuem Pendências (TASK-M06.3-05G)
   test('gerarGxtSelecaoLivre: informa estatísticas de fatos e pendências sem sobrescrever a aba existente', () => {
     let folhaLimpa = false;
+    const dummyLogSheet = { clear: () => {}, getRange: () => ({ setValues: () => {} }) };
     const mockSheetJan = [
       {
         data: '15/01/2026',
@@ -351,8 +356,8 @@ function executarTestesGxt() {
     ];
 
     const mockSS = {
-      getSheetByName: (n) => (n === 'JAN2026' ? mockSheetJan : { clear: () => { folhaLimpa = true; } }),
-      insertSheet: () => ({ clear: () => { folhaLimpa = true; } })
+      getSheetByName: (n) => (n === '[LOG] Gxt' ? dummyLogSheet : (n === 'JAN2026' ? mockSheetJan : { clear: () => { folhaLimpa = true; } })),
+      insertSheet: (n) => (n === '[LOG] Gxt' ? dummyLogSheet : { clear: () => { folhaLimpa = true; } })
     };
 
     const res = gerarGxtSelecaoLivre(['JAN2026'], mockPeculioOficial, mockSS);
@@ -405,6 +410,7 @@ function executarTestesGxt() {
   test('gerarGxtSelecaoLivre: preserva integralmente os dados de uma aba de relatório existente em falha de fonte', () => {
     let dadosPreservados = 'DADOS_ANTIGOS_INTACTOS';
     let foiApagado = false;
+    const dummyLogSheet = { clear: () => {}, getRange: () => ({ setValues: () => {} }) };
 
     const mockSheetSaida = {
       getName: () => 'GXT_ACUMULADO_JAN2026_JAN2026',
@@ -413,7 +419,7 @@ function executarTestesGxt() {
     };
 
     const mockSS = {
-      getSheetByName: (n) => (n === 'GXT_ACUMULADO_JAN2026_JAN2026' ? mockSheetSaida : null)
+      getSheetByName: (n) => (n === '[LOG] Gxt' ? dummyLogSheet : (n === 'GXT_ACUMULADO_JAN2026_JAN2026' ? mockSheetSaida : null))
     };
 
     gerarGxtSelecaoLivre(['JAN2026'], null, mockSS);
@@ -551,6 +557,191 @@ function executarTestesGxt() {
     assert.strictEqual(matrizDados.valores[2][9], 'ARTESANAL'); // Coluna D do bloco FEV2026 (col 6 + 3 = 9)
     // Linha do detalhe do mês 3 (MAR2026) exibe '1 + ARTESANAL'
     assert.strictEqual(matrizDados.valores[2][15], '1 + ARTESANAL'); // Coluna D do bloco MAR2026 (col 12 + 3 = 15)
+  });
+
+  // 18. Log Operacional Gxt: Criação e preenchimento por mês e total
+  test('Log Operacional Gxt: cria e preenche a aba [LOG] Gxt com resumo superior, linhas mensais e soma no TOTAL', () => {
+    let valoresLog = null;
+    let foiLimpado = false;
+
+    const mockSheetLog = {
+      getName: () => '[LOG] Gxt',
+      clear: () => { foiLimpado = true; },
+      getRange: () => ({
+        setValues: (matriz) => { valoresLog = matriz; }
+      })
+    };
+
+    const sheetsMap = {
+      'ABR2026': { getName: () => 'ABR2026', getLastRow: () => 2, getLastColumn: () => 12, getRange: () => ({ getValues: () => [
+        ['DATA', 'HORA', 'MIKE', 'BOE', 'ARMA', 'TIPO', 'MODELO', 'QDT ARMAS', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO'],
+        ['15/04/2026', '10:00', '26E400', 'BOE4', 1, 'PISTOLA', 'TAURUS', 1, '108394-5', 'IRAN SILVA', '3º SGT', '1º PEL GTAR']
+      ] }) },
+      'MAI2026': { getName: () => 'MAI2026', getLastRow: () => 2, getLastColumn: () => 12, getRange: () => ({ getValues: () => [
+        ['DATA', 'HORA', 'MIKE', 'BOE', 'ARMA', 'TIPO', 'MODELO', 'QDT ARMAS', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO'],
+        ['10/05/2026', '11:00', '26E500', 'BOE5', 1, 'PISTOLA', 'TAURUS', 1, '102950-9', 'SAULO ALVES', '2º SGT', '2º PEL GTAR']
+      ] }) },
+      'JUN2026': { getName: () => 'JUN2026', getLastRow: () => 2, getLastColumn: () => 12, getRange: () => ({ getValues: () => [
+        ['DATA', 'HORA', 'MIKE', 'BOE', 'ARMA', 'TIPO', 'MODELO', 'QDT ARMAS', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO'],
+        ['05/06/2026', '12:00', '26E600', 'BOE6', 0, 'ARTESANAL', 'ESCOPETA', 1, '113920-7', 'MARCONI LIMA', '3º SGT', '1º PEL']
+      ] }) }
+    };
+
+    const mockSS = {
+      getSheetByName: (n) => n === '[LOG] Gxt' ? mockSheetLog : sheetsMap[n],
+      insertSheet: (n) => n === '[LOG] Gxt' ? mockSheetLog : null
+    };
+
+    gerarGxtSelecaoLivre(['ABR2026', 'MAI2026', 'JUN2026'], mockPeculioOficial, mockSS);
+
+    assert.ok(foiLimpado, 'A aba [LOG] Gxt deve ser limpada a cada execução');
+    assert.ok(valoresLog, 'Matriz de log deve ser escrita');
+
+    // Valida o Resumo Superior
+    assert.strictEqual(valoresLog[0][0], 'PAINEL DE CONTROLE OPERACIONAL — GXT');
+    assert.strictEqual(valoresLog[2][1], 'CONCLUÍDO');
+    assert.strictEqual(valoresLog[3][1], 'SELEÇÃO LIVRE');
+
+    // Valida as 3 linhas mensais distintas (Abril, Maio, Junho)
+    const idxInicioTabela = 10;
+    const headerTabela = valoresLog[9];
+    assert.strictEqual(headerTabela[0], 'Mês');
+    assert.strictEqual(headerTabela[8], 'Diagnóstico & Ação');
+
+    const linAbr = valoresLog[idxInicioTabela];
+    assert.strictEqual(linAbr[0], 'ABR2026');
+    assert.strictEqual(linAbr[6], 1); // Armas Fogo
+    assert.strictEqual(linAbr[8], 'APROVADO');
+
+    const linMai = valoresLog[idxInicioTabela + 1];
+    assert.strictEqual(linMai[0], 'MAI2026');
+    assert.strictEqual(linMai[6], 1);
+    assert.strictEqual(linMai[8], 'APROVADO');
+
+    const linJun = valoresLog[idxInicioTabela + 2];
+    assert.strictEqual(linJun[0], 'JUN2026');
+    assert.strictEqual(linJun[6], 0); // Fogo
+    assert.strictEqual(linJun[7], 1); // Artesanal
+    assert.strictEqual(linJun[8], 'APROVADO');
+
+    // Valida a linha TOTAL
+    const linTotal = valoresLog[idxInicioTabela + 3];
+    assert.strictEqual(linTotal[0], 'TOTAL');
+    assert.strictEqual(linTotal[2], linAbr[2] + linMai[2] + linJun[2]); // Fatos
+    assert.strictEqual(linTotal[3], linAbr[3] + linMai[3] + linJun[3]); // Túneis
+    assert.strictEqual(linTotal[6], linAbr[6] + linMai[6] + linJun[6]); // Fogo = 2
+    assert.strictEqual(linTotal[7], linAbr[7] + linMai[7] + linJun[7]); // Artesanal = 1
+  });
+
+  // 19. Log Operacional Gxt: Reutilização e sobrescrita
+  test('Log Operacional Gxt: reutiliza e sobrescreve a aba [LOG] Gxt sem acumulo historico', () => {
+    let vezesLimpado = 0;
+    let execucoesLog = 0;
+
+    const mockSheetLog = {
+      getName: () => '[LOG] Gxt',
+      clear: () => { vezesLimpado++; },
+      getRange: () => ({
+        setValues: () => { execucoesLog++; }
+      })
+    };
+
+    const dummyOutputSheet = { clear: () => {}, _definirDadosMatriz: () => {} };
+
+    const mockSS = {
+      getSheetByName: (n) => n === '[LOG] Gxt' ? mockSheetLog : null,
+      insertSheet: (n) => dummyOutputSheet
+    };
+
+    gerarGxtSelecaoLivre(['ABR2026'], mockPeculioOficial, mockSS);
+    gerarGxtSelecaoLivre(['MAI2026'], mockPeculioOficial, mockSS);
+
+    assert.strictEqual(vezesLimpado, 2, 'Devia ter limpado 2 vezes');
+    assert.strictEqual(execucoesLog, 2, 'Devia ter escrito 2 vezes');
+  });
+
+  // 20. Log Operacional Gxt: Diagnóstico de falha
+  test('Log Operacional Gxt: registra falha do Pecúlio e mantem abas GXT existentes intactas', () => {
+    let valoresLog = null;
+    let abasAlteradas = [];
+
+    const mockSheetLog = {
+      getName: () => '[LOG] Gxt',
+      clear: () => {},
+      getRange: () => ({ setValues: (m) => { valoresLog = m; } })
+    };
+
+    const mockSheetAnterior = {
+      getName: () => 'GXT_ACUMULADO_ABR2026_JUN2026',
+      clear: () => { abasAlteradas.push('GXT_ACUMULADO_ABR2026_JUN2026'); }
+    };
+
+    const mockSS = {
+      getSheetByName: (n) => {
+        if (n === '[LOG] Gxt') return mockSheetLog;
+        if (n === 'GXT_ACUMULADO_ABR2026_JUN2026') return mockSheetAnterior;
+        return null;
+      },
+      insertSheet: () => mockSheetLog
+    };
+
+    const mePeculioInvalido = { getSheetByName: () => null };
+
+    gerarGxtSelecaoLivre(['ABR2026'], mePeculioInvalido, mockSS);
+
+    assert.strictEqual(abasAlteradas.length, 0, 'Nenhuma aba de relatório anterior pode ser alterada');
+    assert.ok(valoresLog, 'Log deve ter sido gravado com a falha');
+    assert.strictEqual(valoresLog[2][1], 'FALHA');
+    assert.strictEqual(valoresLog[3][1], 'SELEÇÃO LIVRE');
+    assert.strictEqual(valoresLog[5][1], 'PECULIO_ABA_NAO_LOCALIZADA');
+  });
+
+  // 21. Log Operacional Gxt: Modo Anual com 12 linhas mensais
+  test('Log Operacional Gxt: modo Anual registra as 12 linhas mensais no mesmo log', () => {
+    let valoresLog = null;
+    let abasRenderizadas = [];
+
+    const mockSheetLog = {
+      getName: () => '[LOG] Gxt',
+      clear: () => {},
+      getRange: () => ({ setValues: (m) => { valoresLog = m; } })
+    };
+
+    const mockSS = {
+      getSheetByName: (n) => {
+        if (n === '[LOG] Gxt') return mockSheetLog;
+        return {
+          getName: () => n,
+          getLastRow: () => 2,
+          getLastColumn: () => 12,
+          getRange: () => ({
+            getValues: () => [
+              ['DATA', 'HORA', 'MIKE', 'BOE', 'ARMA', 'TIPO', 'MODELO', 'QDT ARMAS', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO'],
+              ['01/01/2026', '10:00', '26E100', 'BOE1', 1, 'PISTOLA', 'TAURUS', 1, '108394-5', 'IRAN SILVA', '3º SGT', '1º PEL GTAR']
+            ]
+          }),
+          clear: () => {},
+          _definirDadosMatriz: () => { abasRenderizadas.push(n); }
+        };
+      },
+      insertSheet: (n) => ({
+        getName: () => n,
+        clear: () => {},
+        _definirDadosMatriz: () => { abasRenderizadas.push(n); }
+      })
+    };
+
+    gerarGxtAnual(mockSS, mockPeculioOficial);
+
+    assert.ok(valoresLog, 'Log anual deve ter sido escrito');
+    assert.strictEqual(valoresLog[2][1], 'CONCLUÍDO');
+    assert.strictEqual(valoresLog[3][1], 'ANUAL');
+
+    // 10 linhas de cabeçalho + 12 linhas mensais + 1 linha TOTAL = 23 linhas na matriz
+    assert.strictEqual(valoresLog.length, 23);
+    assert.strictEqual(valoresLog[10][0], 'JAN2026');
+    assert.strictEqual(valoresLog[21][0], 'DEZ2026');
+    assert.strictEqual(valoresLog[22][0], 'TOTAL');
   });
 
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);

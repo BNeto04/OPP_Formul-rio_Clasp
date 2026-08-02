@@ -120,6 +120,7 @@ class CompiladorGxt {
     const erroPeculio = resPeculio.erro || (Object.keys(mapaAntiguidade).length === 0 ? 'PECULIO_SEM_REGISTROS_VALIDOS' : null);
 
     const resultadoPorMes = {};
+    const logMeses = [];
     const diagnosticoGxt = {
       peculioValido: !erroPeculio && Object.keys(mapaAntiguidade).length > 0,
       peculioErro: erroPeculio,
@@ -136,9 +137,23 @@ class CompiladorGxt {
     // 2. Processa cada mês selecionado
     listaMeses.forEach(nomeAba => {
       let sheetData = CompiladorGxt.localizarAbaMes(fonte, nomeAba);
+      const abaLocNome = (sheetData && typeof sheetData.getName === 'function')
+        ? sheetData.getName()
+        : (sheetData ? nomeAba : 'NÃO LOCALIZADA');
 
       if (!sheetData) {
         resultadoPorMes[nomeAba] = { registros: [], resumo: {} };
+        logMeses.push({
+          mes: nomeAba,
+          abaLocalizada: 'NÃO LOCALIZADA',
+          fatosLidos: 0,
+          tuneisArmados: 0,
+          processados: 0,
+          pendentes: 0,
+          armasFogo: 0,
+          armasArtesanais: 0,
+          diagnostico: 'ABA_MENSAL_NAO_LOCALIZADA'
+        });
         return;
       }
 
@@ -264,7 +279,24 @@ class CompiladorGxt {
         };
       });
 
-      diagnosticoGxt.totalFatosLidos += ocorrenciasNormalizadas.length;
+      const fatosLidosMes = ocorrenciasNormalizadas.length;
+      diagnosticoGxt.totalFatosLidos += fatosLidosMes;
+
+      if (!diagnosticoGxt.peculioValido) {
+        logMeses.push({
+          mes: nomeAba,
+          abaLocalizada: abaLocNome,
+          fatosLidos: fatosLidosMes,
+          tuneisArmados: 0,
+          processados: 0,
+          pendentes: 0,
+          armasFogo: 0,
+          armasArtesanais: 0,
+          diagnostico: erroPeculio || 'PECULIO_ACESSO_NEGADO'
+        });
+        resultadoPorMes[nomeAba] = { registros: [], resumo: {} };
+        return;
+      }
 
       if (PoliticaMeritoMod) {
         const resultadosTuneis = PoliticaMeritoMod.processarMeritoArmas(ocorrenciasNormalizadas, mapaAntiguidade);
@@ -316,6 +348,9 @@ class CompiladorGxt {
           'TOTAL': 0
         };
 
+        let sumFogoMes = 0;
+        let sumArtMes = 0;
+
         registrosFormatados.forEach(reg => {
           const desNorm = String(reg.designacao || '').toUpperCase().trim();
           let chaveGrupo = '3º PEL';
@@ -335,6 +370,29 @@ class CompiladorGxt {
           const numFogo = Number(reg.armasFogo || reg.qtdArmas || 0);
           resumoMes[chaveGrupo] = (resumoMes[chaveGrupo] || 0) + numFogo;
           resumoMes['TOTAL'] += numFogo;
+
+          sumFogoMes += numFogo;
+          sumArtMes += Number(reg.armasArtesanais || 0);
+        });
+
+        let diagMes = 'APROVADO';
+        if (resultadosTuneis.length === 0) {
+          diagMes = 'SEM_TUNEIS_ARMADOS';
+        } else if (pendentes.length > 0) {
+          const p1 = pendentes[0];
+          diagMes = p1.motivoPendente || p1.status || 'ANTIGUIDADE_AUSENTE';
+        }
+
+        logMeses.push({
+          mes: nomeAba,
+          abaLocalizada: abaLocNome,
+          fatosLidos: fatosLidosMes,
+          tuneisArmados: resultadosTuneis.length,
+          processados: processados.length,
+          pendentes: pendentes.length,
+          armasFogo: sumFogoMes,
+          armasArtesanais: sumArtMes,
+          diagnostico: diagMes
         });
 
         resultadoPorMes[nomeAba] = {
@@ -342,11 +400,125 @@ class CompiladorGxt {
           resumo: resumoMes
         };
       } else {
+        logMeses.push({
+          mes: nomeAba,
+          abaLocalizada: abaLocNome,
+          fatosLidos: fatosLidosMes,
+          tuneisArmados: 0,
+          processados: 0,
+          pendentes: 0,
+          armasFogo: 0,
+          armasArtesanais: 0,
+          diagnostico: 'SEM_TUNEIS_ARMADOS'
+        });
         resultadoPorMes[nomeAba] = { registros: [], resumo: {} };
       }
     });
 
+    resultadoPorMes._logMeses = logMeses;
     return resultadoPorMes;
+  }
+
+  /**
+   * Helper estático para gerar ou atualizar a aba única descartável [LOG] Gxt.
+   * Não acumula histórico e escreve o relatório de diagnóstico por mês.
+   */
+  static gerarLogOperacionalGxt(ss, dadosLog = {}) {
+    if (!ss || typeof ss.getSheetByName !== 'function') return null;
+
+    const NOME_ABA_LOG = '[LOG] Gxt';
+    let sheetLog = ss.getSheetByName(NOME_ABA_LOG);
+
+    if (!sheetLog && typeof ss.insertSheet === 'function') {
+      sheetLog = ss.insertSheet(NOME_ABA_LOG);
+    }
+
+    if (!sheetLog) return null;
+
+    // Limpa a aba [LOG] Gxt completamente para reutilização limpa
+    if (typeof sheetLog.clear === 'function') {
+      sheetLog.clear();
+    } else if (typeof sheetLog.clearContents === 'function') {
+      sheetLog.clearContents();
+    }
+
+    const dataHora = dadosLog.dataHora || new Date().toLocaleString('pt-BR');
+    const status = dadosLog.status || 'CONCLUÍDO';
+    const modo = dadosLog.modo || 'SELEÇÃO LIVRE';
+    const mesesSolicitados = Array.isArray(dadosLog.meses) ? dadosLog.meses.join(', ') : String(dadosLog.meses || '');
+    const peculioStatus = dadosLog.peculioStatus || 'DISPONÍVEL';
+    const abasGeradas = Array.isArray(dadosLog.abasGeradas) ? dadosLog.abasGeradas.join(', ') : String(dadosLog.abasGeradas || 'NENHUMA');
+    const detalheFinal = dadosLog.detalheFinal || 'Execução concluída com sucesso.';
+
+    const matrizLog = [
+      ['PAINEL DE CONTROLE OPERACIONAL — GXT', '', '', '', '', '', '', '', ''],
+      ['Data/Hora:', dataHora, '', '', '', '', '', '', ''],
+      ['Status:', status, '', '', '', '', '', '', ''],
+      ['Modo:', modo, '', '', '', '', '', '', ''],
+      ['Meses Solicitados:', mesesSolicitados, '', '', '', '', '', '', ''],
+      ['Pecúlio:', peculioStatus, '', '', '', '', '', '', ''],
+      ['Abas Geradas:', abasGeradas, '', '', '', '', '', '', ''],
+      ['Detalhe Final:', detalheFinal, '', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', '', '', ''],
+      ['Mês', 'Aba Localizada', 'Fatos Lidos', 'Túneis Armados', 'Processados', 'Pendentes', 'Armas de Fogo', 'Artesanais', 'Diagnóstico & Ação']
+    ];
+
+    const tabelaMensal = Array.isArray(dadosLog.tabelaMensal) ? dadosLog.tabelaMensal : [];
+
+    let sumFatos = 0;
+    let sumArmados = 0;
+    let sumProc = 0;
+    let sumPend = 0;
+    let sumFogo = 0;
+    let sumArt = 0;
+
+    tabelaMensal.forEach(m => {
+      const numFatos = Number(m.fatosLidos || 0);
+      const numArmados = Number(m.tuneisArmados || 0);
+      const numProc = Number(m.processados || 0);
+      const numPend = Number(m.pendentes || 0);
+      const numFogo = Number(m.armasFogo || 0);
+      const numArt = Number(m.armasArtesanais || 0);
+
+      sumFatos += numFatos;
+      sumArmados += numArmados;
+      sumProc += numProc;
+      sumPend += numPend;
+      sumFogo += numFogo;
+      sumArt += numArt;
+
+      matrizLog.push([
+        m.mes || '',
+        m.abaLocalizada || '—',
+        numFatos,
+        numArmados,
+        numProc,
+        numPend,
+        numFogo,
+        numArt,
+        m.diagnostico || 'APROVADO'
+      ]);
+    });
+
+    matrizLog.push([
+      'TOTAL',
+      '—',
+      sumFatos,
+      sumArmados,
+      sumProc,
+      sumPend,
+      sumFogo,
+      sumArt,
+      '—'
+    ]);
+
+    if (typeof sheetLog.getRange === 'function') {
+      const numRows = matrizLog.length;
+      const numCols = 9;
+      sheetLog.getRange(1, 1, numRows, numCols).setValues(matrizLog);
+    }
+
+    return sheetLog;
   }
 }
 
@@ -364,7 +536,7 @@ function abrirMenuGxtSelecaoLivre() {
 }
 
 /**
- * Orquestrador da Seleção Livre do Gxt com bloqueios e diagnósticos claros.
+ * Orquestrador da Seleção Livre do Gxt com bloqueios, diagnósticos claros e Log Operacional.
  * Nome de saída: GXT_ACUMULADO_<primeiro_mes>_<ultimo_mes>
  */
 function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
@@ -399,8 +571,50 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
     try { RendererMod = require('../Render/RendererGxt'); } catch (e) {}
   }
 
-  const dados = CompiladorGxt.compilar(ss, mesesOrdenados, fontePeculio);
+  let dados = {};
+  try {
+    dados = CompiladorGxt.compilar(ss, mesesOrdenados, fontePeculio);
+  } catch (e) {
+    dados = {
+      _diagnostico: {
+        peculioValido: false,
+        peculioErro: 'EXCECAO_EXECUCAO',
+        peculioDetalhe: e.message || String(e)
+      },
+      _logMeses: mesesOrdenados.map(m => ({
+        mes: m,
+        abaLocalizada: '—',
+        fatosLidos: 0,
+        tuneisArmados: 0,
+        processados: 0,
+        pendentes: 0,
+        armasFogo: 0,
+        armasArtesanais: 0,
+        diagnostico: 'EXCECAO_EXECUCAO'
+      }))
+    };
+  }
+
   const diag = dados._diagnostico || {};
+
+  const dadosLog = {
+    dataHora: new Date().toLocaleString('pt-BR'),
+    status: diag.peculioValido ? 'CONCLUÍDO' : 'FALHA',
+    modo: 'SELEÇÃO LIVRE',
+    meses: mesesOrdenados,
+    peculioStatus: diag.peculioValido ? 'DISPONÍVEL' : (diag.peculioErro || 'PECULIO_ACESSO_NEGADO'),
+    abasGeradas: diag.peculioValido ? [nomeAbaSaida] : [],
+    detalheFinal: diag.peculioValido
+      ? (diag.totalTuneisArmados > 0 && diag.totalTuneisProcessados === 0
+          ? 'ATENÇÃO: Todos os túneis armados possuem pendências.'
+          : 'Execução concluída com sucesso. Veja o detalhamento na aba [LOG] Gxt.')
+      : (`FALHA NO GXT: Pecúlio indisponível (${diag.peculioErro || 'DESCONHECIDO'}).`),
+    tabelaMensal: dados._logMeses || []
+  };
+
+  if (ss) {
+    CompiladorGxt.gerarLogOperacionalGxt(ss, dadosLog);
+  }
 
   if (!diag.peculioValido) {
     let acaoRecomendada = '';
@@ -418,7 +632,7 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
       acaoRecomendada = `Ação recomendada: Verificar a integridade do arquivo do Pecúlio (${codErro}).`;
     }
 
-    const msgErro = `FALHA NO GXT: A fonte oficial de antiguidade do Pecúlio não pôde ser processada.\n\nDiagnóstico: ${codErro}\n${diag.peculioDetalhe ? 'Detalhe: ' + diag.peculioDetalhe + '\n' : ''}${acaoRecomendada}\n\nNenhum relatório foi alterado para proteger a integridade funcional.`;
+    const msgErro = `FALHA NO GXT: A fonte oficial de antiguidade do Pecúlio não pôde ser processada.\n\nDiagnóstico: ${codErro}\n${diag.peculioDetalhe ? 'Detalhe: ' + diag.peculioDetalhe + '\n' : ''}${acaoRecomendada}\n\nNenhum relatório foi alterado. Veja a aba [LOG] Gxt para detalhes.`;
 
     if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
       SpreadsheetApp.getUi().alert(msgErro);
@@ -427,7 +641,7 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
   }
 
   if (diag.totalTuneisArmados > 0 && diag.totalTuneisProcessados === 0) {
-    const msgAviso = `ATENÇÃO GXT: Nenhum registro pôde ser processado para o relatório.\n- Fatos lidos: ${diag.totalFatosLidos}\n- Túneis armados encontrados: ${diag.totalTuneisArmados}\n- Túneis processados: 0\n- Túneis pendentes: ${diag.totalTuneisPendentes}\nMotivo: Todos os túneis armados possuem pendências de antiguidade.`;
+    const msgAviso = `ATENÇÃO GXT: Nenhum registro pôde ser processado para o relatório.\n- Fatos lidos: ${diag.totalFatosLidos}\n- Túneis armados encontrados: ${diag.totalTuneisArmados}\n- Túneis processados: 0\n- Túneis pendentes: ${diag.totalTuneisPendentes}\nMotivo: Todos os túneis armados possuem pendências de antiguidade. Veja a aba [LOG] Gxt.`;
     if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
       SpreadsheetApp.getUi().alert(msgAviso);
     }
@@ -441,7 +655,7 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
 }
 
 /**
- * Orquestrador do Modo Anual do Gxt.
+ * Orquestrador do Modo Anual do Gxt com Log Operacional Consolidado de 12 Meses.
  */
 function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
   const ss = fonteSS || ((typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.getActiveSpreadsheet === 'function')
@@ -461,23 +675,77 @@ function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
   ];
 
   const resultadosTrimestrais = {};
+  const todasLinhasLog = [];
+  const abasGeradasSucesso = [];
+  let todosPeculiosValidos = true;
+  let erroPeculioGlobal = null;
 
   trimestres.forEach(tri => {
-    const dadosTri = CompiladorGxt.compilar(ss, tri.meses, fontePeculio);
+    let dadosTri = {};
+    try {
+      dadosTri = CompiladorGxt.compilar(ss, tri.meses, fontePeculio);
+    } catch (e) {
+      dadosTri = {
+        _diagnostico: {
+          peculioValido: false,
+          peculioErro: 'EXCECAO_EXECUCAO',
+          peculioDetalhe: e.message || String(e)
+        },
+        _logMeses: tri.meses.map(m => ({
+          mes: m,
+          abaLocalizada: '—',
+          fatosLidos: 0,
+          tuneisArmados: 0,
+          processados: 0,
+          pendentes: 0,
+          armasFogo: 0,
+          armasArtesanais: 0,
+          diagnostico: 'EXCECAO_EXECUCAO'
+        }))
+      };
+    }
+
     resultadosTrimestrais[tri.nomeAba] = dadosTri;
     const diag = dadosTri._diagnostico || {};
 
-    if (!diag.peculioValido || (diag.totalTuneisArmados > 0 && diag.totalTuneisProcessados === 0)) {
-      const codErro = diag.peculioErro || 'PECULIO_ABA_NAO_LOCALIZADA';
-      const msg = `FALHA NO GXT (${tri.nomeAba}): ${codErro}.`;
+    if (Array.isArray(dadosTri._logMeses)) {
+      todasLinhasLog.push(...dadosTri._logMeses);
+    }
 
-      if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
-        SpreadsheetApp.getUi().alert(msg);
-      }
+    if (!diag.peculioValido) {
+      todosPeculiosValidos = false;
+      erroPeculioGlobal = diag.peculioErro || 'PECULIO_ACESSO_NEGADO';
     } else if (RendererMod && ss) {
       RendererMod.renderizar(ss, dadosTri, tri.nomeAba);
+      abasGeradasSucesso.push(tri.nomeAba);
     }
   });
+
+  const todosMeses = [
+    'JAN2026', 'FEV2026', 'MAR2026', 'ABR2026', 'MAI2026', 'JUN2026',
+    'JUL2026', 'AGO2026', 'SET2026', 'OUT2026', 'NOV2026', 'DEZ2026'
+  ];
+
+  const dadosLogAnual = {
+    dataHora: new Date().toLocaleString('pt-BR'),
+    status: todosPeculiosValidos ? 'CONCLUÍDO' : 'FALHA',
+    modo: 'ANUAL',
+    meses: todosMeses,
+    peculioStatus: todosPeculiosValidos ? 'DISPONÍVEL' : (erroPeculioGlobal || 'PECULIO_ACESSO_NEGADO'),
+    abasGeradas: abasGeradasSucesso,
+    detalheFinal: todosPeculiosValidos
+      ? 'Execução anual concluída com sucesso (4 trimestres gerados). Veja o detalhamento na aba [LOG] Gxt.'
+      : (`FALHA NO GXT ANUAL: Pecúlio inacessível (${erroPeculioGlobal}).`),
+    tabelaMensal: todasLinhasLog
+  };
+
+  if (ss) {
+    CompiladorGxt.gerarLogOperacionalGxt(ss, dadosLogAnual);
+  }
+
+  if (!todosPeculiosValidos && typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
+    SpreadsheetApp.getUi().alert(`FALHA NO GXT ANUAL: ${erroPeculioGlobal}. Veja a aba [LOG] Gxt.`);
+  }
 
   return resultadosTrimestrais;
 }
