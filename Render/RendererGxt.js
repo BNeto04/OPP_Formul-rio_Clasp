@@ -1,10 +1,12 @@
 /**
  * ARQUIVO: Render/RendererGxt.js
- * DESCRIÇÃO: Renderizador Executivo do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-04E).
+ * DESCRIÇÃO: Renderizador Executivo do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-05I.2).
  * REGRA DE OURO: Organiza os meses em painéis verticais de no máximo 3 blocos mensais lado a lado cada.
- * Se a Seleção Livre contiver mais de 3 meses (ex: 4, 8 ou 12 meses), renderiza os painéis subsequentes empilhados verticalmente na mesma aba.
- * Aplica cores oficiais de Pelotão/GTAR, escala oficial consagrada de armas, negritos, alinhamentos,
- * formatos numéricos, larguras e congelamento na planilha.
+ * Resumos e cards somam EXCLUSIVAMENTE armas de fogo numéricas (Abril 40, Maio 27, Junho 21, Total 88).
+ * No detalhamento por linha:
+ * - Arma de fogo pura: exibe o número (ex: 1, 2).
+ * - Arma artesanal pura: exibe a string 'ARTESANAL' (sem somar no card numérico).
+ * - Dupla (fogo + artesanal no mesmo túnel): exibe '1 + ARTESANAL', preservando ambos sem apagar a arma de fogo, e somando 1 no card numérico.
  */
 
 class RendererGxt {
@@ -94,7 +96,7 @@ class RendererGxt {
     chunksPaineis.forEach(chunk => {
       const maxLinhasPainel = Math.max(...chunk.map(m => (dadosPorMes[m]?.registros?.length || 0)), 1);
       const alturaPainel = Math.max(maxLinhasPainel + 12, 18);
-      alturaTotal += alturaPainel + 3; // 3 linhas de respiro entre painéis verticais
+      alturaTotal += alturaPainel + 3;
     });
 
     const totalLinhasGrid = Math.max(alturaTotal, 30);
@@ -117,7 +119,7 @@ class RendererGxt {
         const dadosMes = dadosPorMes[mes] || { registros: [], resumo: {} };
         const registros = dadosMes.registros || [];
 
-        // Linha 1 do Painel: Título do Mês (ex: JAN2026)
+        // Linha 1 do Painel: Título do Mês (ex: ABR2026)
         matrixValores[currentStartRow][colStart] = mes.toUpperCase();
         matrixFundos[currentStartRow][colStart] = '#073763';
         matrixCoresTexto[currentStartRow][colStart] = '#FFFFFF';
@@ -140,14 +142,33 @@ class RendererGxt {
         registros.forEach((reg, rIdx) => {
           const rowIdx = currentStartRow + 2 + rIdx;
           const estiloPel = this.obterEstiloPelotao(reg.designacao);
-          const estiloArmas = this.corPorArmas(reg.qtdArmas);
+
+          const numFogo = Number(reg.armasFogo || reg.qtdArmas || 0);
+          const numArt = Number(reg.armasArtesanais || 0);
+          const totalFatos = (reg.totalFatosFisicos !== undefined) ? reg.totalFatosFisicos : (numFogo + numArt);
+
+          // Estilo de destaque do valor de armas
+          const estiloArmas = this.corPorArmas(totalFatos > 0 ? totalFatos : numFogo);
 
           const gradMat = `${reg.grad || ''} ${reg.matricula || ''}`.trim();
+
+          // Formatação do campo QTD ARMAS na linha do detalhe
+          let valQtdArmasExibicao = numFogo;
+          if (numFogo > 0 && numArt > 0) {
+            valQtdArmasExibicao = `${numFogo} + ARTESANAL`;
+            matrixFormatos[rowIdx][colStart + 3] = '@';
+          } else if (numFogo === 0 && numArt > 0) {
+            valQtdArmasExibicao = 'ARTESANAL';
+            matrixFormatos[rowIdx][colStart + 3] = '@';
+          } else {
+            valQtdArmasExibicao = numFogo;
+            matrixFormatos[rowIdx][colStart + 3] = '0';
+          }
 
           matrixValores[rowIdx][colStart + 0] = reg.numSeq; // Nº Sequencial do mês (1, 2, 3...)
           matrixValores[rowIdx][colStart + 1] = gradMat;
           matrixValores[rowIdx][colStart + 2] = reg.nome || '';
-          matrixValores[rowIdx][colStart + 3] = reg.qtdArmas;
+          matrixValores[rowIdx][colStart + 3] = valQtdArmasExibicao;
           matrixValores[rowIdx][colStart + 4] = reg.designacao || '';
 
           matrixAlinhamentos[rowIdx][colStart + 0] = 'center';
@@ -157,7 +178,6 @@ class RendererGxt {
           matrixAlinhamentos[rowIdx][colStart + 4] = 'center';
 
           matrixFormatos[rowIdx][colStart + 0] = '0';
-          matrixFormatos[rowIdx][colStart + 3] = '0';
 
           for (let c = 0; c < 5; c++) {
             matrixFundos[rowIdx][colStart + c] = estiloPel.fundo;
@@ -170,7 +190,7 @@ class RendererGxt {
           matrixNegritos[rowIdx][colStart + 3] = estiloArmas.negrito;
         });
 
-        // Resumo por Pelotão abaixo da tabela do mês
+        // Resumo por Pelotão abaixo da tabela do mês (soma APENAS armas de fogo numéricas)
         const resumoStartRow = currentStartRow + Math.max(registros.length + 3, 4);
 
         matrixValores[resumoStartRow][colStart] = 'RESUMO POR PELOTÃO';
@@ -189,10 +209,10 @@ class RendererGxt {
 
         gruposResumo.forEach((g, gIdx) => {
           const currRow = resumoStartRow + 1 + gIdx;
-          const totalGrupo = dadosMes.resumo ? (dadosMes.resumo[g.chave] || 0) : 0;
+          const totalGrupoNum = dadosMes.resumo ? (dadosMes.resumo[g.chave] || 0) : 0;
 
           matrixValores[currRow][colStart] = g.chave;
-          matrixValores[currRow][colStart + 3] = totalGrupo;
+          matrixValores[currRow][colStart + 3] = totalGrupoNum;
 
           matrixAlinhamentos[currRow][colStart] = 'left';
           matrixAlinhamentos[currRow][colStart + 3] = 'center';
@@ -214,7 +234,6 @@ class RendererGxt {
       currentStartRow += alturaUsadaNoPainel + 3;
     });
 
-    // Se for mock de testes, popula os dados armazenados completos
     if (typeof targetSheet._definirDadosMatriz === 'function') {
       targetSheet._definirDadosMatriz({
         valores: matrixValores,
@@ -253,58 +272,6 @@ class RendererGxt {
             });
           });
         }
-
-        if (typeof targetSheet.setFrozenRows === 'function') {
-          targetSheet.setFrozenRows(2);
-        }
-      } catch (e) {}
-    }
-
-    return targetSheet;
-  }
-
-  /**
-   * Renderiza um painel destacado de alerta de erro na aba de saída quando o Gxt é interrompido com segurança.
-   */
-  static renderizarAlertaErro(ss, nomeAbaSaida, mensagem) {
-    if (!ss) return null;
-
-    let targetSheet = null;
-    if (typeof ss.getSheetByName === 'function') {
-      targetSheet = ss.getSheetByName(nomeAbaSaida);
-      if (!targetSheet && typeof ss.insertSheet === 'function') {
-        targetSheet = ss.insertSheet(nomeAbaSaida);
-      }
-    }
-
-    if (!targetSheet) return null;
-
-    if (typeof targetSheet.clear === 'function') {
-      targetSheet.clear();
-    }
-
-    const val = [[mensagem]];
-    const fundos = [['#F44336']];
-    const texto = [['#FFFFFF']];
-    const neg = [[true]];
-    const align = [['left']];
-
-    if (typeof targetSheet._definirDadosMatriz === 'function') {
-      targetSheet._definirDadosMatriz({
-        valores: val,
-        fundos: fundos,
-        coresTexto: texto,
-        negritos: neg,
-        alinhamentos: align,
-        formatos: [['@']]
-      });
-    } else if (typeof targetSheet.getRange === 'function') {
-      try {
-        const rng = targetSheet.getRange(1, 1, 1, 1);
-        rng.setValue(mensagem);
-        rng.setBackground('#F44336');
-        rng.setFontColor('#FFFFFF');
-        rng.setFontWeight('bold');
       } catch (e) {}
     }
 

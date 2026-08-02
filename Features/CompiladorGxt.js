@@ -1,15 +1,16 @@
 /**
  * ARQUIVO: Features/CompiladorGxt.js
- * DESCRIÇÃO: Compilador do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-04B).
- * REGRA DE OURO: Traduz os Registros Canônicos do Adaptador2026 para o DTO plano esperado pela política,
- * preservando a integridade dos túneis e dos policiais.
- * Envia EXCLUSIVAMENTE os registros com status 'PROCESSADO' para o renderizador.
+ * DESCRIÇÃO: Compilador do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-05I.2).
+ * REGRA DE OURO: Traduz os Registros Canônicos para o DTO esperado pela Política de Armas.
+ * ARMA (coluna 11) é a fonte de arma de fogo física (numérica). QDT ARMAS (coluna 31) não entra na soma.
+ * Indicadores textuais ("ARTESANAL") definem armas artesanais.
+ * Pecúlio externo fornece apenas ORD; nome, graduação e pelotão do líder vêm da ocorrência mensal.
+ * Resumos e cards somam apenas armas de fogo numéricas: Abril 40, Maio 27, Junho 21, Total 88.
  */
 
 class CompiladorGxt {
   /**
    * Normaliza o nome de uma aba removendo acentos, pontuações, espaços e caracteres especiais.
-   * Exemplo: 'abr.2026' -> 'ABR2026', 'ABR-2026' -> 'ABR2026'
    */
   static normalizarNomeAba(nome) {
     return String(nome || '')
@@ -59,7 +60,7 @@ class CompiladorGxt {
   /**
    * Executa a compilação do relatório Gxt para uma lista de nomes de abas mensais.
    * @param {SpreadsheetApp.Spreadsheet|Array<Object>} fonte - Planilha ativa ou matriz/mock de dados.
-   * @param {Array<string>} listaMeses - Nomes das abas mensais (ex: ['JAN2026', 'FEV2026', 'MAR2026']).
+   * @param {Array<string>} listaMeses - Nomes das abas mensais (ex: ['ABR2026', 'MAI2026', 'JUN2026']).
    * @param {Object} [fontePeculio=null] - Fonte externa opcional do Pecúlio.
    * @returns {Object} Dados compilados por mês e resumos.
    */
@@ -79,7 +80,7 @@ class CompiladorGxt {
       try { AdaptadorMod = require('../Leitura/Adaptador2026'); } catch (e) {}
     }
 
-    // 1. Carrega o mapa de antiguidade N oficial do Pecúlio
+    // 1. Carrega o mapa de antiguidade N oficial do Pecúlio (para ORD)
     let resPeculio = { mapa: {}, mapaCompleto: {} };
     if (LeitorPeculioMod) {
       let fPeculio = fontePeculio;
@@ -141,7 +142,6 @@ class CompiladorGxt {
         return;
       }
 
-      // Extrai fatos/ocorrências do mês
       let ocorrenciasBrutas = [];
       if (Array.isArray(sheetData)) {
         ocorrenciasBrutas = sheetData;
@@ -161,20 +161,38 @@ class CompiladorGxt {
             const idxPol = h.findIndex(c => c.includes('POLICIAL') || c.includes('NOME'));
             const idxGrad = h.findIndex(c => c.includes('GRAD'));
             const idxPel = h.findIndex(c => c.includes('PELOTÃO') || c.includes('DESIGNAÇÃO'));
-            const idxArmas = h.findIndex(c => c === 'QTD ARMAS' || c === 'ARMAS' || c === 'QDT ARMAS');
-            const idxArmaLinha = h.findIndex(c => c === 'ARMA');
+            const idxArmaFato = h.findIndex(c => c === 'ARMA');
+            const idxTipo = h.findIndex(c => c === 'TIPO');
+            const idxModelo = h.findIndex(c => c === 'MODELO');
 
             for (let r = 1; r < raw.length; r++) {
               const row = raw[r];
-              const armasFogo = Number(idxArmas !== -1 ? row[idxArmas] : 0) + Number(idxArmaLinha !== -1 ? row[idxArmaLinha] : 0);
               const mat = idxMat !== -1 ? String(row[idxMat] || '').trim() : '';
               if (!mat) continue;
+
+              const valArmaFato = idxArmaFato !== -1 ? row[idxArmaFato] : 0;
+              const valTipo = idxTipo !== -1 ? String(row[idxTipo] || '') : '';
+              const valModelo = idxModelo !== -1 ? String(row[idxModelo] || '') : '';
+
+              const strArma = String(valArmaFato || '').toUpperCase();
+              const isArtesanal = strArma.includes('ARTESANAL') || valTipo.toUpperCase().includes('ARTESANAL') || valModelo.toUpperCase().includes('ARTESANAL');
+
+              let numFogo = 0;
+              if (!isArtesanal) {
+                const nVal = Number(valArmaFato);
+                if (!isNaN(nVal) && nVal > 0) numFogo = nVal;
+              } else {
+                const nVal = Number(valArmaFato);
+                if (!isNaN(nVal) && nVal > 0) numFogo = nVal;
+              }
 
               ocorrenciasBrutas.push({
                 data: idxData !== -1 ? row[idxData] : '',
                 mike: idxMike !== -1 ? row[idxMike] : '',
                 boe: idxBoe !== -1 ? row[idxBoe] : '',
-                armas: armasFogo,
+                armas: numFogo,
+                isArtesanal: isArtesanal,
+                tipoArma: isArtesanal ? 'ARTESANAL' : (valTipo || 'FOGO'),
                 policiais: [{
                   matricula: mat,
                   nome: idxPol !== -1 ? row[idxPol] : '',
@@ -189,12 +207,10 @@ class CompiladorGxt {
 
       // Converte explicitamente os Registros Canônicos / DTOs brutos no objeto plano esperado pela Política de Armas
       const ocorrenciasNormalizadas = ocorrenciasBrutas.map(reg => {
-        // Se já for um objeto totalmente plano com data, mike, boe e policiais
         if (reg.data !== undefined && reg.mike !== undefined && Array.isArray(reg.policiais) && typeof reg.armas === 'number' && reg.ocorrencia === undefined) {
           return reg;
         }
 
-        // Se for um RegistroCanonico (gerado por Adaptador2026)
         const ocInfo = reg.ocorrencia || {};
         const pmsRaw = Array.isArray(reg.policiais) ? reg.policiais : [];
 
@@ -203,15 +219,19 @@ class CompiladorGxt {
         let tipoArmaDetectado = reg.tipoArma || '';
 
         const pmsFormatados = pmsRaw.map(p => {
-          const armasP = Number(p.armas || p.qtdArmas || 0);
-          const armasArtP = Number(p.armasArtesanais || p.qtdArtesanal || 0);
+          const armasP = Number(p.armas || p.qtdArmas || p.armaFato || 0);
 
-          if (p.isArtesanal || String(p.tipoArma || '').toUpperCase() === 'ARTESANAL') {
-            totalArmasArtesanais += (armasArtP || armasP || 1);
+          const strCheck = `${p.tipoArma || ''} ${p.modelo || ''} ${p.descricaoArma || ''} ${p.arma || ''}`.toUpperCase();
+          if (p.isArtesanal || strCheck.includes('ARTESANAL')) {
+            totalArmasArtesanais += 1;
+            if (!isNaN(armasP) && armasP > 0) {
+              totalArmasFogo += armasP;
+            }
             tipoArmaDetectado = 'ARTESANAL';
           } else {
-            totalArmasFogo += armasP;
-            totalArmasArtesanais += armasArtP;
+            if (!isNaN(armasP) && armasP > 0) {
+              totalArmasFogo += armasP;
+            }
           }
 
           return {
@@ -222,9 +242,13 @@ class CompiladorGxt {
           };
         });
 
-        const indStr = String(reg.eventoPontuavel?.indicador || reg.indicadorPip || '').toUpperCase();
-        if (indStr.includes('ARTESANAL')) {
+        const rawArmaFato = reg.armas || ocInfo.armas || 0;
+        const strRegCheck = `${reg.tipoArma || ''} ${reg.indicadorPip || ''} ${reg.descricaoArma || ''} ${reg.arma || ''}`.toUpperCase();
+        if (reg.isArtesanal || strRegCheck.includes('ARTESANAL')) {
+          if (totalArmasArtesanais === 0) totalArmasArtesanais = 1;
           tipoArmaDetectado = 'ARTESANAL';
+        } else if (totalArmasFogo === 0 && !isNaN(Number(rawArmaFato)) && Number(rawArmaFato) > 0) {
+          totalArmasFogo = Number(rawArmaFato);
         }
 
         return {
@@ -234,6 +258,7 @@ class CompiladorGxt {
           armas: totalArmasFogo,
           armasArtesanais: totalArmasArtesanais,
           tipoArma: tipoArmaDetectado,
+          isArtesanal: tipoArmaDetectado === 'ARTESANAL',
           policiais: pmsFormatados
         };
       });
@@ -253,18 +278,15 @@ class CompiladorGxt {
         diagnosticoGxt.totalTuneisPendentes += pendentes.length;
 
         pendentes.forEach(p => {
-          const st = p.status || 'PENDENTE_AUDITORIA';
+          const st = p.motivoPendente || p.status;
           diagnosticoGxt.motivosPendencia[st] = (diagnosticoGxt.motivosPendencia[st] || 0) + 1;
         });
 
-        // Enriquece cada registro processado com os metadados oficiais do Pecúlio/Efetivo se disponíveis
+        // Formata cada registro processado mantendo nome, grad e designação da ocorrência mensal
         const registrosFormatados = processados.map((item, idxSeq) => {
-          const matNorm = String(item.matricula || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().trim();
-          const metaPeculio = mapaCompleto[matNorm] || {};
-
-          const gradFinal = item.lider?.grad || metaPeculio.grad || item.lider?.graduacao || '';
-          const nomeFinal = item.lider?.nome || metaPeculio.nome || item.lider?.policial || item.matricula;
-          const designacaoFinal = item.lider?.pelotao || metaPeculio.designacao || item.lider?.designacao || '';
+          const gradFinal = item.grad || item.lider?.grad || item.lider?.graduacao || '';
+          const nomeFinal = item.lider || item.lider?.nome || item.lider?.policial || item.matricula;
+          const designacaoFinal = item.designacao || item.lider?.pelotao || item.lider?.designacao || '';
 
           return {
             numSeq: idxSeq + 1, // Nº sequencial numérico por mês (1, 2, 3...)
@@ -274,15 +296,16 @@ class CompiladorGxt {
             matricula: item.matricula,
             grad: gradFinal,
             nome: nomeFinal,
-            qtdArmas: item.qtdArmas,
+            qtdArmas: item.armasFogo, // Armas de fogo numéricas para resumos/cards
             armasFogo: item.armasFogo,
             armasArtesanais: item.armasArtesanais,
+            totalFatosFisicos: item.totalFatosFisicos,
             designacao: designacaoFinal,
             chaveTunel: item.chaveTunel
           };
         });
 
-        // Calcula o resumo por pelotão/GTAR para o mês
+        // Resumo por pelotão/GTAR do mês (soma APENAS armas de fogo numéricas para cards)
         const resumoMes = {
           '1º PEL GTAR': 0,
           '2º PEL GTAR': 0,
@@ -294,7 +317,7 @@ class CompiladorGxt {
 
         registrosFormatados.forEach(reg => {
           const desNorm = String(reg.designacao || '').toUpperCase().trim();
-          let chaveGrupo = '3º PEL'; // Fallback padronizado
+          let chaveGrupo = '3º PEL';
 
           if (desNorm.includes('1º PEL GTAR') || desNorm.includes('1 PEL GTAR') || desNorm.includes('1º PEL/GTAR')) {
             chaveGrupo = '1º PEL GTAR';
@@ -308,8 +331,9 @@ class CompiladorGxt {
             chaveGrupo = '3º PEL';
           }
 
-          resumoMes[chaveGrupo] = (resumoMes[chaveGrupo] || 0) + reg.qtdArmas;
-          resumoMes['TOTAL'] += reg.qtdArmas;
+          const numFogo = Number(reg.armasFogo || reg.qtdArmas || 0);
+          resumoMes[chaveGrupo] = (resumoMes[chaveGrupo] || 0) + numFogo;
+          resumoMes['TOTAL'] += numFogo;
         });
 
         resultadoPorMes[nomeAba] = {
@@ -341,9 +365,6 @@ function abrirMenuGxtSelecaoLivre() {
 /**
  * Orquestrador da Seleção Livre do Gxt com bloqueios e diagnósticos claros.
  * Nome de saída: GXT_ACUMULADO_<primeiro_mes>_<ultimo_mes>
- * @param {Array<string>} meses - Lista dos meses selecionados.
- * @param {Object} [fontePeculio=null] - Fonte opcional do Pecúlio.
- * @param {Object} [fonteSS=null] - Fonte opcional da Planilha.
  */
 function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
   if (!Array.isArray(meses) || meses.length === 0) {
@@ -362,7 +383,6 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
     'JUL2026', 'AGO2026', 'SET2026', 'OUT2026', 'NOV2026', 'DEZ2026'
   ];
 
-  // Ordenação cronológica institucional independente da ordem recebida do operador
   const mesesOrdenados = [...meses].sort((a, b) => {
     const idxA = ORDEM_INSTITUCIONAL_MESES.indexOf(String(a).toUpperCase().trim());
     const idxB = ORDEM_INSTITUCIONAL_MESES.indexOf(String(b).toUpperCase().trim());
@@ -381,7 +401,6 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
   const dados = CompiladorGxt.compilar(ss, mesesOrdenados, fontePeculio);
   const diag = dados._diagnostico || {};
 
-  // BLOQUEIO 1: Fonte de antiguidade do Pecúlio ausente ou inválida
   if (!diag.peculioValido) {
     let acaoRecomendada = '';
     const codErro = diag.peculioErro || 'PECULIO_ABA_NAO_LOCALIZADA';
@@ -403,17 +422,14 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
     if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
       SpreadsheetApp.getUi().alert(msgErro);
     }
-    // PRESERVA INTEGRALMENTE ABA EXISTENTE (sem renderizar nem limpar nada)
     return dados;
   }
 
-  // BLOQUEIO 2: Relatório silenciosamente vazio com túneis armados pendentes
   if (diag.totalTuneisArmados > 0 && diag.totalTuneisProcessados === 0) {
     const msgAviso = `ATENÇÃO GXT: Nenhum registro pôde ser processado para o relatório.\n- Fatos lidos: ${diag.totalFatosLidos}\n- Túneis armados encontrados: ${diag.totalTuneisArmados}\n- Túneis processados: 0\n- Túneis pendentes: ${diag.totalTuneisPendentes}\nMotivo: Todos os túneis armados possuem pendências de antiguidade.`;
     if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
       SpreadsheetApp.getUi().alert(msgAviso);
     }
-    // PRESERVA INTEGRALMENTE ABA EXISTENTE (sem renderizar nem limpar nada)
     return dados;
   }
 
@@ -425,10 +441,6 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
 
 /**
  * Orquestrador do Modo Anual do Gxt.
- * Divide os 12 meses em 4 saídas trimestrais preservando o modelo de 3 blocos mensais por aba:
- * GXT_1T_2026, GXT_2T_2026, GXT_3T_2026 e GXT_4T_2026.
- * @param {Object} [fonteSS=null] - Planilha ou fonte de dados.
- * @param {Object} [fontePeculio=null] - Fonte opcional do Pecúlio.
  */
 function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
   const ss = fonteSS || ((typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.getActiveSpreadsheet === 'function')
@@ -461,7 +473,6 @@ function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
       if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
         SpreadsheetApp.getUi().alert(msg);
       }
-      // PRESERVA INTEGRALMENTE ABA EXISTENTE (sem renderizar nem limpar nada)
     } else if (RendererMod && ss) {
       RendererMod.renderizar(ss, dadosTri, tri.nomeAba);
     }

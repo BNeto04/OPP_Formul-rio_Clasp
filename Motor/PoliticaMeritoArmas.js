@@ -1,9 +1,11 @@
 /**
  * ARQUIVO: Motor/PoliticaMeritoArmas.js
- * DESCRIÇÃO: Motor puro de cálculo de Mérito de Equipe por Armas (TASK-M06.3-02).
- * REGRA: Agrupa ocorrências pelo túnel (DATA | MIKE | BOE), soma todas as armas físicas do túnel
- * uma única vez (arma artesanal = 1), identifica o participante de menor N (mais antigo)
- * e atribui 100% das armas ao líder. Em caso de ausência de N ou empate, sinaliza pendência auditável.
+ * DESCRIÇÃO: Motor puro de cálculo de Mérito de Equipe por Armas (TASK-M06.3-05I.2).
+ * REGRA DE OURO: Agrupa ocorrências pelo túnel (DATA | MIKE | BOE).
+ * ARMA é a fonte exclusiva de arma de fogo física (numérica). QDT ARMAS não entra no cálculo.
+ * Reconhecimento de artesanal vem de indicadores textuais (TIPO/MODELO/ARMA), nunca de QDT ARMAS.
+ * Pecúlio externo fornece apenas ORD; nome, graduação e pelotão do líder vêm da ocorrência mensal.
+ * Atribui o mérito ao militar de menor N (mais antigo).
  */
 
 const PoliticaMeritoArmas = {
@@ -18,7 +20,7 @@ const PoliticaMeritoArmas = {
       return [];
     }
 
-    const tunéis = {};
+    const tuneis = {};
 
     // 1. Agrupar por túnel único (DATA | MIKE | BOE)
     ocorrencias.forEach(oc => {
@@ -28,8 +30,8 @@ const PoliticaMeritoArmas = {
 
       const chaveTunel = (oc.chaveTunel || `${dataStr}_${mike}_${boe}`).toUpperCase();
 
-      if (!tunéis[chaveTunel]) {
-        tunéis[chaveTunel] = {
+      if (!tuneis[chaveTunel]) {
+        tuneis[chaveTunel] = {
           chave: chaveTunel,
           data: oc.data,
           mike: mike,
@@ -41,19 +43,27 @@ const PoliticaMeritoArmas = {
         };
       }
 
-      const t = tunéis[chaveTunel];
+      const t = tuneis[chaveTunel];
       t.linhas.push(oc);
 
-      // Soma de armas físicas (fogo + artesanais, onde 1 artesanal = 1)
-      const isArtesanal = (oc.tipoArma === 'ARTESANAL' || oc.isArtesanal === true || String(oc.descricaoArma || '').toUpperCase().includes('ARTESANAL'));
+      // Verificação textual de arma artesanal (NUNCA usa QDT ARMAS)
+      const textCheck = `${oc.tipoArma || ''} ${oc.modelo || ''} ${oc.descricaoArma || ''} ${oc.arma || ''} ${oc.natureza || ''}`.toUpperCase();
+      const isArtesanal = (oc.isArtesanal === true || oc.tipoArma === 'ARTESANAL' || textCheck.includes('ARTESANAL'));
 
       let qtdFogo = 0;
       let qtdArtesanal = 0;
 
       if (isArtesanal) {
-        qtdArtesanal = Number(oc.armasArtesanais || oc.qtdArtesanal || oc.armas || oc.qtdArmas || 1);
+        qtdArtesanal = 1;
+        // Se houver armasFogo explicitado e positivo no caso de túnel duplo
+        if (oc.armasFogo !== undefined && !isNaN(Number(oc.armasFogo)) && Number(oc.armasFogo) > 0) {
+          qtdFogo = Number(oc.armasFogo);
+        } else {
+          qtdFogo = 0;
+        }
       } else {
-        qtdFogo = Number(oc.armas || oc.qtdArmas || 0);
+        const numVal = Number(oc.armas || oc.armasFogo || oc.armaFato || 0);
+        qtdFogo = isNaN(numVal) ? 0 : numVal;
         qtdArtesanal = Number(oc.armasArtesanais || oc.qtdArtesanal || 0);
       }
 
@@ -82,6 +92,7 @@ const PoliticaMeritoArmas = {
             pelotao: pm.pelotao || pm.designacao || pm.lote || ''
           };
         } else {
+          // Preserva nome, grad e pelotão vindos da ocorrência mensal
           if (!t.integrantes[mat].nome && (pm.nome || pm.policial)) t.integrantes[mat].nome = pm.nome || pm.policial;
           if (!t.integrantes[mat].grad && (pm.grad || pm.graduacao)) t.integrantes[mat].grad = pm.grad || pm.graduacao;
           if (!t.integrantes[mat].pelotao && (pm.pelotao || pm.designacao)) t.integrantes[mat].pelotao = pm.pelotao || pm.designacao;
@@ -92,9 +103,9 @@ const PoliticaMeritoArmas = {
     const resultados = [];
 
     // 2. Processar cada túnel com apreensão de armas
-    Object.values(tunéis).forEach(t => {
-      const totalArmas = t.armasFogo + t.armasArtesanais;
-      if (totalArmas <= 0) return; // Ignora túneis sem armas
+    Object.values(tuneis).forEach(t => {
+      const totalFatosFisicos = t.armasFogo + t.armasArtesanais;
+      if (totalFatosFisicos <= 0) return; // Ignora túneis sem armas
 
       const listaIntegrantes = Object.values(t.integrantes);
       if (listaIntegrantes.length === 0) {
@@ -103,7 +114,10 @@ const PoliticaMeritoArmas = {
           data: t.data,
           mike: t.mike,
           boe: t.boe,
-          qtdArmas: totalArmas,
+          qtdArmas: t.armasFogo,
+          armasFogo: t.armasFogo,
+          armasArtesanais: t.armasArtesanais,
+          totalFatosFisicos: totalFatosFisicos,
           status: 'PENDENTE_AUDITORIA',
           motivoPendente: 'SEM_INTEGRANTES',
           lider: null,
@@ -142,7 +156,10 @@ const PoliticaMeritoArmas = {
           data: t.data,
           mike: t.mike,
           boe: t.boe,
-          qtdArmas: totalArmas,
+          qtdArmas: t.armasFogo,
+          armasFogo: t.armasFogo,
+          armasArtesanais: t.armasArtesanais,
+          totalFatosFisicos: totalFatosFisicos,
           status: 'PENDENTE_AUDITORIA',
           motivoPendente: 'ANTIGUIDADE_AUSENTE',
           lider: null,
@@ -157,7 +174,10 @@ const PoliticaMeritoArmas = {
           data: t.data,
           mike: t.mike,
           boe: t.boe,
-          qtdArmas: totalArmas,
+          qtdArmas: t.armasFogo,
+          armasFogo: t.armasFogo,
+          armasArtesanais: t.armasArtesanais,
+          totalFatosFisicos: totalFatosFisicos,
           status: 'PENDENTE_AUDITORIA',
           motivoPendente: 'EMPATE_ANTIGUIDADE',
           lider: null,
@@ -166,7 +186,7 @@ const PoliticaMeritoArmas = {
         return;
       }
 
-      // Líder único de menor N definido
+      // Líder único de menor N definido: nome, grad e designação vêm da ocorrência mensal
       const vencedor = candidatosLider[0];
       resultados.push({
         chaveTunel: t.chave,
@@ -178,9 +198,10 @@ const PoliticaMeritoArmas = {
         matricula: vencedor.matricula,
         designacao: vencedor.pelotao,
         numN: vencedor.numN,
-        qtdArmas: totalArmas,
+        qtdArmas: t.armasFogo, // Apenas armas de fogo numéricas para soma dos cards
         armasFogo: t.armasFogo,
         armasArtesanais: t.armasArtesanais,
+        totalFatosFisicos: totalFatosFisicos,
         status: 'PROCESSADO',
         integrantes: listaIntegrantes
       });

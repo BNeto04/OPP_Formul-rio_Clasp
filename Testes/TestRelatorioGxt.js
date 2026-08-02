@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: Testes/TestRelatorioGxt.js
- * DESCRIÇÃO: Suíte de Testes Unitários e Integrados do Relatório Trimestral Gxt (TASK-M06.3-04A).
+ * DESCRIÇÃO: Suíte de Testes Unitários e Integrados do Relatório Trimestral Gxt (TASK-M06.3-05I.2).
  * Valida: 3 meses, líder correto por N, 1 ocorrência por túnel, cores GTAR, total mensal e exclusão de pendentes.
  */
 
@@ -11,7 +11,7 @@ const { gerarGxtSelecaoLivre, gerarGxtAnual } = ModGxt;
 const RendererGxt = require('../Render/RendererGxt');
 
 function executarTestesGxt() {
-  console.log('🧪 Iniciando Testes Unitários e Integrados: Relatório Trimestral Gxt (M06.3-04A)...\n');
+  console.log('🧪 Iniciando Testes Unitários e Integrados: Relatório Trimestral Gxt (M06.3-05I.2)...\n');
   let sucessos = 0;
 
   function test(nome, fn) {
@@ -120,13 +120,13 @@ function executarTestesGxt() {
     const dadosCompilados = {
       JAN2026: {
         registros: [
-          { numSeq: 1, matricula: '108394-5', grad: '3º SGT', nome: 'IRAN SILVA', qtdArmas: 2, designacao: '1º PEL GTAR' }
+          { numSeq: 1, matricula: '108394-5', grad: '3º SGT', nome: 'IRAN SILVA', qtdArmas: 2, armasFogo: 2, armasArtesanais: 0, designacao: '1º PEL GTAR' }
         ],
         resumo: { '1º PEL GTAR': 2, '2º PEL GTAR': 0, '1º PEL': 0, '2º PEL': 0, '3º PEL': 0, 'TOTAL': 2 }
       },
       FEV2026: {
         registros: [
-          { numSeq: 1, matricula: '102950-9', grad: '2º SGT', nome: 'SAULO ALVES', qtdArmas: 4, designacao: '2º PEL GTAR' }
+          { numSeq: 1, matricula: '102950-9', grad: '2º SGT', nome: 'SAULO ALVES', qtdArmas: 4, armasFogo: 4, armasArtesanais: 0, designacao: '2º PEL GTAR' }
         ],
         resumo: { '1º PEL GTAR': 0, '2º PEL GTAR': 4, '1º PEL': 0, '2º PEL': 0, '3º PEL': 0, 'TOTAL': 4 }
       }
@@ -202,27 +202,22 @@ function executarTestesGxt() {
 
   // 5. Validação Estrita das Cinco Faixas da Escala Oficial de Armas (TASK-M06.3-04C)
   test('RendererGxt.corPorArmas: valida fielmente as cinco faixas da escala oficial de destaque de armas', () => {
-    // Faixa 0: 0 armas -> fundo #FF0000, texto #FF0000
     const f0 = RendererGxt.corPorArmas(0);
     assert.strictEqual(f0.fundo, '#FF0000');
     assert.strictEqual(f0.texto, '#FF0000');
 
-    // Faixa 1-3: 2 armas -> fundo #FF9900, texto #000000
     const f1 = RendererGxt.corPorArmas(2);
     assert.strictEqual(f1.fundo, '#FF9900');
     assert.strictEqual(f1.texto, '#000000');
 
-    // Faixa 4-5: 5 armas -> fundo #FFFF00, texto #000000
     const f2 = RendererGxt.corPorArmas(5);
     assert.strictEqual(f2.fundo, '#FFFF00');
     assert.strictEqual(f2.texto, '#000000');
 
-    // Faixa 6-9: 8 armas -> fundo #93C47D, texto #000000
     const f3 = RendererGxt.corPorArmas(8);
     assert.strictEqual(f3.fundo, '#93C47D');
     assert.strictEqual(f3.texto, '#000000');
 
-    // Faixa 10+: 12 armas -> fundo #38761D, texto #FFFFFF, negrito true
     const f4 = RendererGxt.corPorArmas(12);
     assert.strictEqual(f4.fundo, '#38761D');
     assert.strictEqual(f4.texto, '#FFFFFF');
@@ -248,7 +243,7 @@ function executarTestesGxt() {
     assert.strictEqual(abasCriadas[0], 'GXT_ACUMULADO_JAN2026_FEV2026');
   });
 
-  // 7. Modo Anual Separa os 12 Meses em 4 Saídas Trimestrais (TASK-M06.3-04D)
+  // 7. Modo Anual Divide os 12 Meses em 4 Saídas Trimestrais (TASK-M06.3-04D)
   test('gerarGxtAnual: divide os 12 meses em 4 saídas trimestrais GXT_1T..4T sem sobrescrever abas existentes', () => {
     const abasCriadas = [];
     const mockSS = {
@@ -286,7 +281,6 @@ function executarTestesGxt() {
       insertSheet: () => mockSheetTarget
     };
 
-    // Operador envia 5 meses fora de ordem
     const mesesDesordenados = ['MAI2026', 'FEV2026', 'JAN2026', 'ABR2026', 'MAR2026'];
     const res = gerarGxtSelecaoLivre(mesesDesordenados, mockPeculioOficial, mockSS);
 
@@ -297,13 +291,11 @@ function executarTestesGxt() {
     assert.ok(res['MAI2026']);
     assert.ok(matrizCompilada);
 
-    // Painel 1 (linha 1): JAN2026 na col A (idx 0), FEV2026 na col G (idx 6), MAR2026 na col M (idx 12)
     assert.strictEqual(matrizCompilada.valores[0][0], 'JAN2026');
     assert.strictEqual(matrizCompilada.valores[0][6], 'FEV2026');
     assert.strictEqual(matrizCompilada.valores[0][12], 'MAR2026');
 
-    // Painel 2 (linha empilhada verticalmente): ABR2026 na col A (idx 0), MAI2026 na col G (idx 6)
-    const rowPainel2 = 21; // Altura do painel 1 + respiro
+    const rowPainel2 = 21;
     assert.strictEqual(matrizCompilada.valores[rowPainel2][0], 'ABR2026');
     assert.strictEqual(matrizCompilada.valores[rowPainel2][6], 'MAI2026');
   });
@@ -333,13 +325,13 @@ function executarTestesGxt() {
       })
     };
 
-    const fontePeculioInvalida = []; // Sem fonte de Pecúlio
+    const fontePeculioInvalida = [];
     const res = gerarGxtSelecaoLivre(['JAN2026'], fontePeculioInvalida, mockSS);
 
     assert.ok(res._diagnostico);
     assert.strictEqual(res._diagnostico.peculioValido, false);
     assert.strictEqual(res._diagnostico.peculioErro, 'PECULIO_ABA_NAO_LOCALIZADA');
-    assert.strictEqual(folhaLimpa, false, 'A folha existente NUNCA deve ser limpa quando o Pecúlio falha');
+    assert.strictEqual(folhaLimpa, false);
   });
 
   // 11. Diagnóstico Claro quando Túneis Armados Possuem Pendências (TASK-M06.3-05G)
@@ -362,14 +354,13 @@ function executarTestesGxt() {
       insertSheet: () => ({ clear: () => { folhaLimpa = true; } })
     };
 
-    // Pecúlio válido mas não contém a matrícula 999999-9
     const res = gerarGxtSelecaoLivre(['JAN2026'], mockPeculioOficial, mockSS);
     assert.ok(res._diagnostico);
     assert.strictEqual(res._diagnostico.totalFatosLidos, 1);
     assert.strictEqual(res._diagnostico.totalTuneisArmados, 1);
     assert.strictEqual(res._diagnostico.totalTuneisProcessados, 0);
     assert.strictEqual(res._diagnostico.totalTuneisPendentes, 1);
-    assert.strictEqual(folhaLimpa, false, 'A folha existente NUNCA deve ser limpa quando há pendências');
+    assert.strictEqual(folhaLimpa, false);
   });
 
   // 12. Proibição Estrita de Fallback para a Planilha Ativa (TASK-M06.3-05G)
@@ -382,7 +373,6 @@ function executarTestesGxt() {
       getSheetByName: (n) => (n === 'EFETIVO' ? mockSheetEfetivo : null)
     };
 
-    // Chamada sem fontePeculio explicitada nem CONFIG_SYNTHEON ativo
     const res = CompiladorGxt.compilar(mockSS, ['JAN2026'], null);
     assert.strictEqual(res._diagnostico.peculioValido, false);
     assert.strictEqual(res._diagnostico.peculioErro, 'PECULIO_ACESSO_NEGADO');
@@ -452,6 +442,38 @@ function executarTestesGxt() {
       global.SpreadsheetApp = prevSpreadsheetApp;
       global.CONFIG_SYNTHEON = prevConfig;
     }
+  });
+
+  // 16. Teste de Renderização do Caso Duplo (Arma de Fogo + Artesanal no mesmo túnel) (TASK-M06.3-05I.2)
+  test('RendererGxt: renderiza "1 + ARTESANAL" no detalhe do túnel duplo e soma apenas 1 na contagem do card do resumo', () => {
+    const dadosCompiladosDuplo = {
+      JUN2026: {
+        registros: [
+          { numSeq: 1, matricula: '108394-5', grad: '3º SGT', nome: 'IRAN SILVA', qtdArmas: 1, armasFogo: 1, armasArtesanais: 1, totalFatosFisicos: 2, designacao: '1º PEL GTAR' }
+        ],
+        resumo: { '1º PEL GTAR': 1, '2º PEL GTAR': 0, '1º PEL': 0, '2º PEL': 0, '3º PEL': 0, 'TOTAL': 1 }
+      }
+    };
+
+    let matrizDados = null;
+    const mockSheetTarget = {
+      getName: () => 'GXT_2T_2026',
+      clear: () => {},
+      _definirDadosMatriz: (m) => { matrizDados = m; }
+    };
+
+    const mockSS = {
+      getSheetByName: () => mockSheetTarget,
+      insertSheet: () => mockSheetTarget
+    };
+
+    RendererGxt.renderizar(mockSS, dadosCompiladosDuplo, 'GXT_2T_2026');
+
+    assert.ok(matrizDados);
+    // Linha de registro (linha 3, idx 2, coluna D/idx 3) deve conter '1 + ARTESANAL'
+    assert.strictEqual(matrizDados.valores[2][3], '1 + ARTESANAL');
+    // Linha de resumo do 1º PEL GTAR (linha 6, idx 5, coluna D/idx 3) deve somar Apenas 1 (armas de fogo numéricas)
+    assert.strictEqual(matrizDados.valores[5][3], 1);
   });
 
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);
