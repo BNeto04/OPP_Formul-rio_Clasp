@@ -611,18 +611,18 @@ function executarTestesGxt() {
     const linAbr = valoresLog[idxInicioTabela];
     assert.strictEqual(linAbr[0], 'ABR2026');
     assert.strictEqual(linAbr[6], 1); // Armas Fogo
-    assert.strictEqual(linAbr[8], 'APROVADO');
+    assert.ok(linAbr[8].includes('APROVADO'));
 
     const linMai = valoresLog[idxInicioTabela + 1];
     assert.strictEqual(linMai[0], 'MAI2026');
     assert.strictEqual(linMai[6], 1);
-    assert.strictEqual(linMai[8], 'APROVADO');
+    assert.ok(linMai[8].includes('APROVADO'));
 
     const linJun = valoresLog[idxInicioTabela + 2];
     assert.strictEqual(linJun[0], 'JUN2026');
     assert.strictEqual(linJun[6], 0); // Fogo
     assert.strictEqual(linJun[7], 1); // Artesanal
-    assert.strictEqual(linJun[8], 'APROVADO');
+    assert.ok(linJun[8].includes('APROVADO'));
 
     // Valida a linha TOTAL
     const linTotal = valoresLog[idxInicioTabela + 3];
@@ -742,6 +742,77 @@ function executarTestesGxt() {
     assert.strictEqual(valoresLog[10][0], 'JAN2026');
     assert.strictEqual(valoresLog[21][0], 'DEZ2026');
     assert.strictEqual(valoresLog[22][0], 'TOTAL');
+  });
+
+  // 22. Log Operacional Gxt: Registra FALHA em caso de exceção na renderização
+  test('Log Operacional Gxt: grava FALHA se a renderização lançar exceção', () => {
+    let valoresLog = null;
+
+    const mockSheetLog = {
+      getName: () => '[LOG] Gxt',
+      clear: () => {},
+      getRange: () => ({ setValues: (m) => { valoresLog = m; } })
+    };
+
+    const mockSheetJan = [
+      {
+        data: '15/01/2026',
+        mike: '26E100',
+        boe: 'BOE123',
+        armas: 1,
+        policiais: [
+          { matricula: '108394-5', nome: 'IRAN SILVA', grad: '3º SGT', pelotao: '1º PEL GTAR', armas: 1 }
+        ]
+      }
+    ];
+
+    const mockSS = {
+      getSheetByName: (n) => (n === '[LOG] Gxt' ? mockSheetLog : (n === 'JAN2026' ? mockSheetJan : null)),
+      insertSheet: (n) => {
+        if (n === '[LOG] Gxt') return mockSheetLog;
+        throw new Error('Falha simulada na gravação de planilha de saída');
+      }
+    };
+
+    gerarGxtSelecaoLivre(['JAN2026'], mockPeculioOficial, mockSS);
+
+    assert.ok(valoresLog, 'Log deve ter sido gravado após a falha de renderização');
+    assert.strictEqual(valoresLog[2][1], 'FALHA');
+    assert.ok(valoresLog[7][1].includes('FALHA NA RENDERIZAÇÃO'), 'Detalhe deve indicar a falha de renderização');
+  });
+
+  // 23. Log Operacional Gxt: Registra CONCLUÍDO COM PENDÊNCIAS quando todos os túneis tiverem pendência
+  test('Log Operacional Gxt: grava CONCLUÍDO COM PENDÊNCIAS quando túneis armados possuem pendências', () => {
+    let valoresLog = null;
+
+    const mockSheetJan = [
+      {
+        data: '15/01/2026',
+        mike: '26E100',
+        boe: 'BOE123',
+        armas: 1,
+        policiais: [
+          { matricula: '999999-9', nome: 'POLICIAL SEM N', grad: 'SD', pelotao: '1º PEL', armas: 1 }
+        ]
+      }
+    ];
+
+    const mockSheetLog = {
+      getName: () => '[LOG] Gxt',
+      clear: () => {},
+      getRange: () => ({ setValues: (m) => { valoresLog = m; } })
+    };
+
+    const mockSS = {
+      getSheetByName: (n) => (n === '[LOG] Gxt' ? mockSheetLog : (n === 'JAN2026' ? mockSheetJan : null)),
+      insertSheet: () => mockSheetLog
+    };
+
+    gerarGxtSelecaoLivre(['JAN2026'], mockPeculioOficial, mockSS);
+
+    assert.ok(valoresLog, 'Log deve ter sido gravado');
+    assert.strictEqual(valoresLog[2][1], 'CONCLUÍDO COM PENDÊNCIAS');
+    assert.ok(valoresLog[7][1].includes('ATENÇÃO'), 'Detalhe final deve alertar para as pendências');
   });
 
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);

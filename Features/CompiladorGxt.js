@@ -496,7 +496,7 @@ class CompiladorGxt {
         numPend,
         numFogo,
         numArt,
-        m.diagnostico || 'APROVADO'
+        CompiladorGxt.formatarDiagnosticoEAcao(m.diagnostico)
       ]);
     });
 
@@ -515,16 +515,55 @@ class CompiladorGxt {
     if (typeof sheetLog.getRange === 'function') {
       const numRows = matrizLog.length;
       const numCols = 9;
-      sheetLog.getRange(1, 1, numRows, numCols).setValues(matrizLog);
+      const range = sheetLog.getRange(1, 1, numRows, numCols);
+      if (typeof range.setValues === 'function') {
+        range.setValues(matrizLog);
+      }
+
+      try {
+        if (typeof sheetLog.setFrozenRows === 'function') {
+          sheetLog.setFrozenRows(10);
+        }
+        if (typeof sheetLog.setFrozenColumns === 'function') {
+          sheetLog.setFrozenColumns(1);
+        }
+        const rangeTitulo = sheetLog.getRange(1, 1, 1, numCols);
+        if (rangeTitulo && typeof rangeTitulo.setFontWeight === 'function') {
+          rangeTitulo.setFontWeight('bold');
+        }
+        const rangeHeader = sheetLog.getRange(10, 1, 1, numCols);
+        if (rangeHeader && typeof rangeHeader.setFontWeight === 'function') {
+          rangeHeader.setFontWeight('bold');
+        }
+        const rangeTotal = sheetLog.getRange(numRows, 1, 1, numCols);
+        if (rangeTotal && typeof rangeTotal.setFontWeight === 'function') {
+          rangeTotal.setFontWeight('bold');
+        }
+      } catch (eFmt) {}
     }
 
     return sheetLog;
   }
+
+  static formatarDiagnosticoEAcao(cod) {
+    const mapa = {
+      'APROVADO': 'APROVADO — Nenhuma ação necessária',
+      'SEM_TUNEIS_ARMADOS': 'SEM_TUNEIS_ARMADOS — Nenhuma apreensão de armas registrada no mês',
+      'PECULIO_ACESSO_NEGADO': 'PECULIO_ACESSO_NEGADO — Autorizar permissão de acesso ao arquivo do Pecúlio',
+      'PECULIO_ABA_NAO_LOCALIZADA': 'PECULIO_ABA_NAO_LOCALIZADA — Verificar se a aba chama-se EFETIVO, PECULIO ou CÓPIA DE PECÚLIO COM PONTUAÇÃO',
+      'PECULIO_CABECALHO_NAO_LOCALIZADO': 'PECULIO_CABECALHO_NAO_LOCALIZADO — Verificar se os cabeçalhos ORD/N e MAT./MATRÍCULA existem',
+      'PECULIO_SEM_REGISTROS_VALIDOS': 'PECULIO_SEM_REGISTROS_VALIDOS — Verificar se a aba do Pecúlio contém linhas válidas',
+      'ANTIGUIDADE_AUSENTE': 'ANTIGUIDADE_AUSENTE — Cadastrar militar no Pecúlio com número N válido',
+      'EMPATE_ANTIGUIDADE': 'EMPATE_ANTIGUIDADE — Resolver empate de antiguidade N no cadastro do Pecúlio',
+      'ABA_MENSAL_NAO_LOCALIZADA': 'ABA_MENSAL_NAO_LOCALIZADA — Verificar se a aba do mês existe na planilha',
+      'EXCECAO_EXECUCAO': 'EXCECAO_EXECUCAO — Verificar log de execução'
+    };
+    if (mapa[cod]) return mapa[cod];
+    if (!cod) return 'APROVADO — Nenhuma ação necessária';
+    return `${cod} — Verificar pendência registrada`;
+  }
 }
 
-/**
- * Entry point para o modal de Seleção Livre do Gxt.
- */
 function abrirMenuGxtSelecaoLivre() {
   if (typeof HtmlService !== 'undefined' && typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
     const html = HtmlService.createHtmlOutputFromFile('Entrada/DialogGxtSelecaoLivre')
@@ -535,10 +574,6 @@ function abrirMenuGxtSelecaoLivre() {
   }
 }
 
-/**
- * Orquestrador da Seleção Livre do Gxt com bloqueios, diagnósticos claros e Log Operacional.
- * Nome de saída: GXT_ACUMULADO_<primeiro_mes>_<ultimo_mes>
- */
 function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
   if (!Array.isArray(meses) || meses.length === 0) {
     if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
@@ -597,25 +632,6 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
 
   const diag = dados._diagnostico || {};
 
-  const dadosLog = {
-    dataHora: new Date().toLocaleString('pt-BR'),
-    status: diag.peculioValido ? 'CONCLUÍDO' : 'FALHA',
-    modo: 'SELEÇÃO LIVRE',
-    meses: mesesOrdenados,
-    peculioStatus: diag.peculioValido ? 'DISPONÍVEL' : (diag.peculioErro || 'PECULIO_ACESSO_NEGADO'),
-    abasGeradas: diag.peculioValido ? [nomeAbaSaida] : [],
-    detalheFinal: diag.peculioValido
-      ? (diag.totalTuneisArmados > 0 && diag.totalTuneisProcessados === 0
-          ? 'ATENÇÃO: Todos os túneis armados possuem pendências.'
-          : 'Execução concluída com sucesso. Veja o detalhamento na aba [LOG] Gxt.')
-      : (`FALHA NO GXT: Pecúlio indisponível (${diag.peculioErro || 'DESCONHECIDO'}).`),
-    tabelaMensal: dados._logMeses || []
-  };
-
-  if (ss) {
-    CompiladorGxt.gerarLogOperacionalGxt(ss, dadosLog);
-  }
-
   if (!diag.peculioValido) {
     let acaoRecomendada = '';
     const codErro = diag.peculioErro || 'PECULIO_ABA_NAO_LOCALIZADA';
@@ -632,6 +648,19 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
       acaoRecomendada = `Ação recomendada: Verificar a integridade do arquivo do Pecúlio (${codErro}).`;
     }
 
+    if (ss) {
+      CompiladorGxt.gerarLogOperacionalGxt(ss, {
+        dataHora: new Date().toLocaleString('pt-BR'),
+        status: 'FALHA',
+        modo: 'SELEÇÃO LIVRE',
+        meses: mesesOrdenados,
+        peculioStatus: codErro,
+        abasGeradas: [],
+        detalheFinal: `FALHA NO GXT: Pecúlio indisponível (${codErro}).`,
+        tabelaMensal: dados._logMeses || []
+      });
+    }
+
     const msgErro = `FALHA NO GXT: A fonte oficial de antiguidade do Pecúlio não pôde ser processada.\n\nDiagnóstico: ${codErro}\n${diag.peculioDetalhe ? 'Detalhe: ' + diag.peculioDetalhe + '\n' : ''}${acaoRecomendada}\n\nNenhum relatório foi alterado. Veja a aba [LOG] Gxt para detalhes.`;
 
     if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
@@ -641,6 +670,19 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
   }
 
   if (diag.totalTuneisArmados > 0 && diag.totalTuneisProcessados === 0) {
+    if (ss) {
+      CompiladorGxt.gerarLogOperacionalGxt(ss, {
+        dataHora: new Date().toLocaleString('pt-BR'),
+        status: 'CONCLUÍDO COM PENDÊNCIAS',
+        modo: 'SELEÇÃO LIVRE',
+        meses: mesesOrdenados,
+        peculioStatus: 'DISPONÍVEL',
+        abasGeradas: [],
+        detalheFinal: 'ATENÇÃO: Todos os túneis armados possuem pendências de antiguidade.',
+        tabelaMensal: dados._logMeses || []
+      });
+    }
+
     const msgAviso = `ATENÇÃO GXT: Nenhum registro pôde ser processado para o relatório.\n- Fatos lidos: ${diag.totalFatosLidos}\n- Túneis armados encontrados: ${diag.totalTuneisArmados}\n- Túneis processados: 0\n- Túneis pendentes: ${diag.totalTuneisPendentes}\nMotivo: Todos os túneis armados possuem pendências de antiguidade. Veja a aba [LOG] Gxt.`;
     if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
       SpreadsheetApp.getUi().alert(msgAviso);
@@ -648,15 +690,50 @@ function gerarGxtSelecaoLivre(meses = [], fontePeculio = null, fonteSS = null) {
     return dados;
   }
 
+  let abasGeradas = [];
+  let erroRender = null;
+
   if (RendererMod && ss) {
-    RendererMod.renderizar(ss, dados, nomeAbaSaida);
+    try {
+      RendererMod.renderizar(ss, dados, nomeAbaSaida);
+      abasGeradas.push(nomeAbaSaida);
+    } catch (eR) {
+      erroRender = eR;
+    }
   }
+
+  let statusFinal = 'CONCLUÍDO';
+  let detalheFinal = 'Execução concluída com sucesso. Veja o detalhamento na aba [LOG] Gxt.';
+
+  if (erroRender) {
+    statusFinal = 'FALHA';
+    detalheFinal = `FALHA NA RENDERIZAÇÃO: ${erroRender.message || String(erroRender)}`;
+    abasGeradas = [];
+  } else if (diag.totalTuneisPendentes > 0) {
+    statusFinal = 'CONCLUÍDO COM PENDÊNCIAS';
+    detalheFinal = 'Execução concluída com pendências auditadas. Veja a aba [LOG] Gxt.';
+  }
+
+  if (ss) {
+    CompiladorGxt.gerarLogOperacionalGxt(ss, {
+      dataHora: new Date().toLocaleString('pt-BR'),
+      status: statusFinal,
+      modo: 'SELEÇÃO LIVRE',
+      meses: mesesOrdenados,
+      peculioStatus: 'DISPONÍVEL',
+      abasGeradas: abasGeradas,
+      detalheFinal: detalheFinal,
+      tabelaMensal: dados._logMeses || []
+    });
+  }
+
+  if (erroRender && typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
+    SpreadsheetApp.getUi().alert(`FALHA NA RENDERIZAÇÃO GXT: ${erroRender.message || String(erroRender)}. Veja a aba [LOG] Gxt.`);
+  }
+
   return dados;
 }
 
-/**
- * Orquestrador do Modo Anual do Gxt com Log Operacional Consolidado de 12 Meses.
- */
 function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
   const ss = fonteSS || ((typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.getActiveSpreadsheet === 'function')
     ? SpreadsheetApp.getActiveSpreadsheet()
@@ -679,6 +756,8 @@ function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
   const abasGeradasSucesso = [];
   let todosPeculiosValidos = true;
   let erroPeculioGlobal = null;
+  let erroRenderGlobal = null;
+  let temPendenciasGerais = false;
 
   trimestres.forEach(tri => {
     let dadosTri = {};
@@ -715,9 +794,18 @@ function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
     if (!diag.peculioValido) {
       todosPeculiosValidos = false;
       erroPeculioGlobal = diag.peculioErro || 'PECULIO_ACESSO_NEGADO';
-    } else if (RendererMod && ss) {
-      RendererMod.renderizar(ss, dadosTri, tri.nomeAba);
-      abasGeradasSucesso.push(tri.nomeAba);
+    } else {
+      if (diag.totalTuneisPendentes > 0 || (diag.totalTuneisArmados > 0 && diag.totalTuneisProcessados === 0)) {
+        temPendenciasGerais = true;
+      }
+      if (RendererMod && ss) {
+        try {
+          RendererMod.renderizar(ss, dadosTri, tri.nomeAba);
+          abasGeradasSucesso.push(tri.nomeAba);
+        } catch (eR) {
+          erroRenderGlobal = eR;
+        }
+      }
     }
   });
 
@@ -726,16 +814,28 @@ function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
     'JUL2026', 'AGO2026', 'SET2026', 'OUT2026', 'NOV2026', 'DEZ2026'
   ];
 
+  let statusAnual = 'CONCLUÍDO';
+  let detalheAnual = 'Execução anual concluída com sucesso (4 trimestres gerados). Veja o detalhamento na aba [LOG] Gxt.';
+
+  if (!todosPeculiosValidos) {
+    statusAnual = 'FALHA';
+    detalheAnual = `FALHA NO GXT ANUAL: Pecúlio inacessível (${erroPeculioGlobal}).`;
+  } else if (erroRenderGlobal) {
+    statusAnual = 'FALHA';
+    detalheAnual = `FALHA NA RENDERIZAÇÃO ANUAL: ${erroRenderGlobal.message || String(erroRenderGlobal)}`;
+  } else if (temPendenciasGerais) {
+    statusAnual = 'CONCLUÍDO COM PENDÊNCIAS';
+    detalheAnual = 'Execução anual concluída com pendências auditadas. Veja a aba [LOG] Gxt.';
+  }
+
   const dadosLogAnual = {
     dataHora: new Date().toLocaleString('pt-BR'),
-    status: todosPeculiosValidos ? 'CONCLUÍDO' : 'FALHA',
+    status: statusAnual,
     modo: 'ANUAL',
     meses: todosMeses,
     peculioStatus: todosPeculiosValidos ? 'DISPONÍVEL' : (erroPeculioGlobal || 'PECULIO_ACESSO_NEGADO'),
     abasGeradas: abasGeradasSucesso,
-    detalheFinal: todosPeculiosValidos
-      ? 'Execução anual concluída com sucesso (4 trimestres gerados). Veja o detalhamento na aba [LOG] Gxt.'
-      : (`FALHA NO GXT ANUAL: Pecúlio inacessível (${erroPeculioGlobal}).`),
+    detalheFinal: detalheAnual,
     tabelaMensal: todasLinhasLog
   };
 
@@ -743,8 +843,8 @@ function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
     CompiladorGxt.gerarLogOperacionalGxt(ss, dadosLogAnual);
   }
 
-  if (!todosPeculiosValidos && typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
-    SpreadsheetApp.getUi().alert(`FALHA NO GXT ANUAL: ${erroPeculioGlobal}. Veja a aba [LOG] Gxt.`);
+  if ((!todosPeculiosValidos || erroRenderGlobal) && typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
+    SpreadsheetApp.getUi().alert(`FALHA NO GXT ANUAL: ${erroPeculioGlobal || erroRenderGlobal}. Veja a aba [LOG] Gxt.`);
   }
 
   return resultadosTrimestrais;
