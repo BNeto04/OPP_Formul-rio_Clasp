@@ -4,16 +4,38 @@
  * DESCRIÇÃO: Implementação da FonteDados para o formato da OPP de 2026.
  * O adaptador NÃO agrega dados (Regra de Ouro #4). Ele apenas traduz linhas
  * físicas em instâncias de RegistroCanonico (Fatos).
+ * Estendido na TASK-M06.3-05I.2R para extrair armaFato (coluna ARMA), tipoArma e modeloArma separadamente.
  */
+
+let SyntheonCabecalhosMod = typeof SyntheonCabecalhos !== 'undefined' ? SyntheonCabecalhos : null;
+if (!SyntheonCabecalhosMod && typeof require !== 'undefined') {
+  try { SyntheonCabecalhosMod = require('../Core/Cabecalhos'); } catch (e) {}
+}
+
+let SyntheonUtilsMod = typeof SyntheonUtils !== 'undefined' ? SyntheonUtils : null;
+if (!SyntheonUtilsMod && typeof require !== 'undefined') {
+  try { SyntheonUtilsMod = require('../Core/Utils'); } catch (e) {}
+}
+
+let ConstantesMod = typeof CONSTANTES_SYNTHEON !== 'undefined' ? CONSTANTES_SYNTHEON : null;
+if (!ConstantesMod && typeof require !== 'undefined') {
+  try { ConstantesMod = require('../Core/Constantes'); } catch (e) {}
+}
+
+let RegistroCanonicoMod = typeof RegistroCanonico !== 'undefined' ? RegistroCanonico : null;
+if (!RegistroCanonicoMod && typeof require !== 'undefined') {
+  try { RegistroCanonicoMod = require('../Core/RegistroCanonico'); } catch (e) {}
+}
+
 class Adaptador2026 {
   /**
    * Converte o conteúdo da aba em um array de Registros Canônicos (um por linha válida)
-   * @param {SpreadsheetApp.Sheet} sheet - Aba do Google Sheets
+   * @param {SpreadsheetApp.Sheet|Array} fonte - Aba do Google Sheets ou Matriz 2D
    * @param {Object} metadado - Configuração da fonte via Metamodelos
    * @param {Object} mapaEfetivo - Dicionário de policiais ativos
    * @returns {Array<RegistroCanonico>}
    */
-  static extrairFatos(fonte, metadado, mapaEfetivo) {
+  static extrairFatos(fonte, metadado = {}, mapaEfetivo = null) {
     let dados = [];
     let nomeAba = metadado?.aba || '2026';
 
@@ -22,7 +44,7 @@ class Adaptador2026 {
       const lastCol = fonte.getLastColumn();
       if (lastRow < 2 || lastCol < 1) return [];
       dados = fonte.getRange(1, 1, lastRow, lastCol).getValues();
-      nomeAba = fonte.getName();
+      if (typeof fonte.getName === 'function') nomeAba = fonte.getName();
     } else if (Array.isArray(fonte)) {
       dados = fonte;
     } else {
@@ -32,9 +54,31 @@ class Adaptador2026 {
     if (dados.length < 2) return [];
 
     const rawHeaders = dados[0];
-    const loc = (chaveAlias) => (typeof SyntheonCabecalhos !== 'undefined')
-      ? SyntheonCabecalhos.encontrar(rawHeaders, chaveAlias)
-      : SyntheonUtils.localizarColuna(rawHeaders.map(h => SyntheonUtils.normalizarTexto(h)), chaveAlias);
+
+    const loc = (chaveAlias) => {
+      if (SyntheonCabecalhosMod && typeof SyntheonCabecalhosMod.encontrar === 'function') {
+        return SyntheonCabecalhosMod.encontrar(rawHeaders, chaveAlias);
+      }
+      if (SyntheonUtilsMod && typeof SyntheonUtilsMod.localizarColuna === 'function') {
+        return SyntheonUtilsMod.localizarColuna(rawHeaders.map(h => String(h || '').toUpperCase().trim()), chaveAlias);
+      }
+      const normHeaders = rawHeaders.map(h => String(h || '').toUpperCase().trim());
+      const aliases = (ConstantesMod && ConstantesMod.ALIASES && ConstantesMod.ALIASES[chaveAlias])
+        ? ConstantesMod.ALIASES[chaveAlias]
+        : [chaveAlias];
+
+      for (const alias of aliases) {
+        const normAlias = String(alias || '').toUpperCase().trim();
+        const exactIdx = normHeaders.indexOf(normAlias);
+        if (exactIdx !== -1) return exactIdx;
+      }
+      for (const alias of aliases) {
+        const normAlias = String(alias || '').toUpperCase().trim();
+        const partialIdx = normHeaders.findIndex(h => h.includes(normAlias));
+        if (partialIdx !== -1) return partialIdx;
+      }
+      return -1;
+    };
 
     const idx = {
       data: loc('DATA'),
@@ -49,7 +93,10 @@ class Adaptador2026 {
       militar: loc('POLICIAL'),
       grad: loc('GRAD'),
       pelotao: loc('PELOTAO'),
-      armas: loc('ARMAS'),
+      armaFato: loc('ARMA_FATO'),
+      tipoArma: loc('TIPO_ARMA'),
+      modeloArma: loc('MODELO_ARMA'),
+      qtdArmasReplicada: loc('QDT_ARMAS') !== -1 ? loc('QDT_ARMAS') : loc('ARMAS'),
       maconha: loc('MACONHA'),
       cocaina: loc('COCAINA'),
       crack: loc('CRACK'),
@@ -65,27 +112,34 @@ class Adaptador2026 {
 
     const registros = [];
 
+    const getNum = (colIdx, row) => {
+      if (colIdx === -1 || colIdx >= row.length) return 0;
+      if (SyntheonUtilsMod && typeof SyntheonUtilsMod.converterNumero === 'function') {
+        return SyntheonUtilsMod.converterNumero(row[colIdx]);
+      }
+      const val = row[colIdx];
+      if (typeof val === 'number') return isNaN(val) ? 0 : val;
+      const n = Number(String(val || '').replace(/\./g, '').replace(',', '.').trim());
+      return isNaN(n) ? 0 : n;
+    };
+
     for (let i = 1; i < dados.length; i++) {
       const row = dados[i];
-      let matriculaBruta = idx.matricula !== -1 ? String(row[idx.matricula]).trim() : '';
+      let matriculaBruta = idx.matricula !== -1 ? String(row[idx.matricula] || '').trim() : '';
       
       // Validação básica (Pula linhas em branco)
       if (!matriculaBruta) continue;
-      // Normalização rápida da matrícula (usaria SyntheonValidador no ambiente completo)
       let matricula = matriculaBruta.replace(/[^0-9X-]/gi, '').toUpperCase();
       if (matricula.indexOf('-') === -1 && matricula.length > 1) {
         matricula = matricula.slice(0, -1) + '-' + matricula.slice(-1);
       }
 
-      const mike = idx.mike !== -1 ? String(row[idx.mike]).trim() : '';
-      
-      // REGRA DO MIKE OBRIGATÓRIO: Se não tem MIKE, não é ocorrência (ignora dias sem alteração e linhas separadoras)
+      const mike = idx.mike !== -1 ? String(row[idx.mike] || '').trim() : '';
       if (!mike) continue;
 
-      const boe = idx.boe !== -1 ? String(row[idx.boe]).trim() : '';
+      const boe = idx.boe !== -1 ? String(row[idx.boe] || '').trim() : '';
       
       const rawData = idx.data !== -1 ? row[idx.data] : null;
-      // Trata a dependência segura caso converterDataUnificada ou formatarDataBR não estejam no escopo imediato (embora estejam no GAS)
       let dataStr = '';
       if (typeof converterDataUnificada === 'function' && typeof formatarDataBR === 'function') {
         dataStr = formatarDataBR(converterDataUnificada(rawData));
@@ -95,28 +149,27 @@ class Adaptador2026 {
         const y = rawData.getFullYear();
         dataStr = `${d}/${m}/${y}`;
       } else {
-        dataStr = String(rawData).split(' ')[0];
+        dataStr = String(rawData || '').split(' ')[0];
       }
 
       const chave = `${dataStr}|${mike}|${boe}`;
 
-      // Enriquecimento do Policial via Efetivo
       const cadastro = mapaEfetivo && mapaEfetivo[matricula] ? mapaEfetivo[matricula] : null;
-      let nome = cadastro ? cadastro.nome : (idx.militar !== -1 ? String(row[idx.militar]).trim() : 'N/I');
-      let grad = cadastro ? cadastro.graduacao : (idx.grad !== -1 ? String(row[idx.grad]).trim() : 'N/I');
-      let pelotao = cadastro && cadastro.pelotao ? cadastro.pelotao : (idx.pelotao !== -1 ? String(row[idx.pelotao]).trim() : 'N/I');
+      let nome = cadastro ? cadastro.nome : (idx.militar !== -1 ? String(row[idx.militar] || '').trim() : 'N/I');
+      let grad = cadastro ? cadastro.graduacao : (idx.grad !== -1 ? String(row[idx.grad] || '').trim() : 'N/I');
+      let pelotao = cadastro && cadastro.pelotao ? cadastro.pelotao : (idx.pelotao !== -1 ? String(row[idx.pelotao] || '').trim() : 'N/I');
 
-      // Captura segura de números
-      const getNum = (colIdx) => colIdx !== -1 ? SyntheonUtils.converterNumero(row[colIdx]) : 0;
+      const valArmaFato = idx.armaFato !== -1 ? getNum(idx.armaFato, row) : 0;
+      const valTipoArma = idx.tipoArma !== -1 ? String(row[idx.tipoArma] || '').trim() : '';
+      const valModeloArma = idx.modeloArma !== -1 ? String(row[idx.modeloArma] || '').trim() : '';
+      const valQtdReplicada = idx.qtdArmasReplicada !== -1 ? getNum(idx.qtdArmasReplicada, row) : 0;
 
-      // Cria a instância canônica representando ESTE fato imutável (esta linha exata)
-      // O Leitor NÃO soma, apenas traduz a linha física para a linguagem oficial.
-      const registro = new RegistroCanonico({
+      const payload = {
         origem: {
           ano: 2026,
           aba: nomeAba,
           linha: i + 1,
-          versaoEstrutura: metadado.versao
+          versaoEstrutura: metadado.versao || '2026'
         },
         coberturaHistorica: metadado.coberturaHistorica,
         ocorrencia: {
@@ -127,32 +180,41 @@ class Adaptador2026 {
           natureza: idx.natureza !== -1 ? row[idx.natureza] : '',
           cidade: idx.cidade !== -1 ? row[idx.cidade] : '',
           bairro: idx.bairro !== -1 ? row[idx.bairro] : '',
-          ais: getNum(idx.ais)
+          ais: getNum(idx.ais, row),
+          armaFato: valArmaFato,
+          tipoArma: valTipoArma,
+          modeloArma: valModeloArma,
+          qtdArmasReplicada: valQtdReplicada
         },
         metricasPrimarias: {
-          pontosTotais: getNum(idx.pontosTotais),
-          detidos: getNum(idx.detidos),
-          apfd: getNum(idx.apfd),
-          tco: getNum(idx.tco),
-          boc: getNum(idx.boc)
+          pontosTotais: getNum(idx.pontosTotais, row),
+          detidos: getNum(idx.detidos, row),
+          apfd: getNum(idx.apfd, row),
+          tco: getNum(idx.tco, row),
+          boc: getNum(idx.boc, row)
         },
         eventoPontuavel: {
-          indicador: idx.indicadorPip !== -1 ? String(row[idx.indicadorPip]).trim() : '',
-          imputado: idx.imputado !== -1 ? String(row[idx.imputado]).trim() : ''
+          indicador: idx.indicadorPip !== -1 ? String(row[idx.indicadorPip] || '').trim() : '',
+          imputado: idx.imputado !== -1 ? String(row[idx.imputado] || '').trim() : ''
         },
         policiais: [{
           matricula: matricula,
           nome: nome.toUpperCase(),
           graduacao: grad.toUpperCase(),
           pelotao: pelotao,
-          pontosRateados: getNum(idx.pontosFiccao),
-          armas: Math.max(0, getNum(idx.armas)),
-          maconha: Math.max(0, getNum(idx.maconha)),
-          cocaina: Math.max(0, getNum(idx.cocaina)),
-          crack: Math.max(0, getNum(idx.crack))
+          pontosRateados: getNum(idx.pontosFiccao, row),
+          armaFato: valArmaFato,
+          tipoArma: valTipoArma,
+          modeloArma: valModeloArma,
+          qtdArmasReplicada: valQtdReplicada,
+          armas: Math.max(0, valArmaFato),
+          maconha: Math.max(0, getNum(idx.maconha, row)),
+          cocaina: Math.max(0, getNum(idx.cocaina, row)),
+          crack: Math.max(0, getNum(idx.crack, row))
         }]
-      });
+      };
 
+      const registro = RegistroCanonicoMod ? new RegistroCanonicoMod(payload) : payload;
       registros.push(registro);
     }
 

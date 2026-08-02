@@ -25,6 +25,10 @@ const constantes = {
     AIS: ['AIS'],
     
     // Métricas
+    ARMA_FATO: ['ARMA'],
+    TIPO_ARMA: ['TIPO', 'TIPO ARMA', 'TIPO DE ARMA'],
+    MODELO_ARMA: ['MODELO', 'MODELO ARMA', 'MODELO DE ARMA'],
+    QDT_ARMAS: ['QDT ARMAS', 'QTD ARMAS'],
     ARMAS: ['QDT ARMAS', 'QTD ARMAS', 'ARMAS'],
     ARMA_LINHA: ['ARMA'],
     MACONHA: ['TOTAL DE MACONHA', 'MACONHA', 'TOTAL MACONHA', 'DIVIDIDO MAC'],

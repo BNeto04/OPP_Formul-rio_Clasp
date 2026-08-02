@@ -207,30 +207,30 @@ class CompiladorGxt {
 
       // Converte explicitamente os Registros Canônicos / DTOs brutos no objeto plano esperado pela Política de Armas
       const ocorrenciasNormalizadas = ocorrenciasBrutas.map(reg => {
-        if (reg.data !== undefined && reg.mike !== undefined && Array.isArray(reg.policiais) && typeof reg.armas === 'number' && reg.ocorrencia === undefined) {
-          return reg;
-        }
-
         const ocInfo = reg.ocorrencia || {};
         const pmsRaw = Array.isArray(reg.policiais) ? reg.policiais : [];
 
         let totalArmasFogo = 0;
         let totalArmasArtesanais = 0;
-        let tipoArmaDetectado = reg.tipoArma || '';
+        let tipoArmaDetectado = ocInfo.tipoArma || reg.tipoArma || '';
 
         const pmsFormatados = pmsRaw.map(p => {
-          const armasP = Number(p.armas || p.qtdArmas || p.armaFato || 0);
+          const armasP = Number(p.armaFato !== undefined ? p.armaFato : (ocInfo.armaFato !== undefined ? ocInfo.armaFato : (p.armas !== undefined ? p.armas : 0)));
+          const valArmaFisica = isNaN(armasP) ? 0 : armasP;
 
-          const strCheck = `${p.tipoArma || ''} ${p.modelo || ''} ${p.descricaoArma || ''} ${p.arma || ''}`.toUpperCase();
+          const tipoP = p.tipoArma || ocInfo.tipoArma || reg.tipoArma || '';
+          const modeloP = p.modeloArma || p.modelo || ocInfo.modeloArma || reg.modelo || '';
+          const strCheck = `${tipoP} ${modeloP} ${p.descricaoArma || ''} ${p.arma || ''} ${ocInfo.natureza || ''}`.toUpperCase();
+
           if (p.isArtesanal || strCheck.includes('ARTESANAL')) {
             totalArmasArtesanais += 1;
-            if (!isNaN(armasP) && armasP > 0) {
-              totalArmasFogo += armasP;
+            if (valArmaFisica > 0) {
+              totalArmasFogo += valArmaFisica;
             }
             tipoArmaDetectado = 'ARTESANAL';
           } else {
-            if (!isNaN(armasP) && armasP > 0) {
-              totalArmasFogo += armasP;
+            if (valArmaFisica > 0) {
+              totalArmasFogo += valArmaFisica;
             }
           }
 
@@ -242,8 +242,8 @@ class CompiladorGxt {
           };
         });
 
-        const rawArmaFato = reg.armas || ocInfo.armas || 0;
-        const strRegCheck = `${reg.tipoArma || ''} ${reg.indicadorPip || ''} ${reg.descricaoArma || ''} ${reg.arma || ''}`.toUpperCase();
+        const rawArmaFato = ocInfo.armaFato !== undefined ? ocInfo.armaFato : (reg.armaFato !== undefined ? reg.armaFato : reg.armas);
+        const strRegCheck = `${tipoArmaDetectado} ${ocInfo.modeloArma || ''} ${reg.indicadorPip || ''} ${ocInfo.natureza || ''}`.toUpperCase();
         if (reg.isArtesanal || strRegCheck.includes('ARTESANAL')) {
           if (totalArmasArtesanais === 0) totalArmasArtesanais = 1;
           tipoArmaDetectado = 'ARTESANAL';
@@ -256,6 +256,7 @@ class CompiladorGxt {
           mike: ocInfo.mike || ocInfo.chaveOcorrencia || reg.mike || '',
           boe: ocInfo.boe || ocInfo.numeroBOE || reg.boe || '',
           armas: totalArmasFogo,
+          armasFogo: totalArmasFogo,
           armasArtesanais: totalArmasArtesanais,
           tipoArma: tipoArmaDetectado,
           isArtesanal: tipoArmaDetectado === 'ARTESANAL',

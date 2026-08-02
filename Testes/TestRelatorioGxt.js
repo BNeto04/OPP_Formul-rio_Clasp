@@ -29,14 +29,15 @@ function executarTestesGxt() {
     getSheetByName: (n) => {
       if (n === 'EFETIVO' || n === 'PECULIO') {
         return {
-          getLastRow: () => 4,
+          getLastRow: () => 5,
           getLastColumn: () => 5,
           getRange: () => ({
             getValues: () => [
-              ['N', 'MATRÍCULA', 'GRAD', 'NOME', 'DESIGNAÇÃO'],
+              ['ORD', 'MATRÍCULA', 'GRAD.', 'NOME DE GUERRA', 'SUB-UNIDADE'],
               [1, '108394-5', '3º SGT', 'IRAN SILVA', '1º PEL GTAR'],
               [5, '102950-9', '2º SGT', 'SAULO ALVES', '2º PEL GTAR'],
-              [12, '113920-7', '3º SGT', 'MARCONI LIMA', '1º PEL']
+              [12, '113920-7', '3º SGT', 'MARCONI LIMA', '1º PEL'],
+              [30, '118108-4', 'CB', 'CB TORRES', '2º PEL']
             ]
           })
         };
@@ -474,6 +475,82 @@ function executarTestesGxt() {
     assert.strictEqual(matrizDados.valores[2][3], '1 + ARTESANAL');
     // Linha de resumo do 1º PEL GTAR (linha 6, idx 5, coluna D/idx 3) deve somar Apenas 1 (armas de fogo numéricas)
     assert.strictEqual(matrizDados.valores[5][3], 1);
+  });
+
+  // 17. Pipeline Integrado com Cabeçalhos Reais e Adaptador2026 (TASK-M06.3-05I.2R)
+  test('Pipeline Integrado com Cabeçalhos Reais (Adaptador2026 -> Compilador -> Política -> Renderer): desduplica QDT ARMAS, trata artesanal e preserva resumos numéricos', () => {
+    const rawHeaders = ['DATA', 'HORA', 'MIKE', 'BOE', 'ARMA', 'TIPO', 'MODELO', 'QDT ARMAS', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO'];
+
+    // Mês 1: 4 policiais da mesma equipe no mesmo túnel com QDT ARMAS = 1 e apenas ARMA = 1 na linha 1
+    const rawJan = [
+      rawHeaders,
+      ['15/01/2026', '10:00', '26E100', 'BOE1', 1, 'PISTOLA', 'TAURUS', 1, '108394-5', 'IRAN SILVA', '3º SGT', '1º PEL GTAR'],
+      ['15/01/2026', '10:00', '26E100', 'BOE1', 0, '', '', 1, '102950-9', 'SAULO ALVES', '2º SGT', '2º PEL GTAR'],
+      ['15/01/2026', '10:00', '26E100', 'BOE1', 0, '', '', 1, '113920-7', 'MARCONI LIMA', '3º SGT', '1º PEL'],
+      ['15/01/2026', '10:00', '26E100', 'BOE1', 0, '', '', 1, '118108-4', 'CB TORRES', 'CB', '2º PEL']
+    ];
+
+    // Mês 2: 1 arma artesanal pura
+    const rawFev = [
+      rawHeaders,
+      ['10/02/2026', '14:00', '26E200', 'BOE2', 0, 'ARTESANAL', 'GARRUCHA', 1, '108394-5', 'IRAN SILVA', '3º SGT', '1º PEL GTAR']
+    ];
+
+    // Mês 3: Túnel duplo (1 arma de fogo + 1 arma artesanal no mesmo túnel)
+    const rawMar = [
+      rawHeaders,
+      ['15/03/2026', '18:00', '26E300', 'BOE3', 1, 'PISTOLA', 'TAURUS', 1, '108394-5', 'IRAN SILVA', '3º SGT', '1º PEL GTAR'],
+      ['15/03/2026', '18:00', '26E300', 'BOE3', 0, 'ARTESANAL', 'ESCOPETA', 1, '108394-5', 'IRAN SILVA', '3º SGT', '1º PEL GTAR']
+    ];
+
+    const mockSheetJan = { getName: () => 'JAN2026', getLastRow: () => 5, getLastColumn: () => 12, getRange: () => ({ getValues: () => rawJan }) };
+    const mockSheetFev = { getName: () => 'FEV2026', getLastRow: () => 2, getLastColumn: () => 12, getRange: () => ({ getValues: () => rawFev }) };
+    const mockSheetMar = { getName: () => 'MAR2026', getLastRow: () => 3, getLastColumn: () => 12, getRange: () => ({ getValues: () => rawMar }) };
+
+    const mockSS = {
+      getSheetByName: (n) => {
+        if (n === 'JAN2026') return mockSheetJan;
+        if (n === 'FEV2026') return mockSheetFev;
+        if (n === 'MAR2026') return mockSheetMar;
+        return null;
+      }
+    };
+
+    const resultado = CompiladorGxt.compilar(mockSS, ['JAN2026', 'FEV2026', 'MAR2026'], mockPeculioOficial);
+
+    // Assertiva 1: Mês 1 - 4 policiais com QDT ARMAS = 1 geram exatamente 1 arma de fogo (não 4!)
+    assert.strictEqual(resultado['JAN2026'].registros.length, 1);
+    assert.strictEqual(resultado['JAN2026'].registros[0].qtdArmas, 1, 'Quatro policiais com QDT ARMAS=1 e ARMA=1 devem gerar 1');
+    assert.strictEqual(resultado['JAN2026'].resumo['1º PEL GTAR'], 1, 'Resumo do 1º PEL GTAR deve ser 1 em JAN2026');
+
+    // Assertiva 2: Mês 2 - Artesanal pura vira 0 nas armas de fogo numéricas para cards
+    assert.strictEqual(resultado['FEV2026'].registros.length, 1);
+    assert.strictEqual(resultado['FEV2026'].registros[0].armasFogo, 0);
+    assert.strictEqual(resultado['FEV2026'].registros[0].armasArtesanais, 1);
+    assert.strictEqual(resultado['FEV2026'].resumo['TOTAL'], 0, 'Resumo numérico não deve somar texto artesanal');
+
+    // Assertiva 3: Mês 3 - Caso misto preserva fogo (1) e artesanal (1)
+    assert.strictEqual(resultado['MAR2026'].registros.length, 1);
+    assert.strictEqual(resultado['MAR2026'].registros[0].armasFogo, 1);
+    assert.strictEqual(resultado['MAR2026'].registros[0].armasArtesanais, 1);
+    assert.strictEqual(resultado['MAR2026'].resumo['TOTAL'], 1, 'Resumo numérico soma apenas a arma de fogo do caso misto');
+
+    // Renderização final
+    let matrizDados = null;
+    const mockSheetTarget = {
+      getName: () => 'GXT_1T_2026',
+      clear: () => {},
+      _definirDadosMatriz: (m) => { matrizDados = m; }
+    };
+    const mockSSOutput = { getSheetByName: () => mockSheetTarget, insertSheet: () => mockSheetTarget };
+
+    RendererGxt.renderizar(mockSSOutput, resultado, 'GXT_1T_2026');
+
+    assert.ok(matrizDados);
+    // Linha do detalhe do mês 2 (FEV2026) exibe 'ARTESANAL'
+    assert.strictEqual(matrizDados.valores[2][9], 'ARTESANAL'); // Coluna D do bloco FEV2026 (col 6 + 3 = 9)
+    // Linha do detalhe do mês 3 (MAR2026) exibe '1 + ARTESANAL'
+    assert.strictEqual(matrizDados.valores[2][15], '1 + ARTESANAL'); // Coluna D do bloco MAR2026 (col 12 + 3 = 15)
   });
 
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);
