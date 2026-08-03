@@ -850,11 +850,109 @@ function gerarGxtAnual(fonteSS = null, fontePeculio = null) {
   return resultadosTrimestrais;
 }
 
+/**
+ * Executa o Diagnóstico Determinístico de Túneis GXT para um mês específico
+ * e escreve o resultado exclusivamente na aba descartável [DIAGNOSTICO] Gxt.
+ */
+function diagnosticarGxtMes_(nomeMes = 'ABR2026', fonteSS = null, fontePeculio = null) {
+  let DiagnosticoMod = typeof DiagnosticoDeterministicoGxt !== 'undefined' ? DiagnosticoDeterministicoGxt : null;
+  if (!DiagnosticoMod && typeof require !== 'undefined') {
+    try { DiagnosticoMod = require('../Motor/DiagnosticoDeterministicoGxt').DiagnosticoDeterministicoGxt; } catch (e) {}
+  }
+
+  let LeitorPeculioMod = typeof LeitorAntiguidadePeculio !== 'undefined' ? LeitorAntiguidadePeculio : null;
+  if (!LeitorPeculioMod && typeof require !== 'undefined') {
+    try { LeitorPeculioMod = require('../Leitura/LeitorAntiguidadePeculio'); } catch (e) {}
+  }
+
+  const ss = fonteSS || ((typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.getActiveSpreadsheet === 'function')
+    ? SpreadsheetApp.getActiveSpreadsheet()
+    : null);
+
+  if (!ss) return null;
+
+  const sheetMes = CompiladorGxt.localizarAbaMes(ss, nomeMes);
+  if (!sheetMes) {
+    if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
+      SpreadsheetApp.getUi().alert(`Aba do mês ${nomeMes} não foi localizada na planilha.`);
+    }
+    return null;
+  }
+
+  let mapAntiguidade = {};
+  if (LeitorPeculioMod) {
+    let fPeculio = fontePeculio;
+    if (!fPeculio && typeof CONFIG_SYNTHEON !== 'undefined' && typeof CONFIG_SYNTHEON.obterIdPeculio === 'function') {
+      const idPeculio = CONFIG_SYNTHEON.obterIdPeculio();
+      if (idPeculio && typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.openById === 'function') {
+        try { fPeculio = SpreadsheetApp.openById(idPeculio); } catch (e) {}
+      }
+    }
+    if (fPeculio) {
+      const resP = LeitorPeculioMod.lerMapaAntiguidade(fPeculio);
+      mapAntiguidade = resP.mapa || {};
+    }
+  }
+
+  const diagRes = DiagnosticoMod.diagnosticarMes(sheetMes, mapAntiguidade, nomeMes);
+  const matriz = DiagnosticoMod.montarMatrizDiagnostico(diagRes);
+
+  const NOME_ABA_DIAG = '[DIAGNOSTICO] Gxt';
+  let sheetDiag = ss.getSheetByName(NOME_ABA_DIAG);
+  if (!sheetDiag && typeof ss.insertSheet === 'function') {
+    sheetDiag = ss.insertSheet(NOME_ABA_DIAG);
+  }
+
+  if (sheetDiag) {
+    if (typeof sheetDiag.clear === 'function') {
+      sheetDiag.clear();
+    } else if (typeof sheetDiag.clearContents === 'function') {
+      sheetDiag.clearContents();
+    }
+
+    if (typeof sheetDiag.getRange === 'function') {
+      const numRows = matriz.length;
+      const numCols = 12;
+      const range = sheetDiag.getRange(1, 1, numRows, numCols);
+      if (typeof range.setValues === 'function') {
+        range.setValues(matriz);
+      }
+
+      try {
+        if (typeof sheetDiag.setFrozenRows === 'function') sheetDiag.setFrozenRows(8);
+        if (typeof sheetDiag.setFrozenColumns === 'function') sheetDiag.setFrozenColumns(1);
+        const rTit = sheetDiag.getRange(1, 1, 1, numCols);
+        if (rTit && typeof rTit.setFontWeight === 'function') rTit.setFontWeight('bold');
+        const rHead = sheetDiag.getRange(8, 1, 1, numCols);
+        if (rHead && typeof rHead.setFontWeight === 'function') rHead.setFontWeight('bold');
+        const rTot = sheetDiag.getRange(numRows, 1, 1, numCols);
+        if (rTot && typeof rTot.setFontWeight === 'function') rTot.setFontWeight('bold');
+      } catch (eFmt) {}
+    }
+  }
+
+  if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) {
+    SpreadsheetApp.getUi().alert(`DIAGNOSTICO GXT (${nomeMes}):\n${diagRes.reconciliacaoTexto}\n\nVeja o detalhamento na aba [DIAGNOSTICO] Gxt.`);
+  }
+
+  return diagRes;
+}
+
+/**
+ * Função global específica para diagnosticar ABR2026.
+ */
+function diagnosticarGxtAbril_(fonteSS = null, fontePeculio = null) {
+  return diagnosticarGxtMes_('ABR2026', fonteSS, fontePeculio);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     CompiladorGxt,
     abrirMenuGxtSelecaoLivre,
     gerarGxtSelecaoLivre,
-    gerarGxtAnual
+    gerarGxtAnual,
+    diagnosticarGxtMes_,
+    diagnosticarGxtAbril_
   };
 }
+

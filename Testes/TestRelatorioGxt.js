@@ -7,8 +7,9 @@
 const assert = require('assert');
 const ModGxt = require('../Features/CompiladorGxt');
 const CompiladorGxt = ModGxt.CompiladorGxt || ModGxt;
-const { gerarGxtSelecaoLivre, gerarGxtAnual } = ModGxt;
+const { gerarGxtSelecaoLivre, gerarGxtAnual, diagnosticarGxtMes_, diagnosticarGxtAbril_ } = ModGxt;
 const RendererGxt = require('../Render/RendererGxt');
+const { DiagnosticoDeterministicoGxt } = require('../Motor/DiagnosticoDeterministicoGxt');
 
 function executarTestesGxt() {
   console.log('🧪 Iniciando Testes Unitários e Integrados: Relatório Trimestral Gxt (M06.3-05I.2)...\n');
@@ -815,6 +816,113 @@ function executarTestesGxt() {
     assert.ok(valoresLog[7][1].includes('ATENÇÃO'), 'Detalhe final deve alertar para as pendências');
   });
 
+  test('DiagnosticoDeterministicoGxt: BOE Vazio com MIKE valido agrupa por DATA|MIKE|', () => {
+    const mockSheet = [
+      ['DATA', 'MIKE', 'BOE', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO', 'ARMA'],
+      ['2026-04-10', '26E101', '', '11111', 'SILVA', 'CB', '1º PEL', 1]
+    ];
+    const mapPeculio = { '11111': 10 };
+
+    const res = DiagnosticoDeterministicoGxt.diagnosticarMes(mockSheet, mapPeculio, 'ABR2026');
+    assert.strictEqual(res.totalArmasFisicas, 1);
+    assert.strictEqual(res.totalArmasGxt, 1);
+    assert.strictEqual(res.fatosFisicos[0].chaveTunel, '2026-04-10_26E101_');
+    assert.strictEqual(res.fatosFisicos[0].statusFato, 'PROCESSADO');
+  });
+
+  test('DiagnosticoDeterministicoGxt: Lider sem matricula na linha armada vs integrante com matricula no tunel', () => {
+    const mockSheetComEquipe = [
+      ['DATA', 'MIKE', 'BOE', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO', 'ARMA'],
+      ['2026-04-12', '26E102', 'BOE001', '', 'S TORRES', 'SD', '1º PEL', 1],
+      ['2026-04-12', '26E102', 'BOE001', '22222', 'RODRIGUES', 'CB', '1º PEL', 0]
+    ];
+
+    const mockSheetSemEquipe = [
+      ['DATA', 'MIKE', 'BOE', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO', 'ARMA'],
+      ['2026-04-12', '26E103', 'BOE002', '', 'CRAVEIRO', 'SD', '1º PEL', 1]
+    ];
+
+    const mapPeculio = { '22222': 5 };
+
+    const resComEquipe = DiagnosticoDeterministicoGxt.diagnosticarMes(mockSheetComEquipe, mapPeculio, 'ABR2026');
+    assert.strictEqual(resComEquipe.totalArmasGxt, 1);
+    assert.ok(resComEquipe.fatosFisicos[0].liderResolvido.includes('RODRIGUES'), 'Deve selecionar integrante de outra linha com matrícula e N válido');
+
+    const resSemEquipe = DiagnosticoDeterministicoGxt.diagnosticarMes(mockSheetSemEquipe, mapPeculio, 'ABR2026');
+    assert.strictEqual(resSemEquipe.totalArmasGxt, 0);
+    assert.strictEqual(resSemEquipe.totalExcluidas, 1);
+    assert.ok(resSemEquipe.fatosFisicos[0].motivoFato.includes('MATRICULA_AUSENTE'), 'Sem matrícula na equipe deve resultar em exclusão/pendência');
+  });
+
+  test('DiagnosticoDeterministicoGxt: Tunel com multiplas armas fisicas em linhas distintas', () => {
+    const mockSheet = [
+      ['DATA', 'MIKE', 'BOE', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO', 'ARMA'],
+      ['2026-04-15', '26E105', 'BOE005', '33333', 'ALVES', '3º SGT', '2º PEL', 2],
+      ['2026-04-15', '26E105', 'BOE005', '44444', 'BATISTA', 'CB', '2º PEL', 1]
+    ];
+    const mapPeculio = { '33333': 15, '44444': 25 };
+
+    const res = DiagnosticoDeterministicoGxt.diagnosticarMes(mockSheet, mapPeculio, 'ABR2026');
+    assert.strictEqual(res.totalArmasFisicas, 3);
+    assert.strictEqual(res.fatosFisicos.length, 2);
+    assert.strictEqual(res.fatosFisicos[0].totalArmasFisicas, 2);
+    assert.strictEqual(res.fatosFisicos[1].totalArmasFisicas, 1);
+  });
+
+  test('DiagnosticoDeterministicoGxt: Fixture controlada de Abril homologa 40 armas fisicas = 33 incluidas + 7 excluidas', () => {
+    // Fixture controlada representando Abril com 40 armas físicas no total (33 processadas + 7 excluídas)
+    const mockAbrilControlado = [
+      ['DATA', 'MIKE', 'BOE', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO', 'ARMA']
+    ];
+
+    const mapPeculioControlado = {};
+
+    // 1. Gera 33 linhas físicas homologadas (1 arma cada, matrícula válida com N)
+    for (let i = 1; i <= 33; i++) {
+      const mat = `MAT_${i}`;
+      mapPeculioControlado[mat] = i; // N válido
+      mockAbrilControlado.push([
+        `2026-04-${String((i % 25) + 1).padStart(2, '0')}`,
+        `MIKE_${i}`,
+        `BOE_${i}`,
+        mat,
+        `MILITAR_${i}`,
+        'CB',
+        '1º PEL GTAR',
+        1
+      ]);
+    }
+
+    // 2. Adiciona as 7 divergências de referência para fechar 40 armas físicas
+    // Divergência 1 (Linha 31): S TORRES (07/04, sem matrícula)
+    mockAbrilControlado.push(['2026-04-07', 'MIKE_DIV1', 'BOE_DIV1', '', 'S TORRES', 'SD', '1º PEL', 1]);
+
+    // Divergência 2-3 (Linhas 107-109): 2 armas em túnel sem Pecúlio N válido (PENDENTE_AUDITORIA)
+    mockAbrilControlado.push(['2026-04-18', 'MIKE_DIV2', 'BOE_DIV2', 'MAT_SEM_PECULIO_1', 'MILITAR_SEM_N_1', 'SD', '2º PEL', 2]);
+
+    // Divergência 4 (Linhas 138-139): 1 arma com BOE vazio e sem Pecúlio N válido
+    mockAbrilControlado.push(['2026-04-20', 'MIKE_DIV3', '', 'MAT_SEM_PECULIO_2', 'MILITAR_SEM_N_2', 'SD', '2º PEL', 1]);
+
+    // Divergência 5 (Linha 142): AUGUSTO, BOE vazio sem Pecúlio N válido
+    mockAbrilControlado.push(['2026-04-21', 'MIKE_DIV4', '', 'MAT_SEM_PECULIO_3', 'AUGUSTO', 'SD', '2º PEL', 1]);
+
+    // Divergência 6 (Linha 146): CRAVEIRO, sem matrícula
+    mockAbrilControlado.push(['2026-04-22', 'MIKE_DIV5', 'BOE_DIV5', '', 'CRAVEIRO', 'SD', '1º PEL', 1]);
+
+    // Divergência 7 (Linha 194): S TORRES (29/04, sem matrícula)
+    mockAbrilControlado.push(['2026-04-29', 'MIKE_DIV6', 'BOE_DIV6', '', 'S TORRES', 'SD', '1º PEL', 1]);
+
+    const diag = DiagnosticoDeterministicoGxt.diagnosticarMes(mockAbrilControlado, mapPeculioControlado, 'ABR2026');
+
+    assert.strictEqual(diag.totalArmasFisicas, 40, 'Total de armas físicas deve ser exatamente 40');
+    assert.strictEqual(diag.totalArmasGxt, 33, 'Total de armas incluídas no GXT deve ser exatamente 33');
+    assert.strictEqual(diag.totalExcluidas, 7, 'Total de armas excluídas/perdidas deve ser exatamente 7');
+    assert.ok(diag.reconciliacaoTexto.includes('40 armas físicas = 33 incluídas no GXT + 7 excluídas/perdidas'), 'Reconciliação textual deve ser exata');
+
+    const matrizLog = DiagnosticoDeterministicoGxt.montarMatrizDiagnostico(diag);
+    assert.strictEqual(matrizLog.length, 39 + 8 + 1, 'Matriz deve conter cabeçalho (8 linhas), 39 fatos físicos e 1 linha TOTAL');
+  });
+
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);
 }
 
@@ -823,3 +931,4 @@ executarTestesGxt();
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { executarTestesGxt };
 }
+

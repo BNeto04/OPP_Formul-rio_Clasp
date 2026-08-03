@@ -57,6 +57,8 @@ function criarMenuGxt_() {
   ui.createMenu('Gxt')
     .addItem('Selecao livre', 'abrirMenuGxtSelecaoLivre')
     .addItem('Anual', 'gerarGxtAnual')
+    .addSeparator()
+    .addItem('[Dev] Diagnosticar GXT (Abril)', 'diagnosticarGxtAbril_')
     .addToUi();
 }
 
