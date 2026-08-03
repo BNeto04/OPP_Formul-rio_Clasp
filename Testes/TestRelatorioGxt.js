@@ -898,13 +898,13 @@ function executarTestesGxt() {
     mockAbrilControlado.push(['2026-04-07', 'MIKE_DIV1', 'BOE_DIV1', '', 'S TORRES', 'SD', '1º PEL', 1]);
 
     // Divergência 2-3 (Linhas 107-109): 2 armas em túnel sem Pecúlio N válido (PENDENTE_AUDITORIA)
-    mockAbrilControlado.push(['2026-04-18', 'MIKE_DIV2', 'BOE_DIV2', 'MAT_SEM_PECULIO_1', 'MILITAR_SEM_N_1', 'SD', '2º PEL', 2]);
+    mockAbrilControlado.push(['2026-04-18', 'MIKE_DIV2', 'BOE_DIV2', 'MAT_SEM_PECULIO_991', 'MILITAR_SEM_N_1', 'SD', '2º PEL', 2]);
 
     // Divergência 4 (Linhas 138-139): 1 arma com BOE vazio e sem Pecúlio N válido
-    mockAbrilControlado.push(['2026-04-20', 'MIKE_DIV3', '', 'MAT_SEM_PECULIO_2', 'MILITAR_SEM_N_2', 'SD', '2º PEL', 1]);
+    mockAbrilControlado.push(['2026-04-20', 'MIKE_DIV3', '', 'MAT_SEM_PECULIO_992', 'MILITAR_SEM_N_2', 'SD', '2º PEL', 1]);
 
     // Divergência 5 (Linha 142): AUGUSTO, BOE vazio sem Pecúlio N válido
-    mockAbrilControlado.push(['2026-04-21', 'MIKE_DIV4', '', 'MAT_SEM_PECULIO_3', 'AUGUSTO', 'SD', '2º PEL', 1]);
+    mockAbrilControlado.push(['2026-04-21', 'MIKE_DIV4', '', 'MAT_SEM_PECULIO_993', 'AUGUSTO', 'SD', '2º PEL', 1]);
 
     // Divergência 6 (Linha 146): CRAVEIRO, sem matrícula
     mockAbrilControlado.push(['2026-04-22', 'MIKE_DIV5', 'BOE_DIV5', '', 'CRAVEIRO', 'SD', '1º PEL', 1]);
@@ -954,6 +954,28 @@ function executarTestesGxt() {
 
     const matriz = DiagnosticoDeterministicoGxt.montarMatrizDiagnostico(diag);
     assert.strictEqual(matriz[2][1], 'INACESSÍVEL (PECULIO_ACESSO_NEGADO)');
+  });
+
+  test('DiagnosticoDeterministicoGxt: Invoca REALMENTE o Adaptador2026.extrairFatos() para ler os fatos da planilha', () => {
+    const mockSheet = [
+      ['DATA', 'MIKE', 'BOE', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO', 'ARMA'],
+      ['2026-04-05', '26E050', 'BOE050', '10001', 'ALMEIDA', 'CB', '1º PEL', 1]
+    ];
+    let extrairFatosInvocado = false;
+    const originalExtrairFatos = Adaptador2026.extrairFatos;
+
+    Adaptador2026.extrairFatos = (fonte, meta, mapEfetivo) => {
+      extrairFatosInvocado = true;
+      return originalExtrairFatos(fonte, meta, mapEfetivo);
+    };
+
+    try {
+      const diag = DiagnosticoDeterministicoGxt.diagnosticarMes(mockSheet, { '10001': 10 }, 'ABR2026');
+      assert.strictEqual(extrairFatosInvocado, true, 'DiagnosticoDeterministicoGxt deve chamar Adaptador2026.extrairFatos()');
+      assert.strictEqual(diag.fogoGxt, 1);
+    } finally {
+      Adaptador2026.extrairFatos = originalExtrairFatos;
+    }
   });
 
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);

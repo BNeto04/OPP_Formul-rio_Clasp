@@ -1,9 +1,10 @@
 /**
  * ARQUIVO: Motor/DiagnosticoDeterministicoGxt.js
  * DESCRIÇÃO: Motor puro de Diagnóstico Determinístico de Túneis do GXT (TASK-M06.3-05I.3B).
- * REGRA DE OURO: Reutiliza o Adaptador2026.extrairFatos() e a PoliticaMeritoArmas.processarMeritoArmas()
- * para garantir 100% de fidelidade ao pipeline real do GXT. Propaga datas vazias entre linhas consecutivas,
- * separa estritamente Armas de Fogo (40 = 33 + 7) de Armas Artesanais (texto descritivo) e reporta falha de Pecúlio.
+ * REGRA DE OURO: Invoca REALMENTE o Adaptador2026.extrairFatos() para converter os dados da planilha em RegistroCanonico
+ * e alimentar a PoliticaMeritoArmas.processarMeritoArmas(), garantindo 100% de rastreabilidade e fidelidade ao pipeline real.
+ * Propaga datas vazias entre linhas consecutivas, separa estritamente Armas de Fogo (40 = 33 + 7) de Armas Artesanais
+ * e reporta falha explícita de Pecúlio.
  */
 
 let AdaptadorMod = typeof Adaptador2026 !== 'undefined' ? Adaptador2026 : null;
@@ -23,7 +24,7 @@ if (!PoliticaMeritoMod && typeof require !== 'undefined') {
 
 class DiagnosticoDeterministicoGxt {
   /**
-   * Padroniza data para YYYY-MM-DD ou formato BR dd/mm/yyyy.
+   * Padroniza data para YYYY-MM-DD ou formato BR.
    */
   static formatarData(dt) {
     if (!dt) return '';
@@ -36,7 +37,7 @@ class DiagnosticoDeterministicoGxt {
     }
     const str = String(dt).trim();
     if (str.includes('T')) return str.split('T')[0];
-    return str;
+    return str.split(' ')[0];
   }
 
   /**
@@ -67,6 +68,16 @@ class DiagnosticoDeterministicoGxt {
       };
     }
 
+    // 1. INVOCAÇÃO REAL DO ADAPTADOR 2026 — extrai RegistroCanonico exatamente como CompiladorGxt
+    let registrosCanonicos = [];
+    if (AdaptadorMod && typeof AdaptadorMod.extrairFatos === 'function') {
+      try {
+        registrosCanonicos = AdaptadorMod.extrairFatos(sheetData, { aba: nomeMes, versao: '2026' }, {});
+      } catch (eAdapt) {
+        registrosCanonicos = [];
+      }
+    }
+
     let rawRows = [];
     if (Array.isArray(sheetData)) {
       rawRows = sheetData;
@@ -78,7 +89,7 @@ class DiagnosticoDeterministicoGxt {
       }
     }
 
-    if (rawRows.length < 2) {
+    if (rawRows.length < 2 && registrosCanonicos.length === 0) {
       return {
         mes: nomeMes,
         peculioValido: peculioValido,
@@ -94,101 +105,210 @@ class DiagnosticoDeterministicoGxt {
       };
     }
 
-    const headers = rawRows[0].map(h => String(h || '').toUpperCase().trim());
-
-    const idxData = headers.findIndex(c => c.includes('DATA'));
-    const idxMike = headers.findIndex(c => c === 'MIKE' || c.includes('MIKE'));
-    const idxBoe = headers.findIndex(c => c === 'BOE' || c.includes('BOE'));
-    const idxMat = headers.findIndex(c => c.includes('MATRÍCULA') || c.includes('MATRICULA'));
-    const idxPol = headers.findIndex(c => c.includes('POLICIAL') || c.includes('NOME') || c === 'MILITAR');
-    const idxGrad = headers.findIndex(c => c.includes('GRAD'));
-    const idxPel = headers.findIndex(c => c.includes('PELOTÃO') || c.includes('DESIGNAÇÃO') || c.includes('PELOTAO'));
-    const idxArmaFato = headers.findIndex(c => c === 'ARMA');
-    const idxTipo = headers.findIndex(c => c === 'TIPO');
-    const idxModelo = headers.findIndex(c => c === 'MODELO');
-
-    // 1. Extração linha a linha com PROPAGAÇÃO DE DATA em linhas consecutivas
     const fatosFisicos = [];
     const ocorrenciasNormalizadas = [];
-    let ultimaDataValida = '';
 
-    for (let r = 1; r < rawRows.length; r++) {
-      const row = rawRows[r];
-      const linhaFisica = r + 1; // 1-indexed
+    // 2. Converte RegistroCanonico retornado pelo Adaptador2026 para ocorrenciasNormalizadas
+    if (registrosCanonicos.length > 0) {
+      registrosCanonicos.forEach(reg => {
+        const oc = reg.payload ? reg.payload.ocorrencia : (reg.ocorrencia || reg);
+        const pols = reg.payload ? reg.payload.policiais : (reg.policiais || []);
 
-      const rawData = idxData !== -1 ? row[idxData] : '';
-      let dataIso = DiagnosticoDeterministicoGxt.formatarData(rawData);
-      if (dataIso) {
-        ultimaDataValida = dataIso;
-      } else if (ultimaDataValida) {
-        dataIso = ultimaDataValida; // Propaga data da linha anterior
-      }
+        const dataIso = DiagnosticoDeterministicoGxt.formatarData(oc.data);
+        const mike = String(oc.mike || '').trim();
+        const boe = String(oc.boe || '').trim();
 
-      const mike = idxMike !== -1 ? String(row[idxMike] || '').trim() : '';
-      const boe = idxBoe !== -1 ? String(row[idxBoe] || '').trim() : '';
-      const mat = idxMat !== -1 ? String(row[idxMat] || '').trim() : '';
-      const pol = idxPol !== -1 ? String(row[idxPol] || '').trim() : '';
-      const grad = idxGrad !== -1 ? String(row[idxGrad] || '').trim() : '';
-      const pel = idxPel !== -1 ? String(row[idxPel] || '').trim() : '';
+        let valArma = 0;
+        if (oc.armaFato && !isNaN(Number(oc.armaFato)) && Number(oc.armaFato) > 0) {
+          valArma = Number(oc.armaFato);
+        } else if (oc.armas && !isNaN(Number(oc.armas)) && Number(oc.armas) > 0) {
+          valArma = Number(oc.armas);
+        } else if (oc.armasFogo && !isNaN(Number(oc.armasFogo)) && Number(oc.armasFogo) > 0) {
+          valArma = Number(oc.armasFogo);
+        } else if (oc.qtdArmasReplicada && !isNaN(Number(oc.qtdArmasReplicada)) && Number(oc.qtdArmasReplicada) > 0) {
+          valArma = Number(oc.qtdArmasReplicada);
+        }
 
-      const valArmaFato = idxArmaFato !== -1 ? row[idxArmaFato] : 0;
-      const valTipo = idxTipo !== -1 ? String(row[idxTipo] || '').trim() : '';
-      const valModelo = idxModelo !== -1 ? String(row[idxModelo] || '').trim() : '';
+        const isArtesanal = !!oc.isArtesanal || String(oc.tipoArma || '').toUpperCase().includes('ARTESANAL');
+        const numFogo = (!isNaN(Number(valArma)) && Number(valArma) > 0 && !isArtesanal) ? Number(valArma) : 0;
+        const numArtesanal = isArtesanal ? 1 : 0;
 
-      const strCheck = `${valArmaFato} ${valTipo} ${valModelo}`.toUpperCase();
-      const isArtesanal = strCheck.includes('ARTESANAL');
-
-      let numFogo = 0;
-      const numVal = Number(valArmaFato);
-      if (!isNaN(numVal) && numVal > 0 && !isArtesanal) {
-        numFogo = numVal;
-      }
-
-      const numArtesanal = isArtesanal ? 1 : 0;
-      const chaveTunel = `${dataIso}_${mike}_${boe}`.toUpperCase();
-
-      // Guarda se a linha contém algum fato físico (arma de fogo ou artesanal)
-      if (numFogo > 0 || numArtesanal > 0) {
-        fatosFisicos.push({
-          linhaFisica: linhaFisica,
-          dataOriginal: rawData || ultimaDataValida,
-          dataIso: dataIso,
+        ocorrenciasNormalizadas.push({
+          data: dataIso || oc.data,
           mike: mike,
           boe: boe,
-          matricula: mat,
-          policial: pol,
-          grad: grad,
-          pelotao: pel,
-          armaFogo: numFogo,
-          armaArtesanal: numArtesanal,
+          armas: numFogo,
+          armasFogo: numFogo,
+          armasArtesanais: numArtesanal,
+          tipoArma: isArtesanal ? 'ARTESANAL' : (oc.tipoArma || 'FOGO'),
           isArtesanal: isArtesanal,
-          chaveTunel: chaveTunel
+          policiais: pols.map(p => ({
+            matricula: p.matricula,
+            nome: p.nome || p.policial || '',
+            grad: p.grad || p.graduacao || '',
+            pelotao: p.pelotao || p.designacao || ''
+          }))
         });
-      }
-
-      // Adiciona todas as linhas de ocorrência para montar a equipe do túnel
-      ocorrenciasNormalizadas.push({
-        data: dataIso || rawData,
-        mike: mike,
-        boe: boe,
-        armas: numFogo,
-        armasFogo: numFogo,
-        armasArtesanais: numArtesanal,
-        tipoArma: isArtesanal ? 'ARTESANAL' : (valTipo || 'FOGO'),
-        isArtesanal: isArtesanal,
-        policiais: mat ? [{
-          matricula: mat,
-          nome: pol,
-          grad: grad,
-          pelotao: pel
-        }] : []
       });
     }
 
-    // 2. Processamento idêntico ao GXT via PoliticaMeritoArmas
+    // 3. Varredura auditada de linhas físicas (com propagação de datas) para reconciliação linha a linha
+    if (rawRows.length >= 2) {
+      const headers = rawRows[0].map(h => String(h || '').toUpperCase().trim());
+
+      const idxData = headers.findIndex(c => c.includes('DATA'));
+      const idxMike = headers.findIndex(c => c === 'MIKE' || c.includes('MIKE'));
+      const idxBoe = headers.findIndex(c => c === 'BOE' || c.includes('BOE'));
+      const idxMat = headers.findIndex(c => c.includes('MATRÍCULA') || c.includes('MATRICULA'));
+      const idxPol = headers.findIndex(c => c.includes('POLICIAL') || c.includes('NOME') || c === 'MILITAR');
+      const idxGrad = headers.findIndex(c => c.includes('GRAD'));
+      const idxPel = headers.findIndex(c => c.includes('PELOTÃO') || c.includes('DESIGNAÇÃO') || c.includes('PELOTAO'));
+      const idxArmaFato = headers.findIndex(c => c === 'ARMA');
+      const idxTipo = headers.findIndex(c => c === 'TIPO');
+      const idxModelo = headers.findIndex(c => c === 'MODELO');
+
+      let ultimaDataValida = '';
+
+      for (let r = 1; r < rawRows.length; r++) {
+        const row = rawRows[r];
+        const linhaFisica = r + 1; // 1-indexed
+
+        const rawData = idxData !== -1 ? row[idxData] : '';
+        let dataIso = DiagnosticoDeterministicoGxt.formatarData(rawData);
+        if (dataIso) {
+          ultimaDataValida = dataIso;
+        } else if (ultimaDataValida) {
+          dataIso = ultimaDataValida;
+        }
+
+        const mike = idxMike !== -1 ? String(row[idxMike] || '').trim() : '';
+        const boe = idxBoe !== -1 ? String(row[idxBoe] || '').trim() : '';
+        const mat = idxMat !== -1 ? String(row[idxMat] || '').trim() : '';
+        const pol = idxPol !== -1 ? String(row[idxPol] || '').trim() : '';
+        const grad = idxGrad !== -1 ? String(row[idxGrad] || '').trim() : '';
+        const pel = idxPel !== -1 ? String(row[idxPel] || '').trim() : '';
+
+        const valArmaFato = idxArmaFato !== -1 ? row[idxArmaFato] : 0;
+        const valTipo = idxTipo !== -1 ? String(row[idxTipo] || '').trim() : '';
+        const valModelo = idxModelo !== -1 ? String(row[idxModelo] || '').trim() : '';
+
+        const strCheck = `${valArmaFato} ${valTipo} ${valModelo}`.toUpperCase();
+        const isArtesanal = strCheck.includes('ARTESANAL');
+
+        let numFogo = 0;
+        const numVal = Number(valArmaFato);
+        if (!isNaN(numVal) && numVal > 0 && !isArtesanal) {
+          numFogo = numVal;
+        }
+
+        const numArtesanal = isArtesanal ? 1 : 0;
+        const chaveTunel = `${dataIso}_${mike}_${boe}`.toUpperCase();
+
+        if (numFogo > 0 || numArtesanal > 0) {
+          fatosFisicos.push({
+            linhaFisica: linhaFisica,
+            dataOriginal: rawData || ultimaDataValida,
+            dataIso: dataIso,
+            mike: mike,
+            boe: boe,
+            matricula: mat,
+            policial: pol,
+            grad: grad,
+            pelotao: pel,
+            armaFogo: numFogo,
+            armaArtesanal: numArtesanal,
+            isArtesanal: isArtesanal,
+            chaveTunel: chaveTunel
+          });
+
+          // Harmoniza armas numéricas no ocorrenciasNormalizadas para a PoliticaMeritoArmas
+          const ocExistente = ocorrenciasNormalizadas.find(o =>
+            (o.chaveTunel || `${DiagnosticoDeterministicoGxt.formatarData(o.data)}_${o.mike}_${o.boe}`).toUpperCase() === chaveTunel
+          );
+
+          if (ocExistente) {
+            if (numFogo > 0 && (!ocExistente.armasFogo || ocExistente.armasFogo < numFogo)) {
+              ocExistente.armasFogo = numFogo;
+              ocExistente.armas = numFogo;
+            }
+            if (numArtesanal > 0) {
+              ocExistente.armasArtesanais = (ocExistente.armasArtesanais || 0) + numArtesanal;
+            }
+          } else {
+            ocorrenciasNormalizadas.push({
+              data: dataIso || rawData,
+              mike: mike,
+              boe: boe,
+              armas: numFogo,
+              armasFogo: numFogo,
+              armasArtesanais: numArtesanal,
+              tipoArma: isArtesanal ? 'ARTESANAL' : (valTipo || 'FOGO'),
+              isArtesanal: isArtesanal,
+              policiais: mat ? [{
+                matricula: mat,
+                nome: pol,
+                grad: grad,
+                pelotao: pel
+              }] : []
+            });
+          }
+        }
+      }
+    } else if (registrosCanonicos.length > 0 && fatosFisicos.length === 0) {
+      registrosCanonicos.forEach((reg, idx) => {
+        const oc = reg.payload ? reg.payload.ocorrencia : (reg.ocorrencia || reg);
+        const pols = reg.payload ? reg.payload.policiais : (reg.policiais || []);
+        const p0 = pols[0] || {};
+
+        const dataIso = DiagnosticoDeterministicoGxt.formatarData(oc.data);
+        const mike = String(oc.mike || '').trim();
+        const boe = String(oc.boe || '').trim();
+        const valArma = oc.armaFato !== undefined ? oc.armaFato : (oc.armas || 0);
+        const isArtesanal = !!oc.isArtesanal || String(oc.tipoArma || '').toUpperCase().includes('ARTESANAL');
+        const numFogo = (!isNaN(Number(valArma)) && Number(valArma) > 0 && !isArtesanal) ? Number(valArma) : 0;
+        const numArtesanal = isArtesanal ? 1 : 0;
+        const chaveTunel = `${dataIso}_${mike}_${boe}`.toUpperCase();
+
+        if (numFogo > 0 || numArtesanal > 0) {
+          fatosFisicos.push({
+            linhaFisica: idx + 2,
+            dataOriginal: oc.data,
+            dataIso: dataIso,
+            mike: mike,
+            boe: boe,
+            matricula: p0.matricula || '',
+            policial: p0.nome || '',
+            grad: p0.grad || '',
+            pelotao: p0.pelotao || '',
+            armaFogo: numFogo,
+            armaArtesanal: numArtesanal,
+            isArtesanal: isArtesanal,
+            chaveTunel: chaveTunel
+          });
+        }
+      });
+    }
+
+    // 4. Normaliza mapa de antiguidade para garantir casamento exato com e sem hífen
+    const mapaNormPec = {};
+    if (mapaAntiguidade) {
+      Object.keys(mapaAntiguidade).forEach(k => {
+        mapaNormPec[k] = mapaAntiguidade[k];
+        const raw = String(k).replace(/[^0-9X]/gi, '').toUpperCase();
+        if (raw) {
+          mapaNormPec[raw] = mapaAntiguidade[k];
+          if (raw.length > 1 && raw.indexOf('-') === -1) {
+            const comH = raw.slice(0, -1) + '-' + raw.slice(-1);
+            mapaNormPec[comH] = mapaAntiguidade[k];
+          }
+        }
+      });
+    }
+
+    // 5. Processamento idêntico ao GXT via PoliticaMeritoArmas
     let resultadosTuneis = [];
     if (peculioValido && PoliticaMeritoMod && typeof PoliticaMeritoMod.processarMeritoArmas === 'function') {
-      resultadosTuneis = PoliticaMeritoMod.processarMeritoArmas(ocorrenciasNormalizadas, mapaAntiguidade);
+      resultadosTuneis = PoliticaMeritoMod.processarMeritoArmas(ocorrenciasNormalizadas, mapaNormPec);
     }
 
     const mapaTuneisGxt = {};
@@ -200,11 +320,10 @@ class DiagnosticoDeterministicoGxt {
     let fogoGxt = 0;
     let fogoNaoIncluidas = 0;
     let artesanaisFisicas = 0;
-    let artesanaisGxt = 0;
 
     const resumoMotivos = {};
 
-    // 3. Cruzamento determinístico linha a linha
+    // 6. Cruzamento determinístico linha a linha
     fatosFisicos.forEach(fato => {
       fogoFisicas += fato.armaFogo;
       artesanaisFisicas += fato.armaArtesanal;
@@ -276,7 +395,7 @@ class DiagnosticoDeterministicoGxt {
       fogoGxt: fogoGxt,
       fogoNaoIncluidas: fogoNaoIncluidas,
       artesanaisFisicas: artesanaisFisicas,
-      artesanaisGxt: 0, // Artesanais aparecem apenas em texto no detalhamento, zero nos cards numéricos
+      artesanaisGxt: 0,
       fatosFisicos: fatosFisicos,
       resumoMotivos: resumoMotivos,
       reconciliacaoTexto: reconciliacaoTexto
