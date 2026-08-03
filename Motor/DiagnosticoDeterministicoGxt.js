@@ -242,39 +242,6 @@ class DiagnosticoDeterministicoGxt {
           });
         }
       }
-    } else if (registrosCanonicos.length > 0 && fatosFisicos.length === 0) {
-      registrosCanonicos.forEach((reg, idx) => {
-        const oc = reg.payload ? reg.payload.ocorrencia : (reg.ocorrencia || reg);
-        const pols = reg.payload ? reg.payload.policiais : (reg.policiais || []);
-        const p0 = pols[0] || {};
-
-        const dataIso = DiagnosticoDeterministicoGxt.formatarData(oc.data);
-        const mike = String(oc.mike || '').trim();
-        const boe = String(oc.boe || '').trim();
-        const valArma = oc.armaFato !== undefined ? oc.armaFato : (oc.armas || 0);
-        const isArtesanal = !!oc.isArtesanal || String(oc.tipoArma || '').toUpperCase().includes('ARTESANAL');
-        const numFogo = (!isNaN(Number(valArma)) && Number(valArma) > 0 && !isArtesanal) ? Number(valArma) : 0;
-        const numArtesanal = isArtesanal ? 1 : 0;
-        const chaveTunel = `${dataIso}_${mike}_${boe}`.toUpperCase();
-
-        if (numFogo > 0 || numArtesanal > 0) {
-          fatosFisicos.push({
-            linhaFisica: idx + 2,
-            dataOriginal: oc.data,
-            dataIso: dataIso,
-            mike: mike,
-            boe: boe,
-            matricula: p0.matricula || '',
-            policial: p0.nome || '',
-            grad: p0.grad || '',
-            pelotao: p0.pelotao || '',
-            armaFogo: numFogo,
-            armaArtesanal: numArtesanal,
-            isArtesanal: isArtesanal,
-            chaveTunel: chaveTunel
-          });
-        }
-      });
     }
 
     // 4. Normaliza mapa de antiguidade para garantir casamento exato com e sem hífen
