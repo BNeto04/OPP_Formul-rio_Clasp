@@ -995,6 +995,29 @@ function executarTestesGxt() {
     assert.strictEqual(diag.fogoNaoIncluidas, 0);
   });
 
+  test('DiagnosticoDeterministicoGxt: Aba com arma fisica e Adaptador2026 retornando [] gera FALHA_ADAPTADOR_SEM_FATOS e 0 no GXT', () => {
+    const mockSheetArmada = [
+      ['DATA', 'MIKE', 'BOE', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO', 'ARMA'],
+      ['2026-04-10', '26E101', 'BOE001', '11111', 'SILVA', 'CB', '1º PEL', 2]
+    ];
+    const mapPeculio = { '11111': 10 };
+
+    const originalExtrairFatos = Adaptador2026.extrairFatos;
+    try {
+      Adaptador2026.extrairFatos = () => [];
+      const res = DiagnosticoDeterministicoGxt.diagnosticarMes(mockSheetArmada, mapPeculio, 'ABR2026');
+
+      assert.strictEqual(res.fogoFisicas, 2);
+      assert.strictEqual(res.fogoGxt, 0, 'Adaptador retornando vazio NUNCA pode pontuar no GXT via fallback');
+      assert.strictEqual(res.fogoNaoIncluidas, 2);
+      assert.strictEqual(res.falhaAdaptadorSemFatos, true);
+      assert.strictEqual(res.fatosFisicos[0].statusFato, 'FALHA_ADAPTADOR_SEM_FATOS');
+      assert.ok(res.reconciliacaoTexto.includes('ALERTA ADAPTADOR'), 'Deve conter alerta explícito do Adaptador na reconciliação');
+    } finally {
+      Adaptador2026.extrairFatos = originalExtrairFatos;
+    }
+  });
+
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);
 }
 

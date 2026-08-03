@@ -240,26 +240,6 @@ class DiagnosticoDeterministicoGxt {
             isArtesanal: isArtesanal,
             chaveTunel: chaveTunel
           });
-
-          // Fallback para ocorrenciasNormalizadas APENAS se Adaptador2026 não gerou registros
-          if (registrosCanonicos.length === 0) {
-            ocorrenciasNormalizadas.push({
-              data: dataIso || rawData,
-              mike: mike,
-              boe: boe,
-              armas: numFogo,
-              armasFogo: numFogo,
-              armasArtesanais: numArtesanal,
-              tipoArma: isArtesanal ? 'ARTESANAL' : (valTipo || 'FOGO'),
-              isArtesanal: isArtesanal,
-              policiais: mat ? [{
-                matricula: mat,
-                nome: pol,
-                grad: grad,
-                pelotao: pel
-              }] : []
-            });
-          }
         }
       }
     } else if (registrosCanonicos.length > 0 && fatosFisicos.length === 0) {
@@ -331,6 +311,8 @@ class DiagnosticoDeterministicoGxt {
 
     const resumoMotivos = {};
 
+    const falhaAdaptadorSemFatos = (registrosCanonicos.length === 0 && fatosFisicos.length > 0);
+
     // 6. Cruzamento determinístico linha a linha
     fatosFisicos.forEach(fato => {
       fogoFisicas += fato.armaFogo;
@@ -350,6 +332,9 @@ class DiagnosticoDeterministicoGxt {
         motivoFato = `PECULIO_INACESSIVEL — ${erroPeculio || 'Fonte do Pecúlio indisponível'}`;
       } else if (!fato.matricula && (!resTunel || !resTunel.lider)) {
         motivoFato = 'MATRICULA_AUSENTE — Linha armada sem matrícula cadastrada na equipe';
+      } else if (falhaAdaptadorSemFatos) {
+        statusFato = 'FALHA_ADAPTADOR_SEM_FATOS';
+        motivoFato = 'FALHA_ADAPTADOR_SEM_FATOS — Adaptador2026 não extraiu fatos canônicos da aba';
       } else if (resTunel && resTunel.status === 'PROCESSADO') {
         statusFato = 'PROCESSADO';
         contribFogo = fato.isArtesanal ? 0 : fato.armaFogo;
@@ -391,6 +376,8 @@ class DiagnosticoDeterministicoGxt {
     let reconciliacaoTexto = '';
     if (!peculioValido) {
       reconciliacaoTexto = `ALERTA PECÚLIO (${nomeMes}): Fonte de antiguidade inacessível (${erroPeculio || 'ACESSO_NEGADO'}). 0 de ${fogoFisicas} armas processadas.`;
+    } else if (falhaAdaptadorSemFatos) {
+      reconciliacaoTexto = `ALERTA ADAPTADOR (${nomeMes}): Adaptador2026 retornou 0 fatos canônicos em aba com dados. 0 de ${fogoFisicas} armas processadas.`;
     } else {
       reconciliacaoTexto = `RECONCILIAÇÃO GXT (${nomeMes}): Armas de Fogo = ${fogoFisicas} físicas [${fogoGxt} incluídas no GXT + ${fogoNaoIncluidas} não incluídas]. Artesanais = ${artesanaisFisicas} descritivas.`;
     }
@@ -399,6 +386,7 @@ class DiagnosticoDeterministicoGxt {
       mes: nomeMes,
       peculioValido: peculioValido,
       erroPeculio: erroPeculio,
+      falhaAdaptadorSemFatos: falhaAdaptadorSemFatos,
       fogoFisicas: fogoFisicas,
       fogoGxt: fogoGxt,
       fogoNaoIncluidas: fogoNaoIncluidas,
