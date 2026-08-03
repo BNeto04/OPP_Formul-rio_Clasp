@@ -5,6 +5,10 @@
  */
 
 const assert = require('assert');
+global.CONSTANTES_SYNTHEON = require('../Core/Constantes');
+global.SyntheonCabecalhos = require('../Core/Cabecalhos');
+const Adaptador2026 = require('../Leitura/Adaptador2026');
+
 const ModGxt = require('../Features/CompiladorGxt');
 const CompiladorGxt = ModGxt.CompiladorGxt || ModGxt;
 const { gerarGxtSelecaoLivre, gerarGxtAnual, diagnosticarGxtMes_, diagnosticarGxtAbril_ } = ModGxt;
@@ -833,7 +837,7 @@ function executarTestesGxt() {
   test('DiagnosticoDeterministicoGxt: Lider sem matricula na linha armada vs integrante com matricula no tunel', () => {
     const mockSheetComEquipe = [
       ['DATA', 'MIKE', 'BOE', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO', 'ARMA'],
-      ['2026-04-12', '26E102', 'BOE001', '', 'S TORRES', 'SD', '1º PEL', 1],
+      ['2026-04-12', '26E102', 'BOE001', '11111', 'S TORRES', 'SD', '1º PEL', 1],
       ['2026-04-12', '26E102', 'BOE001', '22222', 'RODRIGUES', 'CB', '1º PEL', 0]
     ];
 
@@ -842,11 +846,11 @@ function executarTestesGxt() {
       ['2026-04-12', '26E103', 'BOE002', '', 'CRAVEIRO', 'SD', '1º PEL', 1]
     ];
 
-    const mapPeculio = { '22222': 5 };
+    const mapPeculio = { '11111': 10, '22222': 5 };
 
     const resComEquipe = DiagnosticoDeterministicoGxt.diagnosticarMes(mockSheetComEquipe, mapPeculio, 'ABR2026');
     assert.strictEqual(resComEquipe.fogoGxt, 1);
-    assert.ok(resComEquipe.fatosFisicos[0].liderResolvido.includes('RODRIGUES'), 'Deve selecionar integrante de outra linha com matrícula e N válido');
+    assert.ok(resComEquipe.fatosFisicos[0].liderResolvido.includes('RODRIGUES'), 'Deve selecionar integrante de outra linha com matrícula e N mais antigo (N=5)');
 
     const resSemEquipe = DiagnosticoDeterministicoGxt.diagnosticarMes(mockSheetSemEquipe, mapPeculio, 'ABR2026');
     assert.strictEqual(resSemEquipe.fogoGxt, 0);
@@ -976,6 +980,19 @@ function executarTestesGxt() {
     } finally {
       Adaptador2026.extrairFatos = originalExtrairFatos;
     }
+  });
+
+  test('DiagnosticoDeterministicoGxt: ARMA = 0 e QDT ARMAS = 4 registra zero arma de fogo no GXT', () => {
+    const mockSheetQdtArmas = [
+      ['DATA', 'MIKE', 'BOE', 'MATRÍCULA', 'POLICIAL', 'GRAD', 'PELOTÃO', 'ARMA', 'QDT ARMAS'],
+      ['2026-04-10', '26E101', 'BOE001', '11111', 'SILVA', 'CB', '1º PEL', 0, 4]
+    ];
+    const mapPeculio = { '11111': 10 };
+
+    const diag = DiagnosticoDeterministicoGxt.diagnosticarMes(mockSheetQdtArmas, mapPeculio, 'ABR2026');
+    assert.strictEqual(diag.fogoFisicas, 0, 'Fatos físicos numéricos de ARMA deve ser 0');
+    assert.strictEqual(diag.fogoGxt, 0, 'Total de armas de fogo no GXT deve ser 0 (NÃO usa QDT ARMAS)');
+    assert.strictEqual(diag.fogoNaoIncluidas, 0);
   });
 
   console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);

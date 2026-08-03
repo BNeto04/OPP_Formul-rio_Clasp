@@ -46,10 +46,14 @@ const SyntheonCabecalhos = {
    */
   encontrar(headersOuIndice, aliases, obrigatorio = false, nomeCampo = '') {
     let listaAliases = [];
+    let constObj = typeof CONSTANTES_SYNTHEON !== 'undefined' ? CONSTANTES_SYNTHEON : (typeof global !== 'undefined' && global.CONSTANTES_SYNTHEON ? global.CONSTANTES_SYNTHEON : null);
+    if (!constObj && typeof require !== 'undefined') {
+      try { constObj = require('./Constantes'); } catch (e) {}
+    }
 
     if (typeof aliases === 'string') {
-      if (typeof CONSTANTES_SYNTHEON !== 'undefined' && CONSTANTES_SYNTHEON.ALIASES && CONSTANTES_SYNTHEON.ALIASES[aliases]) {
-        listaAliases = CONSTANTES_SYNTHEON.ALIASES[aliases];
+      if (constObj && constObj.ALIASES && constObj.ALIASES[aliases]) {
+        listaAliases = constObj.ALIASES[aliases];
       } else {
         listaAliases = [aliases];
       }

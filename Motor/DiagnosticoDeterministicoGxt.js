@@ -3,8 +3,10 @@
  * DESCRIÇÃO: Motor puro de Diagnóstico Determinístico de Túneis do GXT (TASK-M06.3-05I.3B).
  * REGRA DE OURO: Invoca REALMENTE o Adaptador2026.extrairFatos() para converter os dados da planilha em RegistroCanonico
  * e alimentar a PoliticaMeritoArmas.processarMeritoArmas(), garantindo 100% de rastreabilidade e fidelidade ao pipeline real.
- * Propaga datas vazias entre linhas consecutivas, separa estritamente Armas de Fogo (40 = 33 + 7) de Armas Artesanais
- * e reporta falha explícita de Pecúlio.
+ * Mantém 2 coleções estritamente separadas:
+ *   1. fatosFisicos: leitura crua de linhas físicas para exibição e reconciliação (40 = 33 incluídas + 7 não incluídas).
+ *   2. ocorrenciasNormalizadas: criada EXCLUSIVAMENTE a partir de Adaptador2026.extrairFatos(), sem qualquer mutação posterior
+ *      e SEM NENHUM FALLBACK PARA QDT ARMAS (qtdArmasReplicada).
  */
 
 let AdaptadorMod = typeof Adaptador2026 !== 'undefined' ? Adaptador2026 : null;
@@ -109,50 +111,68 @@ class DiagnosticoDeterministicoGxt {
     const ocorrenciasNormalizadas = [];
 
     // 2. Converte RegistroCanonico retornado pelo Adaptador2026 para ocorrenciasNormalizadas
+    // REGRA DE OURO: IDENTICO AO COMPILADOR GXT, SEM MUTACAO POSTERIOR E SEM FALLBACK PARA QDT ARMAS (qtdArmasReplicada)
     if (registrosCanonicos.length > 0) {
       registrosCanonicos.forEach(reg => {
-        const oc = reg.payload ? reg.payload.ocorrencia : (reg.ocorrencia || reg);
-        const pols = reg.payload ? reg.payload.policiais : (reg.policiais || []);
+        const ocInfo = reg.payload ? reg.payload.ocorrencia : (reg.ocorrencia || reg);
+        const pmsRaw = reg.payload ? reg.payload.policiais : (Array.isArray(reg.policiais) ? reg.policiais : []);
 
-        const dataIso = DiagnosticoDeterministicoGxt.formatarData(oc.data);
-        const mike = String(oc.mike || '').trim();
-        const boe = String(oc.boe || '').trim();
+        let totalArmasFogo = 0;
+        let totalArmasArtesanais = 0;
+        let tipoArmaDetectado = ocInfo.tipoArma || reg.tipoArma || '';
 
-        let valArma = 0;
-        if (oc.armaFato && !isNaN(Number(oc.armaFato)) && Number(oc.armaFato) > 0) {
-          valArma = Number(oc.armaFato);
-        } else if (oc.armas && !isNaN(Number(oc.armas)) && Number(oc.armas) > 0) {
-          valArma = Number(oc.armas);
-        } else if (oc.armasFogo && !isNaN(Number(oc.armasFogo)) && Number(oc.armasFogo) > 0) {
-          valArma = Number(oc.armasFogo);
-        } else if (oc.qtdArmasReplicada && !isNaN(Number(oc.qtdArmasReplicada)) && Number(oc.qtdArmasReplicada) > 0) {
-          valArma = Number(oc.qtdArmasReplicada);
+        const pmsFormatados = pmsRaw.map(p => {
+          const armasP = Number(p.armaFato !== undefined ? p.armaFato : (ocInfo.armaFato !== undefined ? ocInfo.armaFato : (p.armas !== undefined ? p.armas : 0)));
+          const valArmaFisica = isNaN(armasP) ? 0 : armasP;
+
+          const tipoP = p.tipoArma || ocInfo.tipoArma || reg.tipoArma || '';
+          const modeloP = p.modeloArma || p.modelo || ocInfo.modeloArma || reg.modelo || '';
+          const strCheck = `${tipoP} ${modeloP} ${p.descricaoArma || ''} ${p.arma || ''} ${ocInfo.natureza || ''}`.toUpperCase();
+
+          if (p.isArtesanal || strCheck.includes('ARTESANAL')) {
+            totalArmasArtesanais += 1;
+            if (valArmaFisica > 0) totalArmasFogo += valArmaFisica;
+            tipoArmaDetectado = 'ARTESANAL';
+          } else {
+            if (valArmaFisica > 0) totalArmasFogo += valArmaFisica;
+          }
+
+          return {
+            matricula: p.matricula || '',
+            nome: p.nome || p.militar || p.policial || '',
+            grad: p.graduacao || p.grad || '',
+            pelotao: p.pelotao || p.designacao || ''
+          };
+        });
+
+        const rawArmaFato = ocInfo.armaFato !== undefined ? ocInfo.armaFato : (reg.armaFato !== undefined ? reg.armaFato : reg.armas);
+        const strRegCheck = `${tipoArmaDetectado} ${ocInfo.modeloArma || ''} ${reg.indicadorPip || ''} ${ocInfo.natureza || ''}`.toUpperCase();
+        if (reg.isArtesanal || strRegCheck.includes('ARTESANAL')) {
+          if (totalArmasArtesanais === 0) totalArmasArtesanais = 1;
+          tipoArmaDetectado = 'ARTESANAL';
+        } else if (totalArmasFogo === 0 && !isNaN(Number(rawArmaFato)) && Number(rawArmaFato) > 0) {
+          totalArmasFogo = Number(rawArmaFato);
         }
 
-        const isArtesanal = !!oc.isArtesanal || String(oc.tipoArma || '').toUpperCase().includes('ARTESANAL');
-        const numFogo = (!isNaN(Number(valArma)) && Number(valArma) > 0 && !isArtesanal) ? Number(valArma) : 0;
-        const numArtesanal = isArtesanal ? 1 : 0;
+        const dataIso = DiagnosticoDeterministicoGxt.formatarData(ocInfo.data);
+        const mike = String(ocInfo.mike || reg.mike || '').trim();
+        const boe = String(ocInfo.boe || reg.boe || '').trim();
 
         ocorrenciasNormalizadas.push({
-          data: dataIso || oc.data,
+          data: dataIso || ocInfo.data,
           mike: mike,
           boe: boe,
-          armas: numFogo,
-          armasFogo: numFogo,
-          armasArtesanais: numArtesanal,
-          tipoArma: isArtesanal ? 'ARTESANAL' : (oc.tipoArma || 'FOGO'),
-          isArtesanal: isArtesanal,
-          policiais: pols.map(p => ({
-            matricula: p.matricula,
-            nome: p.nome || p.policial || '',
-            grad: p.grad || p.graduacao || '',
-            pelotao: p.pelotao || p.designacao || ''
-          }))
+          armas: totalArmasFogo,
+          armasFogo: totalArmasFogo,
+          armasArtesanais: totalArmasArtesanais,
+          tipoArma: tipoArmaDetectado || 'FOGO',
+          isArtesanal: tipoArmaDetectado === 'ARTESANAL',
+          policiais: pmsFormatados
         });
       });
     }
 
-    // 3. Varredura auditada de linhas físicas (com propagação de datas) para reconciliação linha a linha
+    // 3. Varredura auditada de linhas físicas (com propagação de datas) EXCLUSIVAMENTE para fatosFisicos
     if (rawRows.length >= 2) {
       const headers = rawRows[0].map(h => String(h || '').toUpperCase().trim());
 
@@ -221,20 +241,8 @@ class DiagnosticoDeterministicoGxt {
             chaveTunel: chaveTunel
           });
 
-          // Harmoniza armas numéricas no ocorrenciasNormalizadas para a PoliticaMeritoArmas
-          const ocExistente = ocorrenciasNormalizadas.find(o =>
-            (o.chaveTunel || `${DiagnosticoDeterministicoGxt.formatarData(o.data)}_${o.mike}_${o.boe}`).toUpperCase() === chaveTunel
-          );
-
-          if (ocExistente) {
-            if (numFogo > 0 && (!ocExistente.armasFogo || ocExistente.armasFogo < numFogo)) {
-              ocExistente.armasFogo = numFogo;
-              ocExistente.armas = numFogo;
-            }
-            if (numArtesanal > 0) {
-              ocExistente.armasArtesanais = (ocExistente.armasArtesanais || 0) + numArtesanal;
-            }
-          } else {
+          // Fallback para ocorrenciasNormalizadas APENAS se Adaptador2026 não gerou registros
+          if (registrosCanonicos.length === 0) {
             ocorrenciasNormalizadas.push({
               data: dataIso || rawData,
               mike: mike,
@@ -305,7 +313,7 @@ class DiagnosticoDeterministicoGxt {
       });
     }
 
-    // 5. Processamento idêntico ao GXT via PoliticaMeritoArmas
+    // 5. Processamento idêntico ao GXT via PoliticaMeritoArmas (usando ocorrenciasNormalizadas INTACTO)
     let resultadosTuneis = [];
     if (peculioValido && PoliticaMeritoMod && typeof PoliticaMeritoMod.processarMeritoArmas === 'function') {
       resultadosTuneis = PoliticaMeritoMod.processarMeritoArmas(ocorrenciasNormalizadas, mapaNormPec);
