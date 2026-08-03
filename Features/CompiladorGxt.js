@@ -880,21 +880,32 @@ function diagnosticarGxtMes_(nomeMes = 'ABR2026', fonteSS = null, fontePeculio =
   }
 
   let mapAntiguidade = {};
+  let metaPeculio = { erro: null, detalheErro: '' };
+
   if (LeitorPeculioMod) {
     let fPeculio = fontePeculio;
     if (!fPeculio && typeof CONFIG_SYNTHEON !== 'undefined' && typeof CONFIG_SYNTHEON.obterIdPeculio === 'function') {
       const idPeculio = CONFIG_SYNTHEON.obterIdPeculio();
       if (idPeculio && typeof SpreadsheetApp !== 'undefined' && typeof SpreadsheetApp.openById === 'function') {
-        try { fPeculio = SpreadsheetApp.openById(idPeculio); } catch (e) {}
+        try {
+          fPeculio = SpreadsheetApp.openById(idPeculio);
+        } catch (e) {
+          metaPeculio = { erro: 'PECULIO_ACESSO_NEGADO', detalheErro: e.message || String(e) };
+        }
       }
     }
-    if (fPeculio) {
+    if (fPeculio && !metaPeculio.erro) {
       const resP = LeitorPeculioMod.lerMapaAntiguidade(fPeculio);
       mapAntiguidade = resP.mapa || {};
+      if (resP.erro) {
+        metaPeculio = { erro: resP.erro, detalheErro: resP.detalheErro || '' };
+      }
+    } else if (!fPeculio && !metaPeculio.erro) {
+      metaPeculio = { erro: 'PECULIO_ACESSO_NEGADO', detalheErro: 'Fonte do Pecúlio não fornecida' };
     }
   }
 
-  const diagRes = DiagnosticoMod.diagnosticarMes(sheetMes, mapAntiguidade, nomeMes);
+  const diagRes = DiagnosticoMod.diagnosticarMes(sheetMes, mapAntiguidade, nomeMes, metaPeculio);
   const matriz = DiagnosticoMod.montarMatrizDiagnostico(diagRes);
 
   const NOME_ABA_DIAG = '[DIAGNOSTICO] Gxt';
@@ -919,11 +930,11 @@ function diagnosticarGxtMes_(nomeMes = 'ABR2026', fonteSS = null, fontePeculio =
       }
 
       try {
-        if (typeof sheetDiag.setFrozenRows === 'function') sheetDiag.setFrozenRows(8);
+        if (typeof sheetDiag.setFrozenRows === 'function') sheetDiag.setFrozenRows(10);
         if (typeof sheetDiag.setFrozenColumns === 'function') sheetDiag.setFrozenColumns(1);
         const rTit = sheetDiag.getRange(1, 1, 1, numCols);
         if (rTit && typeof rTit.setFontWeight === 'function') rTit.setFontWeight('bold');
-        const rHead = sheetDiag.getRange(8, 1, 1, numCols);
+        const rHead = sheetDiag.getRange(10, 1, 1, numCols);
         if (rHead && typeof rHead.setFontWeight === 'function') rHead.setFontWeight('bold');
         const rTot = sheetDiag.getRange(numRows, 1, 1, numCols);
         if (rTot && typeof rTot.setFontWeight === 'function') rTot.setFontWeight('bold');

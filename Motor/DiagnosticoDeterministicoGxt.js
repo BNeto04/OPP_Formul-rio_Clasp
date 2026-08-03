@@ -1,10 +1,9 @@
 /**
  * ARQUIVO: Motor/DiagnosticoDeterministicoGxt.js
  * DESCRIÇÃO: Motor puro de Diagnóstico Determinístico de Túneis do GXT (TASK-M06.3-05I.3B).
- * REGRA DE OURO: Reutiliza estritamente as regras de normalização, chave de túnel (DATA|MIKE|BOE),
- * e a Política de Armas (PoliticaMeritoArmas) sem criar regras paralelas ou inventar agrupamentos.
- * Reconcilia a equação de fatos físicos (armaFato > 0 ou artesanal) contra os registros computados no GXT.
- * Operação 100% somente-leitura. Produz a matriz para a aba descartável [DIAGNOSTICO] Gxt.
+ * REGRA DE OURO: Reutiliza o Adaptador2026.extrairFatos() e a PoliticaMeritoArmas.processarMeritoArmas()
+ * para garantir 100% de fidelidade ao pipeline real do GXT. Propaga datas vazias entre linhas consecutivas,
+ * separa estritamente Armas de Fogo (40 = 33 + 7) de Armas Artesanais (texto descritivo) e reporta falha de Pecúlio.
  */
 
 let AdaptadorMod = typeof Adaptador2026 !== 'undefined' ? Adaptador2026 : null;
@@ -24,13 +23,16 @@ if (!PoliticaMeritoMod && typeof require !== 'undefined') {
 
 class DiagnosticoDeterministicoGxt {
   /**
-   * Converte uma data em string ISOYYYY-MM-DD padronizada ou vazia.
+   * Padroniza data para YYYY-MM-DD ou formato BR dd/mm/yyyy.
    */
-  static formatarDataIso(dt) {
+  static formatarData(dt) {
     if (!dt) return '';
     if (dt instanceof Date) {
       if (isNaN(dt.getTime())) return '';
-      return dt.toISOString().split('T')[0];
+      const d = String(dt.getDate()).padStart(2, '0');
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const y = dt.getFullYear();
+      return `${y}-${m}-${d}`;
     }
     const str = String(dt).trim();
     if (str.includes('T')) return str.split('T')[0];
@@ -38,19 +40,27 @@ class DiagnosticoDeterministicoGxt {
   }
 
   /**
-   * Executa o diagnóstico determinístico para um mês específico.
+   * Diagnostica a reconciliação determinística para um mês.
    * @param {Object|Array} sheetData - Matriz 2D da aba mensal ou objeto de mock.
    * @param {Object} [mapaAntiguidade={}] - Mapa { matricula: numeroN } do Pecúlio.
    * @param {string} [nomeMes='ABR2026'] - Nome do mês analisado.
-   * @returns {Object} Resultado do diagnóstico com linhas auditadas, totais e reconciliação.
+   * @param {Object} [metaPeculio={}] - Metadados de status/erro do Pecúlio ({ erro, detalheErro }).
+   * @returns {Object} Resultado do diagnóstico com contagens separadas de Fogo e Artesanal.
    */
-  static diagnosticarMes(sheetData, mapaAntiguidade = {}, nomeMes = 'ABR2026') {
+  static diagnosticarMes(sheetData, mapaAntiguidade = {}, nomeMes = 'ABR2026', metaPeculio = {}) {
+    const erroPeculio = metaPeculio ? metaPeculio.erro : null;
+    const peculioValido = !erroPeculio && mapaAntiguidade && Object.keys(mapaAntiguidade).length > 0;
+
     if (!sheetData) {
       return {
         mes: nomeMes,
-        totalArmasFisicas: 0,
-        totalArmasGxt: 0,
-        totalExcluidas: 0,
+        peculioValido: false,
+        erroPeculio: erroPeculio || 'SEM_DADOS',
+        fogoFisicas: 0,
+        fogoGxt: 0,
+        fogoNaoIncluidas: 0,
+        artesanaisFisicas: 0,
+        artesanaisGxt: 0,
         fatosFisicos: [],
         resumoMotivos: {},
         reconciliacaoTexto: 'Nenhum dado fornecido para diagnóstico.'
@@ -71,9 +81,13 @@ class DiagnosticoDeterministicoGxt {
     if (rawRows.length < 2) {
       return {
         mes: nomeMes,
-        totalArmasFisicas: 0,
-        totalArmasGxt: 0,
-        totalExcluidas: 0,
+        peculioValido: peculioValido,
+        erroPeculio: erroPeculio,
+        fogoFisicas: 0,
+        fogoGxt: 0,
+        fogoNaoIncluidas: 0,
+        artesanaisFisicas: 0,
+        artesanaisGxt: 0,
         fatosFisicos: [],
         resumoMotivos: {},
         reconciliacaoTexto: 'Aba sem dados válidos para diagnóstico.'
@@ -93,16 +107,23 @@ class DiagnosticoDeterministicoGxt {
     const idxTipo = headers.findIndex(c => c === 'TIPO');
     const idxModelo = headers.findIndex(c => c === 'MODELO');
 
+    // 1. Extração linha a linha com PROPAGAÇÃO DE DATA em linhas consecutivas
     const fatosFisicos = [];
     const ocorrenciasNormalizadas = [];
+    let ultimaDataValida = '';
 
-    // 1. Extração linha por linha dos fatos físicos
     for (let r = 1; r < rawRows.length; r++) {
       const row = rawRows[r];
-      const linhaFisica = r + 1; // 1-indexed na planilha
+      const linhaFisica = r + 1; // 1-indexed
 
       const rawData = idxData !== -1 ? row[idxData] : '';
-      const dataIso = DiagnosticoDeterministicoGxt.formatarDataIso(rawData);
+      let dataIso = DiagnosticoDeterministicoGxt.formatarData(rawData);
+      if (dataIso) {
+        ultimaDataValida = dataIso;
+      } else if (ultimaDataValida) {
+        dataIso = ultimaDataValida; // Propaga data da linha anterior
+      }
+
       const mike = idxMike !== -1 ? String(row[idxMike] || '').trim() : '';
       const boe = idxBoe !== -1 ? String(row[idxBoe] || '').trim() : '';
       const mat = idxMat !== -1 ? String(row[idxMat] || '').trim() : '';
@@ -119,17 +140,18 @@ class DiagnosticoDeterministicoGxt {
 
       let numFogo = 0;
       const numVal = Number(valArmaFato);
-      if (!isNaN(numVal) && numVal > 0) {
+      if (!isNaN(numVal) && numVal > 0 && !isArtesanal) {
         numFogo = numVal;
       }
 
-      const totalArmaLinha = isArtesanal ? (numFogo > 0 ? numFogo : 1) : numFogo;
+      const numArtesanal = isArtesanal ? 1 : 0;
       const chaveTunel = `${dataIso}_${mike}_${boe}`.toUpperCase();
 
-      if (totalArmaLinha > 0) {
+      // Guarda se a linha contém algum fato físico (arma de fogo ou artesanal)
+      if (numFogo > 0 || numArtesanal > 0) {
         fatosFisicos.push({
           linhaFisica: linhaFisica,
-          dataOriginal: rawData,
+          dataOriginal: rawData || ultimaDataValida,
           dataIso: dataIso,
           mike: mike,
           boe: boe,
@@ -137,20 +159,21 @@ class DiagnosticoDeterministicoGxt {
           policial: pol,
           grad: grad,
           pelotao: pel,
-          armaFato: numFogo,
+          armaFogo: numFogo,
+          armaArtesanal: numArtesanal,
           isArtesanal: isArtesanal,
-          totalArmasFisicas: totalArmaLinha,
           chaveTunel: chaveTunel
         });
       }
 
+      // Adiciona todas as linhas de ocorrência para montar a equipe do túnel
       ocorrenciasNormalizadas.push({
         data: dataIso || rawData,
         mike: mike,
         boe: boe,
         armas: numFogo,
         armasFogo: numFogo,
-        armasArtesanais: isArtesanal ? 1 : 0,
+        armasArtesanais: numArtesanal,
         tipoArma: isArtesanal ? 'ARTESANAL' : (valTipo || 'FOGO'),
         isArtesanal: isArtesanal,
         policiais: mat ? [{
@@ -162,9 +185,9 @@ class DiagnosticoDeterministicoGxt {
       });
     }
 
-    // 2. Processa os túneis usando exatamente PoliticaMeritoArmas
+    // 2. Processamento idêntico ao GXT via PoliticaMeritoArmas
     let resultadosTuneis = [];
-    if (PoliticaMeritoMod && typeof PoliticaMeritoMod.processarMeritoArmas === 'function') {
+    if (peculioValido && PoliticaMeritoMod && typeof PoliticaMeritoMod.processarMeritoArmas === 'function') {
       resultadosTuneis = PoliticaMeritoMod.processarMeritoArmas(ocorrenciasNormalizadas, mapaAntiguidade);
     }
 
@@ -173,32 +196,41 @@ class DiagnosticoDeterministicoGxt {
       mapaTuneisGxt[t.chaveTunel] = t;
     });
 
-    let totalArmasFisicas = 0;
-    let totalArmasGxt = 0;
-    let totalExcluidas = 0;
+    let fogoFisicas = 0;
+    let fogoGxt = 0;
+    let fogoNaoIncluidas = 0;
+    let artesanaisFisicas = 0;
+    let artesanaisGxt = 0;
 
     const resumoMotivos = {};
 
-    // 3. Mapeia o resultado final de cada fato físico contra os túneis processados
+    // 3. Cruzamento determinístico linha a linha
     fatosFisicos.forEach(fato => {
-      totalArmasFisicas += fato.totalArmasFisicas;
+      fogoFisicas += fato.armaFogo;
+      artesanaisFisicas += fato.armaArtesanal;
 
       const resTunel = mapaTuneisGxt[fato.chaveTunel];
 
-      let statusFato = 'EXCLUÍDO';
+      let statusFato = 'NÃO INCLUÍDO';
       let motivoFato = '';
       let liderResolvido = '—';
       let numN = '—';
       let ordPeculio = '—';
-      let contribGxt = 0;
+      let contribFogo = 0;
 
-      if (!fato.matricula && (!resTunel || !resTunel.lider)) {
-        motivoFato = 'MATRICULA_AUSENTE — Militar sem matrícula cadastrada na linha armada';
+      if (!peculioValido) {
+        statusFato = 'FALHA_PECULIO';
+        motivoFato = `PECULIO_INACESSIVEL — ${erroPeculio || 'Fonte do Pecúlio indisponível'}`;
+      } else if (!fato.matricula && (!resTunel || !resTunel.lider)) {
+        motivoFato = 'MATRICULA_AUSENTE — Linha armada sem matrícula cadastrada na equipe';
       } else if (resTunel && resTunel.status === 'PROCESSADO') {
         statusFato = 'PROCESSADO';
-        contribGxt = fato.isArtesanal ? 0 : fato.armaFato;
-        totalArmasGxt += contribGxt;
-        motivoFato = fato.boe ? 'INCLUÍDO_COM_SUCESSO — Túnel homologado e mérito atribuído' : 'INCLUÍDO_COM_BOE_VAZIO — BOE vazio agrupa por DATA|MIKE|';
+        contribFogo = fato.isArtesanal ? 0 : fato.armaFogo;
+        fogoGxt += contribFogo;
+        motivoFato = fato.boe
+          ? 'INCLUÍDO_COM_SUCESSO — Túnel homologado e mérito atribuído'
+          : 'INCLUÍDO_COM_BOE_VAZIO — BOE vazio agrupou por DATA|MIKE| e foi homologado';
+
         if (resTunel.lider) {
           const nomeL = typeof resTunel.lider === 'string' ? resTunel.lider : (resTunel.lider.nome || resTunel.lider.policial || resTunel.lider.matricula || '');
           const gradL = resTunel.grad || (typeof resTunel.lider === 'object' ? resTunel.lider.grad : '') || '';
@@ -208,32 +240,43 @@ class DiagnosticoDeterministicoGxt {
         }
       } else if (resTunel) {
         statusFato = resTunel.status || 'PENDENTE_AUDITORIA';
-        motivoFato = fato.boe ? `${resTunel.motivoPendente || resTunel.status} — Túnel retido por pendência de antiguidade N no Pecúlio` : 'BOE_VAZIO_E_PENDENTE — BOE vazio com pendência de antiguidade no túnel';
+        motivoFato = fato.boe
+          ? `${resTunel.motivoPendente || resTunel.status} — Túnel retido por pendência de N no Pecúlio`
+          : 'BOE_VAZIO_E_PENDENTE — BOE vazio com pendência de antiguidade N no túnel';
       } else {
         motivoFato = 'TUNEL_NAO_ARMADO — Fato não gerou túnel de mérito no motor';
       }
 
       if (statusFato !== 'PROCESSADO') {
-        totalExcluidas += fato.totalArmasFisicas;
+        fogoNaoIncluidas += fato.armaFogo;
       }
 
-      resumoMotivos[motivoFato] = (resumoMotivos[motivoFato] || 0) + fato.totalArmasFisicas;
+      resumoMotivos[motivoFato] = (resumoMotivos[motivoFato] || 0) + (fato.armaFogo || fato.armaArtesanal);
 
       fato.statusFato = statusFato;
       fato.motivoFato = motivoFato;
       fato.liderResolvido = liderResolvido;
       fato.numN = numN;
       fato.ordPeculio = ordPeculio;
-      fato.contribGxt = contribGxt;
+      fato.contribFogo = contribFogo;
     });
 
-    const reconciliacaoTexto = `RECONCILIAÇÃO DETERMINÍSTICA (${nomeMes}): ${totalArmasFisicas} armas físicas = ${totalArmasGxt} incluídas no GXT + ${totalExcluidas} excluídas/perdidas.`;
+    let reconciliacaoTexto = '';
+    if (!peculioValido) {
+      reconciliacaoTexto = `ALERTA PECÚLIO (${nomeMes}): Fonte de antiguidade inacessível (${erroPeculio || 'ACESSO_NEGADO'}). 0 de ${fogoFisicas} armas processadas.`;
+    } else {
+      reconciliacaoTexto = `RECONCILIAÇÃO GXT (${nomeMes}): Armas de Fogo = ${fogoFisicas} físicas [${fogoGxt} incluídas no GXT + ${fogoNaoIncluidas} não incluídas]. Artesanais = ${artesanaisFisicas} descritivas.`;
+    }
 
     return {
       mes: nomeMes,
-      totalArmasFisicas: totalArmasFisicas,
-      totalArmasGxt: totalArmasGxt,
-      totalExcluidas: totalExcluidas,
+      peculioValido: peculioValido,
+      erroPeculio: erroPeculio,
+      fogoFisicas: fogoFisicas,
+      fogoGxt: fogoGxt,
+      fogoNaoIncluidas: fogoNaoIncluidas,
+      artesanaisFisicas: artesanaisFisicas,
+      artesanaisGxt: 0, // Artesanais aparecem apenas em texto no detalhamento, zero nos cards numéricos
       fatosFisicos: fatosFisicos,
       resumoMotivos: resumoMotivos,
       reconciliacaoTexto: reconciliacaoTexto
@@ -241,26 +284,27 @@ class DiagnosticoDeterministicoGxt {
   }
 
   /**
-   * Gera a matriz de visualização para ser gravada na aba [DIAGNOSTICO] Gxt.
-   * @param {Object} diagRes - Resultado retornado por diagnosticarMes.
-   * @returns {Array<Array<string|number>>} Matriz 2D para setValues.
+   * Monta a matriz 2D para ser gravada exclusivamente na aba descartável [DIAGNOSTICO] Gxt.
    */
   static montarMatrizDiagnostico(diagRes) {
+    const statusPec = diagRes.peculioValido ? 'DISPONÍVEL' : `INACESSÍVEL (${diagRes.erroPeculio || 'FALHA'})`;
+
     const matriz = [
       ['PAINEL DE DIAGNÓSTICO DETERMINÍSTICO DE TÚNEIS — GXT', '', '', '', '', '', '', '', '', '', '', ''],
       ['Mês Analisado:', diagRes.mes || 'ABR2026', '', '', '', '', '', '', '', '', '', ''],
-      ['Armas Físicas na Aba:', diagRes.totalArmasFisicas || 0, '', '', '', '', '', '', '', '', '', ''],
-      ['Armas Computadas no GXT:', diagRes.totalArmasGxt || 0, '', '', '', '', '', '', '', '', '', ''],
-      ['Armas Excluídas/Perdidas:', diagRes.totalExcluidas || 0, '', '', '', '', '', '', '', '', '', ''],
-      ['Reconciliação:', diagRes.reconciliacaoTexto || '', '', '', '', '', '', '', '', '', '', ''],
+      ['Status do Pecúlio:', statusPec, '', '', '', '', '', '', '', '', '', ''],
+      ['Armas de Fogo Físicas:', diagRes.fogoFisicas || 0, '', '', '', '', '', '', '', '', '', ''],
+      ['Armas de Fogo no GXT:', diagRes.fogoGxt || 0, '', '', '', '', '', '', '', '', '', ''],
+      ['Armas de Fogo Não Incluídas:', diagRes.fogoNaoIncluidas || 0, '', '', '', '', '', '', '', '', '', ''],
+      ['Armas Artesanais Físicas:', `${diagRes.artesanaisFisicas || 0} (Descritivas em texto)`, '', '', '', '', '', '', '', '', '', ''],
+      ['Equação de Reconciliação:', diagRes.reconciliacaoTexto || '', '', '', '', '', '', '', '', '', '', ''],
       ['', '', '', '', '', '', '', '', '', '', '', ''],
-      ['Linha', 'Data Efetiva', 'MIKE', 'BOE', 'Matrícula', 'Policial', 'Fato Físico', 'Chave Túnel GXT', 'Líder Resolvido', 'Nº N', 'Status GXT', 'Diagnóstico & Motivo Literal']
+      ['Linha', 'Data Efetiva', 'MIKE', 'BOE', 'Matrícula', 'Policial', 'Arma Fogo', 'Artesanal', 'Chave Túnel GXT', 'Líder Resolvido', 'Status GXT', 'Diagnóstico & Motivo Literal']
     ];
 
     const fatos = Array.isArray(diagRes.fatosFisicos) ? diagRes.fatosFisicos : [];
 
     fatos.forEach(f => {
-      const desFato = f.isArtesanal ? '1 (ARTESANAL)' : String(f.armaFato || 1);
       matriz.push([
         f.linhaFisica,
         f.dataIso || f.dataOriginal || '',
@@ -268,11 +312,11 @@ class DiagnosticoDeterministicoGxt {
         f.boe || '—',
         f.matricula || 'NÃO INFORMADA',
         `${f.grad || ''} ${f.policial || ''}`.trim(),
-        desFato,
+        f.armaFogo,
+        f.isArtesanal ? '1 (ARTESANAL)' : '0',
         f.chaveTunel || '—',
         f.liderResolvido || '—',
-        f.numN || '—',
-        f.statusFato || 'EXCLUÍDO',
+        f.statusFato || 'NÃO INCLUÍDO',
         f.motivoFato || '—'
       ]);
     });
@@ -284,12 +328,12 @@ class DiagnosticoDeterministicoGxt {
       '—',
       '—',
       '—',
-      diagRes.totalArmasFisicas,
+      diagRes.fogoFisicas,
+      diagRes.artesanaisFisicas,
       '—',
       '—',
-      '—',
-      diagRes.totalArmasGxt,
-      `Perdidas: ${diagRes.totalExcluidas}`
+      `Fogo GXT: ${diagRes.fogoGxt}`,
+      `Não Incluídas: ${diagRes.fogoNaoIncluidas}`
     ]);
 
     return matriz;
