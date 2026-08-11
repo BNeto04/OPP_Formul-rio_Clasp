@@ -28,6 +28,8 @@ const constantes = {
     ARMA_FATO: ['ARMA'],
     TIPO_ARMA: ['TIPO', 'TIPO ARMA', 'TIPO DE ARMA'],
     MODELO_ARMA: ['MODELO', 'MODELO ARMA', 'MODELO DE ARMA'],
+    CALIBRE: ['CALIBRE'],
+    MUNICAO: ['MUNIÇÃO', 'MUNICAO', 'QTD MUNIÇÃO'],
     QDT_ARMAS: ['QDT ARMAS', 'QTD ARMAS'],
     ARMAS: ['QDT ARMAS', 'QTD ARMAS', 'ARMAS'],
     ARMA_LINHA: ['ARMA'],

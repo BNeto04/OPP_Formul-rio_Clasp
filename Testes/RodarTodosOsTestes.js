@@ -37,6 +37,8 @@ console.log('');
 require('./TestLeitorAntiguidadePeculio');
 console.log('');
 require('./TestRelatorioGxt');
+console.log('');
+require('./TestEntradaManualFormulario');
 
 if (process.exitCode && process.exitCode !== 0) {
   console.error('\n====================================================');

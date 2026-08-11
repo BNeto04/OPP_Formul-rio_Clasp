@@ -175,8 +175,7 @@ function montarLinhasEntradaManual(payload) {
 }
 
 /**
- * Escreve as linhas formatadas em chunks na aba alvo para não sobrescrever fórmulas calculadas.
- * Porta de gravação: M01 → M02/M06.
+ * Escreve as linhas formatadas apenas em colunas permitidas, baseando-se nos nomes dos cabeçalhos.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} aba 
  * @param {Array<Array>} linhasParaInserir 
  */
@@ -194,21 +193,160 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
   
   const linhaParaEscrever = ultimaLinha > 0 ? ultimaLinha + 2 : 2; 
 
-  const chunks = [
-      { start: 2, end: 18 },  // B até R
-      { start: 21, end: 22 }, // U até V
-      { start: 24, end: 25 }, // X até Y
-      { start: 28, end: 34 }  // AB até AH
+  const totalLinhas = linhasParaInserir.length;
+  const numColunas = aba.getLastColumn();
+  
+  const targetRange = aba.getRange(linhaParaEscrever, 1, totalLinhas, numColunas);
+  const targetFormulas = targetRange.getFormulas();
+  const targetValidations = targetRange.getDataValidations();
+  const headers = aba.getRange(1, 1, 1, numColunas).getValues()[0].map(function(h) { return String(h).trim().toUpperCase(); });
+
+  const CABECALHOS_ORIGINAIS = [
+    "ORD", "DATA", "HORA", "QTD O", "MIKE", "NATUREZA", "BOE", "AIS", "CIDADE", "BAIRRO", "DETIDOS",
+    "ARMA", "TIPO", "CALIBRE", "MODELO", "MUNIÇÃO", 
+    "MACONHA DOLAR", "MACONHA GRAMA", "TOTAL DE MACONHA", "DIVIDIDO MAC",
+    "CRACK PEDRA", "CRACK GRAMA", "TOTAL CRACK (GR)", 
+    "COCAINA PINO", "COCAINA GRAMA", "TOTAL DE COCAINA", "DIVIDIDO COC",
+    "PELOTÃO", "GRAD", "MATRICULA", "POLICIAL", "QDT ARMAS", 
+    "OCORRÊNCIA PIP", "IMPUTADO?", "PONTOS TOTAIS", "PONTOS FICÇÃO (1/4)", "CHAVE OCORRÊNCIA"
   ];
 
-  chunks.forEach(chunk => {
-      const numCols = chunk.end - chunk.start + 1;
-      const chunkData = linhasParaInserir.map(row => row.slice(chunk.start - 1, chunk.end));
-      const targetRange = aba.getRange(linhaParaEscrever, chunk.start, linhasParaInserir.length, numCols);
+  const colunasFormulaObrigatoriaNomes = ["TOTAL DE MACONHA", "DIVIDIDO MAC", "TOTAL CRACK (GR)", "TOTAL DE COCAINA", "DIVIDIDO COC", "PONTOS TOTAIS", "PONTOS FICÇÃO (1/4)", "CHAVE OCORRÊNCIA"];
+
+  for (let rowIdx = 0; rowIdx < totalLinhas; rowIdx++) {
+     const rowFormulas = targetFormulas[rowIdx];
+     const rowValidations = targetValidations[rowIdx];
+     
+     for (let i = 0; i < colunasFormulaObrigatoriaNomes.length; i++) {
+        const nomeF = colunasFormulaObrigatoriaNomes[i];
+        const colIdx = headers.indexOf(nomeF);
+        if (colIdx === -1) throw new Error(`Coluna obrigatória de cálculo '${nomeF}' não encontrada na aba.`);
+        if (!rowFormulas[colIdx] || !rowFormulas[colIdx].toString().startsWith('=')) {
+            throw new Error(`Linha ${linhaParaEscrever + rowIdx} da aba não possui as fórmulas pré-formatadas requeridas na coluna '${nomeF}'. Faltam linhas preparadas.`);
+        }
+     }
+
+     for (let colIdx = 0; colIdx < numColunas; colIdx++) {
+         const dv = rowValidations[colIdx];
+         const headerName = headers[colIdx];
+         const origIdx = CABECALHOS_ORIGINAIS.indexOf(headerName);
+         if (origIdx === -1) continue;
+         
+         const valorPretendido = linhasParaInserir[rowIdx][origIdx];
+         
+         if (dv && valorPretendido) {
+             const type = dv.getCriteriaType();
+             const args = dv.getCriteriaValues();
+             let valid = true;
+             
+             if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
+                const lista = args[0].map(String);
+                if (!lista.includes(String(valorPretendido))) valid = false;
+             } else if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) {
+                if (args[0] && typeof args[0].getValues === 'function') {
+                    const vals = args[0].getValues().map(function(r){ return String(r[0]); });
+                    if (!vals.includes(String(valorPretendido))) valid = false;
+                }
+             }
+
+             if (!valid) {
+                throw new Error(`O valor '${valorPretendido}' não é permitido pela validação da planilha na coluna '${headerName}'. Gravação abortada.`);
+             }
+         }
+     }
+  }
+
+  const colsPermitidasNomes = [
+    "DATA", "HORA", "QTD O", "MIKE", "NATUREZA", "BOE", "AIS", "CIDADE", "BAIRRO", "DETIDOS",
+    "ARMA", "TIPO", "CALIBRE", "MODELO", "MUNIÇÃO", 
+    "MACONHA DOLAR", "MACONHA GRAMA", "CRACK PEDRA", "CRACK GRAMA", "COCAINA PINO", "COCAINA GRAMA", 
+    "PELOTÃO", "GRAD", "MATRICULA", "POLICIAL", "QDT ARMAS", "OCORRÊNCIA PIP", "IMPUTADO?"
+  ];
+  
+  for (let i = 0; i < colsPermitidasNomes.length; i++) {
+     const nomeCol = colsPermitidasNomes[i];
+     const targetColIdx = headers.indexOf(nomeCol);
+     const sourceColIdx = CABECALHOS_ORIGINAIS.indexOf(nomeCol);
+     
+     if (targetColIdx === -1 || sourceColIdx === -1) continue;
+     
+     const form = targetFormulas[0][targetColIdx];
+     if (form && form.toString().startsWith('=')) {
+         continue; 
+     }
+     
+     const rangeCol = aba.getRange(linhaParaEscrever, targetColIdx + 1, totalLinhas, 1);
+     const valoresCol = [];
+     for (let r = 0; r < totalLinhas; r++) {
+         valoresCol.push([linhasParaInserir[r][sourceColIdx]]);
+     }
+     rangeCol.setValues(valoresCol);
+  }
+}
+
+/**
+ * Retorna as opções válidas das caixas suspensas da aba mensal correspondente.
+ * @param {string} dataStr 
+ * @returns {Object} {naturezas: [], armasTipos: [], armasModelos: [], ocorrenciasPip: [], detidos: []}
+ */
+function obterOpcoesValidacao(dataStr) {
+  try {
+    if (!dataStr) throw new Error("Data inválida ou não informada.");
+    const nomeAba = resolverNomeAbaMensal(dataStr);
+    const SS_ID = (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID)
+      ? CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID
+      : '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
+    const ss = SpreadsheetApp.openById(SS_ID);
+    const aba = ss.getSheetByName(nomeAba);
+    if (!aba) throw new Error("Aba mensal " + nomeAba + " não encontrada!");
+
+    const numColunas = aba.getLastColumn();
+    const headers = aba.getRange(1, 1, 1, numColunas).getValues()[0].map(function(h) { return String(h).trim().toUpperCase(); });
+
+    const rowRange = aba.getRange(2, 1, 1, numColunas);
+    const validations = rowRange.getDataValidations()[0];
+
+    function extrairValores(nomeCabecalho) {
+      const colIdx = headers.indexOf(nomeCabecalho.toUpperCase());
+      if (colIdx === -1) return [];
       
-      targetRange.clearDataValidations();
-      targetRange.setValues(chunkData);
-  });
+      const dv = validations[colIdx];
+      if (!dv) return [];
+      const criteria = dv.getCriteriaType();
+      const args = dv.getCriteriaValues();
+      if (criteria === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
+        return args[0].map(String);
+      } else if (criteria === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) {
+        if (args[0] && typeof args[0].getValues === 'function') {
+           const values = args[0].getValues();
+           const list = [];
+           for (let r=0; r<values.length; r++) {
+              if(values[r][0]) list.push(String(values[r][0]));
+           }
+           return list;
+        }
+      }
+      return [];
+    }
+
+    const ret = {
+      naturezas: extrairValores("NATUREZA"),
+      armasTipos: extrairValores("TIPO"),
+      armasModelos: extrairValores("MODELO"),
+      ocorrenciasPip: extrairValores("OCORRÊNCIA PIP"),
+      detidos: extrairValores("DETIDOS")
+    };
+    
+    // Se a aba existir mas não tiver validações, bloqueamos.
+    if (!ret.naturezas.length && !ret.ocorrenciasPip.length) {
+        throw new Error("Aba " + nomeAba + " encontrada, mas sem validações formatadas na linha 2.");
+    }
+    
+    return ret;
+  } catch(e) {
+    console.error("obterOpcoesValidacao erro: " + e.message);
+    throw new Error(e.message);
+  }
 }
 
 /**

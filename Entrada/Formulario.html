@@ -203,7 +203,9 @@
           <div class="form-row">
             <div class="form-group full-width">
               <label for="natureza">NATUREZA DA OCORRÊNCIA</label>
-              <input type="text" id="natureza" placeholder="Ex: ENTORPECENTES (TRÁFICO)">
+              <select id="natureza">
+                <option value="">Aguardando data...</option>
+              </select>
             </div>
           </div>
 
@@ -233,12 +235,7 @@
             <div class="form-group">
               <label for="detidos">DETIDOS (Facultativo)</label>
               <input type="text" id="detidos" list="detidosList" placeholder="Ex: APFD, TCO, BOC">
-              <datalist id="detidosList">
-                <option value="APFD">
-                <option value="TCO">
-                <option value="BOC">
-                <option value="AAFAI">
-              </datalist>
+              <datalist id="detidosList"></datalist>
             </div>
           </div>
         </div>
@@ -592,44 +589,55 @@
     let efetivo = []; // [{pelotao, posto, matricula, nome}]
     let efetivoPorMat = {};
 
-      function adicionarPipField(valorSelecionado = '') {
+    window.opcoesFormulario = null;
+
+    function carregarOpcoesValidacao(dataStr) {
+      const selectNat = document.getElementById('natureza');
+      if(!dataStr) {
+         setStatus('Informe a data da ocorrência para carregar as opções.', 'var(--secondary-color)');
+         window.opcoesFormulario = null;
+         if(selectNat) selectNat.innerHTML = `<option value="">Aguardando data...</option>`;
+         return;
+      }
+      setStatus('> Carregando opções da aba ' + dataStr + '...', 'var(--secondary-color)');
+      google.script.run
+        .withSuccessHandler(res => {
+           window.opcoesFormulario = res;
+           atualizarDataLists();
+           setStatus('> Opções atualizadas para ' + dataStr, 'var(--accent-color)');
+        })
+        .withFailureHandler(err => {
+           window.opcoesFormulario = null;
+           if(selectNat) selectNat.innerHTML = `<option value="">Erro ao carregar opções</option>`;
+           setStatus('Erro aba: ' + err.message, 'var(--danger-color)');
+        })
+        .obterOpcoesValidacao(dataStr);
+    }
+
+    function atualizarDataLists() {
+      const selectNat = document.getElementById('natureza');
+      if(selectNat && window.opcoesFormulario && window.opcoesFormulario.naturezas) {
+          selectNat.innerHTML = `<option value="">Selecione...</option>` + window.opcoesFormulario.naturezas.map(n => `<option value="${n}">${n}</option>`).join('');
+      }
+      const dlDet = document.getElementById('detidosList');
+      if(dlDet && window.opcoesFormulario && window.opcoesFormulario.detidos) {
+          dlDet.innerHTML = window.opcoesFormulario.detidos.map(d => `<option value="${d}">`).join('');
+      }
+    }
+
+    document.getElementById('data').addEventListener('change', (e) => {
+        carregarOpcoesValidacao(e.target.value);
+    });
+
+    function adicionarPipField(valorSelecionado = '') {
         const id = 'pip-' + Date.now() + Math.random().toString(36).substr(2, 5);
         const div = document.createElement('div');
         div.className = 'dynamic-item';
         div.id = id;
         
-        const opcoes = [
-          "OCORRÊNCIA LANÇADA VIA SISTEMA",
-          "OCORRÊNCIA NÃO LANÇADA",
-          "Apreensão de arma de fogo artesanal",
-          "Apreensão de arma de fogo revólver",
-          "Apreensão de arma de fogo pistola",
-          "Apreensão de arma longa (12 industrial)",
-          "Apreensão de arma longa (fuzil)",
-          "Apreensão de munição revólver/pistola",
-          "Apreensão de munição calibre .12",
-          "Apreensão de munição fuzil",
-          "Apreensão de carregador",
-          "Apreensão de colete balístico completo",
-          "Apreensão de arma branca",
-          "Apreensão de celular",
-          "Apreensão de maconha por grama (invólucro ou papelote)",
-          "Apreensão de maconha (1Kg)",
-          "Apreensão de crack por grama",
-          "Apreensão de crack (1Kg)",
-          "Apreensão de haxixe (grama) / êxtase / sintéticas",
-          "Apreensão de haxixe (kg)",
-          "Apreensão de cocaína por grama (invólucro)",
-          "Apreensão de cocaína (kg)",
-          "Apreensão de numerário para cada real apreendido",
-          "Prisão por mandado",
-          "Ocorrência que desencadeou TCO/BOC",
-          "Ocorrência que desencadeou AAAI/APFD",
-          "Ocorrência que evitar MVI/Feminicídio",
-          "Apreensão de material explosivo",
-          "Apreensão de veículo furtado ou roubado",
-          "Ocorrência de vulto conforme entendimento do CMT"
-        ];
+        const opcoes = (window.opcoesFormulario && window.opcoesFormulario.ocorrenciasPip && window.opcoesFormulario.ocorrenciasPip.length > 0) 
+            ? window.opcoesFormulario.ocorrenciasPip 
+            : ["OCORRÊNCIA LANÇADA VIA SISTEMA", "OCORRÊNCIA NÃO LANÇADA"];
         
         let selectHtml = `<select style="flex:1" class="pip-tipo">`;
         opcoes.forEach(op => {
@@ -761,16 +769,24 @@
       const div = document.createElement('div');
       div.className = 'dynamic-item';
       div.id = id;
+      
+      let htmlTipos = '';
+      const tList = (window.opcoesFormulario && window.opcoesFormulario.armasTipos) ? window.opcoesFormulario.armasTipos : ["INDUSTRIAL", "FABRICAÇÃO CASEIRA"];
+      tList.forEach(t => {
+         htmlTipos += `<option value="${t}" ${tipo===t?'selected':''}>${t}</option>`;
+      });
+      let htmlModelos = '';
+      const mList = (window.opcoesFormulario && window.opcoesFormulario.armasModelos) ? window.opcoesFormulario.armasModelos : ["REVÓLVER", "PISTOLA", "ESPINGARDA", "FUZIL"];
+      mList.forEach(m => {
+         htmlModelos += `<option value="${m}" ${modelo===m?'selected':''}>${m}</option>`;
+      });
+
       div.innerHTML = `
         <select style="flex:1" class="arma-tipo">
-          <option value="INDUSTRIAL" ${tipo==='INDUSTRIAL'?'selected':''}>INDUSTRIAL</option>
-          <option value="FABRICAÇÃO CASEIRA" ${tipo==='FABRICAÇÃO CASEIRA'?'selected':''}>ARTESANAL</option>
+          ${htmlTipos}
         </select>
         <select style="flex:1" class="arma-modelo">
-          <option value="REVÓLVER" ${modelo==='REVÓLVER'?'selected':''}>REVÓLVER</option>
-          <option value="PISTOLA" ${modelo==='PISTOLA'?'selected':''}>PISTOLA</option>
-          <option value="ESPINGARDA" ${modelo==='ESPINGARDA'?'selected':''}>ESPINGARDA</option>
-          <option value="FUZIL" ${modelo==='FUZIL'?'selected':''}>FUZIL</option>
+          ${htmlModelos}
         </select>
         <input type="text" style="flex:0.6" class="arma-calibre" placeholder="Calibre" value="${calibre}">
         <input type="number" style="flex:0.6" class="arma-municao" placeholder="Munição" value="${municao}" min="0">
@@ -833,7 +849,7 @@
       const ordemPoliciais = [...document.querySelectorAll('#policeTableBody tr[data-mat]')]
         .map(tr => tr.dataset.mat)
         .filter(mat => policiaisSet.has(mat));
-      const policiais = ordemPoliciais.map(mat => {
+      const efetivoSelecionados = ordemPoliciais.map(mat => {
         const p = efetivoPorMat[mat];
         const tr = document.getElementById('prow_' + mat);
         let qtdArmas = 0;
@@ -844,7 +860,6 @@
         return p ? { pelotao: p.pelotao, posto: p.posto, matricula: mat, nome: p.nome, qtd_armas: qtdArmas }
                  : { pelotao: '', posto: '', matricula: mat, nome: '', qtd_armas: qtdArmas };
       });
-      const ocorrenciasPip = [...document.querySelectorAll('.pip-tipo')].map(el => el.value);
 
       const payload = {
         origem:   'FORMULARIO',
@@ -886,8 +901,10 @@
       ocrTerminal.innerText = 'Aguardando documento para processar...';
     }
 
-    // Carrega o efetivo assim que o modal abre
+    // Carrega o efetivo assim que o modal abre. Opções só carregam após digitar data.
     carregarEfetivo();
+    const inputData = document.getElementById('data').value;
+    if (inputData) carregarOpcoesValidacao(inputData);
 
         // Listeners pontuacao
         document.getElementById('detidos').addEventListener('change', function() {
