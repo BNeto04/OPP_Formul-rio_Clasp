@@ -18,8 +18,9 @@ global.SpreadsheetApp = {
 global.Logger = { log: console.log };
 
 const entradaManualCode = fs.readFileSync(path.join(__dirname, '../Entrada/EntradaManual.js'), 'utf8');
-eval(entradaManualCode + '\nif(typeof gravarLinhasEntradaManual !== "undefined") global.gravarLinhasEntradaManual = gravarLinhasEntradaManual;'); 
+eval(entradaManualCode + '\nif(typeof gravarLinhasEntradaManual !== "undefined") global.gravarLinhasEntradaManual = gravarLinhasEntradaManual; if(typeof obterOpcoesValidacao !== "undefined") global.obterOpcoesValidacao = obterOpcoesValidacao;'); 
 const gravarLinhasEntradaManual = global.gravarLinhasEntradaManual;
+const obterOpcoesValidacao = global.obterOpcoesValidacao;
 
 function mockDataValidation(listaValores) {
     return {
@@ -156,6 +157,34 @@ assert.throws(() => {
     gravarLinhasEntradaManual(sheetValorInvalido, [linhaInserirFake]);
 }, /não é permitido pela validação/, "Deveria abortar");
 
-console.log('✅ OK - EntradaManual.js');
+console.log('  [Test 6] Extração de valores com cabeçalho curto NATUREZA');
+let sheetNaturezaCurta = mockSheet(CABECALHOS_ORIGINAIS.map(h => h === 'NATUREZA DA OCORRÊNCIA' ? 'NATUREZA' : h), null, null, (row, col, nr, nc) => {
+    return Array(nr).fill(CABECALHOS_ORIGINAIS.map(h => {
+        if (h === 'NATUREZA DA OCORRÊNCIA') return mockDataValidation(['Nat1', 'Nat2']);
+        return null;
+    })).map(rowVals => rowVals.slice(col - 1, col - 1 + nc));
+});
+global.SpreadsheetApp.openById = function() {
+    return { getSheetByName: function() { return sheetNaturezaCurta; } };
+};
+const opcoesNat = obterOpcoesValidacao('01/01/2026');
+assert.deepStrictEqual(opcoesNat.naturezas, ['Nat1', 'Nat2'], "Deve extrair opções usando apenas NATUREZA");
+global.SpreadsheetApp.openById = undefined;
+
+console.log('  [Test 7] Sintaxe do Formulario.html');
+
+const html = fs.readFileSync(path.join(__dirname, '../Entrada/Formulario.html'), 'utf8');
+const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+let match;
+while ((match = scriptRegex.exec(html)) !== null) {
+    const scriptContent = match[1];
+    try {
+        new Function(scriptContent);
+    } catch (e) {
+        assert.fail(`Erro de sintaxe no Formulario.html: ${e.message}`);
+    }
+}
+
+console.log('✅ OK - EntradaManual.js e Formulario.html');
 
 } // end else

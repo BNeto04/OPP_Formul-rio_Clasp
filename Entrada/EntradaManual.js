@@ -401,7 +401,7 @@ function obterOpcoesValidacao(dataStr) {
 
     const ret = {
       data: dataStr,
-      naturezas: extrairValores("NATUREZA DA OCORRÊNCIA") || extrairValores("NATUREZA"),
+      naturezas: extrairValores("NATUREZA"),
       armasTipos: extrairValores("TIPO"),
       armasModelos: extrairValores("MODELO"),
       ocorrenciasPip: extrairValores("OCORRÊNCIA PIP"),

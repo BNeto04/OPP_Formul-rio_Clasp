@@ -644,6 +644,8 @@
               }
           }
       }
+      applyDetidosListener();
+    }
 
     document.getElementById('data').addEventListener('change', (e) => {
         carregarOpcoesValidacao(e.target.value);
@@ -949,12 +951,19 @@
     if (inputData) carregarOpcoesValidacao(inputData);
 
         // Listeners pontuacao
-        document.getElementById('detidos').addEventListener('change', function() {
-           const v = this.value.toUpperCase();
-           if(v.includes('APFD') || v.includes('TCO') || v.includes('BOC') || v.includes('AAFAI')) {
-              document.getElementById('imputado').value = 'COM IMPUTADO';
-           }
-        });
+        function applyDetidosListener() {
+            const el = document.getElementById('detidos');
+            if (!el) return;
+            el.removeEventListener('change', detidosChangeHandler);
+            el.addEventListener('change', detidosChangeHandler);
+        }
+        function detidosChangeHandler() {
+            const v = this.value.toUpperCase();
+            if(v.includes('APFD') || v.includes('TCO') || v.includes('BOC') || v.includes('AAFAI')) {
+               document.getElementById('imputado').value = 'COM IMPUTADO';
+            }
+        }
+        applyDetidosListener();
 
     // ── HELPERS ───────────────────────────────────────────────────
     function log(msg) {
