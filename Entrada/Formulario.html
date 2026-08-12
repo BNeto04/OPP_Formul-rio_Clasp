@@ -619,11 +619,31 @@
       if(selectNat && window.opcoesFormulario && window.opcoesFormulario.naturezas) {
           selectNat.innerHTML = `<option value="">Selecione...</option>` + window.opcoesFormulario.naturezas.map(n => `<option value="${n}">${n}</option>`).join('');
       }
-      const dlDet = document.getElementById('detidosList');
-      if(dlDet && window.opcoesFormulario && window.opcoesFormulario.detidos) {
-          dlDet.innerHTML = window.opcoesFormulario.detidos.map(d => `<option value="${d}">`).join('');
+      const selectDetidos = document.getElementById('detidos');
+      if (selectDetidos) {
+          if (window.opcoesFormulario && window.opcoesFormulario.detidos && window.opcoesFormulario.detidos.length > 0) {
+              const valorAnterior = selectDetidos.value;
+              const novoSelect = document.createElement('select');
+              novoSelect.id = 'detidos';
+              novoSelect.name = 'detidos';
+              novoSelect.className = 'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]';
+              novoSelect.innerHTML = `<option value="">Selecione...</option>` + window.opcoesFormulario.detidos.map(d => `<option value="${d}">${d}</option>`).join('');
+              novoSelect.value = valorAnterior;
+              selectDetidos.parentNode.replaceChild(novoSelect, selectDetidos);
+          } else {
+              if (selectDetidos.tagName === 'SELECT') {
+                  const valorAnterior = selectDetidos.value;
+                  const novoInput = document.createElement('input');
+                  novoInput.type = 'number';
+                  novoInput.id = 'detidos';
+                  novoInput.name = 'detidos';
+                  novoInput.min = '0';
+                  novoInput.className = 'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]';
+                  novoInput.value = valorAnterior;
+                  selectDetidos.parentNode.replaceChild(novoInput, selectDetidos);
+              }
+          }
       }
-    }
 
     document.getElementById('data').addEventListener('change', (e) => {
         carregarOpcoesValidacao(e.target.value);
@@ -637,7 +657,12 @@
         
         const opcoes = (window.opcoesFormulario && window.opcoesFormulario.ocorrenciasPip && window.opcoesFormulario.ocorrenciasPip.length > 0) 
             ? window.opcoesFormulario.ocorrenciasPip 
-            : ["OCORRÊNCIA LANÇADA VIA SISTEMA", "OCORRÊNCIA NÃO LANÇADA"];
+            : [];
+        
+        if (opcoes.length === 0) {
+            setStatus('Aguarde o carregamento das opções (Data) antes de adicionar.', 'var(--danger-color)');
+            return;
+        }
         
         let selectHtml = `<select style="flex:1" class="pip-tipo">`;
         opcoes.forEach(op => {
@@ -771,15 +796,23 @@
       div.id = id;
       
       let htmlTipos = '';
-      const tList = (window.opcoesFormulario && window.opcoesFormulario.armasTipos) ? window.opcoesFormulario.armasTipos : ["INDUSTRIAL", "FABRICAÇÃO CASEIRA"];
+      const tList = (window.opcoesFormulario && window.opcoesFormulario.armasTipos) ? window.opcoesFormulario.armasTipos : [];
+      if (tList.length === 0) {
+          setStatus('Aguarde o carregamento das opções (Data) antes de adicionar Arma.', 'var(--danger-color)');
+          return;
+      }
       tList.forEach(t => {
          htmlTipos += `<option value="${t}" ${tipo===t?'selected':''}>${t}</option>`;
       });
       let htmlModelos = '';
-      const mList = (window.opcoesFormulario && window.opcoesFormulario.armasModelos) ? window.opcoesFormulario.armasModelos : ["REVÓLVER", "PISTOLA", "ESPINGARDA", "FUZIL"];
-      mList.forEach(m => {
-         htmlModelos += `<option value="${m}" ${modelo===m?'selected':''}>${m}</option>`;
-      });
+      const mList = (window.opcoesFormulario && window.opcoesFormulario.armasModelos) ? window.opcoesFormulario.armasModelos : [];
+      if (mList.length > 0) {
+          mList.forEach(m => {
+             htmlModelos += `<option value="${m}" ${modelo===m?'selected':''}>${m}</option>`;
+          });
+      } else {
+          htmlModelos = `<option value="">Nenhum modelo disponível</option>`;
+      }
 
       div.innerHTML = `
         <select style="flex:1" class="arma-tipo">
@@ -825,6 +858,10 @@
       document.getElementById('drogasList').appendChild(div);
     }
 
+    function obterPip() {
+      return [...document.querySelectorAll('#pipList .dynamic-item')].map(el => el.querySelector('.pip-tipo').value);
+    }
+
     function obterArmas() {
       return [...document.querySelectorAll('#armasList .dynamic-item')].map(el => ({
         tipo:      el.querySelector('.arma-tipo').value,
@@ -861,6 +898,11 @@
                  : { pelotao: '', posto: '', matricula: mat, nome: '', qtd_armas: qtdArmas };
       });
 
+      if (!window.opcoesFormulario || window.opcoesFormulario.data !== document.getElementById('data').value.trim()) {
+          setStatus('>> ERRO: As opções de validação da data não estão sincronizadas. Escolha ou re-selecione a Data antes de salvar.', 'var(--danger-color)');
+          return;
+      }
+
       const payload = {
         origem:   'FORMULARIO',
         mike:     document.getElementById('mike').value.trim(),
@@ -874,8 +916,8 @@
         qtd_o:    document.getElementById('qtd_o').value.trim(),
         detidos:  document.getElementById('detidos').value.trim(),
         imputado: document.getElementById('imputado').value,
-        ocorrenciasPip: ocorrenciasPip,
-        policiais: policiais,
+        ocorrenciasPip: obterPip(),
+        policiais: efetivoSelecionados,
         armas:    obterArmas(),
         drogas:   obterDrogas()
       };

@@ -175,13 +175,12 @@ function montarLinhasEntradaManual(payload) {
 }
 
 /**
- * Escreve as linhas formatadas apenas em colunas permitidas, baseando-se nos nomes dos cabeçalhos.
- * @param {GoogleAppsScript.Spreadsheet.Sheet} aba 
- * @param {Array<Array>} linhasParaInserir 
+ * Localiza um bloco contíguo de linhas pré-formatadas prontas para uso.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} aba
+ * @param {number} quantidade
+ * @returns {GoogleAppsScript.Spreadsheet.Range}
  */
-function gravarLinhasEntradaManual(aba, linhasParaInserir) {
-  if (!linhasParaInserir || linhasParaInserir.length === 0) return;
-
+function localizarBlocoModeloDisponivel_(aba, quantidade) {
   const colB = aba.getRange("B1:B" + aba.getMaxRows()).getValues();
   let ultimaLinha = 0;
   for (let i = colB.length - 1; i >= 0; i--) {
@@ -191,15 +190,66 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
       }
   }
   
-  const linhaParaEscrever = ultimaLinha > 0 ? ultimaLinha + 2 : 2; 
-
-  const totalLinhas = linhasParaInserir.length;
+  const linhaParaEscrever = ultimaLinha > 0 ? ultimaLinha + 1 : 2; 
   const numColunas = aba.getLastColumn();
   
-  const targetRange = aba.getRange(linhaParaEscrever, 1, totalLinhas, numColunas);
+  if (linhaParaEscrever + quantidade - 1 > aba.getMaxRows()) {
+      throw new Error(`A aba não possui linhas suficientes para inserir ${quantidade} registros.`);
+  }
+
+  const targetRange = aba.getRange(linhaParaEscrever, 1, quantidade, numColunas);
+  const targetFormulas = targetRange.getFormulas();
+  const targetValues = targetRange.getValues();
+  const headers = aba.getRange(1, 1, 1, numColunas).getValues()[0];
+  
+  const SyntheonCabecalhosObj = typeof SyntheonCabecalhos !== 'undefined' ? SyntheonCabecalhos : (typeof require !== 'undefined' ? require('../Core/Cabecalhos').SyntheonCabecalhos || require('../Core/Cabecalhos') : null);
+  if (!SyntheonCabecalhosObj) throw new Error("Dependência SyntheonCabecalhos não encontrada.");
+  const headersIndex = SyntheonCabecalhosObj.criarIndice(headers);
+  const colunasFormulaObrigatoriaNomes = ["TOTAL DE MACONHA", "DIVIDIDO MAC", "TOTAL CRACK (GR)", "TOTAL DE COCAINA", "DIVIDIDO COC", "PONTOS TOTAIS", "PONTOS FICÇÃO (1/4)", "CHAVE OCORRÊNCIA"];
+
+  for (let rowIdx = 0; rowIdx < quantidade; rowIdx++) {
+     const rowFormulas = targetFormulas[rowIdx];
+     for (let i = 0; i < colunasFormulaObrigatoriaNomes.length; i++) {
+        const nomeF = colunasFormulaObrigatoriaNomes[i];
+        const colIdx = SyntheonCabecalhosObj.encontrar(headersIndex, nomeF);
+        if (colIdx === -1) throw new Error(`Coluna obrigatória de cálculo '${nomeF}' não encontrada na aba.`);
+        if (!rowFormulas[colIdx] || !rowFormulas[colIdx].toString().startsWith('=')) {
+            throw new Error(`Linha ${linhaParaEscrever + rowIdx} da aba não possui as fórmulas pré-formatadas requeridas na coluna '${nomeF}'. Faltam linhas preparadas.`);
+        }
+     }
+  }
+
+  for (let rowIdx = 0; rowIdx < quantidade; rowIdx++) {
+     for (let colIdx = 0; colIdx < numColunas; colIdx++) {
+         const valStr = String(targetValues[rowIdx][colIdx]).trim();
+         const isFormula = targetFormulas[rowIdx][colIdx] && targetFormulas[rowIdx][colIdx].toString().startsWith('=');
+         if (!isFormula && valStr !== "") {
+             throw new Error(`Linha ${linhaParaEscrever + rowIdx} da aba não está vazia na coluna ${colIdx + 1}. Garanta linhas em branco antes de gravar.`);
+         }
+     }
+  }
+
+  return targetRange;
+}
+
+/**
+ * Escreve as linhas formatadas apenas em colunas permitidas, baseando-se nos nomes dos cabeçalhos.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} aba 
+ * @param {Array<Array>} linhasParaInserir 
+ */
+function gravarLinhasEntradaManual(aba, linhasParaInserir) {
+  if (!linhasParaInserir || linhasParaInserir.length === 0) return;
+
+  const totalLinhas = linhasParaInserir.length;
+  const targetRange = localizarBlocoModeloDisponivel_(aba, totalLinhas);
+  const linhaParaEscrever = targetRange.getRow();
+  
+  const SyntheonCabecalhosObj = typeof SyntheonCabecalhos !== 'undefined' ? SyntheonCabecalhos : (typeof require !== 'undefined' ? require('../Core/Cabecalhos').SyntheonCabecalhos || require('../Core/Cabecalhos') : null);
+  const headers = aba.getRange(1, 1, 1, aba.getLastColumn()).getValues()[0];
+  const headersIndex = SyntheonCabecalhosObj.criarIndice(headers);
+  
   const targetFormulas = targetRange.getFormulas();
   const targetValidations = targetRange.getDataValidations();
-  const headers = aba.getRange(1, 1, 1, numColunas).getValues()[0].map(function(h) { return String(h).trim().toUpperCase(); });
 
   const CABECALHOS_ORIGINAIS = [
     "ORD", "DATA", "HORA", "QTD O", "MIKE", "NATUREZA", "BOE", "AIS", "CIDADE", "BAIRRO", "DETIDOS",
@@ -210,30 +260,29 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
     "PELOTÃO", "GRAD", "MATRICULA", "POLICIAL", "QDT ARMAS", 
     "OCORRÊNCIA PIP", "IMPUTADO?", "PONTOS TOTAIS", "PONTOS FICÇÃO (1/4)", "CHAVE OCORRÊNCIA"
   ];
+  
+  const controlados = ["NATUREZA", "TIPO", "MODELO", "OCORRÊNCIA PIP"];
 
-  const colunasFormulaObrigatoriaNomes = ["TOTAL DE MACONHA", "DIVIDIDO MAC", "TOTAL CRACK (GR)", "TOTAL DE COCAINA", "DIVIDIDO COC", "PONTOS TOTAIS", "PONTOS FICÇÃO (1/4)", "CHAVE OCORRÊNCIA"];
-
+  // Fase 1: Validação Total de Integridade
   for (let rowIdx = 0; rowIdx < totalLinhas; rowIdx++) {
      const rowFormulas = targetFormulas[rowIdx];
      const rowValidations = targetValidations[rowIdx];
      
-     for (let i = 0; i < colunasFormulaObrigatoriaNomes.length; i++) {
-        const nomeF = colunasFormulaObrigatoriaNomes[i];
-        const colIdx = headers.indexOf(nomeF);
-        if (colIdx === -1) throw new Error(`Coluna obrigatória de cálculo '${nomeF}' não encontrada na aba.`);
-        if (!rowFormulas[colIdx] || !rowFormulas[colIdx].toString().startsWith('=')) {
-            throw new Error(`Linha ${linhaParaEscrever + rowIdx} da aba não possui as fórmulas pré-formatadas requeridas na coluna '${nomeF}'. Faltam linhas preparadas.`);
-        }
-     }
-
-     for (let colIdx = 0; colIdx < numColunas; colIdx++) {
-         const dv = rowValidations[colIdx];
-         const headerName = headers[colIdx];
-         const origIdx = CABECALHOS_ORIGINAIS.indexOf(headerName);
-         if (origIdx === -1) continue;
+     // 1.2 Validações de Dados para Valores Inseridos na Linha
+     for (let origIdx = 0; origIdx < CABECALHOS_ORIGINAIS.length; origIdx++) {
+         const headerOrig = CABECALHOS_ORIGINAIS[origIdx];
+         const colIdx = SyntheonCabecalhosObj.encontrar(headersIndex, headerOrig);
+         if (colIdx === -1) continue;
          
          const valorPretendido = linhasParaInserir[rowIdx][origIdx];
          
+         if (rowFormulas[colIdx] && rowFormulas[colIdx].toString().startsWith('=')) {
+             if (valorPretendido) {
+                 throw new Error(`Tentativa de sobrescrever a fórmula da coluna '${headerOrig}' na linha ${linhaParaEscrever + rowIdx}.`);
+             }
+         }
+
+         const dv = rowValidations[colIdx];
          if (dv && valorPretendido) {
              const type = dv.getCriteriaType();
              const args = dv.getCriteriaValues();
@@ -247,15 +296,20 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
                     const vals = args[0].getValues().map(function(r){ return String(r[0]); });
                     if (!vals.includes(String(valorPretendido))) valid = false;
                 }
+             } else {
+                throw new Error(`Validação de tipo desconhecido na coluna '${headerOrig}'. Gravação abortada.`);
              }
 
              if (!valid) {
-                throw new Error(`O valor '${valorPretendido}' não é permitido pela validação da planilha na coluna '${headerName}'. Gravação abortada.`);
+                throw new Error(`O valor '${valorPretendido}' não é permitido pela validação da planilha na coluna '${headerOrig}'. Gravação abortada.`);
              }
+         } else if (!dv && valorPretendido && controlados.includes(headerOrig)) {
+             throw new Error(`Validação ausente na coluna controlada '${headerOrig}'.`);
          }
      }
   }
 
+  // Fase 2: Gravação Física
   const colsPermitidasNomes = [
     "DATA", "HORA", "QTD O", "MIKE", "NATUREZA", "BOE", "AIS", "CIDADE", "BAIRRO", "DETIDOS",
     "ARMA", "TIPO", "CALIBRE", "MODELO", "MUNIÇÃO", 
@@ -265,14 +319,20 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
   
   for (let i = 0; i < colsPermitidasNomes.length; i++) {
      const nomeCol = colsPermitidasNomes[i];
-     const targetColIdx = headers.indexOf(nomeCol);
+     const targetColIdx = SyntheonCabecalhosObj.encontrar(headersIndex, nomeCol);
      const sourceColIdx = CABECALHOS_ORIGINAIS.indexOf(nomeCol);
      
      if (targetColIdx === -1 || sourceColIdx === -1) continue;
      
-     const form = targetFormulas[0][targetColIdx];
-     if (form && form.toString().startsWith('=')) {
-         continue; 
+     let temFormula = false;
+     for (let r = 0; r < totalLinhas; r++) {
+         const form = targetFormulas[r][targetColIdx];
+         if (form && form.toString().startsWith('=')) {
+             temFormula = true;
+         }
+     }
+     if (temFormula) {
+         continue; // Proteção extra
      }
      
      const rangeCol = aba.getRange(linhaParaEscrever, targetColIdx + 1, totalLinhas, 1);
@@ -300,14 +360,24 @@ function obterOpcoesValidacao(dataStr) {
     const aba = ss.getSheetByName(nomeAba);
     if (!aba) throw new Error("Aba mensal " + nomeAba + " não encontrada!");
 
-    const numColunas = aba.getLastColumn();
-    const headers = aba.getRange(1, 1, 1, numColunas).getValues()[0].map(function(h) { return String(h).trim().toUpperCase(); });
+    const SyntheonCabecalhosObj = typeof SyntheonCabecalhos !== 'undefined' ? SyntheonCabecalhos : (typeof require !== 'undefined' ? require('../Core/Cabecalhos').SyntheonCabecalhos || require('../Core/Cabecalhos') : null);
 
-    const rowRange = aba.getRange(2, 1, 1, numColunas);
-    const validations = rowRange.getDataValidations()[0];
+    const numColunas = aba.getLastColumn();
+    const headers = aba.getRange(1, 1, 1, numColunas).getValues()[0];
+    const headersIndex = SyntheonCabecalhosObj ? SyntheonCabecalhosObj.criarIndice(headers) : {};
+
+    const targetRange = localizarBlocoModeloDisponivel_(aba, 1);
+    const validations = targetRange.getDataValidations()[0];
 
     function extrairValores(nomeCabecalho) {
-      const colIdx = headers.indexOf(nomeCabecalho.toUpperCase());
+      let colIdx = -1;
+      if (SyntheonCabecalhosObj) {
+         colIdx = SyntheonCabecalhosObj.encontrar(headersIndex, nomeCabecalho);
+      } else {
+         const hs = headers.map(h => String(h).trim().toUpperCase());
+         colIdx = hs.indexOf(nomeCabecalho.toUpperCase());
+      }
+      
       if (colIdx === -1) return [];
       
       const dv = validations[colIdx];
@@ -330,16 +400,16 @@ function obterOpcoesValidacao(dataStr) {
     }
 
     const ret = {
-      naturezas: extrairValores("NATUREZA"),
+      data: dataStr,
+      naturezas: extrairValores("NATUREZA DA OCORRÊNCIA") || extrairValores("NATUREZA"),
       armasTipos: extrairValores("TIPO"),
       armasModelos: extrairValores("MODELO"),
       ocorrenciasPip: extrairValores("OCORRÊNCIA PIP"),
       detidos: extrairValores("DETIDOS")
     };
     
-    // Se a aba existir mas não tiver validações, bloqueamos.
-    if (!ret.naturezas.length && !ret.ocorrenciasPip.length) {
-        throw new Error("Aba " + nomeAba + " encontrada, mas sem validações formatadas na linha 2.");
+    if (!ret.naturezas || !ret.naturezas.length) {
+        throw new Error("Aba " + nomeAba + " encontrada, mas sem validações formatadas (provavelmente faltam linhas preparadas).");
     }
     
     return ret;
