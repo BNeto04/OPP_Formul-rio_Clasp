@@ -114,6 +114,7 @@
     .btn-cancel { background-color: #1e293b; color: #e2e8f0; border: 1px solid var(--border-color); }
     .btn-save { background: linear-gradient(135deg, var(--accent-color), #059669); color: #060913; box-shadow: 0 0 12px rgba(0, 255, 157, 0.15); }
     .btn-save:hover { box-shadow: 0 0 22px var(--accent-color); transform: translateY(-1px); }
+    .btn-save:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); box-shadow: none; transform: none; pointer-events: none; }
     .btn-toggle-ocr { background: rgba(0, 210, 255, 0.1); border: 1px solid var(--secondary-color); color: var(--secondary-color); border-radius: 6px; padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 600; font-family: var(--font-family); transition: all 0.2s; outline: none; }
     .btn-toggle-ocr:hover { background: rgba(0, 210, 255, 0.2); }
     .btn-toggle-ocr svg { transition: transform 0.3s; }
@@ -458,8 +459,12 @@
       }
 
       // Natureza
+      let natSelecionada = '';
       const naturezaMatch = text.match(/Naturezas?:\s*(.*?)(?=\s*Data do Fato:|\n|$)/i);
-      if (naturezaMatch) document.getElementById('natureza').value = naturezaMatch[1].trim();
+      if (naturezaMatch) {
+          natSelecionada = naturezaMatch[1].trim();
+          document.getElementById('natureza').value = natSelecionada;
+      }
 
       // Data e Hora
       const dataHoraMatch = text.match(/Data do Fato:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/i);
@@ -510,10 +515,8 @@
         }
       });
       
-      if (armasDetectadas.length) {
-        document.getElementById('armasList').innerHTML = '';
-        armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, '', 0, a.quantidade));
-      }
+      // As armas serão criadas apenas após as opções carregarem,
+      // para não falharem por falta da lista.
 
       // Policiais: lê especificamente o campo "Matrícula:" do BO
       // Ex: "Matrícula: 1240765" ou "Matricula: 9901612"
@@ -579,10 +582,41 @@
         drogasDetectadas.forEach(d => adicionarDrogaField(d.tipo, d.quantidade, d.unidadeMedida));
       }
 
-      setStatus(
-        `>> Auto-preenchimento concluído | ${matsEncontradas.length} pol | ${armasDetectadas.length} arm | ${drogasDetectadas.length} drog`,
-        'var(--accent-color)'
-      );
+      const dataExtraida = document.getElementById('data').value;
+      if (dataExtraida) {
+        setStatus('> Carregando validações da data extraída...', 'var(--secondary-color)');
+        carregarOpcoesValidacao(dataExtraida)
+          .then(() => {
+            if (armasDetectadas.length) {
+              document.getElementById('armasList').innerHTML = '';
+              armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, '', 0, a.quantidade));
+            }
+            if (natSelecionada) {
+              document.getElementById('natureza').value = natSelecionada;
+            }
+            setStatus(
+              `>> Auto-preenchimento concluído | ${matsEncontradas.length} pol | ${armasDetectadas.length} arm | ${drogasDetectadas.length} drog`,
+              'var(--accent-color)'
+            );
+          })
+          .catch(err => {
+            if (armasDetectadas.length) {
+               log('>> AVISO: Armas detectadas, mas houve falha ao carregar modelos para a data.');
+            }
+            setStatus(
+              `>> Auto-preenchimento (com falha de aba) | ${matsEncontradas.length} pol | 0 arm | ${drogasDetectadas.length} drog`,
+              'var(--danger-color)'
+            );
+          });
+      } else {
+        if (armasDetectadas.length) {
+           log('>> AVISO: Armas detectadas, mas não há data para carregar os modelos.');
+        }
+        setStatus(
+          `>> Auto-preenchimento concluído (sem data) | ${matsEncontradas.length} pol | 0 arm | ${drogasDetectadas.length} drog`,
+          'var(--accent-color)'
+        );
+      }
     }
 
     // ── EFETIVO: carregado do Sheets no init ─────────────────────
@@ -593,25 +627,35 @@
 
     function carregarOpcoesValidacao(dataStr) {
       const selectNat = document.getElementById('natureza');
+      const btnSave = document.querySelector('.btn-save');
       if(!dataStr) {
          setStatus('Informe a data da ocorrência para carregar as opções.', 'var(--secondary-color)');
          window.opcoesFormulario = null;
          if(selectNat) selectNat.innerHTML = `<option value="">Aguardando data...</option>`;
-         return;
+         if(btnSave) btnSave.disabled = true;
+         return Promise.reject(new Error("Data não informada"));
       }
       setStatus('> Carregando opções da aba ' + dataStr + '...', 'var(--secondary-color)');
-      google.script.run
-        .withSuccessHandler(res => {
-           window.opcoesFormulario = res;
-           atualizarDataLists();
-           setStatus('> Opções atualizadas para ' + dataStr, 'var(--accent-color)');
-        })
-        .withFailureHandler(err => {
-           window.opcoesFormulario = null;
-           if(selectNat) selectNat.innerHTML = `<option value="">Erro ao carregar opções</option>`;
-           setStatus('Erro aba: ' + err.message, 'var(--danger-color)');
-        })
-        .obterOpcoesValidacao(dataStr);
+      if(btnSave) btnSave.disabled = true;
+      
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(res => {
+             window.opcoesFormulario = res;
+             atualizarDataLists();
+             setStatus('> Opções atualizadas para ' + dataStr, 'var(--accent-color)');
+             if(btnSave) btnSave.disabled = false;
+             resolve(res);
+          })
+          .withFailureHandler(err => {
+             window.opcoesFormulario = null;
+             if(selectNat) selectNat.innerHTML = `<option value="">Erro ao carregar opções</option>`;
+             setStatus('Erro aba: ' + err.message, 'var(--danger-color)');
+             if(btnSave) btnSave.disabled = true;
+             reject(err);
+          })
+          .obterOpcoesValidacao(dataStr);
+      });
     }
 
     function atualizarDataLists() {
