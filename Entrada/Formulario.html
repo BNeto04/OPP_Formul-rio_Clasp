@@ -600,6 +600,7 @@
             );
           })
           .catch(err => {
+            if (err.message === "Resposta obsoleta ignorada.") return;
             if (armasDetectadas.length) {
                log('>> AVISO: Armas detectadas, mas houve falha ao carregar modelos para a data.');
             }
@@ -624,10 +625,13 @@
     let efetivoPorMat = {};
 
     window.opcoesFormulario = null;
+    let requisicaoValidacaoId = 0;
 
     function carregarOpcoesValidacao(dataStr) {
       const selectNat = document.getElementById('natureza');
       const btnSave = document.querySelector('.btn-save');
+      const reqId = ++requisicaoValidacaoId;
+
       if(!dataStr) {
          setStatus('Informe a data da ocorrência para carregar as opções.', 'var(--secondary-color)');
          window.opcoesFormulario = null;
@@ -641,6 +645,9 @@
       return new Promise((resolve, reject) => {
         google.script.run
           .withSuccessHandler(res => {
+             if (reqId !== requisicaoValidacaoId || document.getElementById('data').value !== dataStr) {
+                 return reject(new Error("Resposta obsoleta ignorada."));
+             }
              window.opcoesFormulario = res;
              atualizarDataLists();
              setStatus('> Opções atualizadas para ' + dataStr, 'var(--accent-color)');
@@ -648,6 +655,9 @@
              resolve(res);
           })
           .withFailureHandler(err => {
+             if (reqId !== requisicaoValidacaoId || document.getElementById('data').value !== dataStr) {
+                 return reject(new Error("Resposta obsoleta ignorada."));
+             }
              window.opcoesFormulario = null;
              if(selectNat) selectNat.innerHTML = `<option value="">Erro ao carregar opções</option>`;
              setStatus('Erro aba: ' + err.message, 'var(--danger-color)');

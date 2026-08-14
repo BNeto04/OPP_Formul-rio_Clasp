@@ -176,8 +176,10 @@ console.log('  [Test 7] Sintaxe do Formulario.html');
 const html = fs.readFileSync(path.join(__dirname, '../Entrada/Formulario.html'), 'utf8');
 const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
 let match;
+let fullFormularioScript = "";
 while ((match = scriptRegex.exec(html)) !== null) {
     const scriptContent = match[1];
+    fullFormularioScript += scriptContent + "\n";
     try {
         new Function(scriptContent);
     } catch (e) {
@@ -185,6 +187,85 @@ while ((match = scriptRegex.exec(html)) !== null) {
     }
 }
 
-console.log('✅ OK - EntradaManual.js e Formulario.html');
+console.log('  [Test 8] Proteção contra resposta obsoleta e preenchimento OCR explícito (Formulario.html)');
+
+// Mocks do DOM para Formulario.html
+global.document = {
+    elements: {
+        natureza: { value: '', innerHTML: '' },
+        data: { value: '01/01/2026', addEventListener: () => {} },
+        dropZone: { classList: { add: () => {}, remove: () => {} }, addEventListener: () => {} },
+        fileInput: { addEventListener: () => {} }
+    },
+    getElementById: function(id) {
+        if (id === 'natureza' || id === 'data' || id === 'dropZone' || id === 'fileInput') return this.elements[id];
+        return { value: '', innerHTML: '', appendChild: () => {}, remove: () => {}, addEventListener: () => {}, removeEventListener: () => {}, style: {} };
+    },
+    querySelector: function(sel) {
+        if (sel === '.btn-save') return { disabled: false };
+        return null;
+    },
+    querySelectorAll: () => []
+};
+
+global.window = { addEventListener: () => {}, opcoesFormulario: null };
+
+let statusList = [];
+global.setStatus = (msg, color) => statusList.push(msg);
+global.log = (msg) => {}; // ignorar logs
+global.alert = () => {};
+global.pdfjsLib = { GlobalWorkerOptions: {} };
+global.Tesseract = {};
+
+// Mock do google.script.run assíncrono
+let successCb, failureCb, lastCalledObterOpcoes;
+global.google = {
+    script: {
+        run: {
+            withSuccessHandler: function(cb) { successCb = cb; return this; },
+            withFailureHandler: function(cb) { failureCb = cb; return this; },
+            obterOpcoesValidacao: function(d) { lastCalledObterOpcoes = d; },
+            getEfetivo: function() { return this; }
+        }
+    }
+};
+
+// Injeta as funções do Formulario.html no escopo global deste teste
+fullFormularioScript += "\n\nglobal.carregarOpcoesValidacao = carregarOpcoesValidacao;";
+eval(fullFormularioScript);
+
+// O script foi injetado. Vamos testar.
+statusList = [];
+global.document.elements.data.value = '10/01/2026';
+
+// Dispara a requisição 1 (ex: usuário altera data ou OCR extrai)
+const req1Promise = carregarOpcoesValidacao('10/01/2026').catch(e => e.message);
+const cb1 = successCb; // captura o callback da req 1
+
+// Antes da req 1 voltar, dispara a requisição 2 (ex: usuário percebeu que digitou errado)
+global.document.elements.data.value = '11/01/2026';
+const req2Promise = carregarOpcoesValidacao('11/01/2026');
+const cb2 = successCb; // captura o callback da req 2
+
+// Agora as respostas chegam fora de ordem. 
+// Resposta 1 (obsoleta) chega primeiro:
+try {
+    cb1({ naturezas: ['NAT_ERRADA'] });
+} catch(e) {}
+
+// Resposta 2 (atual) chega:
+cb2({ naturezas: ['NAT_CORRETA'], detidos: [], ocorrenciasPip: [] });
+
+Promise.all([req1Promise, req2Promise]).then(results => {
+    assert.strictEqual(results[0], "Resposta obsoleta ignorada.", "Req 1 deve ser rejeitada como obsoleta");
+    assert.deepStrictEqual(results[1].naturezas, ['NAT_CORRETA'], "Req 2 deve ser resolvida corretamente");
+    assert.ok(global.document.elements.natureza.innerHTML.includes('NAT_CORRETA'), "Aba final da natureza deve ter NAT_CORRETA");
+    assert.ok(!global.document.elements.natureza.innerHTML.includes('NAT_ERRADA'), "Aba final da natureza NÃO deve ter NAT_ERRADA");
+
+    console.log('✅ OK - EntradaManual.js e Formulario.html');
+}).catch(err => {
+    console.error("Falha no teste 8:", err);
+    process.exit(1);
+});
 
 } // end else
