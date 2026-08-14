@@ -393,8 +393,7 @@ function obterOpcoesValidacao(dataStr) {
     const headers = aba.getRange(1, 1, 1, numColunas).getValues()[0];
     const headersIndex = SyntheonCabecalhosObj ? SyntheonCabecalhosObj.criarIndice(headers) : {};
 
-    const targetRange = localizarBlocoModeloDisponivel_(aba, 1);
-    const validations = targetRange.getDataValidations()[0];
+    const maxRows = aba.getMaxRows();
 
     function extrairValores(nomeCabecalho) {
       let colIdx = -1;
@@ -406,9 +405,22 @@ function obterOpcoesValidacao(dataStr) {
       }
       
       if (colIdx === -1) return [];
+      if (maxRows < 2) return [];
+
+      const validationsCol = aba.getRange(2, colIdx + 1, maxRows - 1, 1).getDataValidations();
+      let dv = null;
+      let examinedRows = 0;
       
-      const dv = validations[colIdx];
+      for (let r = validationsCol.length - 1; r >= 0; r--) {
+         examinedRows++;
+         if (validationsCol[r][0] != null) {
+             dv = validationsCol[r][0];
+             break;
+         }
+      }
+      
       if (!dv) return [];
+      
       const criteria = dv.getCriteriaType();
       const args = dv.getCriteriaValues();
       if (criteria === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {

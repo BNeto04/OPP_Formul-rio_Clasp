@@ -241,6 +241,13 @@
           </div>
         </div>
 
+        <!-- Conferência OCR -->
+        <div class="card" id="ocrConferenceCard" style="display: none;">
+          <div class="card-title" style="color: var(--accent-color); border-bottom-color: rgba(0, 255, 157, 0.1);">Conferência OCR</div>
+          <div id="ocrConferenceContent" style="font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; line-height: 1.5;">
+          </div>
+        </div>
+
         <!-- Equipe -->
         <div class="card">
           <div class="card-title">Equipe / Policiais</div>
@@ -460,10 +467,9 @@
 
       // Natureza
       let natSelecionada = '';
-      const naturezaMatch = text.match(/Naturezas?:\s*(.*?)(?=\s*Data do Fato:|\n|$)/i);
+      const naturezaMatch = text.match(/(?:Naturezas?|Natureza da Ocorr[êe]ncia|Tipo de Ocorr[êe]ncia)[\s:]*(.*?)(?=\s*Data do Fato:|\n|$)/i);
       if (naturezaMatch) {
           natSelecionada = naturezaMatch[1].trim();
-          document.getElementById('natureza').value = natSelecionada;
       }
 
       // Data e Hora
@@ -591,8 +597,59 @@
               document.getElementById('armasList').innerHTML = '';
               armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, '', 0, a.quantidade));
             }
+            const confOCR = document.getElementById('ocrConferenceCard');
+            const confContent = document.getElementById('ocrConferenceContent');
+            if (confOCR) confOCR.style.display = 'block';
+
+            const dataVal = document.getElementById('data').value || '-';
+            const horaVal = document.getElementById('hora').value || '-';
+            const boeVal = document.getElementById('boe').value || '-';
+            const mikeVal = document.getElementById('mike').value || '-';
+            const cidadeVal = document.getElementById('cidade').value || '-';
+            const bairroVal = document.getElementById('bairro').value || '-';
+            
+            let statusNat = `<span style="color: var(--text-muted)">Nenhuma natureza extraída pelo OCR.</span>`;
+
             if (natSelecionada) {
-              document.getElementById('natureza').value = natSelecionada;
+              const normalizeStr = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+              const nCandidata = normalizeStr(natSelecionada);
+              const opcoesNats = window.opcoesFormulario.naturezas || [];
+              let matchedOpt = "";
+              for (let opt of opcoesNats) {
+                if (normalizeStr(opt) === nCandidata) {
+                  matchedOpt = opt;
+                  break;
+                }
+              }
+              
+              if (matchedOpt) {
+                document.getElementById('natureza').value = matchedOpt;
+                statusNat = `<span style="color: var(--accent-color); font-weight: 600;">[OK] Natureza:</span> ${matchedOpt}`;
+              } else {
+                const selectNat = document.getElementById('natureza');
+                selectNat.innerHTML = `<option value="" style="color: var(--danger-color)">Não correspondida: ${natSelecionada}</option>` + selectNat.innerHTML;
+                selectNat.value = "";
+                const btnSave = document.querySelector('.btn-save');
+                if (btnSave) btnSave.disabled = true;
+                
+                statusNat = `<span style="color: var(--danger-color); font-weight: 600;">[FALHA] Natureza:</span> ${natSelecionada}<br><span style="font-size:0.75rem; color: var(--danger-color)">Preencha manualmente para liberar o salvamento.</span>`;
+                setStatus(`Natureza não correspondida: ${natSelecionada}`, 'var(--danger-color)');
+              }
+            }
+
+            if (confContent) {
+              confContent.innerHTML = `
+                <div style="font-size: 0.85rem; line-height: 1.4;">
+                  <div><strong>Data/Hora:</strong> ${dataVal} ${horaVal}</div>
+                  <div><strong>BOE / MIKE:</strong> ${boeVal} / ${mikeVal}</div>
+                  <div><strong>Local:</strong> ${cidadeVal} / ${bairroVal}</div>
+                  <div><strong>Equipe:</strong> ${matsEncontradas.length} policiais</div>
+                  <div><strong>Apreensões:</strong> ${armasDetectadas.length} arma(s), ${drogasDetectadas.length} droga(s)</div>
+                  <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border-color);">
+                    ${statusNat}
+                  </div>
+                </div>
+              `;
             }
             setStatus(
               `>> Auto-preenchimento concluído | ${matsEncontradas.length} pol | ${armasDetectadas.length} arm | ${drogasDetectadas.length} drog`,
@@ -703,6 +760,15 @@
 
     document.getElementById('data').addEventListener('change', (e) => {
         carregarOpcoesValidacao(e.target.value);
+    });
+
+    document.getElementById('natureza').addEventListener('change', (e) => {
+        const btnSave = document.querySelector('.btn-save');
+        if (e.target.value && btnSave) {
+            btnSave.disabled = false;
+        } else if (!e.target.value && btnSave) {
+            btnSave.disabled = true;
+        }
     });
 
     function adicionarPipField(valorSelecionado = '') {

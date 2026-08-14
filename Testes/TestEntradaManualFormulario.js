@@ -228,7 +228,7 @@ console.log('  [Test 9] Proteção contra resposta obsoleta e preenchimento OCR 
 // Mocks do DOM para Formulario.html
 global.document = {
     elements: {
-        natureza: { value: '', innerHTML: '' },
+        natureza: { value: '', innerHTML: '', addEventListener: () => {} },
         data: { value: '01/01/2026', addEventListener: () => {} },
         dropZone: { classList: { add: () => {}, remove: () => {} }, addEventListener: () => {} },
         fileInput: { addEventListener: () => {} }
