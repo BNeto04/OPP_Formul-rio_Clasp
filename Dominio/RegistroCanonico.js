@@ -28,7 +28,10 @@ class RegistroCanonico {
       natureza: dados.ocorrencia?.natureza || '',
       cidade: dados.ocorrencia?.cidade || '',
       bairro: dados.ocorrencia?.bairro || '',
-      ais: dados.ocorrencia?.ais || 0
+      ais: dados.ocorrencia?.ais || 0,
+      armaFato: dados.ocorrencia?.armaFato !== undefined ? dados.ocorrencia.armaFato : 0,
+      tipoArma: dados.ocorrencia?.tipoArma || '',
+      modeloArma: dados.ocorrencia?.modeloArma || ''
     };
 
     // 4. Fatos: Métricas da Ocorrência (Valores que pertencem ao evento, não ao policial isolado)

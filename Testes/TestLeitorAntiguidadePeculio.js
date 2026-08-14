@@ -222,7 +222,7 @@ test('LeitorAntiguidade: ignora a primeira aba EFETIVO sem cabeçalhos e selecio
 // 10. Rejeição de Aba Não Relacionada ou sem Contrato Estrito (TASK-M06.3-05H.1)
 test('LeitorAntiguidade: rejeita aba que possui ORD e MAT. mas carece de 2 marcadores de identidade', () => {
   const abaRelatorioNaoRelacionado = {
-    getName: () => 'PECÚLIO_RELATORIO_OCORRENCIAS',
+    getName: () => 'PECÚLIO', // Nome válido para ser encontrado, mas conteúdo inválido
     getLastRow: () => 5,
     getLastColumn: () => 4,
     getRange: () => ({
@@ -235,13 +235,55 @@ test('LeitorAntiguidade: rejeita aba que possui ORD e MAT. mas carece de 2 marca
   };
 
   const mockSS = {
-    getSheetByName: (n) => (n === 'PECÚLIO_RELATORIO_OCORRENCIAS' ? abaRelatorioNaoRelacionado : null),
+    getSheetByName: (n) => (n === 'PECÚLIO' ? abaRelatorioNaoRelacionado : null),
     getSheets: () => [abaRelatorioNaoRelacionado]
   };
 
   const res = LeitorAntiguidadePeculio.lerMapaAntiguidade(mockSS);
   assert.strictEqual(res.erro, 'PECULIO_CABECALHO_NAO_LOCALIZADO');
   assert.ok(res.detalheErro.includes('contrato estrito'));
+});
+
+// 11. Teste: Contador de Linhas Lidas Ignora Linhas Totalmente Vazias
+test('LeitorAntiguidade: contador de linhas ignora linhas totalmente em branco no meio e no final da planilha', () => {
+  const dadosMock = [
+    ['ORD.', 'MAT.', 'NOME DE GUERRA', 'GRAD.', 'SUB-UNIDADE'],
+    [1, '123456-7', 'SILVA', 'CB', 'GTAR'],
+    ['', '', '', '', ''], // Linha vazia no meio
+    [2, '987654-3', 'SOUZA', 'SD', '1º PEL'],
+    ['', '', '', '', ''], // Linhas vazias no final simulando getRange exagerado
+    ['', null, undefined, '', ' '] 
+  ];
+
+  const resultado = LeitorAntiguidadePeculio.lerMapaAntiguidade(dadosMock);
+
+  assert.strictEqual(resultado.estatisticas.validos, 2);
+  assert.strictEqual(resultado.estatisticas.lidos, 2, 'O contador de linhas deve ignorar as três linhas totalmente vazias.');
+});
+
+// 12. Teste: Remoção de Fallback Perigoso
+test('LeitorAntiguidade: nao utiliza fallback de iteracao para encontrar abas desconhecidas se nao corresponderem a nomes ou aliases estritos', () => {
+  const abaPerigosa = {
+    getName: () => 'PECULIO_TESTE_FALSO',
+    getLastRow: () => 5,
+    getLastColumn: () => 5,
+    getRange: () => ({
+      getValues: () => [
+        ['ORD.', 'MAT.', 'NOME DE GUERRA', 'GRAD.', 'SUB-UNIDADE'],
+        [99, '000000-0', 'HACKER', 'SD', 'MALIGNO']
+      ]
+    })
+  };
+
+  const mockSS = {
+    getSheetByName: (n) => null, // Não achou pelos nomes exatos
+    getSheets: () => [abaPerigosa] // Tinha uma aba parecida, mas não pode adivinhar!
+  };
+
+  const res = LeitorAntiguidadePeculio.lerMapaAntiguidade(mockSS, 'EFETIVO');
+  
+  assert.strictEqual(res.erro, 'PECULIO_ABA_NAO_LOCALIZADA', 'Deve falhar limpo pois a aba não foi localizada pelos nomes estritos.');
+  assert.strictEqual(Object.keys(res.mapa).length, 0);
 });
 
 console.log(`\n🎉 Testes do Leitor de Antiguidade do Pecúlio concluídos: ${sucessos} testes passaram!`);

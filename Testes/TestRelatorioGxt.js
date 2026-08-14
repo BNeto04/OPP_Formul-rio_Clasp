@@ -8,6 +8,7 @@ const assert = require('assert');
 global.CONSTANTES_SYNTHEON = require('../Core/Constantes');
 global.SyntheonCabecalhos = require('../Core/Cabecalhos');
 const Adaptador2026 = require('../Leitura/Adaptador2026');
+const PoliticaMeritoArmas = require('../Motor/PoliticaMeritoArmas');
 
 const ModGxt = require('../Features/CompiladorGxt');
 const CompiladorGxt = ModGxt.CompiladorGxt || ModGxt;
@@ -1018,7 +1019,50 @@ function executarTestesGxt() {
     }
   });
 
-  console.log(`\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);
+  test('Regressao: Rastreamento completo Adaptador2026 -> RegistroCanonico -> PoliticaMeritoArmas preserva armaFato', () => {
+    const cabecalho = ['Nº', 'DATA', 'HORA', 'MIKE', 'BOE', 'NATUREZA DA OCORRÊNCIA', 'NATUREZA SIGO', 'MUNICÍPIO', 'BAIRRO', 'AIS', 'FATO PONTUÁVEL', 'DESCRIÇÃO PONTUÁVEL', 'APFD', 'TCO', 'BOC', 'MANDADO DE PRISÃO', 'MENOR APREENDIDO', 'INFRATOR PRESO', 'ARMA (S)', 'MUNIÇÃO', 'ENTORPECENTE (S)', 'TIPO', 'MODELO', 'MARCA', 'QDT ARMAS', 'QTD MUNIÇÕES', 'TIPO ENTORPECENTE', 'NOME/IMPUTADO', 'DATA NASCIMENTO', 'QTD/PESO ENTORPECENTE', 'NOME DA MÃE', 'CELULAR', 'VEÍCULO ROUBADO', 'VEÍCULO RECUPERADO', 'OUTROS MATERIAIS', 'EFETIVO/BOE', 'ORD.', 'MAT.', 'NOME DE GUERRA', 'GRAD.', 'FUNÇÃO', 'PELOTÃO'];
+    const linhaArmada = [1, '2026-04-10', '10:00', '26E123', 'BOE123', '', '', '', '', '', '', '', '', '', '', '', '', '', '1', '', '', 'REVOLVER', 'CAL 38', '', '1', '', '', '', '', '', '', '', '', '', '', '', 1, '12345', 'SILVA', 'CB', 'MT', '1º PEL'];
+
+    const mockSheet = [cabecalho, linhaArmada];
+
+    // 1. Passagem: Adaptador2026
+    const fatosExtraidos = Adaptador2026.extrairFatos(mockSheet);
+    assert.strictEqual(fatosExtraidos.length, 1);
+    
+    // 2. Passagem: RegistroCanonico
+    const regCanonico = fatosExtraidos[0];
+    const oc = regCanonico.ocorrencia;
+    assert.strictEqual(oc.armaFato, 1, 'RegistroCanonico deve preservar armaFato');
+    assert.strictEqual(oc.tipoArma, 'REVOLVER', 'RegistroCanonico deve preservar tipoArma');
+    assert.strictEqual(oc.modeloArma, 'CAL 38', 'RegistroCanonico deve preservar modeloArma');
+    assert.strictEqual(oc.chave, '2026-04-10|26E123|BOE123', 'Chave DATA|MIKE|BOE deve estar correta');
+    assert.strictEqual(regCanonico.policiais[0].matricula, '1234-5', 'RegistroCanonico deve preservar policial integrante');
+
+    // 3. Passagem: Simular o mapeamento plano feito pelo CompiladorGxt (linhas 230-280)
+    const ocPlana = {
+      chaveTunel: oc.chave, // Garantir que a chave seja repassada
+      data: oc.data,
+      mike: oc.mike,
+      boe: oc.boe,
+      armas: oc.armaFato,
+      armasFogo: oc.armaFato,
+      armasArtesanais: 0,
+      tipoArma: oc.tipoArma,
+      isArtesanal: false,
+      policiais: regCanonico.policiais
+    };
+
+    // 4. Passagem: PoliticaMeritoArmas
+    const mapaPec = { '1234-5': 1 };
+    const resultados = PoliticaMeritoArmas.processarMeritoArmas([ocPlana], mapaPec);
+    
+    assert.strictEqual(resultados.length, 1, 'Deve gerar um túnel');
+    assert.strictEqual(resultados[0].status, 'PROCESSADO', 'Túnel com arma e Pecúlio válido deve ser PROCESSADO');
+    assert.strictEqual(resultados[0].matricula, '1234-5', 'Líder deve ser o detentor da matrícula com menor N');
+    assert.strictEqual(resultados[0].qtdArmas, 1, 'A armaFato deve ser repassada e agrupada para a equipe');
+  });
+
+  console.log(`\\n🎉 Testes do Relatório Trimestral Gxt concluídos: ${sucessos} testes passaram!`);
 }
 
 executarTestesGxt();

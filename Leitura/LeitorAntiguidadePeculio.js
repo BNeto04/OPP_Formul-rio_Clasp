@@ -135,18 +135,8 @@ const LeitorAntiguidadePeculio = {
           adicionarCandidata(fonte.getSheetByName(alias));
         }
 
-        if (typeof fonte.getSheets === 'function') {
-          const allSheets = fonte.getSheets() || [];
-          for (const s of allSheets) {
-            if (s) {
-              const nameRaw = typeof s.getName === 'function' ? s.getName() : '';
-              const nameNorm = String(nameRaw || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-              if (nameNorm.includes('PECULIO') || nameNorm.includes('EFETIVO')) {
-                adicionarCandidata(s);
-              }
-            }
-          }
-        }
+        // Remoção de fallback perigoso: não iteramos mais sobre `fonte.getSheets()`
+        // para adivinhar a aba se ela não tiver o nome ou alias exato.
       } catch (e) {
         return {
           mapa: {},
@@ -224,6 +214,9 @@ const LeitorAntiguidadePeculio = {
     for (let i = idxCabecalho + 1; i < dados.length; i++) {
       const linha = dados[i];
       if (!linha || linha.length === 0) continue;
+
+      // Ignora linhas completamente vazias
+      if (linha.every(c => String(c || '').trim() === '')) continue;
 
       estatisticas.lidos++;
 

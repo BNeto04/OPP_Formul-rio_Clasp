@@ -1,6 +1,115 @@
 {
   "nodes": [
-    {"id": "c01", "type": "group", "x": -200, "y": -200, "width": 400, "height": 300, "label": "C01 Entrada"}
+    {
+      "id": "n1",
+      "type": "text",
+      "text": "C01 Entrada",
+      "x": 0,
+      "y": 0,
+      "width": 200,
+      "height": 100
+    },
+    {
+      "id": "n2",
+      "type": "text",
+      "text": "C02 Leitura",
+      "x": 250,
+      "y": 0,
+      "width": 200,
+      "height": 100
+    },
+    {
+      "id": "n3",
+      "type": "text",
+      "text": "C03 Dominio",
+      "x": 500,
+      "y": 0,
+      "width": 200,
+      "height": 100
+    },
+    {
+      "id": "n4",
+      "type": "text",
+      "text": "C04 Motor",
+      "x": 0,
+      "y": 150,
+      "width": 200,
+      "height": 100
+    },
+    {
+      "id": "n5",
+      "type": "text",
+      "text": "C05 Guardiao",
+      "x": 250,
+      "y": 150,
+      "width": 200,
+      "height": 100
+    },
+    {
+      "id": "n6",
+      "type": "text",
+      "text": "C06 Relatorios",
+      "x": 500,
+      "y": 150,
+      "width": 200,
+      "height": 100
+    },
+    {
+      "id": "n8",
+      "type": "text",
+      "text": "C08 Homologacao",
+      "x": 0,
+      "y": 300,
+      "width": 200,
+      "height": 100
+    },
+    {
+      "id": "n_sheets",
+      "type": "text",
+      "text": "Google Sheets",
+      "x": 250,
+      "y": 300,
+      "width": 200,
+      "height": 100
+    },
+    {
+      "id": "n_peculio",
+      "type": "text",
+      "text": "Peculio Externo",
+      "x": 500,
+      "y": 300,
+      "width": 200,
+      "height": 100
+    }
   ],
-  "edges": []
+  "edges": [
+    {
+      "id": "e1",
+      "fromNode": "n_sheets",
+      "fromSide": "top",
+      "toNode": "n1",
+      "toSide": "bottom"
+    },
+    {
+      "id": "e2",
+      "fromNode": "n1",
+      "fromSide": "right",
+      "toNode": "n2",
+      "toSide": "left"
+    },
+    {
+      "id": "e3",
+      "fromNode": "n2",
+      "fromSide": "right",
+      "toNode": "n3",
+      "toSide": "left"
+    },
+    {
+      "id": "e4",
+      "fromNode": "n_peculio",
+      "fromSide": "left",
+      "toNode": "n6",
+      "toSide": "right"
+    }
+  ]
 }
