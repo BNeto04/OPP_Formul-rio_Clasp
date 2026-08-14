@@ -18,9 +18,11 @@ global.SpreadsheetApp = {
 global.Logger = { log: console.log };
 
 const entradaManualCode = fs.readFileSync(path.join(__dirname, '../Entrada/EntradaManual.js'), 'utf8');
-eval(entradaManualCode + '\nif(typeof gravarLinhasEntradaManual !== "undefined") global.gravarLinhasEntradaManual = gravarLinhasEntradaManual; if(typeof obterOpcoesValidacao !== "undefined") global.obterOpcoesValidacao = obterOpcoesValidacao;'); 
+eval(entradaManualCode + '\nif(typeof gravarLinhasEntradaManual !== "undefined") global.gravarLinhasEntradaManual = gravarLinhasEntradaManual; if(typeof obterOpcoesValidacao !== "undefined") global.obterOpcoesValidacao = obterOpcoesValidacao; if(typeof localizarAbaMensalTratada !== "undefined") global.localizarAbaMensalTratada = localizarAbaMensalTratada; if(typeof processarEntradaManual !== "undefined") global.processarEntradaManual = processarEntradaManual;'); 
 const gravarLinhasEntradaManual = global.gravarLinhasEntradaManual;
 const obterOpcoesValidacao = global.obterOpcoesValidacao;
+const localizarAbaMensalTratada = global.localizarAbaMensalTratada;
+const processarEntradaManual = global.processarEntradaManual;
 
 function mockDataValidation(listaValores) {
     return {
@@ -42,6 +44,7 @@ function mockRange(row, col, values, formulas = null, validations = null) {
 
 function mockSheet(headers, mockValuesCallback, mockFormulasCallback, mockValidationsCallback) {
     let mockAba = {
+        getName: () => 'JAN2026',
         rangesEscritos: [],
         getLastColumn: () => headers.length,
         getMaxRows: () => 100,
@@ -171,7 +174,40 @@ const opcoesNat = obterOpcoesValidacao('01/01/2026');
 assert.deepStrictEqual(opcoesNat.naturezas, ['Nat1', 'Nat2'], "Deve extrair opções usando apenas NATUREZA");
 global.SpreadsheetApp.openById = undefined;
 
-console.log('  [Test 7] Sintaxe do Formulario.html');
+console.log('  [Test 7] Resolução de abas com variantes de nome (localizarAbaMensalTratada)');
+let mockAbaVariante = mockSheet(CABECALHOS_ORIGINAIS.map(h => h === 'NATUREZA DA OCORRÊNCIA' ? 'NATUREZA' : h), null, null, (row, col, nr, nc) => {
+    return Array(nr).fill(CABECALHOS_ORIGINAIS.map(h => {
+        if (h === 'NATUREZA DA OCORRÊNCIA') return mockDataValidation(['NatVariante']);
+        return null;
+    })).map(rowVals => rowVals.slice(col - 1, col - 1 + nc));
+});
+mockAbaVariante.getName = () => 'ago.2026';
+let mockAbaLixo = mockSheet([], null, null, null);
+mockAbaLixo.getName = () => 'LIXO';
+
+global.SpreadsheetApp.openById = function() {
+    return {
+        getSheetByName: function(nome) { return null; }, // força a falhar e buscar nas sheets
+        getSheets: function() { return [mockAbaLixo, mockAbaVariante]; }
+    };
+};
+// Teste a) obterOpcoesValidacao resolve a aba variante 'ago.2026' a partir da data '12/08/2026'
+const opcoesVariante = obterOpcoesValidacao('12/08/2026');
+assert.deepStrictEqual(opcoesVariante.naturezas, ['NatVariante'], "Deve localizar a aba ago.2026 usando normalização");
+
+// Teste b) se não houver aba variante, processarEntradaManual falha e aborta sem escrever nada
+global.SpreadsheetApp.openById = function() {
+    return {
+        getSheetByName: function(nome) { return null; },
+        getSheets: function() { return [mockAbaLixo]; }
+    };
+};
+assert.throws(() => {
+    processarEntradaManual({ data: '12/08/2026' });
+}, /Aba mensal esperada \(AGO2026\) não encontrada\. Abas examinadas: \[LIXO\]/, "Deveria abortar e informar o erro técnico com abas examinadas");
+global.SpreadsheetApp.openById = undefined;
+
+console.log('  [Test 8] Sintaxe do Formulario.html');
 
 const html = fs.readFileSync(path.join(__dirname, '../Entrada/Formulario.html'), 'utf8');
 const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
@@ -187,7 +223,7 @@ while ((match = scriptRegex.exec(html)) !== null) {
     }
 }
 
-console.log('  [Test 8] Proteção contra resposta obsoleta e preenchimento OCR explícito (Formulario.html)');
+console.log('  [Test 9] Proteção contra resposta obsoleta e preenchimento OCR explícito (Formulario.html)');
 
 // Mocks do DOM para Formulario.html
 global.document = {

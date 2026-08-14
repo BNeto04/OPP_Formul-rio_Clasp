@@ -5,14 +5,11 @@
 
 function processarEntradaManual(payload) {
   try {
-    const nomeAba = resolverNomeAbaMensal(payload.data);
-
     const SS_ID = (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID)
       ? CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID
       : '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
     const ss = SpreadsheetApp.openById(SS_ID);
-    let aba = ss.getSheetByName(nomeAba);
-    if (!aba) throw new Error("Aba mensal " + nomeAba + " não encontrada!");
+    let aba = localizarAbaMensalTratada(ss, payload.data);
 
     // Verificação Anti-Duplicidade
     verificarDuplicidadeOcorrencia(aba, payload.boe, payload.mike);
@@ -49,6 +46,37 @@ function resolverNomeAbaMensal(dataStr) {
      nomeAba = `${meses[parseInt(mesStr, 10) - 1]}${anoStr}`;
   }
   return nomeAba;
+}
+
+/**
+ * Localiza a aba mensal correspondente a data informada.
+ * Tenta buscar primeiro o nome canônico (ex: AGO2026).
+ * Se não encontrar, busca em todas as abas e normaliza ignorando acentos, espaços, hífens, barras e pontos.
+ * Se nenhuma equivaler, lança erro técnico.
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss 
+ * @param {string} dataStr 
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet}
+ */
+function localizarAbaMensalTratada(ss, dataStr) {
+  const nomeAba = resolverNomeAbaMensal(dataStr);
+  let aba = ss.getSheetByName(nomeAba);
+  if (aba) return aba;
+
+  const normalizar = str => String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[\.\-\/\s]/g, "").toUpperCase();
+  const nomeAlvo = normalizar(nomeAba);
+  
+  const todasAbas = ss.getSheets();
+  const nomesExaminados = [];
+  
+  for (let i = 0; i < todasAbas.length; i++) {
+      const n = todasAbas[i].getName();
+      nomesExaminados.push(n);
+      if (normalizar(n) === nomeAlvo) {
+          return todasAbas[i];
+      }
+  }
+  
+  throw new Error(`Aba mensal esperada (${nomeAba}) não encontrada. Abas examinadas: [${nomesExaminados.join(", ")}]`);
 }
 
 /**
@@ -352,13 +380,12 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
 function obterOpcoesValidacao(dataStr) {
   try {
     if (!dataStr) throw new Error("Data inválida ou não informada.");
-    const nomeAba = resolverNomeAbaMensal(dataStr);
     const SS_ID = (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID)
       ? CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID
       : '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
     const ss = SpreadsheetApp.openById(SS_ID);
-    const aba = ss.getSheetByName(nomeAba);
-    if (!aba) throw new Error("Aba mensal " + nomeAba + " não encontrada!");
+    const aba = localizarAbaMensalTratada(ss, dataStr);
+    const nomeAba = aba.getName();
 
     const SyntheonCabecalhosObj = typeof SyntheonCabecalhos !== 'undefined' ? SyntheonCabecalhos : (typeof require !== 'undefined' ? require('../Core/Cabecalhos').SyntheonCabecalhos || require('../Core/Cabecalhos') : null);
 
