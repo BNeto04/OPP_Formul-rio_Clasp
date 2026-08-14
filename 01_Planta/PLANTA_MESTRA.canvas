@@ -1,0 +1,6 @@
+{
+  "nodes": [
+    {"id": "c01", "type": "group", "x": -200, "y": -200, "width": 400, "height": 300, "label": "C01 Entrada"}
+  ],
+  "edges": []
+}

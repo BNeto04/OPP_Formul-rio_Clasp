@@ -1,4 +1,10 @@
 # SYNTHÉON V1
+
+> **Navegação Down Plant 2.1:**
+> - [Painel de Controle](00_Painel/INICIO.md)
+> - [Estrutura do Cofre](03_Fundacao/ESTRUTURA_DO_COFRE.md)
+> ---
+
 ## README – Planilha Operacional
 
 ### Visão Geral
