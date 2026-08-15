@@ -202,9 +202,15 @@ global.SpreadsheetApp.openById = function() {
         getSheets: function() { return [mockAbaLixo]; }
     };
 };
-assert.throws(() => {
-    processarEntradaManual({ data: '12/08/2026' });
-}, /Aba mensal esperada \(AGO2026\) não encontrada\. Abas examinadas: \[LIXO\]/, "Deveria abortar e informar o erro técnico com abas examinadas");
+const originalConsoleError = console.error;
+try {
+    console.error = () => {};
+    assert.throws(() => {
+        processarEntradaManual({ data: '12/08/2026' });
+    }, /Aba mensal esperada \(AGO2026\) não encontrada\. Abas examinadas: \[LIXO\]/, "Deveria abortar e informar o erro técnico com abas examinadas");
+} finally {
+    console.error = originalConsoleError;
+}
 global.SpreadsheetApp.openById = undefined;
 
 console.log('  [Test 8] Sintaxe do Formulario.html');

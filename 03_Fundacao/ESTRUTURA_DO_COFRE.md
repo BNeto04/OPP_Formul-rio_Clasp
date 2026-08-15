@@ -52,4 +52,3 @@ Os módulos residem em `01_Dominio/modulos/MOD-CXX-NN_NOME/` e contêm:
 
 ## Resultado do Lint
 O lint estrutural (`scripts/downplant/lint-estrutura.mjs`) valida a integridade dessas regras.
-
