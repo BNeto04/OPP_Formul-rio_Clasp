@@ -15,14 +15,14 @@ function reportError(msg) {
   errors++;
 }
 
-// 1. Verificar Manifesto DP-VAULT-1
+// 1. Verificar Manifesto DP-VAULT-1 em 03_Fundacao/ESTRUTURA_DO_COFRE.md
 const manifestoPath = path.join(baseDir, '03_Fundacao', 'ESTRUTURA_DO_COFRE.md');
 if (!fs.existsSync(manifestoPath)) {
   reportError('Manifesto ESTRUTURA_DO_COFRE.md nao encontrado.');
 } else {
   const content = fs.readFileSync(manifestoPath, 'utf8');
-  if (!content.includes('DP-VAULT-1') || !content.includes('2.1')) {
-    reportError('Manifesto incompleto: nao possui DP-VAULT-1 ou versao 2.1');
+  if (!content.includes('manifest: "DP-VAULT-1"') || !content.includes('version: "2.1"') || !content.includes('profile: "P1"')) {
+    reportError('Manifesto incompleto: requer DP-VAULT-1, versao 2.1 e perfil P1 no frontmatter.');
   }
 }
 
@@ -35,6 +35,24 @@ if (!fs.existsSync(comodosDir)) {
     '00_Visao_Do_Comodo', '01_Dominio', '02_Integracoes',
     '03_Especificacoes', '04_Execucao', '05_Evidencias'
   ];
+
+  const comodosEsperados = [
+    'C00_Governanca_Estrutural',
+    'C01_Entrada',
+    'C02_Leitura',
+    'C03_Dominio',
+    'C04_Motor',
+    'C05_Guardiao',
+    'C06_Relatorios',
+    'C08_Homologacao'
+  ];
+
+  comodosEsperados.forEach(c => {
+    const cPath = path.join(comodosDir, c);
+    if (!fs.existsSync(cPath) || !fs.statSync(cPath).isDirectory()) {
+      reportError(`Comodo esperado ausente: ${c}`);
+    }
+  });
 
   const comodos = fs.readdirSync(comodosDir).filter(f => f.startsWith('C') && fs.statSync(path.join(comodosDir, f)).isDirectory());
   
@@ -57,14 +75,14 @@ if (!fs.existsSync(comodosDir)) {
       const modulos = fs.readdirSync(modulosDir).filter(f => fs.statSync(path.join(modulosDir, f)).isDirectory());
       modulos.forEach(mod => {
         if (!mod.startsWith('MOD-C')) {
-          reportError(`Modulo com ID invalido: ${mod}`);
+          reportError(`Modulo com ID invalido: ${mod} em ${comodo}`);
         }
         const submodulosDir = path.join(modulosDir, mod, 'submodulos');
         if (fs.existsSync(submodulosDir)) {
           const submodulos = fs.readdirSync(submodulosDir).filter(f => fs.statSync(path.join(submodulosDir, f)).isDirectory());
           submodulos.forEach(sub => {
             if (!sub.startsWith('SUB-C')) {
-              reportError(`Submodulo com ID invalido: ${sub}`);
+              reportError(`Submodulo com ID invalido: ${sub} em ${mod}`);
             }
           });
         }
@@ -73,7 +91,7 @@ if (!fs.existsSync(comodosDir)) {
   });
 }
 
-// 3. Varrer conteudo por MXX, TASK-MXX, planta/
+// 3. Varrer conteudo por M[0-9]{2}, TASK-M, planta/, file:/// e validar links
 const docsDirs = ['00_Painel', '01_Planta', '02_Comodos', '03_Fundacao', '06_Inventario', '07_Codigo_Leitura', '08_Execucao_Ao_Vivo'];
 
 function walkDir(dir) {
@@ -97,9 +115,9 @@ docsDirs.forEach(d => {
   allFiles = allFiles.concat(walkDir(path.join(baseDir, d)));
 });
 
-const legacyPattern = /(M0[1-58]|M06|TASK-M0[0-9]|planta\/|file:\/\/\/.*\/planta\/)/g;
-// also link check
+const legacyPattern = /(M[0-9]{2}|TASK-M[0-9]*|planta\/|file:\/\/\/)/g;
 const mdLinkPattern = /\[.*?\]\((.*?)\)/g;
+const wikiLinkPattern = /\[\[(.*?)\]\]/g;
 
 allFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
@@ -108,27 +126,53 @@ allFiles.forEach(file => {
     reportError(`Legado encontrado em ${file}: ${[...new Set(match)].join(', ')}`);
   }
 
-  // validate links (basic file path validation)
+  // Validate Markdown Links
   let m;
   while ((m = mdLinkPattern.exec(content)) !== null) {
     let link = m[1].split('#')[0];
-    if (link && link.endsWith('.md')) {
-      // simple relative check if it does not start with http or file:
-      if (!link.startsWith('http') && !link.startsWith('file:')) {
-        let target = path.resolve(path.dirname(file), link);
-        if (!fs.existsSync(target)) {
-          reportError(`Link quebrado em ${file}: ${link}`);
-        }
+    if (link && !link.startsWith('http') && !link.startsWith('mailto:') && !link.startsWith('#')) {
+      let target = path.resolve(path.dirname(file), link);
+      if (!fs.existsSync(target)) {
+        reportError(`Link quebrado em ${file}: ${link}`);
       }
     }
   }
 
-  // validate canvas
+  // Validate WikiLinks
+  let w;
+  while ((w = wikiLinkPattern.exec(content)) !== null) {
+    let link = w[1].split('|')[0].split('#')[0].trim();
+    if (link) {
+      let found = false;
+      // Search in all doc files for match
+      for (const targetFile of allFiles) {
+        if (path.basename(targetFile, path.extname(targetFile)) === link || path.basename(targetFile) === link) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        reportError(`WikiLink quebrado em ${file}: [[${w[1]}]]`);
+      }
+    }
+  }
+
+  // Validate Canvas JSON & File Nodes
   if (file.endsWith('.canvas')) {
     try {
-      JSON.parse(content);
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed.nodes)) {
+        parsed.nodes.forEach(n => {
+          if (n.type === 'file' && n.file) {
+            const target = path.resolve(baseDir, n.file);
+            if (!fs.existsSync(target)) {
+              reportError(`Canvas file node destino inexistente em ${file}: ${n.file}`);
+            }
+          }
+        });
+      }
     } catch(e) {
-      reportError(`JSON invalido no Canvas ${file}`);
+      reportError(`JSON invalido no Canvas ${file}: ${e.message}`);
     }
   }
 });
@@ -137,6 +181,6 @@ if (errors > 0) {
   console.error(`\n🔥 FALHA! ${errors} erro(s) de estrutura encontrados.`);
   process.exit(1);
 } else {
-  console.log('\n✅ SUCESSO! A arvore documental esta em conformidade com o Down Plant 2.1.');
+  console.log('\n✅ SUCESSO! A arvore documental esta em estrita conformidade com o Down Plant 2.1.');
   process.exit(0);
 }

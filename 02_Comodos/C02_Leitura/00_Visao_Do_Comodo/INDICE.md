@@ -1,4 +1,4 @@
-﻿# InventÃ¡rio Geral de Leitores e Adaptadores (Task C02.1-01)
+# InventÃ¡rio Geral de Leitores e Adaptadores (Task C02.1-01)
 
 > **Status:** CONCLUÃDO  
 > **CÃ´modo:** C02 Leitura & Adaptadores  
@@ -20,7 +20,7 @@
 | `Core/Policiais.js` | `SyntheonPoliciais.carregarEfetivo()` | Aba `EFETIVO` ativa | Col A (`Nome Guerra`), Col B (`Grad+Mat`), Col C (`Nome Completo`), Col D (`Grad`), Col E (`MatrÃ­cula`), Col F (`Subunidade Prod`), Col G (`Subunidade PecÃºlio`) | ValidaÃ§Ã£o de cabeÃ§alho `NOME` + `MATRICULA` | **MÃ‰DIO** | DicionÃ¡rio indexado por matrÃ­cula (`mapa[matricula]`) | C02 Leitura / C03 DomÃ­nio / C04 Motor |
 | `Compilador_Armas.js` | `executarCompilador()` | Abas mensais | `BOE`, `PELOTÃƒO`, `MATRICULA`, `POLICIAL`, `GRADUAÃ‡ÃƒO`/`GRAD`, `QDT ARMAS`/`QTD ARMAS` | Buscas ad-hoc `headers.indexOf()` com fallback para `QTD ARMAS` | **ALTO** | Matriz para aba `COMP_ARMAS_2026` | C06 RelatÃ³rios (Armas) / Legado |
 | `Compilador de Entorpecentes.js` | `executarCompiladorDrogas()` | Abas mensais | `BOE`, `PELOTÃƒO`, `GRADUAÃ‡ÃƒO`/`GRAD`, `MATRÃCULA`/`MATRICULA`, `POLICIAL`, `DIVIDIDO MAC`, `DIVIDIDO COC` | Buscas ad-hoc `findIndex()` com `.includes()` em cada cabeÃ§alho | **ALTO** | Matriz para aba `COMP_DROGAS_2026` | C06 RelatÃ³rios (Drogas) / Legado |
-| `Config/Metamodelos.js` | `CatalogoEstruturas` | N/A (CatÃ¡logo estÃ¡tico) | ObrigatÃ³rios: `MATRICULA`, `DATA`, `MIKE`. Opcionais & MÃ©tricas declarados no objeto. | CatÃ¡logo oficial das fontes (`OPP_2026`) | **BAIXO** | Objeto congelado de configuraÃ§Ã£o das fontes | M00 Config / C02 Leitura |
+| `Config/Metamodelos.js` | `CatalogoEstruturas` | N/A (CatÃ¡logo estÃ¡tico) | ObrigatÃ³rios: `MATRICULA`, `DATA`, `MIKE`. Opcionais & MÃ©tricas declarados no objeto. | CatÃ¡logo oficial das fontes (`OPP_2026`) | **BAIXO** | Objeto congelado de configuraÃ§Ã£o das fontes | C00 Config / C02 Leitura |
 
 ---
 
