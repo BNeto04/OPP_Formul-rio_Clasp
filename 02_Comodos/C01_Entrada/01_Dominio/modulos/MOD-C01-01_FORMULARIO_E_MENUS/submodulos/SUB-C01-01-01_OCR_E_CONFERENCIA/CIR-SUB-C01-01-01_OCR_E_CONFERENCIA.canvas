@@ -1,4 +1,79 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "node-ocr-1",
+      "x": 0,
+      "y": 0,
+      "width": 260,
+      "height": 120,
+      "type": "text",
+      "text": "### 1. BO / OCR In-Browser\nExtração de texto via PDF.js e Tesseract.js diretamente no cliente."
+    },
+    {
+      "id": "node-ocr-2",
+      "x": 320,
+      "y": 0,
+      "width": 260,
+      "height": 120,
+      "type": "text",
+      "text": "### 2. Sugestão de Natureza\nObtenção de opções da aba mensal para o Datalist (assistivo, não bloqueante)."
+    },
+    {
+      "id": "node-ocr-3",
+      "x": 640,
+      "y": 0,
+      "width": 260,
+      "height": 120,
+      "type": "text",
+      "text": "### 3. Operador\nConferência, escolha no datalist ou edição manual da Natureza da Ocorrência."
+    },
+    {
+      "id": "node-ocr-4",
+      "x": 960,
+      "y": 0,
+      "width": 260,
+      "height": 120,
+      "type": "text",
+      "text": "### 4. Validação Local\nVerificação de DATA e NATUREZA preenchidas antes de disparar o salvamento."
+    },
+    {
+      "id": "node-ocr-5",
+      "x": 1280,
+      "y": 0,
+      "width": 280,
+      "height": 120,
+      "type": "text",
+      "text": "### 5. Porta de Persistência\nSUB-C01-01-02 / EntradaManual.js (inalterada nesta fatia documental/UI)."
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-ocr-1-2",
+      "fromNode": "node-ocr-1",
+      "fromSide": "right",
+      "toNode": "node-ocr-2",
+      "toSide": "left"
+    },
+    {
+      "id": "edge-ocr-2-3",
+      "fromNode": "node-ocr-2",
+      "fromSide": "right",
+      "toNode": "node-ocr-3",
+      "toSide": "left"
+    },
+    {
+      "id": "edge-ocr-3-4",
+      "fromNode": "node-ocr-3",
+      "fromSide": "right",
+      "toNode": "node-ocr-4",
+      "toSide": "left"
+    },
+    {
+      "id": "edge-ocr-4-5",
+      "fromNode": "node-ocr-4",
+      "fromSide": "right",
+      "toNode": "node-ocr-5",
+      "toSide": "left"
+    }
+  ]
 }

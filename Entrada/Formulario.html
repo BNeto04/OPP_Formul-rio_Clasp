@@ -204,9 +204,8 @@
           <div class="form-row">
             <div class="form-group full-width">
               <label for="natureza">NATUREZA DA OCORRÊNCIA</label>
-              <select id="natureza">
-                <option value="">Aguardando data...</option>
-              </select>
+              <input type="text" id="natureza" list="naturezasList" placeholder="Selecione ou digite a natureza...">
+              <datalist id="naturezasList"></datalist>
             </div>
           </div>
 
@@ -467,9 +466,10 @@
 
       // Natureza
       let natSelecionada = '';
-      const naturezaMatch = text.match(/(?:Naturezas?|Natureza da Ocorr[êe]ncia|Tipo de Ocorr[êe]ncia)[\s:]*(.*?)(?=\s*Data do Fato:|\n|$)/i);
+      const naturezaMatch = text.match(/(?:Natureza\s+da\s+Ocorr[êe]ncia|Tipo\s+de\s+Ocorr[êe]ncia|Naturezas?)[\s:]*(.*?)(?=\s*Data do Fato:|\n|$)/i);
       if (naturezaMatch) {
           natSelecionada = naturezaMatch[1].trim();
+          document.getElementById('natureza').value = natSelecionada;
       }
 
       // Data e Hora
@@ -613,7 +613,7 @@
             if (natSelecionada) {
               const normalizeStr = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
               const nCandidata = normalizeStr(natSelecionada);
-              const opcoesNats = window.opcoesFormulario.naturezas || [];
+              const opcoesNats = (window.opcoesFormulario && window.opcoesFormulario.naturezas) ? window.opcoesFormulario.naturezas : [];
               let matchedOpt = "";
               for (let opt of opcoesNats) {
                 if (normalizeStr(opt) === nCandidata) {
@@ -626,14 +626,8 @@
                 document.getElementById('natureza').value = matchedOpt;
                 statusNat = `<span style="color: var(--accent-color); font-weight: 600;">[OK] Natureza:</span> ${matchedOpt}`;
               } else {
-                const selectNat = document.getElementById('natureza');
-                selectNat.innerHTML = `<option value="" style="color: var(--danger-color)">Não correspondida: ${natSelecionada}</option>` + selectNat.innerHTML;
-                selectNat.value = "";
-                const btnSave = document.querySelector('.btn-save');
-                if (btnSave) btnSave.disabled = true;
-                
-                statusNat = `<span style="color: var(--danger-color); font-weight: 600;">[FALHA] Natureza:</span> ${natSelecionada}<br><span style="font-size:0.75rem; color: var(--danger-color)">Preencha manualmente para liberar o salvamento.</span>`;
-                setStatus(`Natureza não correspondida: ${natSelecionada}`, 'var(--danger-color)');
+                document.getElementById('natureza').value = natSelecionada;
+                statusNat = `<span style="color: var(--secondary-color); font-weight: 600;">[OCR] Natureza:</span> ${natSelecionada}<br><span style="font-size:0.75rem; color: var(--text-muted)">(Sugestão OCR mantida no campo; confira ou selecione da lista)</span>`;
               }
             }
 
@@ -685,19 +679,14 @@
     let requisicaoValidacaoId = 0;
 
     function carregarOpcoesValidacao(dataStr) {
-      const selectNat = document.getElementById('natureza');
-      const btnSave = document.querySelector('.btn-save');
       const reqId = ++requisicaoValidacaoId;
 
       if(!dataStr) {
          setStatus('Informe a data da ocorrência para carregar as opções.', 'var(--secondary-color)');
          window.opcoesFormulario = null;
-         if(selectNat) selectNat.innerHTML = `<option value="">Aguardando data...</option>`;
-         if(btnSave) btnSave.disabled = true;
          return Promise.reject(new Error("Data não informada"));
       }
       setStatus('> Carregando opções da aba ' + dataStr + '...', 'var(--secondary-color)');
-      if(btnSave) btnSave.disabled = true;
       
       return new Promise((resolve, reject) => {
         google.script.run
@@ -708,7 +697,6 @@
              window.opcoesFormulario = res;
              atualizarDataLists();
              setStatus('> Opções atualizadas para ' + dataStr, 'var(--accent-color)');
-             if(btnSave) btnSave.disabled = false;
              resolve(res);
           })
           .withFailureHandler(err => {
@@ -716,9 +704,7 @@
                  return reject(new Error("Resposta obsoleta ignorada."));
              }
              window.opcoesFormulario = null;
-             if(selectNat) selectNat.innerHTML = `<option value="">Erro ao carregar opções</option>`;
-             setStatus('Erro aba: ' + err.message, 'var(--danger-color)');
-             if(btnSave) btnSave.disabled = true;
+             setStatus('Aviso: Não foi possível carregar sugestões da aba (' + err.message + ')', 'var(--danger-color)');
              reject(err);
           })
           .obterOpcoesValidacao(dataStr);
@@ -726,9 +712,9 @@
     }
 
     function atualizarDataLists() {
-      const selectNat = document.getElementById('natureza');
-      if(selectNat && window.opcoesFormulario && window.opcoesFormulario.naturezas) {
-          selectNat.innerHTML = `<option value="">Selecione...</option>` + window.opcoesFormulario.naturezas.map(n => `<option value="${n}">${n}</option>`).join('');
+      const datalistNat = document.getElementById('naturezasList');
+      if (datalistNat && window.opcoesFormulario && window.opcoesFormulario.naturezas) {
+          datalistNat.innerHTML = window.opcoesFormulario.naturezas.map(n => `<option value="${n}">`).join('');
       }
       const selectDetidos = document.getElementById('detidos');
       if (selectDetidos) {
@@ -760,15 +746,6 @@
 
     document.getElementById('data').addEventListener('change', (e) => {
         carregarOpcoesValidacao(e.target.value);
-    });
-
-    document.getElementById('natureza').addEventListener('change', (e) => {
-        const btnSave = document.querySelector('.btn-save');
-        if (e.target.value && btnSave) {
-            btnSave.disabled = false;
-        } else if (!e.target.value && btnSave) {
-            btnSave.disabled = true;
-        }
     });
 
     function adicionarPipField(valorSelecionado = '') {
@@ -1003,6 +980,14 @@
 
     // ── SALVAR ────────────────────────────────────────────────────
     function salvarDados() {
+      const dataVal = document.getElementById('data').value.trim();
+      const naturezaVal = document.getElementById('natureza').value.trim();
+
+      if (!dataVal || !naturezaVal) {
+          setStatus('>> ERRO: Preencha DATA e NATUREZA antes de salvar.', 'var(--danger-color)');
+          return;
+      }
+
       setStatus('> Enviando para o Sheets...', 'var(--secondary-color)');
       // Monta lista de policiais com dados completos para o backend
       const ordemPoliciais = [...document.querySelectorAll('#policeTableBody tr[data-mat]')]
@@ -1020,21 +1005,16 @@
                  : { pelotao: '', posto: '', matricula: mat, nome: '', qtd_armas: qtdArmas };
       });
 
-      if (!window.opcoesFormulario || window.opcoesFormulario.data !== document.getElementById('data').value.trim()) {
-          setStatus('>> ERRO: As opções de validação da data não estão sincronizadas. Escolha ou re-selecione a Data antes de salvar.', 'var(--danger-color)');
-          return;
-      }
-
       const payload = {
         origem:   'FORMULARIO',
         mike:     document.getElementById('mike').value.trim(),
         boe:      document.getElementById('boe').value.trim(),
         ais:      document.getElementById('ais').value.trim(),
-        data:     document.getElementById('data').value.trim(),
+        data:     dataVal,
         hora:     document.getElementById('hora').value.trim(),
         cidade:   document.getElementById('cidade').value.trim(),
         bairro:   document.getElementById('bairro').value.trim(),
-        natureza: document.getElementById('natureza').value.trim(),
+        natureza: naturezaVal,
         qtd_o:    document.getElementById('qtd_o').value.trim(),
         detidos:  document.getElementById('detidos').value.trim(),
         imputado: document.getElementById('imputado').value,
@@ -1057,6 +1037,8 @@
       ['mike','boe','data','hora','cidade','bairro','natureza','qtd_o','ais','detidos'].forEach(id => {
           if (document.getElementById(id)) document.getElementById(id).value = '';
       });
+      const datalistNat = document.getElementById('naturezasList');
+      if (datalistNat) datalistNat.innerHTML = '';
       policiaisSet.clear();
       document.getElementById('policeTableBody').innerHTML =
         '<tr id="police-empty-row"><td colspan="6" class="police-empty-msg">Nenhum policial adicionado</td></tr>';

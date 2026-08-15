@@ -213,9 +213,15 @@ try {
 }
 global.SpreadsheetApp.openById = undefined;
 
-console.log('  [Test 8] Sintaxe do Formulario.html');
+console.log('  [Test 8] Estrutura e sintaxe do Formulario.html');
 
 const html = fs.readFileSync(path.join(__dirname, '../Entrada/Formulario.html'), 'utf8');
+
+// Validações estruturais obrigatórias da R10.6
+assert.ok(!html.includes('<select id="natureza">'), "Formulário não deve mais conter <select id=\"natureza\">");
+assert.ok(html.includes('id="natureza"') && html.includes('list="naturezasList"'), "Formulário deve conter input com id=\"natureza\" e list=\"naturezasList\"");
+assert.ok(html.includes('<datalist id="naturezasList">'), "Formulário deve conter <datalist id=\"naturezasList\">");
+
 const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
 let match;
 let fullFormularioScript = "";
@@ -229,22 +235,47 @@ while ((match = scriptRegex.exec(html)) !== null) {
     }
 }
 
-console.log('  [Test 9] Proteção contra resposta obsoleta e preenchimento OCR explícito (Formulario.html)');
+console.log('  [Test 9] Natureza assistiva, não bloqueante e proteção assíncrona (Formulario.html)');
 
-// Mocks do DOM para Formulario.html
+const mockElements = {
+    natureza: { value: '', list: 'naturezasList', addEventListener: () => {} },
+    naturezasList: { innerHTML: '', appendChild: () => {} },
+    data: { value: '01/01/2026', addEventListener: () => {} },
+    hora: { value: '', addEventListener: () => {} },
+    qtd_o: { value: '1', addEventListener: () => {} },
+    mike: { value: '', addEventListener: () => {} },
+    boe: { value: '', addEventListener: () => {} },
+    ais: { value: '', addEventListener: () => {} },
+    cidade: { value: '', addEventListener: () => {} },
+    bairro: { value: '', addEventListener: () => {} },
+    detidos: { value: '', addEventListener: () => {}, removeEventListener: () => {}, parentNode: { replaceChild: () => {} } },
+    imputado: { value: 'SEM IMPUTADO', addEventListener: () => {} },
+    dropZone: { classList: { add: () => {}, remove: () => {} }, addEventListener: () => {} },
+    fileInput: { value: '', addEventListener: () => {} },
+    policeInput: { value: '', addEventListener: () => {} },
+    policeTableBody: { innerHTML: '', children: [], appendChild: () => {}, classList: { add: () => {}, remove: () => {} }, addEventListener: () => {}, querySelectorAll: () => [] },
+    armasList: { innerHTML: '', appendChild: () => {}, querySelectorAll: () => [] },
+    drogasList: { innerHTML: '', appendChild: () => {}, querySelectorAll: () => [] },
+    pipList: { innerHTML: '', appendChild: () => {}, querySelectorAll: () => [] },
+    ocrTerminal: { innerText: '', scrollTop: 0, scrollHeight: 0 },
+    statusMessage: { innerText: '', style: {} },
+    progressContainer: { style: {} },
+    progressBar: { style: {} },
+    progressLabel: { innerText: '', style: {} },
+    ocrConferenceCard: { style: {} },
+    ocrConferenceContent: { innerHTML: '' }
+};
+
+const saveBtn = { disabled: false };
+
 global.document = {
-    elements: {
-        natureza: { value: '', innerHTML: '', addEventListener: () => {} },
-        data: { value: '01/01/2026', addEventListener: () => {} },
-        dropZone: { classList: { add: () => {}, remove: () => {} }, addEventListener: () => {} },
-        fileInput: { addEventListener: () => {} }
-    },
+    elements: mockElements,
     getElementById: function(id) {
-        if (id === 'natureza' || id === 'data' || id === 'dropZone' || id === 'fileInput') return this.elements[id];
-        return { value: '', innerHTML: '', appendChild: () => {}, remove: () => {}, addEventListener: () => {}, removeEventListener: () => {}, style: {} };
+        if (this.elements[id]) return this.elements[id];
+        return { value: '', innerHTML: '', innerText: '', appendChild: () => {}, remove: () => {}, addEventListener: () => {}, removeEventListener: () => {}, style: {}, classList: { add: () => {}, remove: () => {} }, querySelectorAll: () => [] };
     },
     querySelector: function(sel) {
-        if (sel === '.btn-save') return { disabled: false };
+        if (sel === '.btn-save') return saveBtn;
         return null;
     },
     querySelectorAll: () => []
@@ -254,59 +285,116 @@ global.window = { addEventListener: () => {}, opcoesFormulario: null };
 
 let statusList = [];
 global.setStatus = (msg, color) => statusList.push(msg);
-global.log = (msg) => {}; // ignorar logs
+global.log = (msg) => {};
 global.alert = () => {};
 global.pdfjsLib = { GlobalWorkerOptions: {} };
 global.Tesseract = {};
 
-// Mock do google.script.run assíncrono
-let successCb, failureCb, lastCalledObterOpcoes;
+let successCb, failureCb, lastCalledObterOpcoes, ultimoPayloadGravacao = null;
 global.google = {
     script: {
         run: {
             withSuccessHandler: function(cb) { successCb = cb; return this; },
             withFailureHandler: function(cb) { failureCb = cb; return this; },
             obterOpcoesValidacao: function(d) { lastCalledObterOpcoes = d; },
-            getEfetivo: function() { return this; }
+            getEfetivo: function() { return this; },
+            processarEntradaManual: function(payload) {
+                ultimoPayloadGravacao = payload;
+                if (successCb) successCb("Gravado com sucesso!");
+                return this;
+            }
         }
     }
 };
 
-// Injeta as funções do Formulario.html no escopo global deste teste
-fullFormularioScript += "\n\nglobal.carregarOpcoesValidacao = carregarOpcoesValidacao;";
+fullFormularioScript += `
+global.carregarOpcoesValidacao = carregarOpcoesValidacao;
+global.atualizarDataLists = atualizarDataLists;
+global.salvarDados = salvarDados;
+global.parseAndFill = parseAndFill;
+global.limparFormulario = limparFormulario;
+`;
 eval(fullFormularioScript);
 
-// O script foi injetado. Vamos testar.
-statusList = [];
-global.document.elements.data.value = '10/01/2026';
+(async function rodarTestesFormulario() {
+    // 9.1: Natureza OCR não correspondente permanece no input e Salvar não fica desabilitado
+    saveBtn.disabled = false;
+    mockElements.data.value = '10/01/2026';
+    mockElements.natureza.value = '';
+    const textoOcr = "BOLETIM DE OCORRÊNCIA Nº: 1234567890\nNatureza da Ocorrência: PORTE ILEGAL DE ARMA\nData do Fato: 10/01/2026 14:30\nRECIFE\nBairro: BOA VIAGEM";
+    parseAndFill(textoOcr);
 
-// Dispara a requisição 1 (ex: usuário altera data ou OCR extrai)
-const req1Promise = carregarOpcoesValidacao('10/01/2026').catch(e => e.message);
-const cb1 = successCb; // captura o callback da req 1
+    // OCR já deve ter preenchido a natureza candidata no input
+    assert.strictEqual(mockElements.natureza.value, 'PORTE ILEGAL DE ARMA', "Natureza do OCR deve ser preenchida no input");
 
-// Antes da req 1 voltar, dispara a requisição 2 (ex: usuário percebeu que digitou errado)
-global.document.elements.data.value = '11/01/2026';
-const req2Promise = carregarOpcoesValidacao('11/01/2026');
-const cb2 = successCb; // captura o callback da req 2
+    // Responde obterOpcoesValidacao com lista sem a natureza exata
+    if (successCb) {
+        successCb({ naturezas: ['TRAFICO DE DROGAS', 'ROUBO'], detidos: [], armasTipos: [], armasModelos: [], ocorrenciasPip: [] });
+    }
+    await new Promise(r => setImmediate(r));
+    assert.strictEqual(mockElements.natureza.value, 'PORTE ILEGAL DE ARMA', "Natureza OCR não correspondida deve permanecer no input");
+    assert.strictEqual(saveBtn.disabled, false, "Salvar não deve ser desabilitado quando a natureza OCR não corresponde");
 
-// Agora as respostas chegam fora de ordem. 
-// Resposta 1 (obsoleta) chega primeiro:
-try {
-    cb1({ naturezas: ['NAT_ERRADA'] });
-} catch(e) {}
+    // 9.2: Resposta com sugestões popula o datalist e preserva texto manual já digitado
+    mockElements.data.value = '15/01/2026';
+    mockElements.natureza.value = 'DIGITACAO MANUAL OPERADOR';
+    const reqSugPromise = carregarOpcoesValidacao('15/01/2026');
+    successCb({ naturezas: ['HOMICIDIO', 'FURTO'], detidos: [], armasTipos: [], armasModelos: [], ocorrenciasPip: [] });
+    await reqSugPromise;
+    assert.ok(mockElements.naturezasList.innerHTML.includes('HOMICIDIO'), "Datalist deve ser populado com as sugestões");
+    assert.strictEqual(mockElements.natureza.value, 'DIGITACAO MANUAL OPERADOR', "Texto digitado pelo operador deve ser preservado");
 
-// Resposta 2 (atual) chega:
-cb2({ naturezas: ['NAT_CORRETA'], detidos: [], ocorrenciasPip: [] });
+    // 9.3: Falha de obterOpcoesValidacao preserva o input editável e permite tentativa de salvar quando DATA e NATUREZA existem
+    mockElements.data.value = '20/01/2026';
+    mockElements.natureza.value = 'QUALQUER NATUREZA DIGITADA';
+    const reqFailPromise = carregarOpcoesValidacao('20/01/2026').catch(e => e.message);
+    failureCb(new Error("Aba 20/01/2026 não encontrada"));
+    await reqFailPromise;
+    assert.strictEqual(mockElements.natureza.value, 'QUALQUER NATUREZA DIGITADA', "Input deve permanecer com o texto digitado mesmo após falha na busca de opções");
+    assert.strictEqual(saveBtn.disabled, false, "Salvar não deve ser desabilitado após erro de carregamento");
 
-Promise.all([req1Promise, req2Promise]).then(results => {
+    ultimoPayloadGravacao = null;
+    salvarDados();
+    assert.ok(ultimoPayloadGravacao !== null, "Tentativa de salvar deve chamar processarEntradaManual mesmo com falha no carregamento prévio de opções");
+    assert.strictEqual(ultimoPayloadGravacao.data, '20/01/2026');
+    assert.strictEqual(ultimoPayloadGravacao.natureza, 'QUALQUER NATUREZA DIGITADA');
+
+    // 9.4: DATA ou NATUREZA vazias bloqueiam localmente sem chamar processarEntradaManual
+    ultimoPayloadGravacao = null;
+    mockElements.data.value = '';
+    mockElements.natureza.value = 'NATUREZA SEM DATA';
+    salvarDados();
+    assert.strictEqual(ultimoPayloadGravacao, null, "Data vazia deve bloquear localmente");
+
+    ultimoPayloadGravacao = null;
+    mockElements.data.value = '22/01/2026';
+    mockElements.natureza.value = '';
+    salvarDados();
+    assert.strictEqual(ultimoPayloadGravacao, null, "Natureza vazia deve bloquear localmente");
+
+    // 9.5: Resposta obsoleta continua sem sobrescrever sugestões ou texto atual
+    mockElements.data.value = '10/01/2026';
+    const req1Promise = carregarOpcoesValidacao('10/01/2026').catch(e => e.message);
+    const cb1 = successCb;
+
+    mockElements.data.value = '11/01/2026';
+    const req2Promise = carregarOpcoesValidacao('11/01/2026');
+    const cb2 = successCb;
+
+    try {
+        cb1({ naturezas: ['NAT_ERRADA_OBSOLETA'] });
+    } catch(e) {}
+    cb2({ naturezas: ['NAT_CORRETA_ATUAL'], detidos: [], ocorrenciasPip: [] });
+
+    const results = await Promise.all([req1Promise, req2Promise]);
     assert.strictEqual(results[0], "Resposta obsoleta ignorada.", "Req 1 deve ser rejeitada como obsoleta");
-    assert.deepStrictEqual(results[1].naturezas, ['NAT_CORRETA'], "Req 2 deve ser resolvida corretamente");
-    assert.ok(global.document.elements.natureza.innerHTML.includes('NAT_CORRETA'), "Aba final da natureza deve ter NAT_CORRETA");
-    assert.ok(!global.document.elements.natureza.innerHTML.includes('NAT_ERRADA'), "Aba final da natureza NÃO deve ter NAT_ERRADA");
+    assert.deepStrictEqual(results[1].naturezas, ['NAT_CORRETA_ATUAL'], "Req 2 deve ser resolvida corretamente");
+    assert.ok(mockElements.naturezasList.innerHTML.includes('NAT_CORRETA_ATUAL'), "Datalist deve conter a resposta atual");
+    assert.ok(!mockElements.naturezasList.innerHTML.includes('NAT_ERRADA_OBSOLETA'), "Datalist NÃO deve conter a resposta obsoleta");
 
     console.log('✅ OK - EntradaManual.js e Formulario.html');
-}).catch(err => {
-    console.error("Falha no teste 8:", err);
+})().catch(err => {
+    console.error("Falha no teste:", err);
     process.exit(1);
 });
 
