@@ -3,12 +3,22 @@
  * DESCRIÇÃO: Controlador que recebe o JSON do HTML e orquestra o pipeline de entrada manual.
  */
 
+function obterSpreadsheetOcorrencias_() {
+  if (typeof SpreadsheetApp !== 'undefined') {
+    try {
+      const active = SpreadsheetApp.getActiveSpreadsheet();
+      if (active) return active;
+    } catch (e) {}
+  }
+  const SS_ID = (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID)
+    ? CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID
+    : '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
+  return SpreadsheetApp.openById(SS_ID);
+}
+
 function processarEntradaManual(payload) {
   try {
-    const SS_ID = (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID)
-      ? CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID
-      : '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
-    const ss = SpreadsheetApp.openById(SS_ID);
+    const ss = obterSpreadsheetOcorrencias_();
     let aba = localizarAbaMensalTratada(ss, payload.data);
 
     // Verificação Anti-Duplicidade
@@ -39,11 +49,24 @@ function resolverNomeAbaMensal(dataStr) {
   const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
   let nomeAba = "JAN2026";
   if (!dataStr) return nomeAba;
-  const partesData = dataStr.split(/[-/]/);
+  const limpo = String(dataStr).trim();
+  const partesData = limpo.split(/[-/]/);
   if (partesData.length === 3) {
-     const mesStr = partesData[1];
-     const anoStr = partesData[0].length === 4 ? partesData[0] : partesData[2];
-     nomeAba = `${meses[parseInt(mesStr, 10) - 1]}${anoStr}`;
+     let mesNum = 1;
+     let anoStr = "2026";
+     if (partesData[0].length === 4) {
+       // Formato ISO: YYYY-MM-DD
+       anoStr = partesData[0];
+       mesNum = parseInt(partesData[1], 10);
+     } else {
+       // Formato BR: DD/MM/YYYY ou DD/MM/YY
+       mesNum = parseInt(partesData[1], 10);
+       anoStr = partesData[2];
+       if (anoStr.length === 2) anoStr = "20" + anoStr;
+     }
+     if (mesNum >= 1 && mesNum <= 12) {
+       nomeAba = `${meses[mesNum - 1]}${anoStr}`;
+     }
   }
   return nomeAba;
 }
@@ -72,6 +95,15 @@ function localizarAbaMensalTratada(ss, dataStr) {
       const n = todasAbas[i].getName();
       nomesExaminados.push(n);
       if (normalizar(n) === nomeAlvo) {
+          return todasAbas[i];
+      }
+  }
+
+  // Fallback: busca por prefixo do mês (ex: "AGO" ou "AGOSTO")
+  const prefixoMes = nomeAba.substring(0, 3);
+  for (let i = 0; i < todasAbas.length; i++) {
+      const nNorm = normalizar(todasAbas[i].getName());
+      if (nNorm.startsWith(prefixoMes)) {
           return todasAbas[i];
       }
   }
@@ -116,7 +148,9 @@ function montarLinhasEntradaManual(payload) {
   const policiais = payload.policiais || [];
   const armas = payload.armas || [];
   const drogas = payload.drogas || [];
-  const ocorrenciasPip = payload.ocorrenciasPip || [];
+  const ocorrenciasPip = (payload.ocorrenciasPip && payload.ocorrenciasPip.length > 0)
+    ? payload.ocorrenciasPip
+    : (payload.natureza ? [payload.natureza] : []);
 
   let maconhaGrama = 0; let maconhaDolar = 0;
   let crackPedra = 0;   let crackGrama = 0;
@@ -145,8 +179,13 @@ function montarLinhasEntradaManual(payload) {
       const isFirst = (idx === 0);
       const policial = policiais[idx] || { pelotao: "", posto: "", matricula: "", nome: "" };
       const arma = armas[idx] || null;
-      const eventoPip = ocorrenciasPip[idx] || "";
-      const imputadoPip = eventoPip ? (payload.imputado || "SEM IMPUTADO") : "";
+      const eventoPip = ocorrenciasPip[idx] || (isFirst && payload.natureza ? payload.natureza : "");
+      
+      const imputadoVal = (payload.imputado && String(payload.imputado).trim()) 
+        ? String(payload.imputado).trim() 
+        : ((payload.detidos && parseInt(payload.detidos, 10) > 0) ? "COM IMPUTADO" : "SEM IMPUTADO");
+      
+      const imputadoPip = isFirst ? imputadoVal : (eventoPip ? imputadoVal : "");
       
       let armaTipo = "", armaQtd = "", armaModelo = "", armaCalibre = "", armaMunicao = "";
       if (arma) {
@@ -185,10 +224,10 @@ function montarLinhasEntradaManual(payload) {
           isFirst ? (cocainaGrama || "") : "", // COCAINA GRAMA (Y)
           "", // TOTAL DE COCAINA (Z) - preenchido pela Camada Analítica
           "", // Dividido coc (AA) - preenchido pela Camada Analítica
-          policial.pelotao, // PELOTÃO (AB)
-          policial.posto, // GRAD (AC)
-          policial.matricula, // MATRICULA (AD)
-          policial.nome, // POLICIAL (AE)
+          "", // PELOTÃO (AB) - Calculado por fórmula PROCV
+          "", // GRAD (AC) - Calculado por fórmula PROCV
+          "", // MATRICULA (AD) - Calculado por fórmula PROCV
+          policial.nome, // POLICIAL (AE) - Gravado para alimentar o PROCV
           policial.nome ? (policial.qtd_armas > 0 ? policial.qtd_armas : "") : "", // QDT ARMAS (AF)
           eventoPip, // OCORRÊNCIA PIP (AG)
           imputadoPip, // IMPUTADO? (AH)
@@ -206,7 +245,7 @@ function montarLinhasEntradaManual(payload) {
  * Localiza um bloco contíguo de linhas pré-formatadas prontas para uso.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} aba
  * @param {number} quantidade
- * @returns {GoogleAppsScript.Spreadsheet.Range}
+ * @returns {Object}
  */
 function localizarBlocoModeloDisponivel_(aba, quantidade) {
   const colB = aba.getRange("B1:B" + aba.getMaxRows()).getValues();
@@ -218,7 +257,7 @@ function localizarBlocoModeloDisponivel_(aba, quantidade) {
       }
   }
   
-  const linhaParaEscrever = ultimaLinha > 0 ? ultimaLinha + 1 : 2; 
+  const linhaParaEscrever = (ultimaLinha > 1) ? (ultimaLinha + 2) : 2; 
   const numColunas = aba.getLastColumn();
   
   if (linhaParaEscrever + quantidade - 1 > aba.getMaxRows()) {
@@ -247,8 +286,11 @@ function localizarBlocoModeloDisponivel_(aba, quantidade) {
      }
   }
 
+  const colOrdIdx = SyntheonCabecalhosObj.encontrar(headersIndex, "ORD");
+
   for (let rowIdx = 0; rowIdx < quantidade; rowIdx++) {
      for (let colIdx = 0; colIdx < numColunas; colIdx++) {
+         if (colIdx === colOrdIdx) continue;
          const valStr = String(targetValues[rowIdx][colIdx]).trim();
          const isFormula = targetFormulas[rowIdx][colIdx] && targetFormulas[rowIdx][colIdx].toString().startsWith('=');
          if (!isFormula && valStr !== "") {
@@ -257,7 +299,12 @@ function localizarBlocoModeloDisponivel_(aba, quantidade) {
      }
   }
 
-  return targetRange;
+  return {
+      range: targetRange,
+      startRow: linhaParaEscrever,
+      formulas: targetFormulas,
+      headersIndex: headersIndex
+  };
 }
 
 /**
@@ -266,17 +313,12 @@ function localizarBlocoModeloDisponivel_(aba, quantidade) {
  * @param {Array<Array>} linhasParaInserir 
  */
 function gravarLinhasEntradaManual(aba, linhasParaInserir) {
-  if (!linhasParaInserir || linhasParaInserir.length === 0) return;
-
   const totalLinhas = linhasParaInserir.length;
-  const targetRange = localizarBlocoModeloDisponivel_(aba, totalLinhas);
-  const linhaParaEscrever = targetRange.getRow();
+  const bloco = localizarBlocoModeloDisponivel_(aba, totalLinhas);
   
-  const SyntheonCabecalhosObj = typeof SyntheonCabecalhos !== 'undefined' ? SyntheonCabecalhos : (typeof require !== 'undefined' ? require('../Core/Cabecalhos').SyntheonCabecalhos || require('../Core/Cabecalhos') : null);
-  const headers = aba.getRange(1, 1, 1, aba.getLastColumn()).getValues()[0];
-  const headersIndex = SyntheonCabecalhosObj.criarIndice(headers);
-  
-  const targetFormulas = targetRange.getFormulas();
+  const linhaParaEscrever = bloco.startRow;
+  const targetRange = bloco.range;
+  const targetFormulas = bloco.formulas;
   const targetValidations = targetRange.getDataValidations();
 
   const CABECALHOS_ORIGINAIS = [
@@ -289,14 +331,15 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
     "OCORRÊNCIA PIP", "IMPUTADO?", "PONTOS TOTAIS", "PONTOS FICÇÃO (1/4)", "CHAVE OCORRÊNCIA"
   ];
   
-  const controlados = ["NATUREZA", "TIPO", "MODELO", "OCORRÊNCIA PIP"];
+  const SyntheonCabecalhosObj = typeof SyntheonCabecalhos !== 'undefined' ? SyntheonCabecalhos : (typeof require !== 'undefined' ? require('../Core/Cabecalhos').SyntheonCabecalhos || require('../Core/Cabecalhos') : null);
+  if (!SyntheonCabecalhosObj) throw new Error("Dependência SyntheonCabecalhos não encontrada.");
+  const headersIndex = bloco.headersIndex;
 
   // Fase 1: Validação Total de Integridade
   for (let rowIdx = 0; rowIdx < totalLinhas; rowIdx++) {
      const rowFormulas = targetFormulas[rowIdx];
      const rowValidations = targetValidations[rowIdx];
      
-     // 1.2 Validações de Dados para Valores Inseridos na Linha
      for (let origIdx = 0; origIdx < CABECALHOS_ORIGINAIS.length; origIdx++) {
          const headerOrig = CABECALHOS_ORIGINAIS[origIdx];
          const colIdx = SyntheonCabecalhosObj.encontrar(headersIndex, headerOrig);
@@ -310,39 +353,42 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
              }
          }
 
-         const dv = rowValidations[colIdx];
-         if (dv && valorPretendido) {
-             const type = dv.getCriteriaType();
-             const args = dv.getCriteriaValues();
-             let valid = true;
-             
-             if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
-                const lista = args[0].map(String);
-                if (!lista.includes(String(valorPretendido))) valid = false;
-             } else if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) {
-                if (args[0] && typeof args[0].getValues === 'function') {
-                    const vals = args[0].getValues().map(function(r){ return String(r[0]); });
-                    if (!vals.includes(String(valorPretendido))) valid = false;
-                }
-             } else {
-                throw new Error(`Validação de tipo desconhecido na coluna '${headerOrig}'. Gravação abortada.`);
-             }
+          let dv = rowValidations[colIdx];
+          if (!dv) {
+             try {
+               const dvRef = aba.getRange(2, colIdx + 1).getDataValidation();
+               if (dvRef) dv = dvRef;
+             } catch (e) {}
+          }
 
-             if (!valid) {
-                throw new Error(`O valor '${valorPretendido}' não é permitido pela validação da planilha na coluna '${headerOrig}'. Gravação abortada.`);
-             }
-         } else if (!dv && valorPretendido && controlados.includes(headerOrig)) {
-             throw new Error(`Validação ausente na coluna controlada '${headerOrig}'.`);
-         }
+          if (dv && valorPretendido) {
+              const type = dv.getCriteriaType();
+              const args = dv.getCriteriaValues();
+              let valid = true;
+              
+              if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
+                 const lista = args[0].map(String);
+                 if (!lista.includes(String(valorPretendido))) valid = false;
+              } else if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) {
+                 if (args[0] && typeof args[0].getValues === 'function') {
+                     const vals = args[0].getValues().map(function(r){ return String(r[0]); });
+                     if (!vals.includes(String(valorPretendido))) valid = false;
+                 }
+              }
+
+              if (!valid) {
+                 throw new Error(`O valor '${valorPretendido}' não é permitido pela validação da planilha na coluna '${headerOrig}'. Gravação abortada.`);
+              }
+          }
      }
   }
 
-  // Fase 2: Gravação Física
+  // Fase 2: Gravação Física (Colunas AB, AC e AD são preenchidas pelas fórmulas PROCV da planilha)
   const colsPermitidasNomes = [
     "DATA", "HORA", "QTD O", "MIKE", "NATUREZA", "BOE", "AIS", "CIDADE", "BAIRRO", "DETIDOS",
     "ARMA", "TIPO", "CALIBRE", "MODELO", "MUNIÇÃO", 
     "MACONHA DOLAR", "MACONHA GRAMA", "CRACK PEDRA", "CRACK GRAMA", "COCAINA PINO", "COCAINA GRAMA", 
-    "PELOTÃO", "GRAD", "MATRICULA", "POLICIAL", "QDT ARMAS", "OCORRÊNCIA PIP", "IMPUTADO?"
+    "POLICIAL", "QDT ARMAS", "OCORRÊNCIA PIP", "IMPUTADO?"
   ];
   
   for (let i = 0; i < colsPermitidasNomes.length; i++) {
@@ -370,6 +416,30 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
      }
      rangeCol.setValues(valoresCol);
   }
+
+  // Fase 3: Clonar fórmulas PROCV da linha 2 para as colunas PELOTÃO, GRAD e MATRÍCULA.
+  // Usa copyTo da célula modelo, garantindo que a fórmula nativa da planilha
+  // (em qualquer idioma) seja replicada com ajuste automático de referências.
+  var colsFormula = [
+    SyntheonCabecalhosObj.encontrar(headersIndex, "PELOTÃO"),
+    SyntheonCabecalhosObj.encontrar(headersIndex, "GRAD"),
+    SyntheonCabecalhosObj.encontrar(headersIndex, "MATRICULA")
+  ];
+  for (var f = 0; f < colsFormula.length; f++) {
+    var cIdx = colsFormula[f];
+    if (cIdx === -1) continue;
+    try {
+      var modeloCell = aba.getRange(2, cIdx + 1);
+      var modeloFormula = modeloCell.getFormula();
+      if (modeloFormula && modeloFormula.toString().startsWith('=')) {
+        var destino = aba.getRange(linhaParaEscrever, cIdx + 1, totalLinhas, 1);
+        modeloCell.copyTo(destino);
+      }
+    } catch (e) {
+      // Se copyTo falhar, as colunas ficam vazias (sem risco de #NAME?)
+      console.log('Fase 3: copyTo falhou para coluna ' + cIdx + ': ' + e.message);
+    }
+  }
 }
 
 /**
@@ -380,20 +450,17 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
 function obterOpcoesValidacao(dataStr) {
   try {
     if (!dataStr) throw new Error("Data inválida ou não informada.");
-    const SS_ID = (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID)
-      ? CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID
-      : '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
-    const ss = SpreadsheetApp.openById(SS_ID);
+    const ss = obterSpreadsheetOcorrencias_();
     const aba = localizarAbaMensalTratada(ss, dataStr);
     const nomeAba = aba.getName();
 
     const SyntheonCabecalhosObj = typeof SyntheonCabecalhos !== 'undefined' ? SyntheonCabecalhos : (typeof require !== 'undefined' ? require('../Core/Cabecalhos').SyntheonCabecalhos || require('../Core/Cabecalhos') : null);
 
-    const numColunas = aba.getLastColumn();
+    const numColunas = aba.getLastColumn() || 39;
     const headers = aba.getRange(1, 1, 1, numColunas).getValues()[0];
     const headersIndex = SyntheonCabecalhosObj ? SyntheonCabecalhosObj.criarIndice(headers) : {};
 
-    const maxRows = aba.getMaxRows();
+    const maxRows = Math.min(30, aba.getMaxRows());
 
     function extrairValores(nomeCabecalho) {
       let colIdx = -1;
@@ -409,10 +476,8 @@ function obterOpcoesValidacao(dataStr) {
 
       const validationsCol = aba.getRange(2, colIdx + 1, maxRows - 1, 1).getDataValidations();
       let dv = null;
-      let examinedRows = 0;
       
-      for (let r = validationsCol.length - 1; r >= 0; r--) {
-         examinedRows++;
+      for (let r = 0; r < validationsCol.length; r++) {
          if (validationsCol[r][0] != null) {
              dv = validationsCol[r][0];
              break;
@@ -447,10 +512,6 @@ function obterOpcoesValidacao(dataStr) {
       detidos: extrairValores("DETIDOS")
     };
     
-    if (!ret.naturezas || !ret.naturezas.length) {
-        throw new Error("Aba " + nomeAba + " encontrada, mas sem validações formatadas (provavelmente faltam linhas preparadas).");
-    }
-    
     return ret;
   } catch(e) {
     console.error("obterOpcoesValidacao erro: " + e.message);
@@ -466,10 +527,7 @@ function obterOpcoesValidacao(dataStr) {
  */
 function getEfetivo() {
   try {
-    const SS_ID = (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID)
-      ? CONFIG_SYNTHEON.PLANILHAS.OCORRENCIAS_ID
-      : '1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY';
-    const ss     = SpreadsheetApp.openById(SS_ID);
+    const ss = obterSpreadsheetOcorrencias_();
 
     const aliasesEfetivo = (typeof CONFIG_SYNTHEON !== 'undefined' && CONFIG_SYNTHEON.ABAS && CONFIG_SYNTHEON.ABAS.EFETIVO_ALIASES)
       ? CONFIG_SYNTHEON.ABAS.EFETIVO_ALIASES

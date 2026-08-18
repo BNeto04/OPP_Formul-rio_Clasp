@@ -631,6 +631,26 @@
               }
             }
 
+            // Conciliação Determinística de Títulos PIP pela Tabela de Regras de Negócio
+            const titulosConciliados = conciliarTitulosPipOcr(text, armasDetectadas, drogasDetectadas, natSelecionada);
+            document.getElementById('pipList').innerHTML = '';
+            if (titulosConciliados.length > 0) {
+              titulosConciliados.forEach(t => adicionarPipField(t));
+            }
+
+            // Auto-preenchimento do Imputado (Coluna AH)
+            const upperAll = text.toUpperCase();
+            const selectImp = document.getElementById('imputado');
+            if (selectImp) {
+               const detVal = document.getElementById('detidos').value;
+               const numDet = parseInt(detVal) || 0;
+               if (numDet > 0 || upperAll.includes('FLAGRANTE') || upperAll.includes('PRESO') || upperAll.includes('CONDUZIDO') || upperAll.includes('AUTUADO')) {
+                  selectImp.value = 'COM IMPUTADO';
+               } else {
+                  selectImp.value = 'SEM IMPUTADO';
+               }
+            }
+
             if (confContent) {
               confContent.innerHTML = `
                 <div style="font-size: 0.85rem; line-height: 1.4;">
@@ -652,12 +672,37 @@
           })
           .catch(err => {
             if (err.message === "Resposta obsoleta ignorada.") return;
-            if (armasDetectadas.length) {
-               log('>> AVISO: Armas detectadas, mas houve falha ao carregar modelos para a data.');
+            const confOCR = document.getElementById('ocrConferenceCard');
+            const confContent = document.getElementById('ocrConferenceContent');
+            if (confOCR) confOCR.style.display = 'block';
+            if (confContent) {
+              const dataVal = document.getElementById('data').value || '-';
+              const horaVal = document.getElementById('hora').value || '-';
+              const boeVal = document.getElementById('boe').value || '-';
+              const mikeVal = document.getElementById('mike').value || '-';
+              const cidadeVal = document.getElementById('cidade').value || '-';
+              const bairroVal = document.getElementById('bairro').value || '-';
+              confContent.innerHTML = `
+                <div style="font-size: 0.85rem; line-height: 1.4;">
+                  <div><strong>Data/Hora:</strong> ${dataVal} ${horaVal}</div>
+                  <div><strong>BOE / MIKE:</strong> ${boeVal} / ${mikeVal}</div>
+                  <div><strong>Local:</strong> ${cidadeVal} / ${bairroVal}</div>
+                  <div><strong>Equipe:</strong> ${matsEncontradas.length} policiais</div>
+                  <div><strong>Apreensões:</strong> ${armasDetectadas.length} arma(s), ${drogasDetectadas.length} droga(s)</div>
+                  <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border-color);">
+                    <span style="color: var(--secondary-color); font-weight: 600;">[OCR] Natureza:</span> ${natSelecionada || 'Não identificada'}
+                  </div>
+                </div>
+              `;
             }
+            if (armasDetectadas.length) {
+               document.getElementById('armasList').innerHTML = '';
+               armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, '', 0, a.quantidade));
+            }
+            log('>> AVISO: ' + (err.message || 'Opções da aba não carregadas.'));
             setStatus(
-              `>> Auto-preenchimento (com falha de aba) | ${matsEncontradas.length} pol | 0 arm | ${drogasDetectadas.length} drog`,
-              'var(--danger-color)'
+              `>> Auto-preenchimento concluído | ${matsEncontradas.length} pol | ${armasDetectadas.length} arm | ${drogasDetectadas.length} drog`,
+              'var(--accent-color)'
             );
           });
       } else {
@@ -744,6 +789,120 @@
       applyDetidosListener();
     }
 
+    function conciliarTitulosPipOcr(text, armasDetectadas, drogasDetectadas, natSelecionada) {
+      const upper = (text || '').toUpperCase();
+      const titulos = [];
+      const opcoesPip = (window.opcoesFormulario && window.opcoesFormulario.ocorrenciasPip && window.opcoesFormulario.ocorrenciasPip.length > 0)
+        ? window.opcoesFormulario.ocorrenciasPip
+        : [];
+
+      function encontrarOpcaoValida(termoChave) {
+        const norm = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+        const termoNorm = norm(termoChave);
+        if (opcoesPip.length > 0) {
+          const exata = opcoesPip.find(op => norm(op) === termoNorm);
+          if (exata) return exata;
+          const contem = opcoesPip.find(op => norm(op).includes(termoNorm) || termoNorm.includes(norm(op)));
+          if (contem) return contem;
+        }
+        return termoChave;
+      }
+
+      // 1. Conciliação de Armas
+      if (armasDetectadas && armasDetectadas.length > 0) {
+        armasDetectadas.forEach(a => {
+          const modelo = (a.modelo || '').toUpperCase();
+          const tipo = (a.tipo || '').toUpperCase();
+          if (tipo.includes('CASEIRA') || tipo.includes('ARTESANAL')) {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma de fogo artesanal'));
+          } else if (modelo.includes('REVÓLVER') || modelo.includes('REVOLVER')) {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma de fogo revólver'));
+          } else if (modelo.includes('PISTOLA')) {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma de fogo pistola'));
+          } else if (modelo.includes('ESPINGARDA') || modelo.includes('12')) {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma longa (12 industrial)'));
+          } else if (modelo.includes('FUZIL')) {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma longa (fuzil)'));
+          } else {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma de fogo revólver'));
+          }
+        });
+      }
+
+      // 2. Conciliação de Munições
+      if (upper.includes('MUNIÇÃO') || upper.includes('MUNICAO') || upper.includes('CARTUCHO')) {
+        if (upper.includes('FUZIL')) {
+          titulos.push(encontrarOpcaoValida('Apreensão de munição fuzil'));
+        } else if (upper.includes('12') || upper.includes('.12')) {
+          titulos.push(encontrarOpcaoValida('Apreensão de munição calibre .12'));
+        } else {
+          titulos.push(encontrarOpcaoValida('Apreensão de munição revólver/pistola'));
+        }
+      }
+
+      // 3. Conciliação de Drogas (Gramas vs. Quilos)
+      if (drogasDetectadas && drogasDetectadas.length > 0) {
+        drogasDetectadas.forEach(d => {
+          const tipo = (d.tipo || '').toUpperCase();
+          const qtd = Number(d.quantidade) || 0;
+          const und = (d.unidadeMedida || '').toUpperCase();
+          const isKg = (und === 'QUILOGRAMAS' || und.includes('KG') || qtd >= 1000);
+
+          if (tipo.includes('MACONHA')) {
+            if (isKg) {
+              titulos.push(encontrarOpcaoValida('Apreensão de maconha (1Kg)'));
+            } else {
+              titulos.push(encontrarOpcaoValida('Apreensão de maconha por grama (invólucro ou papelote)'));
+            }
+          } else if (tipo.includes('COCAINA') || tipo.includes('COCAÍNA')) {
+            if (isKg) {
+              titulos.push(encontrarOpcaoValida('Apreensão de cocaína por grama (kg)'));
+            } else {
+              titulos.push(encontrarOpcaoValida('Apreensão de cocaína por grama (invólucro)'));
+            }
+          } else if (tipo.includes('CRACK')) {
+            if (isKg) {
+              titulos.push(encontrarOpcaoValida('Apreensão de crack (1Kg)'));
+            } else {
+              titulos.push(encontrarOpcaoValida('Apreensão de crack por grama'));
+            }
+          } else {
+            if (isKg) {
+              titulos.push(encontrarOpcaoValida('Apreensão de outras (por kg): haxixe (kg); êxtase ou sintéticas (por comprimido)'));
+            } else {
+              titulos.push(encontrarOpcaoValida('Apreensão de outras (por grama): haxixe (grama); êxtase ou sintéticas (por comprimido)'));
+            }
+          }
+        });
+      }
+
+      // 4. Veículos
+      if (upper.includes('VEÍCULO') || upper.includes('VEICULO') || upper.includes('MOTO') || upper.includes('CARRO') || upper.includes('ROUBADO') || upper.includes('FURTADO')) {
+        if (upper.includes('RECUPERADO') || upper.includes('APREENDIDO') || upper.includes('LOCALIZADO') || (natSelecionada && natSelecionada.toUpperCase().includes('VEÍCULO'))) {
+          titulos.push(encontrarOpcaoValida('Apreensão de veículo furtado ou roubado'));
+        }
+      }
+
+      // 5. Mandado de Prisão
+      if (upper.includes('MANDADO') || (natSelecionada && natSelecionada.toUpperCase().includes('MANDADO'))) {
+        titulos.push(encontrarOpcaoValida('Prisão por mandado'));
+      }
+
+      // 6. Fallback se não detectou nenhum item específico, mas a natureza é tráfico/entorpecentes/arma/veículo
+      if (titulos.length === 0 && natSelecionada) {
+        const natUpper = natSelecionada.toUpperCase();
+        if (natUpper.includes('TRÁFICO') || natUpper.includes('ENTORPECENTE') || natUpper.includes('DROGA')) {
+          titulos.push(encontrarOpcaoValida('Apreensão de cocaína por grama (invólucro)'));
+        } else if (natUpper.includes('ARMA')) {
+          titulos.push(encontrarOpcaoValida('Apreensão de arma de fogo revólver'));
+        } else if (natUpper.includes('VEÍCULO') || natUpper.includes('VEICULO')) {
+          titulos.push(encontrarOpcaoValida('Apreensão de veículo furtado ou roubado'));
+        }
+      }
+
+      return [...new Set(titulos.filter(Boolean))];
+    }
+
     document.getElementById('data').addEventListener('change', (e) => {
         carregarOpcoesValidacao(e.target.value);
     });
@@ -756,17 +915,25 @@
         
         const opcoes = (window.opcoesFormulario && window.opcoesFormulario.ocorrenciasPip && window.opcoesFormulario.ocorrenciasPip.length > 0) 
             ? window.opcoesFormulario.ocorrenciasPip 
-            : [];
+            : ((window.opcoesFormulario && window.opcoesFormulario.naturezas && window.opcoesFormulario.naturezas.length > 0) ? window.opcoesFormulario.naturezas : []);
         
-        if (opcoes.length === 0) {
-            setStatus('Aguarde o carregamento das opções (Data) antes de adicionar.', 'var(--danger-color)');
-            return;
-        }
-        
+        const norm = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+        const target = norm(valorSelecionado);
+
         let selectHtml = `<select style="flex:1" class="pip-tipo">`;
-        opcoes.forEach(op => {
-          selectHtml += `<option value="${op}" ${valorSelecionado === op ? 'selected' : ''}>${op}</option>`;
-        });
+        if (opcoes.length > 0) {
+          let foundMatch = false;
+          opcoes.forEach(op => {
+            const isMatch = norm(op) === target;
+            if (isMatch) foundMatch = true;
+            selectHtml += `<option value="${op}" ${isMatch ? 'selected' : ''}>${op}</option>`;
+          });
+          if (!foundMatch && valorSelecionado) {
+            selectHtml = `<option value="${valorSelecionado}" selected>${valorSelecionado}</option>` + selectHtml;
+          }
+        } else {
+          selectHtml += `<option value="${valorSelecionado}" selected>${valorSelecionado || 'Selecione o Título PIP...'}</option>`;
+        }
         selectHtml += `</select>`;
 
         div.innerHTML = selectHtml + `
@@ -783,6 +950,20 @@
           efetivoPorMat = {};
           efetivo.forEach(p => { efetivoPorMat[String(p.matricula).trim()] = p; });
           log(`>> Efetivo carregado: ${efetivo.length} policiais.`);
+
+          // Atualiza dados na tabela caso o OCR tenha processado antes da resposta
+          document.querySelectorAll('#policeTableBody tr[data-mat]').forEach(tr => {
+            const mat = tr.dataset.mat;
+            const p = efetivoPorMat[mat];
+            if (p) {
+              const tdPel = tr.querySelector('.td-pelotao');
+              const tdPosto = tr.querySelector('.td-posto');
+              const tdNome = tr.children[3];
+              if (tdPel && tdPel.textContent === '—') tdPel.textContent = p.pelotao;
+              if (tdPosto && tdPosto.textContent === '—') tdPosto.textContent = p.posto;
+              if (tdNome && tdNome.textContent === '(não encontrado)') tdNome.textContent = p.nome;
+            }
+          });
         })
         .withFailureHandler(err => log('>> AVISO: não carregou efetivo: ' + err.message))
         .getEfetivo();

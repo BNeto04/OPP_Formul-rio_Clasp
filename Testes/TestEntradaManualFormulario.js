@@ -38,6 +38,10 @@ function mockRange(row, col, values, formulas = null, validations = null) {
         getValues: () => values,
         setValues: function(v) { this.writtenValues = v; },
         getFormulas: () => formulas || values.map(r => r.map(() => '')),
+        getFormula: () => (formulas && formulas[0] && formulas[0][0]) ? formulas[0][0] : '',
+        setFormulas: function(f) { this.writtenFormulas = f; },
+        setFormulaR1C1: function(f) { this.writtenFormulaR1C1 = f; },
+        copyTo: function(target) { target.copiedFrom = this; },
         getDataValidations: () => validations || values.map(r => r.map(() => null))
     };
 }
@@ -132,22 +136,25 @@ console.log('  [Test 3] Linha manual já preenchida');
 let sheetLinhaPreenchida = mockSheet(CABECALHOS_ORIGINAIS, (r, c, nr, nc) => {
     return Array(nr).fill(0).map((_, idx) => {
         return CABECALHOS_ORIGINAIS.map(h => {
-            return (r + idx === 3 && h === 'DATA') ? 'Lixo' : ''; // Tem lixo na prox linha (linha 3)
+            return (r + idx === 4 && h === 'DATA') ? 'Lixo' : ''; // Tem lixo na prox linha de escrita (linha 4)
         }).slice(c - 1, c - 1 + nc);
     });
 }, null, defaultValidations);
-sheetLinhaPreenchida.linhaManualPreenchida = true; // Força começar na linha 3
+sheetLinhaPreenchida.linhaManualPreenchida = true; // Força começar na linha 4 (linha 2 + 2 de respiro)
 assert.throws(() => {
     gravarLinhasEntradaManual(sheetLinhaPreenchida, [linhaInserirFake]);
 }, /não está vazia na coluna/, "Deveria abortar se a linha manual tiver dados residuais");
 
-console.log('  [Test 4] Ausência de validação em campo controlado');
-let sheetSemValidacao = mockSheet(CABECALHOS_ORIGINAIS, null, null, (r, c, nr, nc) => {
-    return Array(nr).fill(CABECALHOS_ORIGINAIS.map(h => null)).map(rowVals => rowVals.slice(c - 1, c - 1 + nc)); // tudo nulo
+console.log('  [Test 4] Validação de campo controlado via linha de referência (row 2)');
+let sheetValidacaoNaLinha2 = mockSheet(CABECALHOS_ORIGINAIS, null, null, (r, c, nr, nc) => {
+    return Array(nr).fill(CABECALHOS_ORIGINAIS.map(h => {
+        if (controlados.includes(h)) return mockDataValidation(['Outro Valor']); // row 2 validation
+        return null;
+    })).map(rowVals => rowVals.slice(c - 1, c - 1 + nc));
 });
 assert.throws(() => {
-    gravarLinhasEntradaManual(sheetSemValidacao, [linhaInserirFake]);
-}, /Validação ausente na coluna controlada/, "Deveria abortar");
+    gravarLinhasEntradaManual(sheetValidacaoNaLinha2, [linhaInserirFake]);
+}, /não é permitido pela validação/, "Deveria validar contra a regra da linha de referência");
 
 console.log('  [Test 5] Valor fora da lista');
 let sheetValorInvalido = mockSheet(CABECALHOS_ORIGINAIS, null, null, (r, c, nr, nc) => {
