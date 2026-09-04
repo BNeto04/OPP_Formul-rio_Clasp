@@ -207,41 +207,63 @@ class NaturalLanguageRouter {
       return 'INTERNET_STATUS';
     }
 
-    // ANTIGRAVITY_CURRENT_TASK
+    // ANTIGRAVITY_OWNER_WAIT (verificação global de decisão pendente)
     if (
-      /em\s+que\s+tarefa\s+(ele|o\s+antigravity)\s+est[aá]\s+trabalhando/i.test(lower) ||
-      /qual\s+issue\s+(ele|o\s+antigravity)\s+est[aá]\s+executando/i.test(lower) ||
-      /qual\s+tarefa\s+ele\s+est[aá]\s+fazendo/i.test(lower)
-    ) {
-      return 'ANTIGRAVITY_CURRENT_TASK';
-    }
-
-    // ANTIGRAVITY_LAST_ACTION
-    if (
-      /o\s+que\s+(ele|o\s+antigravity)\s+fez\s+por\s+[uú]ltimo/i.test(lower) ||
-      /qual\s+foi\s+a\s+[uú]ltima\s+a[cç][aã]o(\s+do\s+antigravity)?/i.test(lower) ||
-      /[uú]ltima\s+a[cç][aã]o\s+do\s+antigravity/i.test(lower)
-    ) {
-      return 'ANTIGRAVITY_LAST_ACTION';
-    }
-
-    // ANTIGRAVITY_OWNER_WAIT
-    if (
-      /tem\s+alguma\s+coisa\s+esperando\s+minha\s+decis[aã]o/i.test(lower) ||
+      /decis[aã]o\s+(pendente|sua|minha)/i.test(lower) ||
       /esperando\s+(minha\s+decis[aã]o|por\s+mim)/i.test(lower) ||
-      /decis[aã]o\s+pendente/i.test(lower)
+      /tem\s+alguma\s+coisa\s+esperando/i.test(lower)
     ) {
       return 'ANTIGRAVITY_OWNER_WAIT';
     }
 
-    // ANTIGRAVITY_ACTIVITY_STATUS
-    if (
-      /o\s+que\s+(o\s+)?(antigravity|ele)\s+est[aá]\s+fazendo(\s+agora)?/i.test(lower) ||
-      /(ele|o\s+antigravity)\s+est[aá]\s+(parado|trabalhando|ocupado)/i.test(lower) ||
-      /atividade\s+(do\s+)?antigravity/i.test(lower) ||
-      /o\s+que\s+ele\s+est[aá]\s+fazendo/i.test(lower)
-    ) {
-      return 'ANTIGRAVITY_ACTIVITY_STATUS';
+    // ----------------------------------------------------
+    // Detecção Semântica Estendida de Intenções do Antigravity
+    // ----------------------------------------------------
+    const hasAntigravity = /\bantigravity\b/i.test(lower) || (/\bele\b/i.test(lower) && !lower.includes('internet'));
+
+    if (hasAntigravity) {
+      // 1. Ação de despertar / abrir
+      if (
+        /acorde\s+(o\s+)?antigravity/i.test(lower) ||
+        /acordar\s+(o\s+)?antigravity/i.test(lower) ||
+        /abra\s+(o\s+)?antigravity/i.test(lower) ||
+        /inicie\s+(o\s+)?antigravity/i.test(lower)
+      ) {
+        return 'WAKE_ANTIGRAVITY_REQUEST';
+      }
+
+      // 2. Tarefa / Issue específica
+      if (
+        /(em\s+que\s+|qual\s+)tarefa/i.test(lower) ||
+        /qual\s+issue/i.test(lower) ||
+        /qual\s+o\s+card/i.test(lower)
+      ) {
+        return 'ANTIGRAVITY_CURRENT_TASK';
+      }
+
+      // 3. Última ação
+      if (
+        /[uú]ltima\s+a[cç][aã]o/i.test(lower) ||
+        /fez\s+por\s+[uú]ltimo/i.test(lower) ||
+        /[uú]ltimo\s+passo/i.test(lower)
+      ) {
+        return 'ANTIGRAVITY_LAST_ACTION';
+      }
+
+      // 4. Atividade geral / Como está / Ver estado / O que está fazendo
+      if (
+        /como\s+est[aá]/i.test(lower) ||
+        /o\s+que\s+.*fazendo/i.test(lower) ||
+        /(consigo\s+)?ver\s+(o\s+)?/i.test(lower) ||
+        /mostr(e|a)/i.test(lower) ||
+        /parado|trabalhando|ocupado/i.test(lower) ||
+        /atividade/i.test(lower) ||
+        /status/i.test(lower) ||
+        /vivo|ativo|aberto|rodando|funcionando/i.test(lower) ||
+        /\bantigravity\b/i.test(lower)
+      ) {
+        return 'ANTIGRAVITY_ACTIVITY_STATUS';
+      }
     }
 
     // AUTHORIZED_PROCESSES

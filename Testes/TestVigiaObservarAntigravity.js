@@ -141,12 +141,26 @@ async function runTests() {
   assert(resG.summary.includes('120 minutos'));
   console.log('  [PASS] Teste G: Tempo decorrido qualificado com precisão factual.');
 
-  // TESTE H: pergunta "o que ele está fazendo?" em linguagem natural
-  console.log('\nTESTE H: Pergunta em linguagem natural "O que o Antigravity está fazendo agora?"...');
-  const resH = await nlRouter.process('O que o Antigravity está fazendo agora?', 555777);
-  assert.strictEqual(resH.intent, 'ANTIGRAVITY_ACTIVITY_STATUS');
-  assert(resH.text.includes('Antigravity'));
-  console.log('  [PASS] Teste H: Linguagem natural roteada para observabilidade.');
+  // TESTE H: perguntas coloquiais e imperfeitas em linguagem natural
+  console.log('\nTESTE H: Perguntas coloquiais e imperfeitas em linguagem natural...');
+  const frasesAuditadas = [
+    'agora consigo ver o como esta o antigravity',
+    'como está o antigravity?',
+    'quero ver como está o antigravity',
+    'agora consigo ver como está o antigravity?',
+    'o que o antigravity está fazendo?',
+    'me diz o que o antigravity está fazendo agora',
+    'como esta o antigravity',
+    'ver o antigravity'
+  ];
+  for (const f of frasesAuditadas) {
+    const res = await nlRouter.process(f, 555777);
+    assert.strictEqual(res.intent, 'ANTIGRAVITY_ACTIVITY_STATUS', `Falha na frase: ${f}`);
+    assert(res.text.includes('Antigravity'));
+  }
+  const resWait = await nlRouter.process('tem alguma coisa esperando minha decisão?', 555777);
+  assert.strictEqual(resWait.intent, 'ANTIGRAVITY_OWNER_WAIT');
+  console.log('  [PASS] Teste H: Todas as frases coloquiais e variações auditadas aprovadas com sucesso.');
 
   // TESTE I: /antigravity retorna o mesmo snapshot
   console.log('\nTESTE I: Comando /antigravity -> retorna mesmo snapshot...');
