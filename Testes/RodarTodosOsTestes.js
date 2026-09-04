@@ -39,6 +39,10 @@ console.log('');
 require('./TestRelatorioGxt');
 console.log('');
 require('./TestEntradaManualFormulario');
+console.log('');
+require('./TestNormalizadorEfetivo');
+console.log('');
+require('./TestFormularioCidadeBairro');
 
 if (process.exitCode && process.exitCode !== 0) {
   console.error('\n====================================================');

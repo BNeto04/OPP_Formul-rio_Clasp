@@ -333,6 +333,7 @@
     const statusMsg     = document.getElementById('statusMessage');
     const policiaisSet  = new Set();
     let policialArrastado = null;
+    let execucaoOcrId = 0;
 
     // ── DRAG & DROP ──────────────────────────────────────────────
     // Bloqueia abertura de arquivo pela janela inteira
@@ -355,6 +356,8 @@
 
     // ── MOTOR OCR (Tesseract.js + PDF.js) ────────────────────────
     async function iniciarOCR(file) {
+      const ocrId = ++execucaoOcrId;
+      limparDadosDocumentoAnterior();
       log('>> Arquivo recebido: ' + file.name);
       setStatus('Processando...', 'var(--secondary-color)');
       mostrarProgresso('Preparando OCR...', 0);
@@ -370,18 +373,21 @@
           textoFinal = await rodarTesseract(file, null);
         }
 
+        if (ocrId !== execucaoOcrId) return;
+
         ocrTerminal.innerText = textoFinal || '>> Nenhum texto detectado no documento.';
         log('\n>> Extração concluída. Auto-preenchendo campos...');
         esconderProgresso();
         setStatus('OCR concluído!', 'var(--accent-color)');
-        parseAndFill(textoFinal);
+        parseAndFill(textoFinal, ocrId);
 
       } catch (err) {
+        if (ocrId !== execucaoOcrId) return;
         esconderProgresso();
         ocrTerminal.innerText = '>> ERRO: ' + err.message;
         setStatus('Falha no OCR: ' + err.message, 'var(--danger-color)');
       } finally {
-        fileInput.value = '';
+        if (ocrId === execucaoOcrId) fileInput.value = '';
       }
     }
 
@@ -444,8 +450,27 @@
       return text;
     }
 
-    function parseAndFill(text) {
-      if (!text) return;
+    function montarConferenciaOcrHtml(dados) {
+      return `
+        <div style="font-size: 0.82rem; line-height: 1.45;">
+          <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:6px 14px;">
+            <div><span style="color:var(--text-muted);">DATA / HORA</span><br><strong>${dados.data} ${dados.hora}</strong></div>
+            <div><span style="color:var(--text-muted);">MIKE / BOE</span><br><strong>${dados.mike} / ${dados.boe}</strong></div>
+            <div><span style="color:var(--text-muted);">CIDADE / BAIRRO</span><br><strong>${dados.cidade} / ${dados.bairro}</strong></div>
+            <div><span style="color:var(--text-muted);">EQUIPE DETECTADA</span><br><strong>${dados.totalEquipe} policial(is)</strong></div>
+          </div>
+          <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--border-color);">
+            <div style="color:var(--accent-color); font-weight:700; margin-bottom:3px;">LEITURA DO OCR</div>
+            <div><strong>Apreensões:</strong> ${dados.totalArmas} arma(s), ${dados.totalDrogas} droga(s)</div>
+            <div style="margin-top:4px;">${dados.statusNatureza}</div>
+            ${dados.avisoOpcoes ? `<div style="margin-top:4px; color:var(--secondary-color);">${dados.avisoOpcoes}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function parseAndFill(text, ocrId = execucaoOcrId) {
+      if (!text || ocrId !== execucaoOcrId) return;
       const upper = text.toUpperCase();
 
       // 1. MIKE = Número do Boletim de Ocorrência (PM)
@@ -482,19 +507,69 @@
           if (dataMatch) document.getElementById('data').value = dataMatch[1];
       }
 
-      // Cidade
-      const cidades = ['RECIFE','CARUARU','OLINDA','JABOATÃO','CABO DE SANTO AGOSTINHO','IPOJUCA','PAULISTA','PETROLINA','CAMAÇARI','SERRA'];
-      for (const c of cidades) {
-        if (upper.includes(c)) { document.getElementById('cidade').value = c; break; }
+      // Cidade e Bairro (Parser Contextual Par Semântico - TASK: FORMULARIO-CIDADE-BAIRRO-OCR-001)
+      let cidadeDetectada = '';
+      let bairroDetectado = '';
+
+      // 1. Contexto explícito de Bairro (ex: "Bairro: SANTA MÔNICA - CAMARAGIBE" ou "Bairro: BOA VIAGEM")
+      const bairroMatch = text.match(/Bairro[:\s]+([^\n\r,;]+)/i);
+      if (bairroMatch) {
+        const rawBairro = bairroMatch[1].trim();
+        if (rawBairro.includes(' - ')) {
+          const parts = rawBairro.split(' - ');
+          bairroDetectado = parts[0].trim();
+          cidadeDetectada = parts.slice(1).join(' - ').trim();
+        } else if (rawBairro.includes(' / ')) {
+          const parts = rawBairro.split(' / ');
+          bairroDetectado = parts[0].trim();
+          cidadeDetectada = parts.slice(1).join(' / ').trim();
+        } else if (rawBairro.includes('-') && !rawBairro.includes(' ')) {
+          const parts = rawBairro.split('-');
+          bairroDetectado = parts[0].trim();
+          cidadeDetectada = parts.slice(1).join('-').trim();
+        } else {
+          bairroDetectado = rawBairro;
+        }
       }
 
-      // Bairro
-      const bairroMatch = text.match(/Bairro[:\s]+([^\n,;]+)/i);
-      if (bairroMatch) {
-          // O OCR costuma ler "Bairro - Cidade" (ex: MORRO DA CONCEICAO - RECIFE)
-          // Vamos pegar só o que vem antes do hífen para não quebrar a validação da planilha
-          let b = bairroMatch[1].split('-')[0].trim();
-          document.getElementById('bairro').value = b;
+      // 2. Contexto explícito de Cidade / Município (tem precedência máxima para cidade)
+      const cidadeMatch = text.match(/(?:Munic[íi]pio|Cidade)[:\s]+([^\n\r,;]+)/i);
+      if (cidadeMatch) {
+        cidadeDetectada = cidadeMatch[1].trim();
+      }
+
+      // 3. Fallback contextual em bloco de Endereço / Local do Fato
+      if (!bairroDetectado || !cidadeDetectada) {
+        const localMatch = text.match(/(?:Local(?:\s+do\s+Fato)?|Endere[çc]o(?:\s+do\s+Fato)?)[:\s]+([^\n\r]+)/i);
+        if (localMatch) {
+          const localStr = localMatch[1];
+          if (!bairroDetectado) {
+            const bSub = localStr.match(/Bairro[:\s]+([^\n\r,;\-]+)/i);
+            if (bSub) bairroDetectado = bSub[1].trim();
+          }
+          if (!cidadeDetectada) {
+            const cSub = localStr.match(/(?:Munic[íi]pio|Cidade)[:\s]+([^\n\r,;\-]+)/i);
+            if (cSub) cidadeDetectada = cSub[1].trim();
+          }
+        }
+      }
+
+      // Função de higienização segura (preserva nomes próprios, remove pontuação residual e UF)
+      function limparLocalFato_(str) {
+        if (!str) return '';
+        let s = str.trim().replace(/[\.,;\/\-]+$/, '').trim();
+        s = s.replace(/\s*[\/\-]\s*PE$/i, '').trim();
+        return s.toUpperCase();
+      }
+
+      const bairroFinal = limparLocalFato_(bairroDetectado);
+      const cidadeFinal = limparLocalFato_(cidadeDetectada);
+
+      if (bairroFinal) {
+        document.getElementById('bairro').value = bairroFinal;
+      }
+      if (cidadeFinal) {
+        document.getElementById('cidade').value = cidadeFinal;
       }
 
       // Armas
@@ -593,6 +668,7 @@
         setStatus('> Carregando validações da data extraída...', 'var(--secondary-color)');
         carregarOpcoesValidacao(dataExtraida)
           .then(() => {
+            if (ocrId !== execucaoOcrId) return;
             if (armasDetectadas.length) {
               document.getElementById('armasList').innerHTML = '';
               armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, '', 0, a.quantidade));
@@ -652,18 +728,12 @@
             }
 
             if (confContent) {
-              confContent.innerHTML = `
-                <div style="font-size: 0.85rem; line-height: 1.4;">
-                  <div><strong>Data/Hora:</strong> ${dataVal} ${horaVal}</div>
-                  <div><strong>BOE / MIKE:</strong> ${boeVal} / ${mikeVal}</div>
-                  <div><strong>Local:</strong> ${cidadeVal} / ${bairroVal}</div>
-                  <div><strong>Equipe:</strong> ${matsEncontradas.length} policiais</div>
-                  <div><strong>Apreensões:</strong> ${armasDetectadas.length} arma(s), ${drogasDetectadas.length} droga(s)</div>
-                  <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border-color);">
-                    ${statusNat}
-                  </div>
-                </div>
-              `;
+              confContent.innerHTML = montarConferenciaOcrHtml({
+                data: dataVal, hora: horaVal, mike: mikeVal, boe: boeVal,
+                cidade: cidadeVal, bairro: bairroVal, totalEquipe: matsEncontradas.length,
+                totalArmas: armasDetectadas.length, totalDrogas: drogasDetectadas.length,
+                statusNatureza: statusNat
+              });
             }
             setStatus(
               `>> Auto-preenchimento concluído | ${matsEncontradas.length} pol | ${armasDetectadas.length} arm | ${drogasDetectadas.length} drog`,
@@ -671,6 +741,7 @@
             );
           })
           .catch(err => {
+            if (ocrId !== execucaoOcrId) return;
             if (err.message === "Resposta obsoleta ignorada.") return;
             const confOCR = document.getElementById('ocrConferenceCard');
             const confContent = document.getElementById('ocrConferenceContent');
@@ -682,18 +753,13 @@
               const mikeVal = document.getElementById('mike').value || '-';
               const cidadeVal = document.getElementById('cidade').value || '-';
               const bairroVal = document.getElementById('bairro').value || '-';
-              confContent.innerHTML = `
-                <div style="font-size: 0.85rem; line-height: 1.4;">
-                  <div><strong>Data/Hora:</strong> ${dataVal} ${horaVal}</div>
-                  <div><strong>BOE / MIKE:</strong> ${boeVal} / ${mikeVal}</div>
-                  <div><strong>Local:</strong> ${cidadeVal} / ${bairroVal}</div>
-                  <div><strong>Equipe:</strong> ${matsEncontradas.length} policiais</div>
-                  <div><strong>Apreensões:</strong> ${armasDetectadas.length} arma(s), ${drogasDetectadas.length} droga(s)</div>
-                  <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border-color);">
-                    <span style="color: var(--secondary-color); font-weight: 600;">[OCR] Natureza:</span> ${natSelecionada || 'Não identificada'}
-                  </div>
-                </div>
-              `;
+              confContent.innerHTML = montarConferenciaOcrHtml({
+                data: dataVal, hora: horaVal, mike: mikeVal, boe: boeVal,
+                cidade: cidadeVal, bairro: bairroVal, totalEquipe: matsEncontradas.length,
+                totalArmas: armasDetectadas.length, totalDrogas: drogasDetectadas.length,
+                statusNatureza: `<span style="color: var(--secondary-color); font-weight: 600;">[OCR] Natureza:</span> ${natSelecionada || 'Não identificada'}`,
+                avisoOpcoes: 'Lista de validação indisponível; confira os campos antes de salvar.'
+              });
             }
             if (armasDetectadas.length) {
                document.getElementById('armasList').innerHTML = '';
@@ -710,7 +776,7 @@
            log('>> AVISO: Armas detectadas, mas não há data para carregar os modelos.');
         }
         setStatus(
-          `>> Auto-preenchimento concluído (sem data) | ${matsEncontradas.length} pol | 0 arm | ${drogasDetectadas.length} drog`,
+          `>> Auto-preenchimento concluído (sem data) | 0 arm | ${drogasDetectadas.length} drog`,
           'var(--accent-color)'
         );
       }
@@ -876,15 +942,18 @@
         });
       }
 
-      // 4. Veículos
-      if (upper.includes('VEÍCULO') || upper.includes('VEICULO') || upper.includes('MOTO') || upper.includes('CARRO') || upper.includes('ROUBADO') || upper.includes('FURTADO')) {
-        if (upper.includes('RECUPERADO') || upper.includes('APREENDIDO') || upper.includes('LOCALIZADO') || (natSelecionada && natSelecionada.toUpperCase().includes('VEÍCULO'))) {
-          titulos.push(encontrarOpcaoValida('Apreensão de veículo furtado ou roubado'));
-        }
+      // 4. Veículos e mandados só podem virar PIP quando confirmados na natureza.
+      // Palavras soltas no histórico do BO geram falsos positivos (ex.: "roubo" ou
+      // "não foram encontrados mandados de prisão").
+      const naturezaPip = (natSelecionada || '').toUpperCase();
+      const naturezaVeiculoRecuperado = /(?:RECUPERA[CÇ][AÃ]O|APREENS[AÃ]O|LOCALIZA[CÇ][AÃ]O).*?(?:VE[IÍ]CULO|MOTO|CARRO).*?(?:ROUBAD[OA]|FURTAD[OA])|(?:VE[IÍ]CULO|MOTO|CARRO).*?(?:ROUBAD[OA]|FURTAD[OA]).*?(?:RECUPERA[CÇ][AÃ]O|APREENS[AÃ]O|LOCALIZA[CÇ][AÃ]O)/.test(naturezaPip);
+      if (naturezaVeiculoRecuperado) {
+        titulos.push(encontrarOpcaoValida('Apreensão de veículo furtado ou roubado'));
       }
 
       // 5. Mandado de Prisão
-      if (upper.includes('MANDADO') || (natSelecionada && natSelecionada.toUpperCase().includes('MANDADO'))) {
+      const naturezaMandado = /MANDADO\s+DE\s+PRIS[ÃA]O|CUMPRIMENTO\s+DE\s+MANDADO/.test(naturezaPip);
+      if (naturezaMandado) {
         titulos.push(encontrarOpcaoValida('Prisão por mandado'));
       }
 
@@ -895,8 +964,6 @@
           titulos.push(encontrarOpcaoValida('Apreensão de cocaína por grama (invólucro)'));
         } else if (natUpper.includes('ARMA')) {
           titulos.push(encontrarOpcaoValida('Apreensão de arma de fogo revólver'));
-        } else if (natUpper.includes('VEÍCULO') || natUpper.includes('VEICULO')) {
-          titulos.push(encontrarOpcaoValida('Apreensão de veículo furtado ou roubado'));
         }
       }
 
@@ -1214,7 +1281,10 @@
         .processarEntradaManual(payload);
     }
 
-    function limparFormulario() {
+    function limparDadosDocumentoAnterior() {
+      // Novo BO nunca herda campos, listas ou respostas de validação do documento anterior.
+      requisicaoValidacaoId++;
+      window.opcoesFormulario = null;
       ['mike','boe','data','hora','cidade','bairro','natureza','qtd_o','ais','detidos'].forEach(id => {
           if (document.getElementById(id)) document.getElementById(id).value = '';
       });
@@ -1225,7 +1295,18 @@
         '<tr id="police-empty-row"><td colspan="6" class="police-empty-msg">Nenhum policial adicionado</td></tr>';
       document.getElementById('armasList').innerHTML = '';
       document.getElementById('drogasList').innerHTML = '';
+      document.getElementById('pipList').innerHTML = '';
+      const imputado = document.getElementById('imputado');
+      if (imputado) imputado.value = 'SEM IMPUTADO';
+      const conferencia = document.getElementById('ocrConferenceCard');
+      const conteudoConferencia = document.getElementById('ocrConferenceContent');
+      if (conferencia) conferencia.style.display = 'none';
+      if (conteudoConferencia) conteudoConferencia.innerHTML = '';
       ocrTerminal.innerText = 'Aguardando documento para processar...';
+    }
+
+    function limparFormulario() {
+      limparDadosDocumentoAnterior();
     }
 
     // Carrega o efetivo assim que o modal abre. Opções só carregam após digitar data.
