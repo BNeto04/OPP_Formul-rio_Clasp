@@ -1,12 +1,12 @@
 /**
  * AntigravityObserver.js - Observador Factual da Atividade do Antigravity
  * 
- * Princípios:
- * 1. OBSERVAR != CONTROLAR: Somente leitura factual, sem capacidade de controle remoto.
- * 2. Múltiplas Fontes Correlacionadas: Processo local + GitHub Kanban + Timestamps estruturados.
- * 3. Freshness / Staleness: Idade da evidência explicitamente qualificada (CURRENT vs STALE).
- * 4. Degradação Graciosa: Opera com fontes locais caso o GitHub esteja indisponível.
- * 5. Dupla Sanitização: Mascaramento estrito de segredos na ingestão e na saída.
+ * Princípios e Correções Arquiteturais:
+ * 1. Ambiguidade: Se houver mais de uma Issue IN_PROGRESS, reporta DIVERGENT/AMBIGUOUS.
+ * 2. Fallback Factual: Nunca adota a ordem da API do GitHub como verdade operacional.
+ * 3. Freshness / Staleness: Classificação explícita CURRENT vs STALE com idade calculada.
+ * 4. TASK_ID Canônico: Preserva o TASK_ID real ou null, sem inventar identificadores.
+ * 5. Degradação Offline: Resposta local útil caso a API do GitHub falhe.
  */
 
 const https = require('https');
@@ -23,7 +23,7 @@ class AntigravityObserver {
     this.cachedState = null;
     this.cacheTimestamp = 0;
     this.cacheTtlMs = options.cacheTtlMs || 15000;
-    this.staleThresholdMs = options.staleThresholdMs || 300000; // 5 minutos para STALE
+    this.staleThresholdMs = options.staleThresholdMs || 300000; // 5 minutos
     this.customTaskFetcher = options.customTaskFetcher || null;
   }
 
@@ -83,10 +83,8 @@ class AntigravityObserver {
         return this.cachedState;
       }
 
-      // Avalia cada issue aberta em busca de correlação factual
       const evaluatedIssues = [];
       for (const issue of issues) {
-        // Ignora Pull Requests
         if (issue.pull_request) continue;
 
         let comments = [];
@@ -108,34 +106,74 @@ class AntigravityObserver {
         return this.cachedState;
       }
 
-      // Regra de Correlação: IN_PROGRESS tem precedência sobre REVIEW ou DONE
-      const inProgressTask = evaluatedIssues.find(i => i.cardStatus === 'IN_PROGRESS');
-      const activeTask = inProgressTask || evaluatedIssues[0]; // fallback para a mais recente avaliada
+      // 1. Avaliação de concorrência e precedência
+      const inProgressTasks = evaluatedIssues.filter(i => i.cardStatus === 'IN_PROGRESS');
 
-      const lastActivityMs = activeTask.lastActivityTimestamp ? new Date(activeTask.lastActivityTimestamp).getTime() : now;
+      if (inProgressTasks.length > 1) {
+        // Ambiguidade factual: múltiplas tarefas IN_PROGRESS simultâneas
+        this.cachedState = {
+          found: true,
+          gitHubAvailable: true,
+          isAmbiguous: true,
+          ambiguousIssues: inProgressTasks.map(t => t.issueNumber),
+          cardStatus: 'DIVERGENT_AMBIGUOUS_TASK',
+          reason: 'MULTIPLE_IN_PROGRESS_TASKS'
+        };
+        this.cacheTimestamp = now;
+        return this.cachedState;
+      }
+
+      let selectedTask = null;
+      let isHistoricalOnly = false;
+
+      if (inProgressTasks.length === 1) {
+        selectedTask = inProgressTasks[0];
+      } else {
+        // Nenhuma IN_PROGRESS. Busca se há tarefa em REVIEW ativa
+        const reviewTasks = evaluatedIssues.filter(i => i.cardStatus === 'REVIEW');
+        if (reviewTasks.length > 0) {
+          selectedTask = reviewTasks[0];
+        } else {
+          // Sem tarefa ativa: adota como histórico se houver, mas sinaliza ausência de tarefa em execução
+          const knownTasks = evaluatedIssues.filter(i => i.cardStatus !== 'UNKNOWN');
+          if (knownTasks.length > 0) {
+            selectedTask = knownTasks[0];
+            isHistoricalOnly = true;
+          }
+        }
+      }
+
+      if (!selectedTask || selectedTask.cardStatus === 'UNKNOWN') {
+        this.cachedState = { found: false, reason: 'NO_ACTIVE_OR_KNOWN_TASK', gitHubAvailable: true };
+        this.cacheTimestamp = now;
+        return this.cachedState;
+      }
+
+      const lastActivityMs = selectedTask.lastActivityTimestamp ? new Date(selectedTask.lastActivityTimestamp).getTime() : now;
       const ageMs = Math.max(0, now - lastActivityMs);
       const freshness = ageMs > this.staleThresholdMs ? 'STALE' : 'CURRENT';
 
       this.cachedState = {
         found: true,
         gitHubAvailable: true,
-        issueNumber: activeTask.issueNumber,
-        issueTitle: activeTask.issueTitle,
-        taskId: activeTask.taskId,
-        cardStatus: activeTask.cardStatus,
-        lastActivityTimestamp: activeTask.lastActivityTimestamp,
+        isAmbiguous: false,
+        isHistoricalOnly,
+        issueNumber: selectedTask.issueNumber,
+        issueTitle: selectedTask.issueTitle,
+        taskId: selectedTask.taskId, // Canônico real ou null
+        cardStatus: selectedTask.cardStatus,
+        lastActivityTimestamp: selectedTask.lastActivityTimestamp,
         freshness,
         ageMs,
         ageMinutes: Math.round(ageMs / 60000),
-        lastActionSummary: activeTask.lastActionSummary,
-        ownerDecisionRequired: activeTask.ownerDecisionRequired,
-        lastResultOrError: activeTask.lastResultOrError,
-        blockingClassification: activeTask.blockingClassification
+        lastActionSummary: selectedTask.lastActionSummary,
+        ownerDecisionRequired: selectedTask.ownerDecisionRequired,
+        lastResultOrError: selectedTask.lastResultOrError,
+        blockingClassification: selectedTask.blockingClassification
       };
       this.cacheTimestamp = now;
       return this.cachedState;
     } catch (e) {
-      // Degradação sem GitHub: registra indisponibilidade sem travar o Vigia
       return {
         found: false,
         gitHubAvailable: false,
@@ -146,17 +184,14 @@ class AntigravityObserver {
   }
 
   async inspect(detailed = false) {
-    // 1. Processo do Antigravity
     let processRunning = false;
     if (this.recoveryManager) {
       const inv = this.recoveryManager.inventoryState();
       processRunning = inv.antigravity ? inv.antigravity.running : false;
     }
 
-    // 2. Estado da Tarefa (GitHub / Cache / Injetado)
     const task = await this.fetchGitHubActiveTask();
 
-    // 3. Correlaciona Sinais Factuais
     let executionPhase = 'UNKNOWN';
     let confidence = 'LOW';
     let sourceOfTruth = 'LOCAL_PROCESS_AND_GITHUB_TASK';
@@ -170,9 +205,15 @@ class AntigravityObserver {
       confidence = 'MEDIUM';
       sourceOfTruth = 'LOCAL_PROCESS_ONLY';
       executionPhase = processRunning ? 'PROCESS_RUNNING_TASK_UNKNOWN' : 'STOPPED';
+    } else if (task && task.isAmbiguous) {
+      responseMode = 'DIVERGENT';
+      confidence = 'HIGH';
+      executionPhase = 'DIVERGENT';
     } else if (processRunning && isTaskActive) {
       confidence = 'HIGH';
-      if (task.ownerDecisionRequired) {
+      if (task.isHistoricalOnly) {
+        executionPhase = 'PROCESS_RUNNING_TASK_UNKNOWN';
+      } else if (task.ownerDecisionRequired) {
         executionPhase = 'WAITING_OWNER';
       } else if (task.cardStatus === 'IN_PROGRESS') {
         executionPhase = 'IN_PROGRESS';
@@ -181,7 +222,7 @@ class AntigravityObserver {
       } else if (task.cardStatus === 'DONE') {
         executionPhase = 'IDLE';
       } else {
-        executionPhase = 'IN_PROGRESS';
+        executionPhase = 'PROCESS_RUNNING_TASK_UNKNOWN';
         confidence = 'MEDIUM';
       }
     } else if (processRunning && !isTaskActive) {
@@ -202,6 +243,8 @@ class AntigravityObserver {
       current_task_id: task && task.taskId ? task.taskId : null,
       current_issue_number: task && task.issueNumber ? task.issueNumber : null,
       current_card_status: task && task.cardStatus ? task.cardStatus : 'UNKNOWN',
+      is_ambiguous: task ? !!task.isAmbiguous : false,
+      ambiguous_issues: task && task.ambiguousIssues ? task.ambiguousIssues : [],
       execution_phase: executionPhase,
       last_activity_timestamp: task && task.lastActivityTimestamp ? task.lastActivityTimestamp : null,
       freshness: task && task.freshness ? task.freshness : 'UNKNOWN',
@@ -215,7 +258,6 @@ class AntigravityObserver {
       response_mode: responseMode
     };
 
-    // Formata o resumo em linguagem natural pt-BR via ResponseFormatter com dupla sanitização
     payload.summary = ResponseFormatter.formatAntigravityStatus(payload, detailed);
 
     return payload;

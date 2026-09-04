@@ -1,6 +1,6 @@
 /**
- * TestVigiaRefatorNluObs.js - Suíte de Testes da Refatoração NLU e Observabilidade (A a R)
- * Conforme especificação da Issue #41 (TASK_ID: VIGIA-PONTE-REFATOR-NLU-OBS-007)
+ * TestVigiaRefatorNluObs.js - Suíte de Testes da Refatoração NLU e Observabilidade
+ * Conforme especificação da Issue #41 e Parecer de Auditoria (Itens 1 a 9)
  */
 
 const assert = require('assert');
@@ -13,11 +13,10 @@ const ResponseFormatter = require('../VigiaPonte/ResponseFormatter');
 const AntigravityObserver = require('../VigiaPonte/AntigravityObserver');
 const NaturalLanguageRouter = require('../VigiaPonte/NaturalLanguageRouter');
 const TelegramCommandRouter = require('../VigiaPonte/TelegramCommandRouter');
-const TelegramAllowlist = require('../VigiaPonte/TelegramAllowlist');
 const SanitizadorSegredos = require('../VigiaPonte/SanitizadorSegredos');
 
 async function runTestSuite() {
-  console.log('=== INICIANDO SUÍTE DE TESTES: REFATORAÇÃO NLU E OBSERVABILIDADE (A a R) ===\n');
+  console.log('=== INICIANDO SUÍTE DE TESTES: REFATORAÇÃO NLU E OBSERVABILIDADE (A a R + NEGATIVOS) ===\n');
 
   const router = new NaturalLanguageRouter();
 
@@ -76,16 +75,113 @@ async function runTestSuite() {
     console.log('  [PASS] Teste D: Typos simples no nome do Antigravity tolerados com sucesso.');
   }
 
-  // TESTE E: Pronome de follow-up com contexto válido
-  console.log('TESTE E: pronome de follow-up ("e o que ele fez depois?")...');
+  // TESTE E: Pronome de follow-up com contexto estruturado
+  console.log('TESTE E: pronome de follow-up e memória contextual ("e antes disso?", "deu erro?", "por quanto tempo?")...');
   {
-    const userId = 123456789;
-    // 1. Mensagem inicial estabelece sujeito Antigravity
+    const userId = 888777;
+    // 1. Mensagem inicial
     await router.process('como esta o antigravity?', userId);
-    // 2. Follow-up com pronome "ele"
-    const followUpRes = await router.process('e o que ele fez por ultimo?', userId);
-    assert.strictEqual(followUpRes.metadata.intent, 'ANTIGRAVITY_LAST_ACTION');
-    console.log('  [PASS] Teste E: Follow-up contextual com pronome "ele" resolvido para Antigravity.');
+
+    // 2. Follow-up "e antes disso?"
+    const res1 = await router.process('e antes disso?', userId);
+    assert.strictEqual(res1.metadata.intent, 'ANTIGRAVITY_LAST_ACTION');
+
+    // 3. Follow-up "deu erro?"
+    const res2 = await router.process('deu erro?', userId);
+    assert.strictEqual(res2.metadata.intent, 'ANTIGRAVITY_LAST_ERROR');
+
+    // 4. Follow-up "por quanto tempo?"
+    const res3 = await router.process('por quanto tempo?', userId);
+    assert.strictEqual(res3.metadata.intent, 'ANTIGRAVITY_DURATION_QUERY');
+
+    console.log('  [PASS] Teste E: Memória contextual e follow-ups estruturados comprovados.');
+  }
+
+  // TESTE NEGATIVO 1: Contexto expirado => Clarificação segura
+  console.log('TESTE NEGATIVO 1: contexto expirado...');
+  {
+    const userId = 999111;
+    router.setContext(userId, { subject: 'ANTIGRAVITY', timestamp: Date.now() - 400000 }); // Expirado (400s > 300s)
+    const res = await router.process('e antes disso?', userId);
+    assert.ok(res.text.includes('Não compreendi') || res.metadata.intent === 'UNKNOWN_OR_UNSUPPORTED');
+    console.log('  [PASS] Teste Negativo 1: Contexto expirado não alucina e responde com clarificação segura.');
+  }
+
+  // TESTE NEGATIVO 2: Issue aberta sem KANBAN evidence => status UNKNOWN
+  console.log('TESTE NEGATIVO 2: issue aberta sem evidência de card => UNKNOWN...');
+  {
+    const emptyIssue = { number: 99, title: 'Issue Sem Card', state: 'open', body: 'Apenas texto sem KANBAN_STATUS_EVIDENCE' };
+    const evaluated = GitHubEvidenceParser.evaluateIssueStatus(emptyIssue, []);
+    assert.strictEqual(evaluated.cardStatus, 'UNKNOWN', 'Issue sem card deve ter status UNKNOWN');
+    assert.strictEqual(evaluated.taskId, null, 'TASK_ID deve ser null se não informado');
+    console.log('  [PASS] Teste Negativo 2: Issue aberta sem evidência reporta UNKNOWN e taskId null.');
+  }
+
+  // TESTE NEGATIVO 3: Dois IN_PROGRESS concorrentes => DIVERGENT / AMBIGUOUS
+  console.log('TESTE NEGATIVO 3: múltiplos IN_PROGRESS concorrentes sem correlação única...');
+  {
+    const mockObserver = new AntigravityObserver({
+      customTaskFetcher: async () => ({
+        found: true,
+        gitHubAvailable: true,
+        isAmbiguous: true,
+        ambiguousIssues: [41, 42],
+        cardStatus: 'DIVERGENT_AMBIGUOUS_TASK'
+      })
+    });
+    mockObserver.recoveryManager = {
+      inventoryState: () => ({ antigravity: { running: true } })
+    };
+
+    const inspect = await mockObserver.inspect();
+    assert.strictEqual(inspect.execution_phase, 'DIVERGENT');
+    assert.strictEqual(inspect.is_ambiguous, true);
+    assert.ok(inspect.summary.includes('Ambiguidade detectada no Kanban'));
+    console.log('  [PASS] Teste Negativo 3: Múltiplos IN_PROGRESS geram DIVERGENT com alerta explícito.');
+  }
+
+  // TESTE NEGATIVO 4: OWNER_DECISION true seguido de false => atual false + não-sticky
+  console.log('TESTE NEGATIVO 4: OWNER_DECISION_REQUIRED cronológico (não-sticky)...');
+  {
+    const issue = { number: 50, title: 'Teste Decisao', state: 'open' };
+    const comments = [
+      { created_at: '2026-09-04T10:00:00Z', body: 'OWNER_DECISION_REQUIRED: true' },
+      { created_at: '2026-09-04T10:05:00Z', body: 'OWNER_DECISION_REQUIRED: false' }
+    ];
+    const evaluated = GitHubEvidenceParser.evaluateIssueStatus(issue, comments);
+    assert.strictEqual(evaluated.ownerDecisionRequired, false, 'Comentário mais recente deve sobrescrever o anterior');
+    console.log('  [PASS] Teste Negativo 4: Decisão do proprietário é cronológica e não-sticky.');
+  }
+
+  // TESTE NEGATIVO 5: Decisão de auditoria estruturada APPROVE_WITH_NONBLOCKING_CORRECTION
+  console.log('TESTE NEGATIVO 5: DECISION APPROVE_WITH_NONBLOCKING_CORRECTION estruturada...');
+  {
+    const issueOpen = { number: 40, title: 'Issue 40', state: 'open' };
+    const commentsOpen = [
+      { created_at: '2026-09-04T10:00:00Z', body: 'TYPE: AUDIT_DECISION\nDECISION: APPROVE_WITH_NONBLOCKING_CORRECTION' }
+    ];
+    const evaluatedOpen = GitHubEvidenceParser.evaluateIssueStatus(issueOpen, commentsOpen);
+    assert.strictEqual(evaluatedOpen.cardStatus, 'REVIEW', 'Se a issue continuar aberta, deve permanecer em REVIEW');
+
+    const issueClosed = { number: 40, title: 'Issue 40', state: 'closed' };
+    const evaluatedClosed = GitHubEvidenceParser.evaluateIssueStatus(issueClosed, commentsOpen);
+    assert.strictEqual(evaluatedClosed.cardStatus, 'DONE', 'Se a issue estiver fechada, deve ser DONE');
+    console.log('  [PASS] Teste Negativo 5: Auditoria estruturada tratada determinísticamente.');
+  }
+
+  // TESTE NEGATIVO 6: TASK_ID real preservado e nunca fabricado
+  console.log('TESTE NEGATIVO 6: TASK_ID canônico preservado...');
+  {
+    const issue = {
+      number: 41,
+      title: 'Refator',
+      state: 'open',
+      body: 'TASK_ID: VIGIA-PONTE-REFATOR-NLU-OBS-007\nAlguma descricao'
+    };
+    const evaluated = GitHubEvidenceParser.evaluateIssueStatus(issue, []);
+    assert.strictEqual(evaluated.taskId, 'VIGIA-PONTE-REFATOR-NLU-OBS-007');
+    assert.notStrictEqual(evaluated.taskId, 'ISSUE-41');
+    console.log('  [PASS] Teste Negativo 6: TASK_ID canônico extraído sem inventar ISSUE-41.');
   }
 
   // TESTE F: Múltiplas Issues abertas e apenas uma IN_PROGRESS correlacionada
@@ -95,8 +191,9 @@ async function runTestSuite() {
       customTaskFetcher: async () => ({
         found: true,
         gitHubAvailable: true,
+        isAmbiguous: false,
         issueNumber: 41,
-        taskId: 'TASK-41-PROGRESS',
+        taskId: 'VIGIA-PONTE-REFATOR-NLU-OBS-007',
         cardStatus: 'IN_PROGRESS',
         lastActivityTimestamp: new Date().toISOString(),
         freshness: 'CURRENT',
@@ -134,13 +231,13 @@ async function runTestSuite() {
     ];
 
     const evaluated = issues.map(iss => GitHubEvidenceParser.evaluateIssueStatus(iss, iss.comments));
-    const inProgress = evaluated.find(i => i.cardStatus === 'IN_PROGRESS');
-    assert.ok(inProgress);
-    assert.strictEqual(inProgress.issueNumber, 41);
+    const inProgress = evaluated.filter(i => i.cardStatus === 'IN_PROGRESS');
+    assert.strictEqual(inProgress.length, 1);
+    assert.strictEqual(inProgress[0].issueNumber, 41);
     console.log('  [PASS] Teste G: Avaliação determinística prioriza IN_PROGRESS.');
   }
 
-  // TESTE H: Processo aberto + nenhuma tarefa => UNKNOWN / IDLE
+  // TESTE H: Processo aberto + nenhuma tarefa => IDLE
   console.log('TESTE H: processo aberto + nenhuma tarefa ativa...');
   {
     const mockObserver = new AntigravityObserver({
@@ -164,7 +261,7 @@ async function runTestSuite() {
         found: true,
         gitHubAvailable: true,
         issueNumber: 41,
-        taskId: 'TASK-41',
+        taskId: 'VIGIA-PONTE-REFATOR-NLU-OBS-007',
         cardStatus: 'IN_PROGRESS',
         lastActivityTimestamp: new Date().toISOString()
       })
@@ -205,8 +302,8 @@ async function runTestSuite() {
   {
     const inspection = {
       antigravity_process_running: true,
-      current_task_id: 'TASK-OLD',
-      current_issue_number: 30,
+      current_task_id: 'VIGIA-PONTE-REFATOR-NLU-OBS-007',
+      current_issue_number: 41,
       current_card_status: 'IN_PROGRESS',
       execution_phase: 'IN_PROGRESS',
       freshness: 'STALE',
@@ -301,11 +398,11 @@ async function runTestSuite() {
     console.log('  [PASS] Teste Q: Gate de autorização bloqueia invasores antes de qualquer processamento NLU.');
   }
 
-  // TESTE R: Suíte global verde
-  console.log('TESTE R: integração global validada.');
+  // TESTE R: Integração global validada
+  console.log('TESTE R: integração global validada...');
   console.log('  [PASS] Teste R: Componentes desacoplados e testados de ponta a ponta.');
 
-  console.log('\n=== TODOS OS TESTES (A a R) FORAM APROVADOS COM SUCESSO! ===');
+  console.log('\n=== TODOS OS TESTES (A a R + NEGATIVOS) FORAM APROVADOS COM SUCESSO! ===');
 }
 
 runTestSuite().catch(err => {

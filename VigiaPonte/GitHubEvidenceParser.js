@@ -1,13 +1,16 @@
 /**
  * GitHubEvidenceParser.js - Parser Estruturado Centralizado de Evidências do GitHub
  * 
- * Centraliza a interpretação de comentários, marcadores kanban e decisões de auditoria,
- * garantindo que campos ausentes permaneçam null/unknown e nunca sejam inventados.
+ * Regras Estritas:
+ * 1. Default inicial é UNKNOWN/null. Nunca assume IN_PROGRESS sem evidência positiva.
+ * 2. OWNER_DECISION_REQUIRED respeita a ordem cronológica mais recente (não sticky).
+ * 3. DECISION avalia tipos estruturados canônicos sem heurísticas de palavras soltas.
+ * 4. TASK_ID extraído canonicamente da Issue/comentários. Nunca fabrica ISSUE-${number}.
  */
 
 class GitHubEvidenceParser {
   /**
-   * Analisa o corpo de um comentário ou issue do GitHub
+   * Analisa o corpo de um texto (Issue ou Comentário)
    * @param {string} body
    * @returns {object}
    */
@@ -18,8 +21,8 @@ class GitHubEvidenceParser {
         cardStatus: null,
         taskId: null,
         issueNumber: null,
-        ownerDecisionRequired: false,
-        blockingClassification: 'NONE',
+        ownerDecisionRequired: null,
+        blockingClassification: null,
         auditDecision: null,
         lastActionSummary: null,
         lastResultOrError: null,
@@ -30,8 +33,8 @@ class GitHubEvidenceParser {
     let cardStatus = null;
     let taskId = null;
     let issueNumber = null;
-    let ownerDecisionRequired = false;
-    let blockingClassification = 'NONE';
+    let ownerDecisionRequired = null;
+    let blockingClassification = null;
     let auditDecision = null;
     let lastActionSummary = null;
     let lastResultOrError = null;
@@ -55,26 +58,15 @@ class GitHubEvidenceParser {
           const [k, v] = p.split('=').map(s => s.trim());
           if (k === 'status') cardStatus = v;
           if (k === 'task_id') taskId = v;
-          if (k === 'updated_at') timestamp = v;
+          if (k === 'updated_at' || k === 'timestamp') timestamp = v;
         }
       }
     }
 
-    // Fallback de checagem textual estruturada de status
-    if (!cardStatus) {
-      if (/status=IN_PROGRESS/i.test(body) || /STATUS_KANBAN:\s*`?IN_PROGRESS`?/i.test(body)) {
-        cardStatus = 'IN_PROGRESS';
-      } else if (/status=REVIEW/i.test(body) || /STATUS_KANBAN:\s*`?REVIEW`?/i.test(body) || /Aguardando auditoria/i.test(body)) {
-        cardStatus = 'REVIEW';
-      } else if (/status=DONE/i.test(body) || /STATUS_KANBAN:\s*`?DONE`?/i.test(body)) {
-        cardStatus = 'DONE';
-      }
-    }
-
-    // 2. Extração de TASK_ID estruturado
+    // 2. Extração de TASK_ID estruturado canônico
     const taskMatch = body.match(/TASK_ID:\s*`?([A-Z0-9_-]+)`?/i);
-    if (taskMatch && !taskId) {
-      taskId = taskMatch[1];
+    if (taskMatch) {
+      taskId = taskMatch[1].trim();
     }
 
     // 3. Extração de ISSUE_NUMBER estruturado
@@ -83,29 +75,34 @@ class GitHubEvidenceParser {
       issueNumber = parseInt(issueMatch[1], 10);
     }
 
-    // 4. Decisão do Proprietário / Auditoria
-    if (/OWNER_DECISION_REQUIRED:\s*true/i.test(body)) {
-      ownerDecisionRequired = true;
+    // 4. Decisão do Proprietário (não-sticky: captura true ou false explícito)
+    const ownerDecMatch = body.match(/OWNER_DECISION_REQUIRED:\s*(true|false)/i);
+    if (ownerDecMatch) {
+      ownerDecisionRequired = ownerDecMatch[1].toLowerCase() === 'true';
     }
 
-    const blockMatch = body.match(/BLOCKING_CLASSIFICATION:\s*([A-Z_]+)/i);
+    const blockMatch = body.match(/BLOCKING_CLASSIFICATION:\s*([A-Z0-9_]+)/i);
     if (blockMatch) {
-      blockingClassification = blockMatch[1].toUpperCase();
+      blockingClassification = blockMatch[1].toUpperCase().trim();
     }
 
-    // Decisão de auditoria explícita
-    const decisionMatch = body.match(/DECISION:\s*([A-Z_]+)/i);
-    if (decisionMatch) {
-      auditDecision = decisionMatch[1].toUpperCase();
+    // 5. Decisão de Auditoria Estruturada (TYPE: AUDIT_DECISION / DECISION: ...)
+    const isAuditBlock = /TYPE:\s*AUDIT_DECISION/i.test(body);
+    const decisionMatch = body.match(/DECISION:\s*([A-Z0-9_]+)/i);
+    if (isAuditBlock && decisionMatch) {
+      auditDecision = decisionMatch[1].toUpperCase().trim();
+    } else if (decisionMatch && !auditDecision) {
+      // Fallback para DECISION isolada
+      auditDecision = decisionMatch[1].toUpperCase().trim();
     }
 
-    // 5. Extração de resumo da ação (título markdown)
+    // 6. Resumo da ação (título markdown nível 2 ou 3)
     const headerMatch = body.match(/^#{2,3}\s+(.+)$/m);
     if (headerMatch) {
       lastActionSummary = headerMatch[1].trim();
     }
 
-    // 6. Extração de erros / incidentes
+    // 7. Extração de erros / incidentes
     if (/❌|FAIL|ERRO|ERROR|FATAL/i.test(body)) {
       const errorLine = body.split('\n').find(l => /❌|FAIL|ERRO|ERROR/i.test(l));
       lastResultOrError = errorLine ? errorLine.trim().substring(0, 150) : 'Incidente reportado no registro da tarefa.';
@@ -126,43 +123,54 @@ class GitHubEvidenceParser {
   }
 
   /**
-   * Determina o status efetivo da Issue a partir dos comentários
+   * Determina o status efetivo da Issue a partir do corpo da Issue e comentários
    * @param {object} issue - objeto da Issue da API do GitHub
-   * @param {Array} comments - lista de comentários da Issue
+   * @param {Array} comments - lista de comentários cronológicos da Issue
    * @returns {object}
    */
   static evaluateIssueStatus(issue, comments = []) {
     if (!issue) return null;
 
-    let currentStatus = 'IN_PROGRESS';
+    // Inicia com UNKNOWN/null. Nunca assume IN_PROGRESS sem evidência explícita.
+    let currentStatus = 'UNKNOWN';
     let taskId = null;
     let ownerDecisionRequired = false;
     let blockingClassification = 'NONE';
     let lastActionSummary = issue.title;
     let lastResultOrError = null;
-    let lastActivityTimestamp = issue.updated_at || issue.created_at;
+    let lastActivityTimestamp = issue.created_at;
 
-    // Processa comentários do mais antigo ao mais recente
-    for (const c of comments) {
+    // 1. Inspeciona o corpo da própria Issue
+    if (issue.body) {
+      const issueBodyParsed = this.parseCommentBody(issue.body);
+      if (issueBodyParsed.taskId) taskId = issueBodyParsed.taskId;
+      if (issueBodyParsed.cardStatus) currentStatus = issueBodyParsed.cardStatus;
+      if (issueBodyParsed.ownerDecisionRequired !== null) ownerDecisionRequired = issueBodyParsed.ownerDecisionRequired;
+      if (issueBodyParsed.blockingClassification) blockingClassification = issueBodyParsed.blockingClassification;
+    }
+
+    // 2. Ordena comentários cronologicamente por created_at
+    const sortedComments = [...comments].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    // 3. Processa cada comentário na ordem cronológica exata
+    for (const c of sortedComments) {
       const parsed = this.parseCommentBody(c.body);
       if (parsed.cardStatus) currentStatus = parsed.cardStatus;
       if (parsed.taskId) taskId = parsed.taskId;
-      if (parsed.ownerDecisionRequired) ownerDecisionRequired = true;
-      if (parsed.blockingClassification !== 'NONE') blockingClassification = parsed.blockingClassification;
+      if (parsed.ownerDecisionRequired !== null) ownerDecisionRequired = parsed.ownerDecisionRequired;
+      if (parsed.blockingClassification) blockingClassification = parsed.blockingClassification;
       if (parsed.lastActionSummary) lastActionSummary = parsed.lastActionSummary;
       if (parsed.lastResultOrError) lastResultOrError = parsed.lastResultOrError;
       if (c.created_at) lastActivityTimestamp = c.created_at;
 
-      // Se houver decisão de auditoria específica
+      // Decisão canônica estruturada de auditoria
       if (parsed.auditDecision) {
         if (parsed.auditDecision === 'APPROVE') {
-          // Só é DONE definitivo se a issue for fechada ou se a aprovação não exigir correção
-          if (issue.state === 'closed' || !/CORRECTION|REQUIRED|PENDENTE/i.test(c.body)) {
-            currentStatus = 'DONE';
-          } else {
-            currentStatus = 'REVIEW';
-          }
-        } else if (parsed.auditDecision.startsWith('APPROVE_WITH')) {
+          currentStatus = 'DONE';
+        } else if (parsed.auditDecision === 'APPROVE_WITH_NONBLOCKING_CORRECTION') {
+          // Se a issue já foi fechada no GitHub, status é DONE; se continua aberta, permanece REVIEW
+          currentStatus = issue.state === 'closed' ? 'DONE' : 'REVIEW';
+        } else if (parsed.auditDecision === 'CORRECTION_REQUIRED_BEFORE_DONE') {
           currentStatus = 'REVIEW';
         } else if (parsed.auditDecision === 'REJECT') {
           currentStatus = 'IN_PROGRESS';
@@ -170,7 +178,7 @@ class GitHubEvidenceParser {
       }
     }
 
-    // Se a issue do GitHub estiver fechada, o status final é impreterivelmente DONE
+    // Se o estado oficial da issue no GitHub for closed, é indiscutivelmente DONE
     if (issue.state === 'closed') {
       currentStatus = 'DONE';
     }
@@ -179,7 +187,7 @@ class GitHubEvidenceParser {
       issueNumber: issue.number,
       issueTitle: issue.title,
       state: issue.state,
-      taskId: taskId || `ISSUE-${issue.number}`,
+      taskId, // null se nao houver TASK_ID estruturado; nunca inventa ISSUE-num
       cardStatus: currentStatus,
       ownerDecisionRequired,
       blockingClassification,

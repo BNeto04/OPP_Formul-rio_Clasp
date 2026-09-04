@@ -1,13 +1,5 @@
 /**
- * NaturalLanguageRouter.js - Roteador de Linguagem Natural Segura (pt-BR)
- * 
- * Camadas e Responsabilidades:
- * 1. Sanitização Prévia na Ingestão (SanitizadorSegredos)
- * 2. Normalização pt-BR Centralizada (InputNormalizer)
- * 3. Classificação Semântica Leve de Intenções (IntentClassifier)
- * 4. Preservação de Contexto de Sessão (Follow-up com pronomes como "e o que ele fez depois?")
- * 5. Consulta Factual e Resposta Formatada (AntigravityObserver + ResponseFormatter)
- * 6. Sanitização de Saída Estrita antes do envio ao Telegram
+ * NaturalLanguageRouter.js - Roteador de Linguagem Natural com Memória Contextual Estruturada
  */
 
 const InputNormalizer = require('./InputNormalizer');
@@ -44,7 +36,7 @@ class NaturalLanguageRouter {
     if (!userId) return;
     this.userSessions.set(userId, {
       ...data,
-      timestamp: Date.now()
+      timestamp: (data && data.timestamp) ? data.timestamp : Date.now()
     });
   }
 
@@ -52,27 +44,42 @@ class NaturalLanguageRouter {
     const tokens = InputNormalizer.tokenize(normalizedText);
     const hasAntigravity = InputNormalizer.hasAntigravityMention(normalizedText);
     const hasPronoun = InputNormalizer.hasPronounReference(normalizedText);
-    const lastContext = this.getContext(userId);
+    const currentContext = this.getContext(userId);
 
-    // Follow-up contextual com pronome (ex: "e o que ele fez depois?")
-    const isAntigravitySubject = hasAntigravity || (hasPronoun && lastContext && lastContext.subject === 'ANTIGRAVITY');
+    // Identificação de sujeito: explícito ou por memória contextual
+    const hasContextSubject = currentContext && currentContext.subject === 'ANTIGRAVITY';
+    const isAntigravitySubject = hasAntigravity || (hasPronoun && hasContextSubject);
 
-    // 1. Ação de despertar / focar Antigravity
+    // 1. Follow-up contextual: "e antes disso?" / "o que fez por último?"
+    if (
+      (isAntigravitySubject || (hasContextSubject && /(antes|ultimo|passado)/i.test(normalizedText))) &&
+      /(antes disso|anterior|fez por ultimo|ultimo|historico|passado)/i.test(normalizedText)
+    ) {
+      return 'ANTIGRAVITY_LAST_ACTION';
+    }
+
+    // 2. Follow-up contextual: "deu erro?" / "teve erro?"
+    if (
+      (isAntigravitySubject || hasContextSubject) &&
+      /(deu erro|teve erro|houve erro|falhou|quebrou|travou|erro)/i.test(normalizedText)
+    ) {
+      return 'ANTIGRAVITY_LAST_ERROR';
+    }
+
+    // 3. Follow-up contextual: "por quanto tempo?" / "há quanto tempo?"
+    if (
+      (isAntigravitySubject || hasContextSubject) &&
+      /(por quanto tempo|ha quanto tempo|tempo|duracao|quanto tempo)/i.test(normalizedText)
+    ) {
+      return 'ANTIGRAVITY_DURATION_QUERY';
+    }
+
+    // 4. Ação de despertar
     if (isAntigravitySubject && /(acorde|acordar|abra|abrir|inicie|iniciar)/i.test(normalizedText)) {
       return 'WAKE_ANTIGRAVITY_REQUEST';
     }
 
-    // 2. Erros ou incidentes
-    if (isAntigravitySubject && /(erro|falha|problema|incidente|quebrou|travou)/i.test(normalizedText)) {
-      return 'ANTIGRAVITY_LAST_ERROR';
-    }
-
-    // 3. O que fez por último / histórico recente
-    if (isAntigravitySubject && /(ultimo|ultimamente|fez por ultimo|passado|concluiu|entregou)/i.test(normalizedText)) {
-      return 'ANTIGRAVITY_LAST_ACTION';
-    }
-
-    // 4. Decisão do proprietário / aprovação pendente
+    // 5. Decisão do proprietário / aprovação pendente
     if (
       (isAntigravitySubject || /(esperando|decisao|minha|proprietario)/i.test(normalizedText)) &&
       /(esperando|decisao|aprova|pendente|precisa de mim|esperando por mim|aguardando)/i.test(normalizedText)
@@ -80,43 +87,39 @@ class NaturalLanguageRouter {
       return 'ANTIGRAVITY_OWNER_WAIT';
     }
 
-    // 5. Qual tarefa / issue atual
+    // 6. Tarefa atual
     if (isAntigravitySubject && /(tarefa|issue|fazendo|trabalhando|executando|mexendo)/i.test(normalizedText)) {
       return 'ANTIGRAVITY_CURRENT_TASK';
     }
 
-    // 6. Status / Atividade geral do Antigravity
+    // 7. Status geral
     if (
       isAntigravitySubject &&
       (
         /(como esta|status|atividade|situacao|vivo|ativo|aberto|rodando|funcionando|ver)/i.test(normalizedText) ||
-        tokens.length <= 4 // Frases curtas contendo antigravity (ex: "ver o antigravity", "antigravity")
+        tokens.length <= 4
       )
     ) {
       return 'ANTIGRAVITY_ACTIVITY_STATUS';
     }
 
-    // 7. Saúde da Máquina
+    // 8. Infraestrutura do sistema
     if (/(saude|cpu|ram|memoria|temperatura|disco|uptime|computador|maquina|sistema)/i.test(normalizedText)) {
       return 'SYSTEM_HEALTH';
     }
 
-    // 8. Conectividade Internet
     if (/(internet|conexao|conectividade|online|offline|rede|wifi)/i.test(normalizedText)) {
       return 'INTERNET_STATUS';
     }
 
-    // 9. Processos Inventariados
     if (/(processo|processos|servico|servicos|daemon)/i.test(normalizedText)) {
       return 'PROCESS_INVENTORY';
     }
 
-    // 10. Último Erro do Sistema Geral
-    if (/(ultimo erro|qual o erro|teve erro|houve erro)/i.test(normalizedText)) {
+    if (/(ultimo erro do sistema|erro no journal)/i.test(normalizedText)) {
       return 'LAST_ERROR';
     }
 
-    // 11. Ajuda
     if (/(ajuda|help|socorro|como uso|o que voce faz)/i.test(normalizedText)) {
       return 'HELP_REQUEST';
     }
@@ -125,17 +128,13 @@ class NaturalLanguageRouter {
   }
 
   async process(rawText, userId = null) {
-    // 1. Sanitização na ingestão
     const sanitizedInput = SanitizadorSegredos.sanitizarTexto(rawText || '');
-
-    // 2. Normalização pt-BR centralizada
     const normalized = InputNormalizer.normalize(sanitizedInput);
-
-    // 3. Classificação Semântica da Intenção
     const intent = this.classifyIntent(normalized, userId);
 
     let replyText = '';
     let subject = null;
+    let taskContext = null;
     let metadata = {
       intent,
       input_normalized: normalized,
@@ -149,6 +148,12 @@ class NaturalLanguageRouter {
         const snapshot = await this.antigravityObserver.inspect(isDetailed);
         replyText = snapshot.summary;
         subject = 'ANTIGRAVITY';
+        taskContext = {
+          issueNumber: snapshot.current_issue_number,
+          taskId: snapshot.current_task_id,
+          lastAction: snapshot.last_action_summary,
+          ageMinutes: snapshot.age_minutes
+        };
         metadata.observer_payload = snapshot;
         break;
       }
@@ -156,8 +161,9 @@ class NaturalLanguageRouter {
       case 'ANTIGRAVITY_LAST_ACTION': {
         const snapshot = await this.antigravityObserver.inspect();
         subject = 'ANTIGRAVITY';
+        const taskLabel = snapshot.current_task_id ? `(${snapshot.current_task_id})` : `(Issue #${snapshot.current_issue_number})`;
         if (snapshot.last_action_summary) {
-          replyText = `A última ação registrada do Antigravity foi na Issue #${snapshot.current_issue_number} (${snapshot.current_task_id}): "${snapshot.last_action_summary}".`;
+          replyText = `A última ação registrada do Antigravity na Issue #${snapshot.current_issue_number} ${taskLabel} foi: "${snapshot.last_action_summary}".`;
         } else {
           replyText = snapshot.summary;
         }
@@ -167,10 +173,24 @@ class NaturalLanguageRouter {
       case 'ANTIGRAVITY_LAST_ERROR': {
         const snapshot = await this.antigravityObserver.inspect();
         subject = 'ANTIGRAVITY';
+        const taskLabel = snapshot.current_task_id ? `(${snapshot.current_task_id})` : `Issue #${snapshot.current_issue_number || 'desconhecida'}`;
         if (snapshot.last_result_or_error) {
-          replyText = `Última nota ou incidente do Antigravity: ${snapshot.last_result_or_error}`;
+          replyText = `Última nota ou incidente registrado na tarefa ${taskLabel}: ${snapshot.last_result_or_error}`;
         } else {
-          replyText = `Nenhum erro reportado na tarefa ativa (${snapshot.current_task_id || 'sem tarefa'}).`;
+          replyText = `Nenhum erro reportado na tarefa ativa ${taskLabel}.`;
+        }
+        break;
+      }
+
+      case 'ANTIGRAVITY_DURATION_QUERY': {
+        const snapshot = await this.antigravityObserver.inspect();
+        subject = 'ANTIGRAVITY';
+        const taskLabel = snapshot.current_task_id ? `(${snapshot.current_task_id})` : `Issue #${snapshot.current_issue_number || 'ativa'}`;
+        if (snapshot.age_minutes !== null) {
+          const durationStr = snapshot.age_minutes < 2 ? 'menos de 2 minutos' : `cerca de ${snapshot.age_minutes} minutos`;
+          replyText = `A última atividade registrada da tarefa ${taskLabel} ocorreu há ${durationStr}.`;
+        } else {
+          replyText = `Não há registro recente de duração ou atividade na tarefa ${taskLabel}.`;
         }
         break;
       }
@@ -178,8 +198,9 @@ class NaturalLanguageRouter {
       case 'ANTIGRAVITY_OWNER_WAIT': {
         const snapshot = await this.antigravityObserver.inspect();
         subject = 'ANTIGRAVITY';
+        const taskLabel = snapshot.current_task_id ? `(${snapshot.current_task_id})` : `(Issue #${snapshot.current_issue_number})`;
         if (snapshot.owner_decision_required) {
-          replyText = `Sim. O Antigravity está aguardando sua decisão na Issue #${snapshot.current_issue_number} (${snapshot.current_task_id}).`;
+          replyText = `Sim. O Antigravity está aguardando sua decisão na Issue #${snapshot.current_issue_number} ${taskLabel}.`;
         } else {
           replyText = 'Não há nenhuma decisão sua pendente no momento. O Antigravity segue operando normalmente.';
         }
@@ -250,18 +271,25 @@ class NaturalLanguageRouter {
       }
 
       default: {
-        replyText = 'Não compreendi sua solicitação. Pergunte sobre a saúde do computador, conectividade, processos ou a atividade do Antigravity.';
+        const hadContext = !!this.getContext(userId);
+        if (hadContext) {
+          replyText = 'Não compreendi essa pergunta de continuação. Pode reformular dizendo se deseja saber sobre a tarefa, erros ou status?';
+        } else {
+          replyText = 'Não compreendi sua solicitação. Pergunte sobre a saúde do computador, conectividade, processos ou a atividade do Antigravity.';
+        }
         metadata.confidence = 'LOW';
         break;
       }
     }
 
-    // Salva o contexto para follow-ups na mesma sessão
     if (userId && subject) {
-      this.setContext(userId, { subject, lastIntent: intent });
+      this.setContext(userId, {
+        subject,
+        lastIntent: intent,
+        taskContext: taskContext || (this.getContext(userId) ? this.getContext(userId).taskContext : null)
+      });
     }
 
-    // 4. Dupla Sanitização: Garante que nenhuma chave, token ou dado sensível saia na resposta
     const sanitizedResponse = SanitizadorSegredos.sanitizarTexto(replyText);
 
     return {
