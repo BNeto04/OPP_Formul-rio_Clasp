@@ -1,4 +1,5 @@
 const SanitizadorSegredos = require('./SanitizadorSegredos');
+const NaturalLanguageRouter = require('./NaturalLanguageRouter');
 
 class TelegramCommandRouter {
   constructor(options = {}) {
@@ -8,6 +9,14 @@ class TelegramCommandRouter {
     this.internetMonitor = options.internetMonitor;
     this.journal = options.journal;
     this.startTime = Date.now();
+    this.nlRouter = options.nlRouter || new NaturalLanguageRouter({
+      healthMonitor: this.healthMonitor,
+      recoveryManager: this.recoveryManager,
+      internetMonitor: this.internetMonitor,
+      journal: this.journal,
+      ollamaAdapter: options.ollamaAdapter || null,
+      contextTtlMs: options.contextTtlMs || 300000
+    });
   }
 
   async processUpdate(update) {
@@ -56,7 +65,16 @@ class TelegramCommandRouter {
       };
     }
 
-    // 3. Roteamento de comandos autorizados V1
+    // 3. Se a mensagem for texto livre (sem prefixo /), roteia para a camada de Linguagem Natural Segura
+    if (!rawText.startsWith('/')) {
+      const nlResult = await this.nlRouter.process(rawText, fromId);
+      return {
+        chatId,
+        text: nlResult.text
+      };
+    }
+
+    // 4. Roteamento de comandos estruturados V1 (/comando)
     switch (command) {
       case '/ajuda':
         return {

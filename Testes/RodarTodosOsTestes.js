@@ -51,6 +51,8 @@ console.log('');
 require('./TestVigiaBootRecovery');
 console.log('');
 require('./TestVigiaTelegram');
+console.log('');
+require('./TestVigiaNaturalLanguage');
 
 if (process.exitCode && process.exitCode !== 0) {
   console.error('\n====================================================');
