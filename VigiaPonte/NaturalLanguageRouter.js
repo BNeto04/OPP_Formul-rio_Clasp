@@ -1,4 +1,5 @@
 const SanitizadorSegredos = require('./SanitizadorSegredos');
+const AntigravityObserver = require('./AntigravityObserver');
 
 class NaturalLanguageRouter {
   constructor(options = {}) {
@@ -6,6 +7,10 @@ class NaturalLanguageRouter {
     this.recoveryManager = options.recoveryManager;
     this.internetMonitor = options.internetMonitor;
     this.journal = options.journal;
+    this.antigravityObserver = options.antigravityObserver || new AntigravityObserver({
+      recoveryManager: this.recoveryManager,
+      journal: this.journal
+    });
     this.ollamaAdapter = options.ollamaAdapter || null;
     this.contextTtlMs = options.contextTtlMs || 300000; // 5 minutos
     this.conversations = new Map(); // userId -> { lastIntent, lastData, timestamp }
@@ -125,6 +130,18 @@ class NaturalLanguageRouter {
       case 'WAKE_ANTIGRAVITY_REQUEST':
         return this.handleWakeAntigravity(userId);
 
+      case 'ANTIGRAVITY_ACTIVITY_STATUS':
+        return this.handleAntigravityActivity(userId);
+
+      case 'ANTIGRAVITY_CURRENT_TASK':
+        return this.handleAntigravityCurrentTask(userId);
+
+      case 'ANTIGRAVITY_LAST_ACTION':
+        return this.handleAntigravityLastAction(userId);
+
+      case 'ANTIGRAVITY_OWNER_WAIT':
+        return this.handleAntigravityOwnerWait(userId);
+
       case 'HELP_CAPABILITIES':
         return this.handleHelpCapabilities(userId);
 
@@ -188,6 +205,43 @@ class NaturalLanguageRouter {
       /como\s+est[aá]\s+a\s+internet\s+agora/i.test(lower)
     ) {
       return 'INTERNET_STATUS';
+    }
+
+    // ANTIGRAVITY_CURRENT_TASK
+    if (
+      /em\s+que\s+tarefa\s+(ele|o\s+antigravity)\s+est[aá]\s+trabalhando/i.test(lower) ||
+      /qual\s+issue\s+(ele|o\s+antigravity)\s+est[aá]\s+executando/i.test(lower) ||
+      /qual\s+tarefa\s+ele\s+est[aá]\s+fazendo/i.test(lower)
+    ) {
+      return 'ANTIGRAVITY_CURRENT_TASK';
+    }
+
+    // ANTIGRAVITY_LAST_ACTION
+    if (
+      /o\s+que\s+(ele|o\s+antigravity)\s+fez\s+por\s+[uú]ltimo/i.test(lower) ||
+      /qual\s+foi\s+a\s+[uú]ltima\s+a[cç][aã]o(\s+do\s+antigravity)?/i.test(lower) ||
+      /[uú]ltima\s+a[cç][aã]o\s+do\s+antigravity/i.test(lower)
+    ) {
+      return 'ANTIGRAVITY_LAST_ACTION';
+    }
+
+    // ANTIGRAVITY_OWNER_WAIT
+    if (
+      /tem\s+alguma\s+coisa\s+esperando\s+minha\s+decis[aã]o/i.test(lower) ||
+      /esperando\s+(minha\s+decis[aã]o|por\s+mim)/i.test(lower) ||
+      /decis[aã]o\s+pendente/i.test(lower)
+    ) {
+      return 'ANTIGRAVITY_OWNER_WAIT';
+    }
+
+    // ANTIGRAVITY_ACTIVITY_STATUS
+    if (
+      /o\s+que\s+(o\s+)?(antigravity|ele)\s+est[aá]\s+fazendo(\s+agora)?/i.test(lower) ||
+      /(ele|o\s+antigravity)\s+est[aá]\s+(parado|trabalhando|ocupado)/i.test(lower) ||
+      /atividade\s+(do\s+)?antigravity/i.test(lower) ||
+      /o\s+que\s+ele\s+est[aá]\s+fazendo/i.test(lower)
+    ) {
+      return 'ANTIGRAVITY_ACTIVITY_STATUS';
     }
 
     // AUTHORIZED_PROCESSES
@@ -483,11 +537,96 @@ class NaturalLanguageRouter {
 
   handleHelpCapabilities(userId) {
     const text = 'Eu sou o Vigia da Ponte. Você pode conversar comigo ou usar comandos:\n\n' +
-      '• Você pode me perguntar: "Como está a máquina?", "A internet caiu hoje?", "Quanto de memória está usando?", "O Antigravity está aberto?", ou pedir "Acorde o Antigravity".\n' +
-      '• Ou usar comandos diretos: /status, /health, /internet, /processos, /ultimo_erro, /acordar_antigravity e /ajuda.';
+      '• Você pode me perguntar: "Como está a máquina?", "A internet caiu hoje?", "O que o Antigravity está fazendo agora?", "Em que tarefa ele está trabalhando?", "Tem alguma decisão pendente?", "Quanto de memória está usando?", "O Antigravity está aberto?", ou pedir "Acorde o Antigravity".\n' +
+      '• Ou usar comandos diretos: /status, /health, /internet, /processos, /antigravity, /ultimo_erro, /acordar_antigravity e /ajuda.';
 
     this.setContext(userId, 'HELP_CAPABILITIES', {});
     return { intent: 'HELP_CAPABILITIES', text };
+  }
+
+  async handleAntigravityActivity(userId) {
+    if (!this.antigravityObserver) {
+      return {
+        intent: 'ANTIGRAVITY_ACTIVITY_STATUS',
+        text: 'Não tenho dados suficientes para observar o Antigravity no momento.'
+      };
+    }
+    const snapshot = await this.antigravityObserver.inspect();
+    this.setContext(userId, 'ANTIGRAVITY_ACTIVITY_STATUS', snapshot);
+    return {
+      intent: 'ANTIGRAVITY_ACTIVITY_STATUS',
+      text: snapshot.summary,
+      snapshot
+    };
+  }
+
+  async handleAntigravityCurrentTask(userId) {
+    if (!this.antigravityObserver) {
+      return {
+        intent: 'ANTIGRAVITY_CURRENT_TASK',
+        text: 'Não tenho dados suficientes para determinar a tarefa atual do Antigravity.'
+      };
+    }
+    const snapshot = await this.antigravityObserver.inspect();
+    let text;
+    if (snapshot.current_issue_number) {
+      text = `O Antigravity está vinculado à Issue #${snapshot.current_issue_number} (${snapshot.current_task_id}). Status atual do card: ${snapshot.current_card_status}.`;
+    } else {
+      text = 'Não há nenhuma tarefa ou Issue ativa associada ao Antigravity no momento.';
+    }
+    this.setContext(userId, 'ANTIGRAVITY_CURRENT_TASK', snapshot);
+    return {
+      intent: 'ANTIGRAVITY_CURRENT_TASK',
+      text,
+      snapshot
+    };
+  }
+
+  async handleAntigravityLastAction(userId) {
+    if (!this.antigravityObserver) {
+      return {
+        intent: 'ANTIGRAVITY_LAST_ACTION',
+        text: 'Não há dados da última ação do Antigravity.'
+      };
+    }
+    const snapshot = await this.antigravityObserver.inspect();
+    let text;
+    if (snapshot.last_action_summary) {
+      text = `A última ação registrada do Antigravity foi: "${snapshot.last_action_summary}".`;
+      if (snapshot.last_activity_timestamp) {
+        text += ` (em ${snapshot.last_activity_timestamp})`;
+      }
+    } else {
+      text = 'Não há registro detalhado da última ação do Antigravity disponível.';
+    }
+    this.setContext(userId, 'ANTIGRAVITY_LAST_ACTION', snapshot);
+    return {
+      intent: 'ANTIGRAVITY_LAST_ACTION',
+      text,
+      snapshot
+    };
+  }
+
+  async handleAntigravityOwnerWait(userId) {
+    if (!this.antigravityObserver) {
+      return {
+        intent: 'ANTIGRAVITY_OWNER_WAIT',
+        text: 'Não tenho dados suficientes para checar decisões pendentes.'
+      };
+    }
+    const snapshot = await this.antigravityObserver.inspect();
+    let text;
+    if (snapshot.owner_decision_required) {
+      text = `Sim, há uma decisão pendente do proprietário na Issue #${snapshot.current_issue_number} (${snapshot.current_task_id}). O Antigravity aguarda sua autorização.`;
+    } else {
+      text = 'Não há nenhuma decisão sua pendente no momento. O Antigravity está operando dentro do escopo autorizado.';
+    }
+    this.setContext(userId, 'ANTIGRAVITY_OWNER_WAIT', snapshot);
+    return {
+      intent: 'ANTIGRAVITY_OWNER_WAIT',
+      text,
+      snapshot
+    };
   }
 }
 

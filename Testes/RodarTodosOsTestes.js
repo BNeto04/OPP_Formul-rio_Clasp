@@ -53,6 +53,8 @@ console.log('');
 require('./TestVigiaTelegram');
 console.log('');
 require('./TestVigiaNaturalLanguage');
+console.log('');
+require('./TestVigiaObservarAntigravity');
 
 if (process.exitCode && process.exitCode !== 0) {
   console.error('\n====================================================');

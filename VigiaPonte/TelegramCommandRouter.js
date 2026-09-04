@@ -84,10 +84,19 @@ class TelegramCommandRouter {
             '/health — Métricas de CPU, RAM e Uptime\n' +
             '/internet — Conectividade e histórico de quedas\n' +
             '/processos — Estado dos processos inventariados\n' +
+            '/antigravity — Inspeção factual da atividade do Antigravity\n' +
             '/ultimo_erro — Último log ou incidente registrado\n' +
             '/acordar_antigravity — Foco ou recuperação segura do Antigravity\n' +
             '/ajuda — Esta mensagem de orientação'
         };
+
+      case '/antigravity': {
+        const snapshot = await this.nlRouter.antigravityObserver.inspect();
+        return {
+          chatId,
+          text: '🤖 *Observabilidade Antigravity*\n\n' + snapshot.summary
+        };
+      }
 
       case '/status': {
         const uptimeMin = Math.round((Date.now() - this.startTime) / 60000);
