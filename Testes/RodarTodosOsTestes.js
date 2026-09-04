@@ -47,6 +47,8 @@ console.log('');
 require('./TestFormularioAis');
 console.log('');
 require('./TestVigiaPonte');
+console.log('');
+require('./TestVigiaBootRecovery');
 
 if (process.exitCode && process.exitCode !== 0) {
   console.error('\n====================================================');
