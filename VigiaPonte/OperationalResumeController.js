@@ -169,7 +169,9 @@ class OperationalResumeController {
     const guiStatus = this.uiAdapter.evaluateGuiReadiness();
     if (!guiStatus.ready) {
       let telegramMsg = '';
-      if (guiStatus.state === 'AMBIGUOUS_CONVERSATION') {
+      if (guiStatus.state === 'GRAPHICAL_SESSION_LOCKED') {
+        telegramMsg = 'Sessão gráfica bloqueada (Windows Locked). Envio de V deferido com segurança até o desbloqueio interativo.';
+      } else if (guiStatus.state === 'AMBIGUOUS_CONVERSATION') {
         telegramMsg = 'Não enviei V: não consegui identificar a conversa com segurança.';
       } else if (guiStatus.state === 'ANTIGRAVITY_BLOCKED_OR_WAITING_OWNER') {
         telegramMsg = 'Não enviei V: há modal de permissão ou segurança aberto na tela.';
@@ -180,7 +182,7 @@ class OperationalResumeController {
       const journalEntry = {
         resume_event_id: resumeEventId,
         trigger: triggerType,
-        action: guiStatus.state === 'ANTIGRAVITY_BLOCKED_OR_WAITING_OWNER' ? 'ALERT_OWNER' : 'NO_SEND',
+        action: guiStatus.state === 'GRAPHICAL_SESSION_LOCKED' ? 'DEFER_LOCKED' : (guiStatus.state === 'ANTIGRAVITY_BLOCKED_OR_WAITING_OWNER' ? 'ALERT_OWNER' : 'NO_SEND'),
         reason: guiStatus.reason,
         final_state: guiStatus.state
       };

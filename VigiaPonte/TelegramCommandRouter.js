@@ -71,27 +71,62 @@ class TelegramCommandRouter {
       };
     }
 
+    // 2.1 Comando direto de Retomada V (via /v, /retomar, ou texto puro "V" / "v")
+    if (command === '/v' || command === '/retomar' || rawText === 'V' || rawText === 'v') {
+      if (!this.resumeController) {
+        this.resumeController = this.nlRouter ? this.nlRouter.resumeController : null;
+      }
+      if (!this.resumeController) {
+        return {
+          chatId,
+          text: 'VIGIA/FALLBACK > Controlador de retomada não disponível.'
+        };
+      }
+      const res = await this.resumeController.triggerResume('OWNER_REMOTE_TRIGGER', {
+        resume_event_id: `owner_remote_${Date.now()}`
+      });
+
+      if (res.action === 'SEND_V') {
+        return {
+          chatId,
+          text: `ANTIGRAVITY > Comando V enviado com sucesso à conversa operacional (Evento: ${res.resume_event_id}). Fluxo retomado.`
+        };
+      } else if (res.action === 'NO_OP') {
+        return {
+          chatId,
+          text: `VIGIA/FALLBACK > Retomada avaliada — Nenhuma ação necessária: ${res.reason}. Estado: ${res.final_state}.`
+        };
+      } else {
+        return {
+          chatId,
+          text: `VIGIA/FALLBACK > Envio de V suspenso por segurança: ${res.reason}. Estado: ${res.final_state}.`
+        };
+      }
+    }
+
     // 3. Se a mensagem for texto livre (sem prefixo /), roteia para a camada de Linguagem Natural Segura
     if (!rawText.startsWith('/')) {
       const nlResult = await this.nlRouter.process(rawText, fromId);
-      let interlocutorHeader = '';
       const procState = this.recoveryManager ? this.recoveryManager.inventoryState() : {};
       const antigravityRunning = procState.antigravity ? procState.antigravity.running : true;
 
-      const fallbackIntents = ['SYSTEM_STATUS', 'SYSTEM_HEALTH', 'HOST_HEALTH', 'INTERNET_STATUS', 'INTERNET_HISTORY', 'PROCESS_INVENTORY'];
-      const isFallback = !antigravityRunning || (nlResult.metadata && fallbackIntents.includes(nlResult.metadata.intent));
+      const hostTelemetryIntents = ['SYSTEM_STATUS', 'SYSTEM_HEALTH', 'HOST_HEALTH', 'INTERNET_STATUS', 'INTERNET_HISTORY', 'PROCESS_INVENTORY'];
+      const isHostQuery = nlResult.metadata && hostTelemetryIntents.includes(nlResult.metadata.intent);
 
-      if (isFallback) {
-        interlocutorHeader = '🛡️ *VIGIA (FALLBACK)*\n\n';
+      let prefix = '';
+      if (isHostQuery) {
+        prefix = 'VIGIA > ';
+      } else if (!antigravityRunning || (nlResult.metadata && nlResult.metadata.interlocutor === 'VIGIA_FALLBACK')) {
+        prefix = 'VIGIA/FALLBACK > ';
       } else {
-        interlocutorHeader = '⚙️ *ANTIGRAVITY*\n\n';
+        prefix = 'ANTIGRAVITY > ';
       }
 
       return {
         chatId,
-        text: `${interlocutorHeader}${nlResult.text}`,
+        text: `${prefix}${nlResult.text}`,
         rawText: nlResult.text,
-        interlocutor: isFallback ? 'VIGIA_FALLBACK' : 'ANTIGRAVITY'
+        interlocutor: prefix.trim().replace(' >', '')
       };
     }
 

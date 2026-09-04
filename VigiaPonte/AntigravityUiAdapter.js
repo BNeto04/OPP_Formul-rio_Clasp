@@ -241,10 +241,41 @@ class AntigravityUiAdapter {
   }
 
   /**
+   * Verifica se a sessão gráfica está bloqueada (Windows Locked)
+   * @returns {boolean}
+   */
+  isScreenLocked() {
+    if (this.customDriver && typeof this.customDriver.isScreenLocked === 'function') {
+      return this.customDriver.isScreenLocked();
+    }
+    if (this.simulated || process.platform !== 'win32') {
+      return false;
+    }
+    try {
+      const out = execSync('tasklist /FI "IMAGENAME eq LogonUI.exe" /NH', {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'ignore'],
+        timeout: 2000
+      });
+      return out.toLowerCase().includes('logonui.exe');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Avalia a prontidão da GUI para recebimento de comandos
    * @returns {Object}
    */
   evaluateGuiReadiness() {
+    if (this.isScreenLocked()) {
+      return {
+        ready: false,
+        state: 'GRAPHICAL_SESSION_LOCKED',
+        reason: 'Sessão gráfica bloqueada (Windows Locked). Automação UI/SEND_V deferida com segurança até desbloqueio interativo.'
+      };
+    }
+
     if (!this.isProcessRunning()) {
       return {
         ready: false,

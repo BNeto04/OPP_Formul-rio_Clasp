@@ -78,6 +78,14 @@ async function main() {
   } else if (typeof testRetomadaV === 'function') {
     await testRetomadaV();
   }
+  console.log('');
+
+  const testInterlocucao = require('./TestVigiaTelegramInterlocucao');
+  if (testInterlocucao && typeof testInterlocucao.testSuite === 'function') {
+    await testInterlocucao.testSuite();
+  } else if (typeof testInterlocucao === 'function') {
+    await testInterlocucao();
+  }
 
   if (process.exitCode && process.exitCode !== 0) {
     console.error('\n====================================================');

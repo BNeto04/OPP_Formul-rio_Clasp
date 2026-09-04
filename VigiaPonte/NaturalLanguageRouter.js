@@ -90,8 +90,18 @@ class NaturalLanguageRouter {
       return 'RESUME_V_SENT_QUERY';
     }
 
-    if (/(retome o fluxo|retomar fluxo|retome a execucao|retomar o fluxo|pode retomar)/i.test(normalizedText)) {
+    if (/^v$/i.test(normalizedText.trim()) || /(retome o fluxo|retomar fluxo|retome a execucao|retomar o fluxo|pode retomar)/i.test(normalizedText)) {
       return 'OWNER_TRIGGER_RESUME';
+    }
+
+    if (
+      /^(oi|ol[aá]|bom dia|boa tarde|boa noite|e a[ií]|opa|hey|hello|fala|tudo bem)(\b|[,\?!]|\s|$)/i.test(normalizedText.trim())
+    ) {
+      return 'GREETING_OR_CONVERSATION';
+    }
+
+    if (/(como v[aã]o as coisas|como estamos|qual a situa[cç][aã]o|como andam as coisas)/i.test(normalizedText)) {
+      return 'ANTIGRAVITY_ACTIVITY_STATUS';
     }
 
     if (/(esta so aberto ou esta trabalhando|esta so aberto ou trabalhando|so aberto ou trabalhando|trabalhando ou ocioso|esta ativo ou so aberto|so aberto ou ativo|esta trabalhando ou parado)/i.test(normalizedText)) {
@@ -303,6 +313,26 @@ class NaturalLanguageRouter {
           }
         } else {
           replyText = 'Controlador de retomada não disponível.';
+        }
+        break;
+      }
+
+      case 'GREETING_OR_CONVERSATION': {
+        subject = 'ANTIGRAVITY';
+        const inv = this.recoveryManager ? this.recoveryManager.inventoryState() : {};
+        const isRunning = inv.antigravity ? inv.antigravity.running : true;
+        if (!isRunning) {
+          replyText = 'Antigravity não está em execução no host no momento. O Sentinela Vigia está ativo para suporte. Digite /acordarantigravity ou /ajuda.';
+          metadata.interlocutor = 'VIGIA_FALLBACK';
+        } else {
+          const snapshot = await this.antigravityObserver.inspect();
+          if (snapshot.execution_phase === 'IN_PROGRESS') {
+            const taskStr = snapshot.current_task_id ? `(${snapshot.current_task_id})` : `(Issue #${snapshot.current_issue_number})`;
+            replyText = `Olá! Aqui é o Antigravity. Estou em execução ativa no host. No momento estou trabalhando na Issue #${snapshot.current_issue_number} ${taskStr}. Em que posso ajudar no fluxo operacional?`;
+          } else {
+            replyText = 'Olá! Aqui é o Antigravity. Estou ativo no host e com interface operacional pronta, aguardando o próximo comando ou instrução de trabalho.';
+          }
+          metadata.interlocutor = 'ANTIGRAVITY';
         }
         break;
       }
@@ -547,12 +577,8 @@ class NaturalLanguageRouter {
       }
 
       default: {
-        const currentCtx = this.getContext(userId);
-        if (currentCtx && currentCtx.subject) {
-          replyText = 'Não tenho dados suficientes para responder a essa pergunta. Não compreendi essa pergunta de continuação. Pode reformular dizendo se deseja saber sobre a tarefa, erros ou status?';
-        } else {
-          replyText = 'Não tenho dados suficientes para responder a essa pergunta. Não compreendi sua solicitação. Por favor, pergunte sobre a saúde do computador, conectividade, processos autorizados ou Antigravity.';
-        }
+        replyText = 'Não tenho dados suficientes para responder a essa pergunta. Não compreendi sua solicitação. Por favor, pergunte sobre a saúde do computador, conectividade, processos autorizados ou Antigravity.';
+        metadata.interlocutor = 'VIGIA_FALLBACK';
         metadata.confidence = 'LOW';
         break;
       }
