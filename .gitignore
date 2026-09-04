@@ -1,0 +1,8 @@
+*.token
+*.secret
+*.key
+.telegram_token
+telegram_allowlist.json
+VigiaPonte/vigia.lock
+VigiaPonte/*.log
+Testes/temp_test_vigia_boot/
