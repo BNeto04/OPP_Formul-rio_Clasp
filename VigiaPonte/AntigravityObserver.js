@@ -226,9 +226,9 @@ class AntigravityObserver {
         confidence = 'MEDIUM';
       }
     } else if (processRunning && !isTaskActive) {
-      executionPhase = 'PROCESS_RUNNING_TASK_UNKNOWN';
-      confidence = 'MEDIUM';
-      sourceOfTruth = 'LOCAL_PROCESS_ONLY';
+      executionPhase = (task && task.reason === 'NO_OPEN_ISSUES') ? 'IDLE' : 'PROCESS_RUNNING_TASK_UNKNOWN';
+      confidence = 'HIGH';
+      sourceOfTruth = 'LOCAL_PROCESS_AND_GITHUB_TASK';
     } else if (!processRunning && isTaskActive && task.cardStatus === 'IN_PROGRESS') {
       executionPhase = 'DIVERGENT';
       confidence = 'HIGH';
@@ -238,17 +238,30 @@ class AntigravityObserver {
       confidence = 'HIGH';
     }
 
+    let calculatedAgeMinutes = task && task.ageMinutes !== undefined ? task.ageMinutes : null;
+    let calculatedFreshness = task && task.freshness ? task.freshness : 'UNKNOWN';
+    if (task && task.lastActivityTimestamp) {
+      const lastMs = new Date(task.lastActivityTimestamp).getTime();
+      const ageMs = Math.max(0, Date.now() - lastMs);
+      if (calculatedAgeMinutes === null) {
+        calculatedAgeMinutes = Math.round(ageMs / 60000);
+      }
+      if (calculatedFreshness === 'UNKNOWN') {
+        calculatedFreshness = ageMs > this.staleThresholdMs ? 'STALE' : 'CURRENT';
+      }
+    }
+
     const payload = {
       antigravity_process_running: processRunning,
       current_task_id: task && task.taskId ? task.taskId : null,
       current_issue_number: task && task.issueNumber ? task.issueNumber : null,
-      current_card_status: task && task.cardStatus ? task.cardStatus : 'UNKNOWN',
+      current_card_status: task && task.cardStatus ? task.cardStatus : (processRunning && !isTaskActive ? 'IDLE' : 'UNKNOWN'),
       is_ambiguous: task ? !!task.isAmbiguous : false,
       ambiguous_issues: task && task.ambiguousIssues ? task.ambiguousIssues : [],
       execution_phase: executionPhase,
       last_activity_timestamp: task && task.lastActivityTimestamp ? task.lastActivityTimestamp : null,
-      freshness: task && task.freshness ? task.freshness : 'UNKNOWN',
-      age_minutes: task && task.ageMinutes !== undefined ? task.ageMinutes : null,
+      freshness: calculatedFreshness,
+      age_minutes: calculatedAgeMinutes,
       last_action_summary: task && task.lastActionSummary ? SanitizadorSegredos.sanitizarTexto(task.lastActionSummary) : null,
       owner_decision_required: task ? !!task.ownerDecisionRequired : false,
       last_result_or_error: task && task.lastResultOrError ? SanitizadorSegredos.sanitizarTexto(task.lastResultOrError) : null,

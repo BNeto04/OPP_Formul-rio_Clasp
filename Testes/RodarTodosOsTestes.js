@@ -6,67 +6,87 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
  * DESCRIÇÃO: Executor principal de toda a suíte de testes automatizados do SYNTHÉON.
  */
 
-console.log('====================================================');
-console.log('🚀 EXECUTANDO SUÍTE INTEGRAL DE TESTES DO SYNTHÉON');
-console.log('====================================================\n');
-
-require('./TestDominio');
-console.log('');
-require('./TestPlugins');
-console.log('');
-require('./TestMotorAnaliticoRegressao');
-console.log('');
-require('./TestAdaptador2026');
-console.log('');
-require('./TestGuardiao');
-console.log('');
-require('./TestRenderers');
-console.log('');
-require('./TestRendererComparativo2026');
-console.log('');
-require('./TestRelatoriosPipCpm');
-console.log('');
-require('./TestRelatorioArmas');
-console.log('');
-require('./TestRelatorioDrogas');
-console.log('');
-require('./TestCentralAnalitica');
-console.log('');
-require('./TestMeritoEquipeArmas');
-console.log('');
-require('./TestLeitorAntiguidadePeculio');
-console.log('');
-require('./TestRelatorioGxt');
-console.log('');
-require('./TestEntradaManualFormulario');
-console.log('');
-require('./TestNormalizadorEfetivo');
-console.log('');
-require('./TestFormularioCidadeBairro');
-console.log('');
-require('./TestFormularioAis');
-console.log('');
-require('./TestVigiaPonte');
-console.log('');
-require('./TestVigiaBootRecovery');
-console.log('');
-require('./TestVigiaTelegram');
-console.log('');
-require('./TestVigiaNaturalLanguage');
-console.log('');
-require('./TestVigiaObservarAntigravity');
-console.log('');
-require('./TestVigiaRefatorNluObs');
-
-if (process.exitCode && process.exitCode !== 0) {
-  console.error('\n====================================================');
-  console.error('❌ SUÍTE DE TESTES FALHOU! VERIFIQUE OS ERROS ACIMA.');
-  console.error('====================================================\n');
-  process.exit(1);
-} else {
-  console.log('\n====================================================');
-  console.log('✨ TODAS AS SUÍTES FORAM EXECUTADAS COM SUCESSO!');
+async function main() {
+  console.log('====================================================');
+  console.log('🚀 EXECUTANDO SUÍTE INTEGRAL DE TESTES DO SYNTHÉON');
   console.log('====================================================\n');
-  process.exit(0);
+
+  require('./TestDominio');
+  console.log('');
+  require('./TestPlugins');
+  console.log('');
+  require('./TestMotorAnaliticoRegressao');
+  console.log('');
+  require('./TestAdaptador2026');
+  console.log('');
+  require('./TestGuardiao');
+  console.log('');
+  require('./TestRenderers');
+  console.log('');
+  require('./TestRendererComparativo2026');
+  console.log('');
+  require('./TestRelatoriosPipCpm');
+  console.log('');
+  require('./TestRelatorioArmas');
+  console.log('');
+  require('./TestRelatorioDrogas');
+  console.log('');
+  require('./TestCentralAnalitica');
+  console.log('');
+  require('./TestMeritoEquipeArmas');
+  console.log('');
+  require('./TestLeitorAntiguidadePeculio');
+  console.log('');
+  require('./TestRelatorioGxt');
+  console.log('');
+  require('./TestEntradaManualFormulario');
+  console.log('');
+  require('./TestNormalizadorEfetivo');
+  console.log('');
+  require('./TestFormularioCidadeBairro');
+  console.log('');
+  require('./TestFormularioAis');
+  console.log('');
+  require('./TestVigiaPonte');
+  console.log('');
+  require('./TestVigiaBootRecovery');
+  console.log('');
+  require('./TestVigiaTelegram');
+  console.log('');
+  require('./TestVigiaNaturalLanguage');
+  console.log('');
+  require('./TestVigiaObservarAntigravity');
+  console.log('');
+  
+  const testRefatorNlu = require('./TestVigiaRefatorNluObs');
+  if (typeof testRefatorNlu === 'function') {
+    await testRefatorNlu();
+  }
+  console.log('');
+
+  const testModeloMemoria = require('./TestVigiaModeloMemoria');
+  if (testModeloMemoria && typeof testModeloMemoria.runTests === 'function') {
+    await testModeloMemoria.runTests();
+  } else if (typeof testModeloMemoria === 'function') {
+    await testModeloMemoria();
+  }
+
+  if (process.exitCode && process.exitCode !== 0) {
+    console.error('\n====================================================');
+    console.error('❌ SUÍTE DE TESTES FALHOU! VERIFIQUE OS ERROS ACIMA.');
+    console.error('====================================================\n');
+    process.exit(1);
+  } else {
+    console.log('\n====================================================');
+    console.log('✨ TODAS AS SUÍTES FORAM EXECUTADAS COM SUCESSO!');
+    console.log('====================================================\n');
+    process.exit(0);
+  }
 }
+
+main().catch(err => {
+  console.error('\n❌ Erro fatal durante a execução dos testes:', err);
+  process.exit(1);
+});
+
 }

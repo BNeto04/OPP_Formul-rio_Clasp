@@ -22,8 +22,8 @@ function sanitizarTexto(texto) {
   limpo = limpo.replace(/Basic\s+[a-zA-Z0-9_\-\.\=]+/gi, 'Basic [REDACTED_BASIC]');
 
   // Substituir tokens do Telegram
-  limpo = limpo.replace(/bot\d{8,12}:[A-Za-z0-9_-]{35}/gi, 'bot[REDACTED_TELEGRAM_TOKEN]');
-  limpo = limpo.replace(/\b\d{8,12}:[A-Za-z0-9_-]{35}\b/g, '[REDACTED_TELEGRAM_TOKEN]');
+  limpo = limpo.replace(/bot\d{8,12}:[A-Za-z0-9_-]{20,45}/gi, 'bot[REDACTED_TELEGRAM_TOKEN]');
+  limpo = limpo.replace(/\b\d{8,12}:[A-Za-z0-9_-]{20,45}\b/g, '[REDACTED_TELEGRAM_TOKEN]');
 
   // Substituir chaves literais
   limpo = limpo.replace(/(?:password|senha|secret|token|api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9_\-\.]+)["']?/gi, function(match, secretVal) {

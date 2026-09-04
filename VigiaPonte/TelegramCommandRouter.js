@@ -89,6 +89,7 @@ class TelegramCommandRouter {
             '/antigravity — Inspeção factual da atividade do Antigravity\n' +
             '/ultimoerro — Último log ou incidente registrado\n' +
             '/acordarantigravity — Foco ou recuperação segura do Antigravity\n' +
+            '/esquecer_contexto — Limpa a memória contextual da conversa recente\n' +
             '/ajuda — Esta mensagem de orientação'
         };
 
@@ -204,6 +205,18 @@ class TelegramCommandRouter {
             text: '⚠️ Falha ao acionar Antigravity: ' + (res.result || res.reason)
           };
         }
+      }
+
+      case '/esquecer_contexto':
+      case '/esquecercontexto':
+      case '/esquecer': {
+        if (this.nlRouter && typeof this.nlRouter.clearContext === 'function') {
+          this.nlRouter.clearContext(fromId);
+        }
+        return {
+          chatId,
+          text: '🧹 *Contexto Conversacional Limpo*\n\nA memória recente desta conversa foi esquecida. Os journals e registros operacionais continuam íntegros.'
+        };
       }
 
       default:

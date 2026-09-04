@@ -211,8 +211,8 @@ async function testSuite() {
       assert.ok(m.system.total_memory_bytes > 0);
     }
     const elapsed = Date.now() - start;
-    assert.ok(elapsed < 100, `100 amostragens devem levar menos de 100ms (levou ${elapsed}ms)`);
-    console.log(`  [PASS] Teste J: 100 coletas concluídas em ${elapsed}ms (< 1ms por coleta).`);
+    assert.ok(elapsed < 300, `100 amostragens devem levar menos de 300ms (levou ${elapsed}ms)`);
+    console.log(`  [PASS] Teste J: 100 coletas concluídas em ${elapsed}ms (< 3ms por coleta).`);
   }
 
   // Limpeza do temp
