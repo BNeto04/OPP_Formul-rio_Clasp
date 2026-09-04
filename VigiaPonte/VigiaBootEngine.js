@@ -136,3 +136,11 @@ class VigiaBootEngine {
 }
 
 module.exports = VigiaBootEngine;
+
+if (require.main === module) {
+  const engine = new VigiaBootEngine();
+  engine.startContinuousMonitoring();
+
+  process.on('SIGINT', () => { engine.stop(); process.exit(0); });
+  process.on('SIGTERM', () => { engine.stop(); process.exit(0); });
+}

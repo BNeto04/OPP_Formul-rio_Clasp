@@ -16,7 +16,8 @@ function startVigiaProcess() {
   logLauncher(`Iniciando VigiaBootEngine (tentativa ${restartCount + 1}/${MAX_RESTARTS})...`);
 
   const child = spawn('node', [path.join(__dirname, 'VigiaBootEngine.js')], {
-    stdio: 'inherit',
+    cwd: __dirname,
+    stdio: 'ignore',
     windowsHide: true
   });
 
