@@ -104,6 +104,17 @@ class NaturalLanguageRouter {
       return 'ANTIGRAVITY_ACTIVITY_STATUS';
     }
 
+    // Pergunta semântica sobre o comando V ou propósito do V
+    if (
+      /(entende.*["']?v["']?|o que [eé].*["']?v["']?|para que serve.*["']?v["']?|significa.*["']?v["']?|comando.*["']?v["']?.*(issue|git|repo|verificar)|comando para verificar as issues)/i.test(normalizedText)
+    ) {
+      return 'V_COMMAND_EXPLANATION';
+    }
+
+    if (/(vamos continuar|pode continuar|continuar fluxo|seguir em frente)/i.test(normalizedText)) {
+      return 'ANTIGRAVITY_CONTINUE_REQUEST';
+    }
+
     if (/(esta so aberto ou esta trabalhando|esta so aberto ou trabalhando|so aberto ou trabalhando|trabalhando ou ocioso|esta ativo ou so aberto|so aberto ou ativo|esta trabalhando ou parado)/i.test(normalizedText)) {
       return 'ANTIGRAVITY_WORK_DISTINCTION';
     }
@@ -334,6 +345,25 @@ class NaturalLanguageRouter {
           }
           metadata.interlocutor = 'ANTIGRAVITY';
         }
+        break;
+      }
+
+      case 'V_COMMAND_EXPLANATION': {
+        subject = 'ANTIGRAVITY';
+        replyText = 'Sim, compreendo perfeitamente. O comando "v" é o acionamento canônico para verificar o repositório Git, inspecionar as Issues e o GitHub Project, e retomar o ciclo de execução operacional do Antigravity.';
+        metadata.interlocutor = 'ANTIGRAVITY';
+        metadata.route_reason = 'V_COMMAND_SEMANTICS_QUERY';
+        metadata.antigravity_available = true;
+        break;
+      }
+
+      case 'ANTIGRAVITY_CONTINUE_REQUEST': {
+        subject = 'ANTIGRAVITY';
+        const snapshot = await this.antigravityObserver.inspect();
+        replyText = `Estou ativo e pronto para continuar o fluxo. Tarefa atual: Issue #${snapshot.current_issue_number || 'ativa'} (${snapshot.current_task_id || 'em andamento'}).`;
+        metadata.interlocutor = 'ANTIGRAVITY';
+        metadata.route_reason = 'CONTINUE_REQUEST';
+        metadata.antigravity_available = true;
         break;
       }
 
@@ -577,8 +607,21 @@ class NaturalLanguageRouter {
       }
 
       default: {
-        replyText = 'Não tenho dados suficientes para responder a essa pergunta. Não compreendi sua solicitação. Por favor, pergunte sobre a saúde do computador, conectividade, processos autorizados ou Antigravity.';
-        metadata.interlocutor = 'VIGIA_FALLBACK';
+        const inv = this.recoveryManager ? this.recoveryManager.inventoryState() : {};
+        const isRunning = inv.antigravity ? inv.antigravity.running : true;
+        const isOutOfDomain = /(previs[aã]o|tempo|clima|t[oó]quio|receita|futebol|pol[ií]tica|presidente|filme|m[uú]sica|jogo|quem [eé]|onde fica|qual a capital)/i.test(normalized);
+
+        if (isAdversarial || isOutOfDomain || !isRunning) {
+          replyText = 'Não tenho dados suficientes para responder a essa pergunta. Não compreendi sua solicitação. Por favor, pergunte sobre a saúde do computador, conectividade, processos autorizados ou Antigravity.';
+          metadata.interlocutor = 'VIGIA_FALLBACK';
+          metadata.route_reason = isAdversarial ? 'ADVERSARIAL_BLOCKED' : (isOutOfDomain ? 'OUT_OF_DOMAIN' : 'ANTIGRAVITY_PROCESS_DOWN');
+          metadata.antigravity_available = isRunning;
+        } else {
+          replyText = 'Não compreendi totalmente essa solicitação de comando. Estou ativo e acompanhando o fluxo operacional. Você pode perguntar sobre a tarefa atual, status de execução ou enviar "v" para retomar.';
+          metadata.interlocutor = 'ANTIGRAVITY';
+          metadata.route_reason = 'ANTIGRAVITY_NLU_FALLBACK';
+          metadata.antigravity_available = true;
+        }
         metadata.confidence = 'LOW';
         break;
       }

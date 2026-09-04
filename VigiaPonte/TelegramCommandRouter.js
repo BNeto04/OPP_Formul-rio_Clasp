@@ -1,6 +1,13 @@
 const SanitizadorSegredos = require('./SanitizadorSegredos');
 const NaturalLanguageRouter = require('./NaturalLanguageRouter');
 
+function isCanonicalVCommand(rawOrNormalized) {
+  if (!rawOrNormalized || typeof rawOrNormalized !== 'string') return false;
+  const cleaned = rawOrNormalized.trim().toLowerCase();
+  const canonicalAllowlist = ['v', '/v', '/retomar', 'retomar'];
+  return canonicalAllowlist.includes(cleaned);
+}
+
 class TelegramCommandRouter {
   constructor(options = {}) {
     this.allowlist = options.allowlist;
@@ -71,37 +78,48 @@ class TelegramCommandRouter {
       };
     }
 
-    // 2.1 Comando direto de Retomada V (via /v, /retomar, ou texto puro "V" / "v")
-    if (command === '/v' || command === '/retomar' || rawText === 'V' || rawText === 'v') {
+    // 2.1 Comando direto de Retomada V (allowlist exata canônica, sem substring/prefix matching)
+    if (isCanonicalVCommand(rawText) || (rawText.startsWith('/') && isCanonicalVCommand(command))) {
+      const procState = this.recoveryManager ? this.recoveryManager.inventoryState() : {};
+      const antigravityRunning = procState.antigravity ? procState.antigravity.running : true;
+
       if (!this.resumeController) {
         this.resumeController = this.nlRouter ? this.nlRouter.resumeController : null;
       }
       if (!this.resumeController) {
         return {
           chatId,
-          text: 'VIGIA/FALLBACK > Controlador de retomada não disponível.'
+          text: 'ANTIGRAVITY > V recebido; iniciando percepção factual das Issues/Project.\n\n⚠️ Controlador de retomada não disponível.',
+          rawText: 'ANTIGRAVITY > V recebido; iniciando percepção factual das Issues/Project.\n\n⚠️ Controlador de retomada não disponível.',
+          route_reason: 'RESUME_CONTROLLER_UNAVAILABLE',
+          antigravity_available: antigravityRunning,
+          interlocutor: 'VIGIA/FALLBACK'
         };
       }
       const res = await this.resumeController.triggerResume('OWNER_REMOTE_TRIGGER', {
         resume_event_id: `owner_remote_${Date.now()}`
       });
 
+      const ackHeader = 'ANTIGRAVITY > V recebido; iniciando percepção factual das Issues/Project.\n\n';
+      let outcomeText = '';
       if (res.action === 'SEND_V') {
-        return {
-          chatId,
-          text: `ANTIGRAVITY > Comando V enviado com sucesso à conversa operacional (Evento: ${res.resume_event_id}). Fluxo retomado.`
-        };
+        outcomeText = `✅ Comando V enviado com sucesso à conversa operacional (Evento: ${res.resume_event_id}). Fluxo retomado.`;
       } else if (res.action === 'NO_OP') {
-        return {
-          chatId,
-          text: `VIGIA/FALLBACK > Retomada avaliada — Nenhuma ação necessária: ${res.reason}. Estado: ${res.final_state}.`
-        };
+        outcomeText = `ℹ️ Retomada avaliada — Nenhuma ação necessária: ${res.reason}. Estado: ${res.final_state}.`;
+      } else if (res.action === 'DEFER_LOCKED') {
+        outcomeText = `⏸️ Envio de V deferido com segurança: ${res.reason}. Estado: ${res.final_state}.`;
       } else {
-        return {
-          chatId,
-          text: `VIGIA/FALLBACK > Envio de V suspenso por segurança: ${res.reason}. Estado: ${res.final_state}.`
-        };
+        outcomeText = `⚠️ Envio de V suspenso por segurança: ${res.reason}. Estado: ${res.final_state}.`;
       }
+
+      return {
+        chatId,
+        text: `${ackHeader}${outcomeText}`,
+        rawText: `${ackHeader}${outcomeText}`,
+        route_reason: 'CANONICAL_V_COMMAND',
+        antigravity_available: antigravityRunning,
+        interlocutor: 'ANTIGRAVITY'
+      };
     }
 
     // 3. Se a mensagem for texto livre (sem prefixo /), roteia para a camada de Linguagem Natural Segura
@@ -114,18 +132,24 @@ class TelegramCommandRouter {
       const isHostQuery = nlResult.metadata && hostTelemetryIntents.includes(nlResult.metadata.intent);
 
       let prefix = '';
+      let routeReason = '';
       if (isHostQuery) {
         prefix = 'VIGIA > ';
-      } else if (!antigravityRunning || (nlResult.metadata && nlResult.metadata.interlocutor === 'VIGIA_FALLBACK')) {
+        routeReason = 'HOST_TELEMETRY_QUERY';
+      } else if (!antigravityRunning) {
         prefix = 'VIGIA/FALLBACK > ';
+        routeReason = 'ANTIGRAVITY_PROCESS_DOWN';
       } else {
         prefix = 'ANTIGRAVITY > ';
+        routeReason = (nlResult.metadata && nlResult.metadata.route_reason) ? nlResult.metadata.route_reason : 'ANTIGRAVITY_PRIMARY_CONVERSATION';
       }
 
       return {
         chatId,
         text: `${prefix}${nlResult.text}`,
         rawText: nlResult.text,
+        route_reason: routeReason,
+        antigravity_available: antigravityRunning,
         interlocutor: prefix.trim().replace(' >', '')
       };
     }
@@ -338,5 +362,7 @@ class TelegramCommandRouter {
     }
   }
 }
+
+TelegramCommandRouter.isCanonicalVCommand = isCanonicalVCommand;
 
 module.exports = TelegramCommandRouter;

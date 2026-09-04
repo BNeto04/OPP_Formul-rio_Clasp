@@ -137,24 +137,75 @@ async function testSuite() {
   const resE2 = await commandRouter.processUpdate({
     message: { from: { id: 100 }, chat: { id: 100 }, text: 'v' }
   });
+  assert.ok(resE2.text.startsWith('ANTIGRAVITY > V recebido; iniciando percepção factual'));
   assert.ok(resE2.text.includes('Comando V enviado'));
   assert.strictEqual(driver.sends.length, 2);
-  console.log('  [PASS] Teste E: Comandos "V" e "v" dispararam retomada autorizada com sucesso.');
+  console.log('  [PASS] Teste E: Comandos "V" e "v" dispararam retomada autorizada com ACK imediato.');
 
   // TESTE F: Sessão gráfica bloqueada -> DEFER_LOCKED sem digitar
-  console.log('\nTESTE F: Sessão gráfica bloqueada (Windows Locked) -> DEFER_LOCKED...');
+  console.log('\nTESTE F: Sessão gráfica bloqueada (Windows Locked) -> DEFER_LOCKED com ACK...');
   driver.locked = true;
   driver.sends = [];
   const resF = await commandRouter.processUpdate({
     message: { from: { id: 100 }, chat: { id: 100 }, text: 'V' }
   });
-  assert.ok(resF.text.startsWith('VIGIA/FALLBACK >'), 'Deve vir com fallback do sentinela');
-  assert.ok(resF.text.includes('GRAPHICAL_SESSION_LOCKED') || resF.text.includes('bloqueada'), 'Deve avisar sobre bloqueio');
+  assert.ok(resF.text.startsWith('ANTIGRAVITY > V recebido; iniciando percepção factual'), 'Deve conter ACK do Antigravity');
+  assert.ok(resF.text.includes('deferido') || resF.text.includes('bloqueada'), 'Deve avisar sobre deferimento');
   assert.strictEqual(driver.sends.length, 0, 'NENHUM input pode ser enviado em tela bloqueada');
-  console.log('  [PASS] Teste F: Tela bloqueada deferiu envio sem digitar às cegas.');
+  console.log('  [PASS] Teste F: Tela bloqueada deferiu envio sem digitar às cegas e com feedback claro.');
+
+  // TESTE G: Pergunta semântica discutindo o comando V -> conversa normal com ANTIGRAVITY >
+  console.log('\nTESTE G: Pergunta discutindo semântica de V -> conversa normal com Antigravity...');
+  driver.locked = false;
+  driver.running = true;
+  driver.sends = [];
+  const resG = await commandRouter.processUpdate({
+    message: { from: { id: 100 }, chat: { id: 100 }, text: 'você entende que o "v" é um comando para verificar as issues no repo do git?' }
+  });
+  assert.ok(resG.text.startsWith('ANTIGRAVITY >'), `Deve iniciar com ANTIGRAVITY >. Recebido: ${resG.text}`);
+  assert.ok(!resG.text.includes('Não tenho dados suficientes'), 'Não pode cair no fallback genérico');
+  assert.ok(resG.text.toLowerCase().includes('compreendo') || resG.text.toLowerCase().includes('comando "v"'), 'Deve responder sobre o comando V');
+  assert.strictEqual(driver.sends.length, 0, 'Discussão sobre V não pode disparar envio de V à UI');
+  assert.strictEqual(resG.route_reason, 'V_COMMAND_SEMANTICS_QUERY');
+  console.log('  [PASS] Teste G: Pergunta explicativa sobre "v" respondida coerentemente pelo Antigravity sem disparar trigger.');
+
+  // TESTE H: "vamos continuar" -> não é interpretado como V
+  console.log('\nTESTE H: Frase iniciada em "v" ("vamos continuar") -> não aciona máquina de V...');
+  driver.sends = [];
+  const resH = await commandRouter.processUpdate({
+    message: { from: { id: 100 }, chat: { id: 100 }, text: 'vamos continuar' }
+  });
+  assert.ok(resH.text.startsWith('ANTIGRAVITY >'), 'Deve ir para Antigravity');
+  assert.strictEqual(driver.sends.length, 0, '"vamos continuar" não pode disparar comando V');
+  assert.strictEqual(resH.route_reason, 'CONTINUE_REQUEST');
+  console.log('  [PASS] Teste H: Frases começando com "v" não confundidas com comando canônico V.');
+
+  // TESTE I: isCanonicalVCommand allowlist estrita
+  console.log('\nTESTE I: isCanonicalVCommand valida allowlist estrita fechada...');
+  assert.strictEqual(TelegramCommandRouter.isCanonicalVCommand('v'), true);
+  assert.strictEqual(TelegramCommandRouter.isCanonicalVCommand('V'), true);
+  assert.strictEqual(TelegramCommandRouter.isCanonicalVCommand('/v'), true);
+  assert.strictEqual(TelegramCommandRouter.isCanonicalVCommand('/retomar'), true);
+  assert.strictEqual(TelegramCommandRouter.isCanonicalVCommand('retomar'), true);
+  assert.strictEqual(TelegramCommandRouter.isCanonicalVCommand('você entende que o "v" é um comando?'), false);
+  assert.strictEqual(TelegramCommandRouter.isCanonicalVCommand('vamos continuar'), false);
+  assert.strictEqual(TelegramCommandRouter.isCanonicalVCommand('verifique as issues'), false);
+  assert.strictEqual(TelegramCommandRouter.isCanonicalVCommand('v1'), false);
+  console.log('  [PASS] Teste I: Allowlist canônica fechada comprovada sem matching difuso.');
+
+  // TESTE J: Metadados route_reason e antigravity_available em fallback factual
+  console.log('\nTESTE J: Verificação de route_reason e antigravity_available...');
+  driver.running = false;
+  const resJ = await commandRouter.processUpdate({
+    message: { from: { id: 100 }, chat: { id: 100 }, text: 'como vão as coisas?' }
+  });
+  assert.ok(resJ.text.startsWith('VIGIA/FALLBACK >'));
+  assert.strictEqual(resJ.antigravity_available, false);
+  assert.strictEqual(resJ.route_reason, 'ANTIGRAVITY_PROCESS_DOWN');
+  console.log('  [PASS] Teste J: Fallback devidamente justificado com metadados factuais.');
 
   console.log('\n====================================================');
-  console.log('✨ TESTES DE INTERLOCUÇÃO E PRIORIDADE DE CANAL APROVADOS!');
+  console.log('✨ TESTES DE INTERLOCUÇÃO E PRIORIDADE DE CANAL APROVADOS (A a J)!');
   console.log('====================================================\n');
 }
 

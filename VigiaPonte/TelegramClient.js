@@ -67,12 +67,33 @@ class TelegramClient {
 
   async sendMessage(chatId, text, parseMode = 'Markdown') {
     const sanitizedText = SanitizadorSegredos.sanitizarTexto(text);
-    const res = await this.request('sendMessage', {
-      chat_id: chatId,
-      text: sanitizedText,
-      parse_mode: parseMode
-    });
-    return res.data;
+    let res = null;
+    try {
+      res = await this.request('sendMessage', {
+        chat_id: chatId,
+        text: sanitizedText,
+        ...(parseMode ? { parse_mode: parseMode } : {})
+      });
+    } catch (e) {
+      if (parseMode) {
+        res = await this.request('sendMessage', {
+          chat_id: chatId,
+          text: sanitizedText
+        });
+        return res ? res.data : null;
+      }
+      throw e;
+    }
+
+    if (res && res.data && !res.data.ok && parseMode) {
+      const retryRes = await this.request('sendMessage', {
+        chat_id: chatId,
+        text: sanitizedText
+      });
+      return retryRes ? retryRes.data : null;
+    }
+
+    return res ? res.data : null;
   }
 }
 
