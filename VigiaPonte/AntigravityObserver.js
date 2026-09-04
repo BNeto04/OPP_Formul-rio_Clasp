@@ -118,8 +118,15 @@ class AntigravityObserver {
         if (/OWNER_DECISION_REQUIRED:\s*true/i.test(lastComment.body)) {
           ownerDecisionRequired = true;
         }
-        if (/DECISION:\s*APPROVE/i.test(lastComment.body)) {
+
+        // Verifica se a decisão foi APPROVE definitivo (sem exigência de correção)
+        const isDefinitiveApprove = /DECISION:\s*APPROVE(\s*$|\s*\n)/im.test(lastComment.body) &&
+          !/CORRECTION|REQUIRED|PENDENTE/i.test(lastComment.body);
+
+        if (activeIssue.state === 'closed' || isDefinitiveApprove) {
           cardStatus = 'DONE';
+        } else if (/DECISION:\s*APPROVE_WITH/i.test(lastComment.body) || /status_after":"REVIEW"/i.test(lastComment.body)) {
+          cardStatus = 'REVIEW';
         }
 
         // Extrai resumo da última ação do comentário
@@ -209,6 +216,10 @@ class AntigravityObserver {
       executionPhase = 'DIVERGENT';
       confidence = 'MEDIUM';
       summary = `Estado divergente detectado: A Issue #${task.issueNumber} consta como IN_PROGRESS no GitHub, porém o processo Antigravity não está em execução no host local.`;
+    } else if (!processRunning && isTaskActive && task.cardStatus === 'REVIEW') {
+      executionPhase = 'REVIEW';
+      confidence = 'HIGH';
+      summary = `A Issue #${task.issueNumber} (${task.taskId}) foi concluída e está em REVIEW, aguardando auditoria. O processo Antigravity está em repouso no momento.`;
     } else if (!processRunning) {
       executionPhase = 'STOPPED';
       confidence = 'HIGH';

@@ -277,13 +277,39 @@ async function testSuite() {
     console.log('  [PASS] Teste N: Alerta repetido suprimido com sucesso por cooldown.');
   }
 
+  // TESTE O: /antigravity e aliases com/sem @botname
+  console.log('\nTESTE O: comandos /antigravity, /antigravity@botname e aliases...');
+  {
+    const cmds = [
+      '/antigravity',
+      '/antigravity@sentinela_alert_bot',
+      '/ultimoerro',
+      '/acordarantigravity'
+    ];
+    for (const cmd of cmds) {
+      const up = {
+        update_id: 15,
+        message: {
+          message_id: 115,
+          from: { id: 987654321 },
+          chat: { id: 987654321 },
+          text: cmd
+        }
+      };
+      const reply = await router.processUpdate(up);
+      assert.ok(reply && reply.text, `Resposta deve existir para ${cmd}`);
+      assert.ok(!reply.text.includes('COMANDO_NAO_AUTORIZADO'), `Comando ${cmd} não pode ser rejeitado com COMANDO_NAO_AUTORIZADO`);
+    }
+    console.log('  [PASS] Teste O: /antigravity, sufixo @botname e aliases aceitos com sucesso.');
+  }
+
   // Limpeza
   try {
     if (fs.existsSync(allowlistPath)) fs.unlinkSync(allowlistPath);
     fs.rmdirSync(tempDir);
   } catch (e) {}
 
-  console.log('\n=== TODOS OS TESTES TELEGRAM (A a N) APROVADOS COM SUCESSO! ===');
+  console.log('\n=== TODOS OS TESTES TELEGRAM (A a O) APROVADOS COM SUCESSO! ===');
 }
 
 testSuite().catch(err => {

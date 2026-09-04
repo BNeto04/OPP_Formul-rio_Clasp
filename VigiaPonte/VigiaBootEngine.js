@@ -133,10 +133,14 @@ class VigiaBootEngine {
   }
 
   async startContinuousMonitoring(dryRun = false) {
-    if (this.isRunning) return;
+    if (this.isRunning) return { success: false, reason: 'ALREADY_MONITORING' };
     this.isRunning = true;
 
-    await this.runBootSequence(dryRun);
+    const bootRes = await this.runBootSequence(dryRun);
+    if (!bootRes || !bootRes.success) {
+      this.isRunning = false;
+      return bootRes;
+    }
 
     if (this.telegramPoller) {
       try {
@@ -197,7 +201,15 @@ module.exports = VigiaBootEngine;
 
 if (require.main === module) {
   const engine = new VigiaBootEngine();
-  engine.startContinuousMonitoring();
+  engine.startContinuousMonitoring().then(res => {
+    if (res && res.success === false) {
+      console.warn(`[VigiaBootEngine] Instância duplicada evitada: ${res.reason} (PID ativo: ${res.activePid}). Encerrando processo.`);
+      process.exit(0);
+    }
+  }).catch(err => {
+    console.error(`[VigiaBootEngine] Falha fatal no boot:`, err);
+    process.exit(1);
+  });
 
   process.on('SIGINT', () => { engine.stop(); process.exit(0); });
   process.on('SIGTERM', () => { engine.stop(); process.exit(0); });

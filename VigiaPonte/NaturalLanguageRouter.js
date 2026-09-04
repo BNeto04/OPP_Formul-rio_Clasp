@@ -219,15 +219,15 @@ class NaturalLanguageRouter {
     // ----------------------------------------------------
     // Detecção Semântica Estendida de Intenções do Antigravity
     // ----------------------------------------------------
-    const hasAntigravity = /\bantigravity\b/i.test(lower) || (/\bele\b/i.test(lower) && !lower.includes('internet'));
+    const hasAntigravity = /antigrav[a-z]*/i.test(lower) || (/\bele\b/i.test(lower) && !lower.includes('internet'));
 
     if (hasAntigravity) {
       // 1. Ação de despertar / abrir
       if (
-        /acorde\s+(o\s+)?antigravity/i.test(lower) ||
-        /acordar\s+(o\s+)?antigravity/i.test(lower) ||
-        /abra\s+(o\s+)?antigravity/i.test(lower) ||
-        /inicie\s+(o\s+)?antigravity/i.test(lower)
+        /acorde\s+(o\s+)?antigrav[a-z]*/i.test(lower) ||
+        /acordar\s+(o\s+)?antigrav[a-z]*/i.test(lower) ||
+        /abra\s+(o\s+)?antigrav[a-z]*/i.test(lower) ||
+        /inicie\s+(o\s+)?antigrav[a-z]*/i.test(lower)
       ) {
         return 'WAKE_ANTIGRAVITY_REQUEST';
       }
@@ -260,7 +260,7 @@ class NaturalLanguageRouter {
         /atividade/i.test(lower) ||
         /status/i.test(lower) ||
         /vivo|ativo|aberto|rodando|funcionando/i.test(lower) ||
-        /\bantigravity\b/i.test(lower)
+        /antigrav[a-z]*/i.test(lower)
       ) {
         return 'ANTIGRAVITY_ACTIVITY_STATUS';
       }

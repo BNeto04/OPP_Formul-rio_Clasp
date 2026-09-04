@@ -14,8 +14,8 @@ class LockManager {
     if (pid === process.pid) return true;
     try {
       if (process.platform === 'win32') {
-        const out = execSync(`tasklist /FI "PID eq ${pid}" /NH`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-        return out.includes(String(pid));
+        const out = execSync(`tasklist /FI "PID eq ${pid}" /FI "IMAGENAME eq node.exe" /NH`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+        return out.toLowerCase().includes('node.exe') && out.includes(String(pid));
       } else {
         process.kill(pid, 0);
         return true;

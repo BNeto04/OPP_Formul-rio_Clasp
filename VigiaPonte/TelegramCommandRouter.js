@@ -29,7 +29,8 @@ class TelegramCommandRouter {
     const chatId = msg.chat ? msg.chat.id : null;
     const username = msg.from ? (msg.from.username || msg.from.first_name || '') : '';
     const rawText = msg.text.trim();
-    const command = rawText.split(' ')[0].toLowerCase();
+    // Suporta tanto /comando quanto /comando@NomeDoBot
+    const command = rawText.split(' ')[0].split('@')[0].toLowerCase();
 
     // 1. Caso especial: Pareamento inicial com /start
     if (command === '/start') {
@@ -77,6 +78,7 @@ class TelegramCommandRouter {
     // 4. Roteamento de comandos estruturados V1 (/comando)
     switch (command) {
       case '/ajuda':
+      case '/help':
         return {
           chatId,
           text: '📋 *Comandos Autorizados V1:*\n\n' +
@@ -85,8 +87,8 @@ class TelegramCommandRouter {
             '/internet — Conectividade e histórico de quedas\n' +
             '/processos — Estado dos processos inventariados\n' +
             '/antigravity — Inspeção factual da atividade do Antigravity\n' +
-            '/ultimo_erro — Último log ou incidente registrado\n' +
-            '/acordar_antigravity — Foco ou recuperação segura do Antigravity\n' +
+            '/ultimoerro — Último log ou incidente registrado\n' +
+            '/acordarantigravity — Foco ou recuperação segura do Antigravity\n' +
             '/ajuda — Esta mensagem de orientação'
         };
 
@@ -159,7 +161,8 @@ class TelegramCommandRouter {
         return { chatId, text };
       }
 
-      case '/ultimo_erro': {
+      case '/ultimo_erro':
+      case '/ultimoerro': {
         const entries = this.journal ? this.journal.readEntries(10) : [];
         const errors = entries.filter(e => e.action && e.action.includes('ERROR') || e.owner_decision_required);
         const last = errors.length > 0 ? errors[errors.length - 1] : (entries.length > 0 ? entries[entries.length - 1] : null);
@@ -178,7 +181,8 @@ class TelegramCommandRouter {
         };
       }
 
-      case '/acordar_antigravity': {
+      case '/acordar_antigravity':
+      case '/acordarantigravity': {
         if (!this.recoveryManager) {
           return { chatId, text: 'Gerenciador de recuperação não inicializado.' };
         }
