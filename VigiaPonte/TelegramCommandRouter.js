@@ -93,7 +93,8 @@ class TelegramCommandRouter {
         };
 
       case '/antigravity': {
-        const snapshot = await this.nlRouter.antigravityObserver.inspect();
+        const isDetailed = rawText.includes('detalhes');
+        const snapshot = await this.nlRouter.antigravityObserver.inspect(isDetailed);
         return {
           chatId,
           text: '🤖 *Observabilidade Antigravity*\n\n' + snapshot.summary

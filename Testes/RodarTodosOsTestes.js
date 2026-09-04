@@ -55,6 +55,8 @@ console.log('');
 require('./TestVigiaNaturalLanguage');
 console.log('');
 require('./TestVigiaObservarAntigravity');
+console.log('');
+require('./TestVigiaRefatorNluObs');
 
 if (process.exitCode && process.exitCode !== 0) {
   console.error('\n====================================================');
