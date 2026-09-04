@@ -10,6 +10,7 @@ const TelegramAllowlist = require('./TelegramAllowlist');
 const TelegramCommandRouter = require('./TelegramCommandRouter');
 const TelegramAlertManager = require('./TelegramAlertManager');
 const TelegramPoller = require('./TelegramPoller');
+const OperationalResumeController = require('./OperationalResumeController');
 
 class VigiaBootEngine {
   constructor(options = {}) {
@@ -35,16 +36,23 @@ class VigiaBootEngine {
         this.telegramAllowlist = new TelegramAllowlist({
           allowlistPath: options.telegramAllowlistPath || TelegramConfig.getAllowlistPath()
         });
+        this.telegramAlertManager = new TelegramAlertManager({
+          client: this.telegramClient,
+          allowlist: this.telegramAllowlist
+        });
+        this.resumeController = options.resumeController || new OperationalResumeController({
+          recoveryManager: this.recoveryManager,
+          internetMonitor: this.internetMonitor,
+          telegramAlertManager: this.telegramAlertManager,
+          journalPath: options.resumeJournalPath
+        });
         this.telegramRouter = new TelegramCommandRouter({
           allowlist: this.telegramAllowlist,
           healthMonitor: this.healthMonitor,
           recoveryManager: this.recoveryManager,
           internetMonitor: this.internetMonitor,
-          journal: this.journal
-        });
-        this.telegramAlertManager = new TelegramAlertManager({
-          client: this.telegramClient,
-          allowlist: this.telegramAllowlist
+          journal: this.journal,
+          resumeController: this.resumeController
         });
         this.telegramPoller = new TelegramPoller({
           client: this.telegramClient,
@@ -53,6 +61,15 @@ class VigiaBootEngine {
       }
     } catch (err) {
       // remote_fail_open_for_local_watchdog = true
+    }
+
+    if (!this.resumeController) {
+      this.resumeController = options.resumeController || new OperationalResumeController({
+        recoveryManager: this.recoveryManager,
+        internetMonitor: this.internetMonitor,
+        telegramAlertManager: this.telegramAlertManager || null,
+        journalPath: options.resumeJournalPath
+      });
     }
 
     this.pollIntervalMs = options.pollIntervalMs || 15000;
@@ -121,6 +138,18 @@ class VigiaBootEngine {
       owner_decision_required: false
     });
 
+    // 8. Ciclo de Retomada Operacional Canônico pós-boot
+    let resumeResult = null;
+    if (this.resumeController && typeof this.resumeController.triggerResume === 'function') {
+      try {
+        resumeResult = await this.resumeController.triggerResume('BOOT_RECOVERY', {
+          resume_event_id: `boot_${this.sessionId}`
+        });
+      } catch (e) {
+        // fail-open
+      }
+    }
+
     return {
       success: true,
       sessionId: this.sessionId,
@@ -128,7 +157,8 @@ class VigiaBootEngine {
       internet: netStatus,
       procStateBefore,
       recoveryResults,
-      procStateAfter
+      procStateAfter,
+      resumeResult
     };
   }
 
@@ -156,6 +186,7 @@ class VigiaBootEngine {
     this.timer = setInterval(async () => {
       if (!this.isRunning) return;
       try {
+        // 1. Verificação de Conectividade
         const netStatus = await this.internetMonitor.check();
         if (netStatus.event) {
           this.journal.recordEntry({
@@ -173,6 +204,31 @@ class VigiaBootEngine {
               this.telegramAlertManager.sendAlert('INTERNET_DOWN', '⚠️ *ALERTA DE CONECTIVIDADE*\n\nConexão com a Internet perdida no host.');
             } else if (netStatus.event.type === 'INTERNET_UP') {
               this.telegramAlertManager.sendAlert('INTERNET_UP', '✅ *CONECTIVIDADE RESTAURADA*\n\nConexão com a Internet restabelecida com sucesso.');
+            }
+          }
+
+          if (netStatus.event.type === 'INTERNET_UP') {
+            if (this.resumeController && typeof this.resumeController.triggerResume === 'function') {
+              try {
+                await this.resumeController.triggerResume('INTERNET_RETURN', {
+                  resume_event_id: `net_return_${Date.now()}`
+                });
+              } catch (e) {}
+            }
+          }
+        }
+
+        // 2. Verificação de Processos Autorizados
+        const procNow = this.recoveryManager.inventoryState();
+        if (!procNow.antigravity || !procNow.antigravity.running) {
+          const recRes = this.recoveryManager.restoreComponent('antigravity', dryRun);
+          if (recRes && recRes.action === 'STARTED_PROCESS') {
+            if (this.resumeController && typeof this.resumeController.triggerResume === 'function') {
+              try {
+                await this.resumeController.triggerResume('ANTIGRAVITY_RECOVERY', {
+                  resume_event_id: `ag_recovery_${Date.now()}`
+                });
+              } catch (e) {}
             }
           }
         }

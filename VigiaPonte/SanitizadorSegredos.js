@@ -33,6 +33,18 @@ function sanitizarTexto(texto) {
   return limpo;
 }
 
+function sanitizarObjeto(obj) {
+  if (!obj) return obj;
+  try {
+    const raw = JSON.stringify(obj);
+    const sanitized = sanitizarTexto(raw);
+    return JSON.parse(sanitized);
+  } catch (e) {
+    return obj;
+  }
+}
+
 module.exports = {
-  sanitizarTexto: sanitizarTexto
+  sanitizarTexto: sanitizarTexto,
+  sanitizarObjeto: sanitizarObjeto
 };

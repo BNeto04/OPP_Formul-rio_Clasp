@@ -70,6 +70,14 @@ async function main() {
   } else if (typeof testModeloMemoria === 'function') {
     await testModeloMemoria();
   }
+  console.log('');
+
+  const testRetomadaV = require('./TestVigiaRetomadaV');
+  if (testRetomadaV && typeof testRetomadaV.runTestSuite === 'function') {
+    await testRetomadaV.runTestSuite();
+  } else if (typeof testRetomadaV === 'function') {
+    await testRetomadaV();
+  }
 
   if (process.exitCode && process.exitCode !== 0) {
     console.error('\n====================================================');

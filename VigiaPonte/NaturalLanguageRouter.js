@@ -9,6 +9,7 @@ const AntigravityObserver = require('./AntigravityObserver');
 const ResponseFormatter = require('./ResponseFormatter');
 const ConversationMemoryStore = require('./ConversationMemoryStore');
 const AdaptadorOllama = require('./AdaptadorOllama');
+const OperationalResumeController = require('./OperationalResumeController');
 
 class NaturalLanguageRouter {
   constructor(options = {}) {
@@ -19,6 +20,11 @@ class NaturalLanguageRouter {
     this.ollamaAdapter = options.ollamaAdapter || AdaptadorOllama;
     this.antigravityObserver = options.antigravityObserver || new AntigravityObserver({
       recoveryManager: this.recoveryManager
+    });
+    this.resumeController = options.resumeController || new OperationalResumeController({
+      recoveryManager: this.recoveryManager,
+      internetMonitor: this.internetMonitor,
+      antigravityObserver: this.antigravityObserver
     });
     this.memoryStore = options.memoryStore || new ConversationMemoryStore({
       storagePath: options.memoryStoragePath,
@@ -49,6 +55,14 @@ class NaturalLanguageRouter {
       return 'SECURITY_BLOCKED';
     }
 
+    // 0.1 Bloqueio estrito de digitação de texto arbitrário na UI
+    if (
+      /(digite|escreva|digitar|escrever).*(tela|interface|antigravity|janela|chat)/i.test(normalizedText) ||
+      /(mande digitar|digite ['"].+['"]|escreva ['"].+['"])/i.test(normalizedText)
+    ) {
+      return 'ARBITRARY_UI_TEXT_BLOCKED';
+    }
+
     // 1. Verificação de comando para esquecer contexto
     if (
       /(esque[cç]a|limpar|resetar|esquecer|apagar).*(contexto|memoria|historico)/i.test(normalizedText) ||
@@ -66,6 +80,31 @@ class NaturalLanguageRouter {
     const hasContextAntigravity = currentContext && currentContext.subject === 'ANTIGRAVITY';
     const hasContextNetwork = currentContext && currentContext.subject === 'NETWORK';
     const isAntigravitySubject = hasAntigravity || (hasPronoun && hasContextAntigravity) || (hasContextAntigravity && !hasAntigravity && /(fazendo|erro|antes|esperando)/i.test(normalizedText));
+
+    // Consultas de ciclo de retomada e envio de V (Issue #43)
+    if (/(o que aconteceu no ultimo ciclo|ultimo ciclo de retomada|o que houve no ciclo de retomada|ultimo ciclo|como foi a retomada|status do ultimo ciclo)/i.test(normalizedText)) {
+      return 'RESUME_LAST_CYCLE_STATUS';
+    }
+
+    if (/(voce mandou v|mandou v|voce enviou v|enviou v|enviou o v|por que nao mandou v|por que nao enviou v)/i.test(normalizedText)) {
+      return 'RESUME_V_SENT_QUERY';
+    }
+
+    if (/(retome o fluxo|retomar fluxo|retome a execucao|retomar o fluxo|pode retomar)/i.test(normalizedText)) {
+      return 'OWNER_TRIGGER_RESUME';
+    }
+
+    if (/(esta so aberto ou esta trabalhando|esta so aberto ou trabalhando|so aberto ou trabalhando|trabalhando ou ocioso|esta ativo ou so aberto|so aberto ou ativo|esta trabalhando ou parado)/i.test(normalizedText)) {
+      return 'ANTIGRAVITY_WORK_DISTINCTION';
+    }
+
+    if (/(qual foi a ultima entrega|qual a ultima entrega|o que ele entregou por ultimo|ultima entrega do antigravity)/i.test(normalizedText)) {
+      return 'ANTIGRAVITY_LAST_DELIVERY';
+    }
+
+    if (/(o antigravity foi reaberto|antigravity foi reaberto|ele foi reaberto|foi reaberto hoje|antigravity foi reiniciado)/i.test(normalizedText)) {
+      return 'ANTIGRAVITY_WAS_REOPENED';
+    }
 
     // 2. Detecção prioritária de erro específico do sistema / último erro geral
     if (/(qual foi o ultimo erro|ultimo erro do sistema|erro no journal|ultimo erro)/i.test(normalizedText)) {
@@ -213,9 +252,102 @@ class NaturalLanguageRouter {
         break;
       }
 
+      case 'ARBITRARY_UI_TEXT_BLOCKED': {
+        replyText = '⛔ Operação negada. O Vigia opera sob a política restrita de payload único (\'V\'). Digitação arbitrária de texto na interface é proibida por contrato.';
+        metadata.confidence = 'HIGH';
+        break;
+      }
+
       case 'FORGET_CONTEXT': {
         this.clearContext(userId);
         replyText = '🧹 Memória contextual limpa com sucesso. Os registros de auditoria e journals do host permanecem íntegros.';
+        break;
+      }
+
+      case 'RESUME_LAST_CYCLE_STATUS': {
+        subject = 'ANTIGRAVITY';
+        const lastEvent = this.resumeController && this.resumeController.eventStore ? this.resumeController.eventStore.getLastEvent() : null;
+        if (lastEvent) {
+          replyText = `No último ciclo de retomada (${lastEvent.trigger_type}, evento ${lastEvent.resume_event_id}): ação ${lastEvent.result}, motivo: ${lastEvent.reason || 'Concluído'}.`;
+        } else {
+          replyText = 'Nenhum ciclo de retomada operacional foi disparado até o momento.';
+        }
+        break;
+      }
+
+      case 'RESUME_V_SENT_QUERY': {
+        subject = 'ANTIGRAVITY';
+        const lastEvent = this.resumeController && this.resumeController.eventStore ? this.resumeController.eventStore.getLastEvent() : null;
+        if (lastEvent && lastEvent.send_confirmed) {
+          replyText = `Sim, o comando V foi enviado e confirmado para a conversa operacional em ${lastEvent.detected_at || 'recente'} (Evento: ${lastEvent.resume_event_id}).`;
+        } else if (lastEvent) {
+          replyText = `Não enviei V: ${lastEvent.reason || 'ação suprimida ou inibida por política de segurança'}.`;
+        } else {
+          replyText = 'Não enviei V: nenhum evento de interrupção ou retomada exigiu o envio até o momento.';
+        }
+        break;
+      }
+
+      case 'OWNER_TRIGGER_RESUME': {
+        subject = 'ANTIGRAVITY';
+        if (this.resumeController && typeof this.resumeController.triggerResume === 'function') {
+          const res = await this.resumeController.triggerResume('OWNER_REMOTE_TRIGGER', {
+            resume_event_id: `owner_nl_${Date.now()}`
+          });
+          if (res.action === 'SEND_V') {
+            replyText = 'Fluxo retomado: comando V enviado com sucesso à conversa operacional.';
+          } else if (res.action === 'NO_OP') {
+            replyText = `Retomada avaliada: nenhuma ação necessária (${res.reason}).`;
+          } else {
+            replyText = `Não enviei V: ${res.reason}.`;
+          }
+        } else {
+          replyText = 'Controlador de retomada não disponível.';
+        }
+        break;
+      }
+
+      case 'ANTIGRAVITY_WORK_DISTINCTION': {
+        subject = 'ANTIGRAVITY';
+        let opState = null;
+        if (this.resumeController && typeof this.resumeController.evaluateOperationalState === 'function') {
+          opState = await this.resumeController.evaluateOperationalState();
+        }
+        if (opState) {
+          replyText = opState.description;
+          metadata.operational_state = opState.state;
+        } else {
+          const snapshot = await this.antigravityObserver.inspect();
+          if (snapshot.execution_phase === 'IN_PROGRESS') {
+            replyText = `O Antigravity está ativo e trabalhando na Issue #${snapshot.current_issue_number} (${snapshot.current_task_id}).`;
+          } else {
+            replyText = 'O Antigravity está aberto e com interface pronta, porém ocioso / aguardando retomada ou comando.';
+          }
+        }
+        break;
+      }
+
+      case 'ANTIGRAVITY_LAST_DELIVERY': {
+        subject = 'ANTIGRAVITY';
+        const snapshot = await this.antigravityObserver.inspect();
+        const taskLabel = snapshot.current_task_id ? `(${snapshot.current_task_id})` : `(Issue #${snapshot.current_issue_number || 'recente'})`;
+        if (snapshot.last_action_summary) {
+          replyText = `A última entrega ou ação registrada na tarefa ${taskLabel} foi: "${snapshot.last_action_summary}".`;
+        } else {
+          replyText = snapshot.summary;
+        }
+        break;
+      }
+
+      case 'ANTIGRAVITY_WAS_REOPENED': {
+        subject = 'ANTIGRAVITY';
+        const entries = this.journal ? this.journal.readEntries(20) : [];
+        const reopenEntries = entries.filter(e => e.action && (e.action.includes('RECOVER') || e.action.includes('STARTED_PROCESS')) && JSON.stringify(e).toLowerCase().includes('antigravity'));
+        if (reopenEntries.length > 0) {
+          replyText = 'Sim, o Antigravity foi reaberto hoje pelo sistema de recuperação do Vigia.';
+        } else {
+          replyText = 'Não, o Antigravity não precisou ser reaberto hoje. O processo permaneceu estável.';
+        }
         break;
       }
 

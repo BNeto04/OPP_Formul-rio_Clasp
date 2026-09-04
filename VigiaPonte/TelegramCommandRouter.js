@@ -8,6 +8,7 @@ class TelegramCommandRouter {
     this.recoveryManager = options.recoveryManager;
     this.internetMonitor = options.internetMonitor;
     this.journal = options.journal;
+    this.resumeController = options.resumeController || null;
     this.startTime = Date.now();
     this.nlRouter = options.nlRouter || new NaturalLanguageRouter({
       healthMonitor: this.healthMonitor,
@@ -15,8 +16,12 @@ class TelegramCommandRouter {
       internetMonitor: this.internetMonitor,
       journal: this.journal,
       ollamaAdapter: options.ollamaAdapter || null,
+      resumeController: this.resumeController,
       contextTtlMs: options.contextTtlMs || 300000
     });
+    if (!this.resumeController && this.nlRouter && this.nlRouter.resumeController) {
+      this.resumeController = this.nlRouter.resumeController;
+    }
   }
 
   async processUpdate(update) {
@@ -69,9 +74,24 @@ class TelegramCommandRouter {
     // 3. Se a mensagem for texto livre (sem prefixo /), roteia para a camada de Linguagem Natural Segura
     if (!rawText.startsWith('/')) {
       const nlResult = await this.nlRouter.process(rawText, fromId);
+      let interlocutorHeader = '';
+      const procState = this.recoveryManager ? this.recoveryManager.inventoryState() : {};
+      const antigravityRunning = procState.antigravity ? procState.antigravity.running : true;
+
+      const fallbackIntents = ['SYSTEM_STATUS', 'SYSTEM_HEALTH', 'HOST_HEALTH', 'INTERNET_STATUS', 'INTERNET_HISTORY', 'PROCESS_INVENTORY'];
+      const isFallback = !antigravityRunning || (nlResult.metadata && fallbackIntents.includes(nlResult.metadata.intent));
+
+      if (isFallback) {
+        interlocutorHeader = '🛡️ *VIGIA (FALLBACK)*\n\n';
+      } else {
+        interlocutorHeader = '⚙️ *ANTIGRAVITY*\n\n';
+      }
+
       return {
         chatId,
-        text: nlResult.text
+        text: `${interlocutorHeader}${nlResult.text}`,
+        rawText: nlResult.text,
+        interlocutor: isFallback ? 'VIGIA_FALLBACK' : 'ANTIGRAVITY'
       };
     }
 
@@ -87,6 +107,8 @@ class TelegramCommandRouter {
             '/internet — Conectividade e histórico de quedas\n' +
             '/processos — Estado dos processos inventariados\n' +
             '/antigravity — Inspeção factual da atividade do Antigravity\n' +
+            '/retomar — Disparo de ciclo de retomada e envio de V\n' +
+            '/vigia — Contato direto com o Sentinela (fallback operacional)\n' +
             '/ultimoerro — Último log ou incidente registrado\n' +
             '/acordarantigravity — Foco ou recuperação segura do Antigravity\n' +
             '/esquecer_contexto — Limpa a memória contextual da conversa recente\n' +
@@ -217,6 +239,59 @@ class TelegramCommandRouter {
           chatId,
           text: '🧹 *Contexto Conversacional Limpo*\n\nA memória recente desta conversa foi esquecida. Os journals e registros operacionais continuam íntegros.'
         };
+      }
+
+      case '/vigia': {
+        const uptimeMin = Math.round((Date.now() - this.startTime) / 60000);
+        const netState = this.internetMonitor ? this.internetMonitor.state : 'UNKNOWN';
+        const procState = this.recoveryManager ? this.recoveryManager.inventoryState() : {};
+        const antigravityRunning = procState.antigravity ? procState.antigravity.running : false;
+        return {
+          chatId,
+          text: '🛡️ *Vigia da Ponte (Sentinela Host)*\n\n' +
+            'Interlocutor de sentinela direto ativo no host DESKTOP-URNBR9C.\n' +
+            '• *Papel:* Fallback operacional e integridade de processos\n' +
+            '• *Interlocutor Primário:* ⚙️ Antigravity (' + (antigravityRunning ? '🟢 ATIVO' : '⚪ PARADO') + ')\n' +
+            '• *Conexão Internet:* ' + (netState === 'UP' ? '🟢 ONLINE' : '🔴 OFFLINE') + '\n' +
+            '• *Uptime Sentinela:* ' + uptimeMin + 'm\n\n' +
+            'Digite /ajuda para lista de comandos do Vigia.'
+        };
+      }
+
+      case '/retomar': {
+        if (!this.resumeController) {
+          this.resumeController = this.nlRouter ? this.nlRouter.resumeController : null;
+        }
+        if (!this.resumeController) {
+          return {
+            chatId,
+            text: '🛡️ *VIGIA (FALLBACK)*\n\nControlador de retomada não disponível.'
+          };
+        }
+        const res = await this.resumeController.triggerResume('OWNER_REMOTE_TRIGGER', {
+          resume_event_id: `owner_remote_cmd_${Date.now()}`
+        });
+
+        let msg = '';
+        if (res.action === 'SEND_V') {
+          msg = '⚙️ *ANTIGRAVITY*\n\n' +
+            '✅ *Comando V enviado com sucesso!*\n' +
+            '• Conversa operacional focada e fluxo retomado.\n' +
+            '• Evento: `' + res.resume_event_id + '`\n' +
+            '• Confirmação: V_SENT_CONFIRMED';
+        } else if (res.action === 'NO_OP') {
+          msg = '🛡️ *VIGIA (FALLBACK)*\n\n' +
+            'ℹ️ *Retomada avaliada — Nenhuma ação necessária:*\n' +
+            '• Motivo: ' + res.reason + '\n' +
+            '• Estado: ' + res.final_state;
+        } else {
+          msg = '🛡️ *VIGIA (FALLBACK)*\n\n' +
+            '⚠️ *Envio de V suspenso por segurança:*\n' +
+            '• Motivo: ' + res.reason + '\n' +
+            '• Estado: ' + res.final_state;
+        }
+
+        return { chatId, text: msg };
       }
 
       default:

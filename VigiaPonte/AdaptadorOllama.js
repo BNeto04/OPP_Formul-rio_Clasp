@@ -311,6 +311,17 @@ function interpretarNLU(texto, contexto = null) {
       });
     }
 
+    // Guardrail determinístico: assuntos expressamente alheios ao domínio do sistema
+    const isOutOfDomain = /(previs[aã]o|tempo|clima|t[oó]quio|receita|futebol|pol[ií]tica|presidente|filme|m[uú]sica|jogo|quem [eé]|onde fica|qual a capital)/i.test(textoSanitizado);
+    if (isOutOfDomain) {
+      return resolve({
+        sucesso: true,
+        fonte: 'DETERMINISTIC_GUARD',
+        intent: 'UNKNOWN_OR_UNSUPPORTED',
+        confidence: 'HIGH'
+      });
+    }
+
     const subjectContext = contexto && contexto.subject ? `Assunto anterior: ${contexto.subject}` : 'Sem assunto anterior';
 
     const prompt = `NLU Vigia: classifique a intencao em JSON {"intent": "INTENT", "confidence": "HIGH"}.
