@@ -170,28 +170,18 @@ function classificarComOllama(texto) {
 
     const textoSanitizado = sanitizarTexto(texto);
 
-    const prompt = `Voce e um classificador operacional de terminal.
-Analise a mensagem abaixo e classifique estritamente em UMA das seguintes categorias:
-- WAITING_INTERACTION (se o terminal estiver esperando confirmacao do usuario)
-- PERMISSION_REQUIRED (se exigir permissao de seguranca, admin ou autorizacao)
-- TRANSIENT_ERROR (se for erro transitorio de rede ou conexao)
-- TIMEOUT_OR_STALL (se for timeout ou travamento)
-- PROCESS_STOPPED (se processo morreu)
-- INFO (se for apenas informativo)
-- UNKNOWN_NEEDS_REPORT (qualquer outra situacao)
-
-Responda APENAS um JSON no formato:
-{"categoria": "CATEGORIA", "motivo": "explicacao curta", "decisao_proprietario": true|false}
-
-Mensagem:
-${textoSanitizado}`;
+    const prompt = `Classifique a mensagem operacional em JSON {"categoria": "CATEGORIA", "motivo": "explicacao curta", "decisao_proprietario": false}.
+Categorias: WAITING_INTERACTION, PERMISSION_REQUIRED, TRANSIENT_ERROR, TIMEOUT_OR_STALL, PROCESS_STOPPED, INFO, UNKNOWN_NEEDS_REPORT.
+Mensagem: ${textoSanitizado}`;
 
     const requestData = JSON.stringify({
       model: Config.OLLAMA_MODEL,
       prompt: prompt,
       stream: false,
+      format: 'json',
       options: {
-        num_ctx: 2048,
+        num_ctx: 1024,
+        num_predict: 60,
         temperature: 0.1
       }
     });
@@ -308,34 +298,35 @@ function interpretarNLU(texto, contexto = null) {
     }
 
     const textoSanitizado = sanitizarTexto(texto);
+
+    // Se não há contexto anterior e a mensagem é estritamente anafórica sem sujeito explícito,
+    // não alucina intenção de serviço específico
+    const isPureAnaphora = /^(e\s+)?(antes disso|anterior|deu erro|por quanto tempo|quanto tempo|e ele|e ela|o que ele)\??$/i.test(textoSanitizado.trim());
+    if ((!contexto || !contexto.subject) && isPureAnaphora) {
+      return resolve({
+        sucesso: true,
+        fonte: 'DETERMINISTIC_GUARD',
+        intent: 'UNKNOWN_OR_UNSUPPORTED',
+        confidence: 'HIGH'
+      });
+    }
+
     const subjectContext = contexto && contexto.subject ? `Assunto anterior: ${contexto.subject}` : 'Sem assunto anterior';
 
-    const prompt = `Voce e o modulo de NLU do Vigia Sentinela.
-Classifique a solicitacao do usuario em uma das seguintes intencoes autorizadas:
-- ANTIGRAVITY_ACTIVITY_STATUS (como esta o antigravity, status)
-- ANTIGRAVITY_CURRENT_TASK (o que esta fazendo, tarefa atual)
-- ANTIGRAVITY_LAST_ACTION (o que fez antes, acao anterior)
-- ANTIGRAVITY_LAST_ERROR (deu erro, incidentes)
-- ANTIGRAVITY_DURATION_QUERY (ha quanto tempo, duracao)
-- ANTIGRAVITY_OWNER_WAIT (esperando por mim, decisao minha)
-- SYSTEM_HEALTH (saude da maquina, cpu, memoria, sistema)
-- INTERNET_STATUS (status da internet, conexao)
-- PROCESS_INVENTORY (processos ativos)
-- FORGET_CONTEXT (esquecer contexto, limpar memoria)
-- UNKNOWN_OR_UNSUPPORTED (outros assuntos)
-
+    const prompt = `NLU Vigia: classifique a intencao em JSON {"intent": "INTENT", "confidence": "HIGH"}.
+Intencoes: ANTIGRAVITY_ACTIVITY_STATUS, ANTIGRAVITY_CURRENT_TASK, ANTIGRAVITY_LAST_ACTION, ANTIGRAVITY_LAST_ERROR, ANTIGRAVITY_DURATION_QUERY, ANTIGRAVITY_OWNER_WAIT, SYSTEM_HEALTH, INTERNET_STATUS, PROCESS_INVENTORY, FORGET_CONTEXT, UNKNOWN_OR_UNSUPPORTED.
+Regra: Se a mensagem nao for sobre computador, processos, rede ou antigravity (ex: clima, piadas, assuntos gerais), responda UNKNOWN_OR_UNSUPPORTED.
 ${subjectContext}
-Mensagem: "${textoSanitizado}"
-
-Responda APENAS um JSON no formato:
-{"intent": "INTENT_ESCOLHIDO", "confidence": "HIGH"|"LOW"}`;
+Mensagem: "${textoSanitizado}"`;
 
     const requestData = JSON.stringify({
       model: Config.OLLAMA_MODEL,
       prompt: prompt,
       stream: false,
+      format: 'json',
       options: {
         num_ctx: 1024,
+        num_predict: 40,
         temperature: 0.1
       }
     });

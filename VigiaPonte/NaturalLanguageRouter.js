@@ -179,8 +179,10 @@ class NaturalLanguageRouter {
     let intent = this.classifyIntent(normalized, userId);
 
     // Fallback semântico assistido por modelo se ambíguo e modelo online
+    // Proíbe expressamente consultas adversariais de chegarem ao modelo
+    const isAdversarial = /(ignore.*instru|system prompt|override|format\s+[a-z]:|powershell|delete.*arquivo|terminal livre)/i.test(normalized);
     let modelUsed = false;
-    if (intent === 'UNKNOWN_OR_UNSUPPORTED' && this.ollamaAdapter && typeof this.ollamaAdapter.interpretarNLU === 'function') {
+    if (!isAdversarial && intent === 'UNKNOWN_OR_UNSUPPORTED' && this.ollamaAdapter && typeof this.ollamaAdapter.interpretarNLU === 'function') {
       try {
         const currentCtx = this.getContext(userId);
         const modelRes = await this.ollamaAdapter.interpretarNLU(normalized, currentCtx);

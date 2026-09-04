@@ -16,8 +16,8 @@ module.exports = {
 
   // Ollama
   OLLAMA_HOST: 'http://127.0.0.1:11434',
-  OLLAMA_MODEL: 'gemma3:1b',
-  OLLAMA_TIMEOUT_MS: 3500,        // Timeout estrito de 3.5s para fail-fast
+  OLLAMA_MODEL: 'qwen2.5:0.5b',
+  OLLAMA_TIMEOUT_MS: 8500,        // Timeout calibrado de 8.5s para acomodar inferencia no host dual-core sem GPU
 
   // Caminhos
   LOG_PATH: path.join(__dirname, 'vigia_ponte_events.log'),
