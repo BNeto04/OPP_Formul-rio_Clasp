@@ -215,8 +215,9 @@
               <input type="text" id="boe" placeholder="Ex: 2026/12345">
             </div>
             <div class="form-group">
-              <label for="ais">AIS</label>
+              <label for="ais">AIS <span id="aisBadge" style="display:none; font-size:11px; padding:2px 6px; border-radius:4px; margin-left:6px; font-weight:normal;"></span></label>
               <input type="number" id="ais" placeholder="Ex: 3" min="1">
+              <small id="aisFeedback" style="display:none; font-size:11px; margin-top:3px;"></small>
             </div>
           </div>
 
@@ -457,6 +458,7 @@
             <div><span style="color:var(--text-muted);">DATA / HORA</span><br><strong>${dados.data} ${dados.hora}</strong></div>
             <div><span style="color:var(--text-muted);">MIKE / BOE</span><br><strong>${dados.mike} / ${dados.boe}</strong></div>
             <div><span style="color:var(--text-muted);">CIDADE / BAIRRO</span><br><strong>${dados.cidade} / ${dados.bairro}</strong></div>
+            <div><span style="color:var(--text-muted);">AIS PREVISTA</span><br><strong>${dados.ais || 'Pendente de conferência'}</strong></div>
             <div><span style="color:var(--text-muted);">EQUIPE DETECTADA</span><br><strong>${dados.totalEquipe} policial(is)</strong></div>
           </div>
           <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--border-color);">
@@ -570,6 +572,14 @@
       }
       if (cidadeFinal) {
         document.getElementById('cidade').value = cidadeFinal;
+      }
+
+      // Determinação Territorial de AIS (TASK: FORMULARIO-AIS-TERRITORIAL-001)
+      if (typeof aisEditadaManualmente !== 'undefined') {
+        aisEditadaManualmente = false;
+      }
+      if (typeof recalcularAisFormulario === 'function') {
+        recalcularAisFormulario(true);
       }
 
       // Armas
@@ -727,10 +737,11 @@
                }
             }
 
+            const aisVal = document.getElementById('ais').value ? ('AIS ' + document.getElementById('ais').value) : ((document.getElementById('aisBadge') && document.getElementById('aisBadge').innerText) || 'Pendente de conferência');
             if (confContent) {
               confContent.innerHTML = montarConferenciaOcrHtml({
                 data: dataVal, hora: horaVal, mike: mikeVal, boe: boeVal,
-                cidade: cidadeVal, bairro: bairroVal, totalEquipe: matsEncontradas.length,
+                cidade: cidadeVal, bairro: bairroVal, ais: aisVal, totalEquipe: matsEncontradas.length,
                 totalArmas: armasDetectadas.length, totalDrogas: drogasDetectadas.length,
                 statusNatureza: statusNat
               });
@@ -753,9 +764,10 @@
               const mikeVal = document.getElementById('mike').value || '-';
               const cidadeVal = document.getElementById('cidade').value || '-';
               const bairroVal = document.getElementById('bairro').value || '-';
+              const aisVal = document.getElementById('ais').value ? ('AIS ' + document.getElementById('ais').value) : ((document.getElementById('aisBadge') && document.getElementById('aisBadge').innerText) || 'Pendente de conferência');
               confContent.innerHTML = montarConferenciaOcrHtml({
                 data: dataVal, hora: horaVal, mike: mikeVal, boe: boeVal,
-                cidade: cidadeVal, bairro: bairroVal, totalEquipe: matsEncontradas.length,
+                cidade: cidadeVal, bairro: bairroVal, ais: aisVal, totalEquipe: matsEncontradas.length,
                 totalArmas: armasDetectadas.length, totalDrogas: drogasDetectadas.length,
                 statusNatureza: `<span style="color: var(--secondary-color); font-weight: 600;">[OCR] Natureza:</span> ${natSelecionada || 'Não identificada'}`,
                 avisoOpcoes: 'Lista de validação indisponível; confira os campos antes de salvar.'
@@ -1298,6 +1310,17 @@
       document.getElementById('pipList').innerHTML = '';
       const imputado = document.getElementById('imputado');
       if (imputado) imputado.value = 'SEM IMPUTADO';
+      aisEditadaManualmente = false;
+      const aisBadge = document.getElementById('aisBadge');
+      if (aisBadge) {
+        aisBadge.style.display = 'none';
+        aisBadge.innerText = '';
+      }
+      const aisFeedback = document.getElementById('aisFeedback');
+      if (aisFeedback) {
+        aisFeedback.style.display = 'none';
+        aisFeedback.innerText = '';
+      }
       const conferencia = document.getElementById('ocrConferenceCard');
       const conteudoConferencia = document.getElementById('ocrConferenceContent');
       if (conferencia) conferencia.style.display = 'none';
@@ -1309,8 +1332,301 @@
       limparDadosDocumentoAnterior();
     }
 
-    // Carrega o efetivo assim que o modal abre. Opções só carregam após digitar data.
+    // =========================================================================
+    // DETERMINAÇÃO TERRITORIAL CANÔNICA DE AIS (TASK: FORMULARIO-AIS-TERRITORIAL-001)
+    // =========================================================================
+    let tabelaTerritorialAisCliente = null;
+    let aisEditadaManualmente = false;
+
+    function normalizarTextoTerritorialCliente(txt) {
+      if (!txt || typeof txt !== 'string') return '';
+      return txt
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^A-Z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function resolverAISCliente(municipio, bairro, tabela) {
+      const tab = tabela || tabelaTerritorialAisCliente;
+      if (!tab) {
+        return {
+          ais: null,
+          sucesso: false,
+          criterio: 'TABELA_AUSENTE',
+          status: 'PENDENTE_CONFERENCIA',
+          observacao: 'Tabela territorial não carregada.'
+        };
+      }
+
+      let mNorm = normalizarTextoTerritorialCliente(municipio);
+      const bNorm = normalizarTextoTerritorialCliente(bairro);
+
+      if (!mNorm && !bNorm) {
+        return {
+          ais: null,
+          sucesso: false,
+          criterio: 'VAZIO',
+          status: 'DADOS_INSUFICIENTES',
+          observacao: 'Município e Bairro não informados.'
+        };
+      }
+
+      if (mNorm === 'RECIFE PE' || mNorm === 'CIDADE DO RECIFE') mNorm = 'RECIFE';
+      if (mNorm === 'JABOATAO' || mNorm === 'JABOATAO DOS GUARARAPES PE') mNorm = 'JABOATAO DOS GUARARAPES';
+      if (mNorm === 'CABO' || mNorm === 'CABO DE STO AGOSTINHO') mNorm = 'CABO DE SANTO AGOSTINHO';
+      if (mNorm === 'S LOURENCO DA MATA' || mNorm === 'SAO LOURENCO') mNorm = 'SAO LOURENCO DA MATA';
+
+      // 1. Município Multi-AIS (Recife)
+      if (mNorm && tab.municipiosMultiAis && tab.municipiosMultiAis[mNorm]) {
+        const configMulti = tab.municipiosMultiAis[mNorm];
+        if (bNorm) {
+          if (configMulti.bairros && configMulti.bairros[bNorm]) {
+            return {
+              ais: configMulti.bairros[bNorm],
+              sucesso: true,
+              criterio: 'MULTI_AIS_BAIRRO_EXATO',
+              status: 'DETERMINADO',
+              observacao: 'Determinado pelo bairro ' + bNorm + ' em ' + mNorm + '.'
+            };
+          }
+          const bChaves = Object.keys(configMulti.bairros || {});
+          for (let i = 0; i < bChaves.length; i++) {
+            const chave = bChaves[i];
+            if (bNorm.indexOf(chave) !== -1 || chave.indexOf(bNorm) !== -1) {
+              if (bNorm.length >= 5 && chave.length >= 5) {
+                return {
+                  ais: configMulti.bairros[chave],
+                  sucesso: true,
+                  criterio: 'MULTI_AIS_BAIRRO_APROXIMADO',
+                  status: 'DETERMINADO',
+                  observacao: 'Determinado por correspondência aproximada do bairro ' + bNorm + ' (' + chave + ').'
+                };
+              }
+            }
+          }
+          return {
+            ais: null,
+            sucesso: false,
+            criterio: 'MULTI_AIS_BAIRRO_NAO_RECONHECIDO',
+            status: 'PENDENTE_CONFERENCIA',
+            observacao: 'Município ' + mNorm + ' possui múltiplas AIS (1 a 5) e o bairro ' + bNorm + ' requer conferência.'
+          };
+        } else {
+          return {
+            ais: null,
+            sucesso: false,
+            criterio: 'MULTI_AIS_SEM_BAIRRO',
+            status: 'PENDENTE_CONFERENCIA',
+            observacao: 'Município ' + mNorm + ' possui múltiplas AIS (1 a 5). Bairro necessário.'
+          };
+        }
+      }
+
+      // 2. Município Mono-AIS
+      if (mNorm && tab.municipiosMonoAis && tab.municipiosMonoAis[mNorm]) {
+        const aisMono = tab.municipiosMonoAis[mNorm];
+        return {
+          ais: aisMono,
+          sucesso: true,
+          criterio: 'MONO_AIS_MUNICIPIO_DIRETO',
+          status: 'DETERMINADO',
+          observacao: 'Determinado pelo município ' + mNorm + ' (100% circunscrito à ' + aisMono + ').'
+        };
+      }
+
+      // 3. Sem município ou não mapeado: testar bairros notórios e bairros de Recife
+      if (bNorm) {
+        if (tab.bairrosMonoAisConhecidos && tab.bairrosMonoAisConhecidos[bNorm]) {
+          const aisB = tab.bairrosMonoAisConhecidos[bNorm];
+          return {
+            ais: aisB,
+            sucesso: true,
+            criterio: 'MONO_AIS_BAIRRO_NOTORIO',
+            status: 'DETERMINADO',
+            observacao: 'Bairro notório ' + bNorm + ' circunscrito à ' + aisB + '.'
+          };
+        }
+        if (!mNorm && tab.municipiosMultiAis && tab.municipiosMultiAis['RECIFE'] && tab.municipiosMultiAis['RECIFE'].bairros[bNorm]) {
+          const aisRec = tab.municipiosMultiAis['RECIFE'].bairros[bNorm];
+          return {
+            ais: aisRec,
+            sucesso: true,
+            criterio: 'MULTI_AIS_BAIRRO_RECIFE_IMPLICITO',
+            status: 'DETERMINADO',
+            observacao: 'Bairro ' + bNorm + ' identificado em Recife (' + aisRec + ').'
+          };
+        }
+      }
+
+      return {
+        ais: null,
+        sucesso: false,
+        criterio: 'NAO_IDENTIFICADO',
+        status: 'PENDENTE_CONFERENCIA',
+        observacao: 'Município e Bairro informados não permitiram resolução inequívoca.'
+      };
+    }
+
+    function recalcularAisFormulario(forcarAtualizacao) {
+      const elAis = document.getElementById('ais');
+      const elCidade = document.getElementById('cidade');
+      const elBairro = document.getElementById('bairro');
+      const elBadge = document.getElementById('aisBadge');
+      const elFeedback = document.getElementById('aisFeedback');
+
+      if (!elAis || !elCidade || !elBairro) return;
+
+      if (aisEditadaManualmente && !forcarAtualizacao) {
+        return;
+      }
+
+      const cidade = elCidade.value.trim();
+      const bairro = elBairro.value.trim();
+
+      if (!cidade && !bairro) {
+        if (!aisEditadaManualmente) {
+          elAis.value = '';
+          if (elBadge) elBadge.style.display = 'none';
+          if (elFeedback) elFeedback.style.display = 'none';
+        }
+        return;
+      }
+
+      function aplicarResultadoAis(res) {
+        if (res && res.sucesso && res.ais) {
+          const numAis = res.ais.replace(/\D/g, '');
+          if (!aisEditadaManualmente || forcarAtualizacao) {
+            elAis.value = numAis || res.ais;
+          }
+          if (elBadge) {
+            elBadge.style.display = 'inline-block';
+            elBadge.style.background = 'rgba(46, 204, 113, 0.2)';
+            elBadge.style.color = '#2ecc71';
+            elBadge.innerText = '✓ ' + res.ais;
+          }
+          if (elFeedback) {
+            elFeedback.style.display = 'block';
+            elFeedback.style.color = '#2ecc71';
+            elFeedback.innerText = res.observacao || ('Identificado por ' + res.criterio);
+          }
+        } else {
+          if (!aisEditadaManualmente || forcarAtualizacao) {
+            if (!aisEditadaManualmente) {
+              elAis.value = '';
+            }
+          }
+          if (elBadge) {
+            elBadge.style.display = 'inline-block';
+            elBadge.style.background = 'rgba(241, 196, 15, 0.2)';
+            elBadge.style.color = '#f1c40f';
+            elBadge.innerText = '⚠️ Conferir AIS';
+          }
+          if (elFeedback) {
+            elFeedback.style.display = 'block';
+            elFeedback.style.color = '#f1c40f';
+            elFeedback.innerText = (res && res.observacao) ? res.observacao : 'Município/Bairro requer conferência de AIS.';
+          }
+        }
+      }
+
+      if (tabelaTerritorialAisCliente) {
+        const res = resolverAISCliente(cidade, bairro, tabelaTerritorialAisCliente);
+        aplicarResultadoAis(res);
+        return;
+      }
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        try {
+          var runner = google.script.run
+            .withSuccessHandler(aplicarResultadoAis)
+            .withFailureHandler(function(err) {
+              aplicarResultadoAis({
+                sucesso: false,
+                status: 'PENDENTE_CONFERENCIA',
+                observacao: 'Falha ao consultar AIS territorial: ' + err.message
+              });
+            });
+          if (typeof runner.resolverAISTerritorial === 'function') {
+            runner.resolverAISTerritorial(cidade, bairro);
+            return;
+          }
+        } catch (e) {}
+      }
+
+      const res = resolverAISCliente(cidade, bairro, null);
+      aplicarResultadoAis(res);
+    }
+
+    function carregarTabelaTerritorial() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        try {
+          var runner = google.script.run
+            .withSuccessHandler(function(tab) {
+              if (tab) {
+                tabelaTerritorialAisCliente = tab;
+                log('>> Tabela territorial AIS carregada.');
+                recalcularAisFormulario(false);
+              }
+            })
+            .withFailureHandler(function(err) {
+              log('>> AVISO: Não foi possível carregar tabela AIS remota: ' + err.message);
+            });
+          if (typeof runner.obterTabelaTerritorialAIS === 'function') {
+            runner.obterTabelaTerritorialAIS();
+          }
+        } catch (e) {
+          log('>> AVISO: Falha ao invocar obterTabelaTerritorialAIS: ' + e.message);
+        }
+      }
+    }
+
+    function inicializarListenersAIS() {
+      const elAis = document.getElementById('ais');
+      if (elAis) {
+        elAis.addEventListener('input', function() {
+          aisEditadaManualmente = (this.value.trim() !== '');
+          const elBadge = document.getElementById('aisBadge');
+          const elFeedback = document.getElementById('aisFeedback');
+          if (aisEditadaManualmente) {
+            if (elBadge) {
+              elBadge.style.display = 'inline-block';
+              elBadge.style.background = 'rgba(52, 152, 219, 0.2)';
+              elBadge.style.color = '#3498db';
+              elBadge.innerText = '✎ Manual';
+            }
+            if (elFeedback) {
+              elFeedback.style.display = 'none';
+            }
+          } else {
+            recalcularAisFormulario(true);
+          }
+        });
+      }
+
+      ['cidade', 'bairro'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', function() {
+            if (!aisEditadaManualmente) {
+              recalcularAisFormulario(false);
+            }
+          });
+          el.addEventListener('change', function() {
+            if (!aisEditadaManualmente) {
+              recalcularAisFormulario(false);
+            }
+          });
+        }
+      });
+    }
+
+    // Carrega o efetivo e tabela territorial assim que o modal abre. Opções só carregam após digitar data.
     carregarEfetivo();
+    carregarTabelaTerritorial();
+    inicializarListenersAIS();
     const inputData = document.getElementById('data').value;
     if (inputData) carregarOpcoesValidacao(inputData);
 

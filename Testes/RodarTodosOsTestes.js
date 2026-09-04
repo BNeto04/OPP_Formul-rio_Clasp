@@ -43,6 +43,8 @@ console.log('');
 require('./TestNormalizadorEfetivo');
 console.log('');
 require('./TestFormularioCidadeBairro');
+console.log('');
+require('./TestFormularioAis');
 
 if (process.exitCode && process.exitCode !== 0) {
   console.error('\n====================================================');

@@ -571,3 +571,66 @@ function getEfetivo() {
     return [];
   }
 }
+
+/**
+ * PORTA: M01 -> Dominio Territorial AIS
+ * Retorna a tabela canônica territorial de AIS para o cliente Formulario.html
+ * @returns {Object}
+ */
+function obterTabelaTerritorialAIS() {
+  try {
+    if (typeof TABELA_TERRITORIAL_AIS !== 'undefined') {
+      return TABELA_TERRITORIAL_AIS;
+    }
+    if (typeof require !== 'undefined') {
+      const { TABELA_TERRITORIAL_AIS: tab } = require('../Dominio/TabelaTerritorialAIS');
+      return tab;
+    }
+  } catch (e) {
+    console.error('obterTabelaTerritorialAIS falhou: ' + e.message);
+  }
+  return null;
+}
+
+/**
+ * PORTA: M01 -> Dominio Territorial AIS
+ * Resolve a AIS no backend caso o cliente prefira delegar
+ * @param {string} cidade
+ * @param {string} bairro
+ * @returns {Object}
+ */
+function resolverAISTerritorial(cidade, bairro) {
+  try {
+    if (typeof resolverAIS === 'function') {
+      return resolverAIS(cidade, bairro);
+    }
+    if (typeof require !== 'undefined') {
+      const { resolverAIS: resFn } = require('../Dominio/ResolverAIS');
+      const { TABELA_TERRITORIAL_AIS: tab } = require('../Dominio/TabelaTerritorialAIS');
+      return resFn(cidade, bairro, tab);
+    }
+  } catch (e) {
+    console.error('resolverAISTerritorial falhou: ' + e.message);
+  }
+  return {
+    ais: null,
+    sucesso: false,
+    criterio: 'ERRO_BACKEND',
+    status: 'PENDENTE_CONFERENCIA',
+    observacao: 'Falha ao processar resolução de AIS.'
+  };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    processarEntradaManual: processarEntradaManual,
+    resolverNomeAbaMensal: resolverNomeAbaMensal,
+    localizarAbaMensalTratada: localizarAbaMensalTratada,
+    verificarDuplicidadeOcorrencia: verificarDuplicidadeOcorrencia,
+    montarLinhasEntradaManual: montarLinhasEntradaManual,
+    obterOpcoesValidacao: obterOpcoesValidacao,
+    getEfetivo: getEfetivo,
+    obterTabelaTerritorialAIS: obterTabelaTerritorialAIS,
+    resolverAISTerritorial: resolverAISTerritorial
+  };
+}
