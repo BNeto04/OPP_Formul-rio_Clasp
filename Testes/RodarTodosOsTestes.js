@@ -45,6 +45,8 @@ console.log('');
 require('./TestFormularioCidadeBairro');
 console.log('');
 require('./TestFormularioAis');
+console.log('');
+require('./TestVigiaPonte');
 
 if (process.exitCode && process.exitCode !== 0) {
   console.error('\n====================================================');
