@@ -1,8 +1,15 @@
 const fs = require('fs');
 
 class TelegramAllowlist {
-  constructor(filePath) {
-    this.filePath = filePath;
+  constructor(optionsOrPath) {
+    if (typeof optionsOrPath === 'string') {
+      this.filePath = optionsOrPath;
+    } else if (optionsOrPath && typeof optionsOrPath === 'object') {
+      this.filePath = optionsOrPath.allowlistPath || optionsOrPath.filePath;
+    }
+    if (!this.filePath) {
+      this.filePath = 'C:\\Users\\Bneto04\\AppData\\Local\\SyntheonVigia\\allowlist.json';
+    }
     this.data = this.load();
   }
 

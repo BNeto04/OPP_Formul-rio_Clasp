@@ -4,6 +4,12 @@ const InternetMonitor = require('./InternetMonitor');
 const RecoveryManager = require('./RecoveryManager');
 const BootRecoveryJournal = require('./BootRecoveryJournal');
 const RemoteInterfaceStub = require('./RemoteInterfaceStub');
+const TelegramConfig = require('./TelegramConfig');
+const TelegramClient = require('./TelegramClient');
+const TelegramAllowlist = require('./TelegramAllowlist');
+const TelegramCommandRouter = require('./TelegramCommandRouter');
+const TelegramAlertManager = require('./TelegramAlertManager');
+const TelegramPoller = require('./TelegramPoller');
 
 class VigiaBootEngine {
   constructor(options = {}) {
@@ -20,6 +26,34 @@ class VigiaBootEngine {
     });
     this.journal = new BootRecoveryJournal({ journalPath: options.journalPath });
     this.remoteStub = new RemoteInterfaceStub();
+
+    // Integração Telegram (fail-open para o watchdog local)
+    try {
+      const token = options.telegramToken || TelegramConfig.getBotToken();
+      if (token) {
+        this.telegramClient = new TelegramClient(token);
+        this.telegramAllowlist = new TelegramAllowlist({
+          allowlistPath: options.telegramAllowlistPath || TelegramConfig.getAllowlistPath()
+        });
+        this.telegramRouter = new TelegramCommandRouter({
+          allowlist: this.telegramAllowlist,
+          healthMonitor: this.healthMonitor,
+          recoveryManager: this.recoveryManager,
+          internetMonitor: this.internetMonitor,
+          journal: this.journal
+        });
+        this.telegramAlertManager = new TelegramAlertManager({
+          client: this.telegramClient,
+          allowlist: this.telegramAllowlist
+        });
+        this.telegramPoller = new TelegramPoller({
+          client: this.telegramClient,
+          router: this.telegramRouter
+        });
+      }
+    } catch (err) {
+      // remote_fail_open_for_local_watchdog = true
+    }
 
     this.pollIntervalMs = options.pollIntervalMs || 15000;
     this.isRunning = false;
@@ -104,6 +138,17 @@ class VigiaBootEngine {
 
     await this.runBootSequence(dryRun);
 
+    if (this.telegramPoller) {
+      try {
+        this.telegramPoller.start();
+        if (this.telegramAlertManager) {
+          this.telegramAlertManager.sendAlert('VIGIA_ONLINE', '🛡️ *Vigia da Ponte ativo e conectado.*\n\nSistema online e monitoramento contínuo iniciado.');
+        }
+      } catch (e) {
+        // fail-open
+      }
+    }
+
     this.timer = setInterval(async () => {
       if (!this.isRunning) return;
       try {
@@ -118,6 +163,14 @@ class VigiaBootEngine {
             retry_count: 0,
             owner_decision_required: false
           });
+
+          if (this.telegramAlertManager) {
+            if (netStatus.event.type === 'INTERNET_DOWN') {
+              this.telegramAlertManager.sendAlert('INTERNET_DOWN', '⚠️ *ALERTA DE CONECTIVIDADE*\n\nConexão com a Internet perdida no host.');
+            } else if (netStatus.event.type === 'INTERNET_UP') {
+              this.telegramAlertManager.sendAlert('INTERNET_UP', '✅ *CONECTIVIDADE RESTAURADA*\n\nConexão com a Internet restabelecida com sucesso.');
+            }
+          }
         }
       } catch (err) {
         // fail-open: não morre nem trava
@@ -130,6 +183,11 @@ class VigiaBootEngine {
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
+    }
+    if (this.telegramPoller) {
+      try {
+        this.telegramPoller.stop();
+      } catch (e) {}
     }
     this.lockManager.releaseLock();
   }
