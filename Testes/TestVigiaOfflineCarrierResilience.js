@@ -422,13 +422,13 @@ async function runAllTests() {
     
     // 1. Enfileira dois pacotes via HTTP POST /queue
     const resQ1 = await httpPost('/queue', {
-      packet_id: 'PKT_LIVE_M_001',
+      packet_id: 'PKT_LIVE_M_1788648744390_001',
       payload: '[CONTEXT_PACKET]\nTASK: LIVE-M-1\nCALL_ID: CALL-M-001\nISSUE_NUMBER: 43\nDATA: Pacote M1\n[/CONTEXT_PACKET]'
     });
     assert.strictEqual(resQ1.queued, true);
 
     const resQ2 = await httpPost('/queue', {
-      packet_id: 'PKT_LIVE_M_002',
+      packet_id: 'PKT_LIVE_M_1788648744390_002',
       payload: '[CONTEXT_PACKET]\nTASK: LIVE-M-2\nCALL_ID: CALL-M-002\nISSUE_NUMBER: 43\nDATA: Pacote M2\n[/CONTEXT_PACKET]'
     });
     assert.strictEqual(resQ2.queued, true);
@@ -439,22 +439,22 @@ async function runAllTests() {
 
     // 3. Consome /context_packet: deve entregar estritamente o M_001
     const p1 = await httpGet('/context_packet');
-    assert.strictEqual(p1.packet_id, 'PKT_LIVE_M_001');
+    assert.strictEqual(p1.packet_id, 'PKT_LIVE_M_1788648744390_001');
 
     // 4. Consome /context_packet novamente: AINDA deve ser M_001 (Single-flight lock! M_002 NÃO sai)
     const p1_locked = await httpGet('/context_packet');
-    assert.strictEqual(p1_locked.packet_id, 'PKT_LIVE_M_001');
+    assert.strictEqual(p1_locked.packet_id, 'PKT_LIVE_M_1788648744390_001');
 
     // 5. Envia POST /ack confirmando entrega de M_001
-    const ackRes = await httpPost('/ack', { packet_id: 'PKT_LIVE_M_001' });
+    const ackRes = await httpPost('/ack', { packet_id: 'PKT_LIVE_M_1788648744390_001' });
     assert.strictEqual(ackRes.status, 'ACK_RECORDED');
 
     // 6. Agora o próximo GET /context_packet deve liberar estritamente M_002
     const p2 = await httpGet('/context_packet');
-    assert.strictEqual(p2.packet_id, 'PKT_LIVE_M_002');
+    assert.strictEqual(p2.packet_id, 'PKT_LIVE_M_1788648744390_002');
 
     // 7. Confirma M_002
-    await httpPost('/ack', { packet_id: 'PKT_LIVE_M_002' });
+    await httpPost('/ack', { packet_id: 'PKT_LIVE_M_1788648744390_002' });
     
     // 8. Fila vazia
     const pEmpty = await httpGet('/context_packet');

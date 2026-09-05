@@ -5,6 +5,7 @@
  * Garante a continuidade operacional resiliente sob quedas de Internet:
  * - Single-Flight: no máximo 1 item em trânsito por vez.
  * - Deduplicação estrita: por CALL_ID, REPLY_TO, ISSUE e hash de payload.
+ * - Deduplicação de ACKs: chave (SPRINT_ID, REPLY_TO_CALL_ID, STATUS, payload_hash) com DROP/NO_OP imediato.
  * - Proteção de escrita: detecção de COMPOSER_BUSY (texto do proprietário ou pacote pendente).
  * - Tratamento de perda de rede: SEND_UNCERTAIN sem retry cego.
  * - Reconciliação pós-queda de rede antes de drenagem.
@@ -19,9 +20,11 @@ class ResilientCarrierQueue {
   constructor(options = {}) {
     this.storagePath = options.storagePath || path.join(__dirname, 'carrier_queue.json');
     this.deliveredHistoryPath = options.deliveredHistoryPath || path.join(__dirname, 'carrier_delivered_history.json');
+    this.deliveredAckHistoryPath = options.deliveredAckHistoryPath || path.join(__dirname, 'carrier_ack_history.json');
     this.journalPath = options.journalPath || path.join(__dirname, 'carrier_queue_journal.log');
     this.queue = [];
     this.deliveredKeys = new Set();
+    this.deliveredAckKeys = new Set();
     this.inFlightItem = null;
     this.state = 'IDLE'; // 'IDLE' | 'IN_FLIGHT' | 'COMPOSER_BUSY' | 'SEND_UNCERTAIN'
     this.loadState();
@@ -45,6 +48,16 @@ class ResilientCarrierQueue {
     const payloadHash = this._hashPayload(payload);
 
     return `ISSUE_${issue}::CALL_${callId}::REPLY_${replyId}::HASH_${payloadHash}`;
+  }
+
+  _generateAckDedupeKey(packet) {
+    const payload = packet.payload || '';
+    const sprintMatch = payload.match(/SPRINT_ID:\s*([^\r\n]+)/i) || (packet.sprint_id ? [null, packet.sprint_id] : [null, 'NO_SPRINT']);
+    const replyMatch = payload.match(/REPLY_TO_CALL_ID:\s*([^\r\n]+)/i) || (packet.reply_to_call_id ? [null, packet.reply_to_call_id] : [null, 'NO_REPLY']);
+    const statusMatch = payload.match(/STATUS:\s*([^\r\n]+)/i) || (packet.status ? [null, packet.status] : [null, 'NO_STATUS']);
+    const payloadHash = this._hashPayload(payload);
+
+    return `ACK::${sprintMatch[1].trim()}::${replyMatch[1].trim()}::${statusMatch[1].trim()}::${payloadHash}`;
   }
 
   _appendJournal(event, data = {}) {
@@ -85,6 +98,18 @@ class ResilientCarrierQueue {
     } catch (e) {
       this.deliveredKeys = new Set();
     }
+
+    try {
+      if (fs.existsSync(this.deliveredAckHistoryPath)) {
+        const raw = fs.readFileSync(this.deliveredAckHistoryPath, 'utf8');
+        const list = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          this.deliveredAckKeys = new Set(list);
+        }
+      }
+    } catch (e) {
+      this.deliveredAckKeys = new Set();
+    }
   }
 
   saveState() {
@@ -97,16 +122,10 @@ class ResilientCarrierQueue {
       };
       fs.writeFileSync(this.storagePath, JSON.stringify(data, null, 2), 'utf8');
       fs.writeFileSync(this.deliveredHistoryPath, JSON.stringify(Array.from(this.deliveredKeys), null, 2), 'utf8');
+      fs.writeFileSync(this.deliveredAckHistoryPath, JSON.stringify(Array.from(this.deliveredAckKeys), null, 2), 'utf8');
     } catch (e) {}
   }
 
-  /**
-   * Avalia o conteúdo atual do elemento de composição (composer)
-   * Regras de proteção:
-   * 1. Se contém texto do proprietário (sem tags de envelope) -> COMPOSER_BUSY_OWNER_TEXT -> NO_INJECT
-   * 2. Se contém envelope prévio ainda pendente -> COMPOSER_BUSY_PREVIOUS_PACKET -> NO_INJECT
-   * 3. Se vazio ou whitespace -> READY
-   */
   inspectComposer(currentComposerText) {
     if (!currentComposerText || typeof currentComposerText !== 'string' || currentComposerText.trim() === '') {
       return {
@@ -135,17 +154,31 @@ class ResilientCarrierQueue {
     };
   }
 
-  /**
-   * Enfileira pacote com deduplicação rigorosa
-   */
   enqueue(packet) {
     if (!packet || !packet.payload) {
       return { success: false, reason: 'INVALID_PACKET' };
     }
 
+    // 1. Tratamento específico para ACKs: deduplicação por chave (SPRINT, REPLY_TO, STATUS, hash)
+    const isAck = (packet.payload && (packet.payload.includes('[BRIDGE_AUTO_CONTINUE_V1]') || packet.payload.includes('STATUS: ACK_')));
+    let ackDedupeKey = null;
+    if (isAck) {
+      ackDedupeKey = this._generateAckDedupeKey(packet);
+      if (this.deliveredAckKeys.has(ackDedupeKey)) {
+        this._appendJournal('ACK_ALREADY_DELIVERED_DROP', { ackDedupeKey, packet_id: packet.packet_id });
+        return {
+          success: false,
+          status: 'ACK_ALREADY_DELIVERED',
+          action: 'DROP_NO_OP',
+          reason: 'ACK_ALREADY_DELIVERED',
+          ackDedupeKey
+        };
+      }
+    }
+
     const dedupeKey = this._generateDedupeKey(packet);
 
-    // 1. Verifica se já foi entregue anteriormente
+    // 2. Verifica se o pacote geral já foi entregue
     if (this.deliveredKeys.has(dedupeKey)) {
       this._appendJournal('ENQUEUE_DUPLICATE_ALREADY_DELIVERED', { dedupeKey, packet_id: packet.packet_id });
       return {
@@ -156,7 +189,7 @@ class ResilientCarrierQueue {
       };
     }
 
-    // 2. Verifica se já está em voo (in flight)
+    // 3. Verifica se já está em voo
     if (this.inFlightItem && this.inFlightItem.dedupeKey === dedupeKey) {
       this._appendJournal('ENQUEUE_DUPLICATE_IN_FLIGHT', { dedupeKey, packet_id: packet.packet_id });
       return {
@@ -167,7 +200,7 @@ class ResilientCarrierQueue {
       };
     }
 
-    // 3. Verifica se já está aguardando na fila
+    // 4. Verifica se já está na fila
     const alreadyQueued = this.queue.some(item => item.dedupeKey === dedupeKey);
     if (alreadyQueued) {
       this._appendJournal('ENQUEUE_DUPLICATE_QUEUED', { dedupeKey, packet_id: packet.packet_id });
@@ -179,33 +212,31 @@ class ResilientCarrierQueue {
       };
     }
 
-    // Pacote novo -> adicionar à fila
+    // Adiciona à fila
     const queueItem = {
       packet_id: packet.packet_id || `PKT_${Date.now()}`,
       payload: packet.payload,
       dedupeKey,
+      ackDedupeKey,
+      isAck,
       enqueued_at: new Date().toISOString(),
       attempts: 0
     };
 
     this.queue.push(queueItem);
     this.saveState();
-    this._appendJournal('ENQUEUE_SUCCESS', { dedupeKey, packet_id: queueItem.packet_id });
+    this._appendJournal('ENQUEUE_SUCCESS', { dedupeKey, ackDedupeKey, packet_id: queueItem.packet_id });
 
     return {
       success: true,
       status: 'QUEUED',
       dedupeKey,
+      ackDedupeKey,
       position: this.queue.length
     };
   }
 
-  /**
-   * Aloca o próximo item para envio respeitando estritamente o SINGLE-FLIGHT.
-   * Se já houver item in-flight não confirmado, bloqueia avanço.
-   */
   acquireNextFlight(composerStatus = 'READY') {
-    // Single-flight lock: se já tem item em voo, não pode pegar outro
     if (this.inFlightItem) {
       return {
         allowed: false,
@@ -228,7 +259,6 @@ class ResilientCarrierQueue {
       };
     }
 
-    // Remove 1 único item do início da fila
     this.inFlightItem = this.queue.shift();
     this.inFlightItem.attempts += 1;
     this.inFlightItem.dispatched_at = new Date().toISOString();
@@ -246,9 +276,6 @@ class ResilientCarrierQueue {
     };
   }
 
-  /**
-   * Registra incerteza de envio quando ocorre perda de rede durante o trânsito
-   */
   markSendUncertain(packetId, reason = 'NETWORK_LOST_DURING_SUBMIT') {
     if (this.inFlightItem && this.inFlightItem.packet_id === packetId) {
       this.state = 'SEND_UNCERTAIN';
@@ -261,9 +288,6 @@ class ResilientCarrierQueue {
     return false;
   }
 
-  /**
-   * Confirma positivamente que o item saiu do composer e foi aceito pelo chat
-   */
   confirmDelivered(packetId) {
     if (!this.inFlightItem || this.inFlightItem.packet_id !== packetId) {
       return false;
@@ -271,7 +295,12 @@ class ResilientCarrierQueue {
 
     const key = this.inFlightItem.dedupeKey;
     this.deliveredKeys.add(key);
-    this._appendJournal('DELIVERED_CONFIRMED', { packetId, key });
+
+    if (this.inFlightItem.ackDedupeKey) {
+      this.deliveredAckKeys.add(this.inFlightItem.ackDedupeKey);
+    }
+
+    this._appendJournal('DELIVERED_CONFIRMED', { packetId, key, ackKey: this.inFlightItem.ackDedupeKey });
 
     this.inFlightItem = null;
     this.state = 'IDLE';
@@ -280,10 +309,6 @@ class ResilientCarrierQueue {
     return true;
   }
 
-  /**
-   * Reconciliação factual após restauração de Internet:
-   * Examina o histórico do chat e o composer antes de tentar qualquer retry.
-   */
   reconcileAfterReconnect(chatHistorySnippets = [], currentComposerText = '') {
     this._appendJournal('RECONCILING_START', { state: this.state, inFlight: !!this.inFlightItem });
 
@@ -296,7 +321,6 @@ class ResilientCarrierQueue {
     const inFlightPayloadSnippet = this.inFlightItem.payload.substring(0, 100);
     const key = this.inFlightItem.dedupeKey;
 
-    // 1. Verifica se o pacote in-flight já apareceu no histórico do chat
     const callIdMatch = this.inFlightItem.payload.match(/CALL_ID:\s*([^\r\n]+)/i);
     const callId = callIdMatch ? callIdMatch[1].trim() : null;
     const foundInHistory = chatHistorySnippets.some(snippet => {
@@ -308,8 +332,10 @@ class ResilientCarrierQueue {
     });
 
     if (foundInHistory) {
-      // O ChatGPT recebeu antes da queda -> marcar como entregue e liberar lock
       this.deliveredKeys.add(key);
+      if (this.inFlightItem.ackDedupeKey) {
+        this.deliveredAckKeys.add(this.inFlightItem.ackDedupeKey);
+      }
       this._appendJournal('RECONCILE_FOUND_IN_HISTORY', { packetId: this.inFlightItem.packet_id, key });
       this.inFlightItem = null;
       this.state = 'IDLE';
@@ -321,10 +347,7 @@ class ResilientCarrierQueue {
       };
     }
 
-    // 2. Se não apareceu no histórico:
-    // Inspeciona se o composer contém o texto do proprietário
     const composerInspect = this.inspectComposer(currentComposerText);
-
     if (composerInspect.reason === 'COMPOSER_BUSY_OWNER_TEXT') {
       this.state = 'COMPOSER_BUSY';
       this.saveState();
@@ -335,7 +358,6 @@ class ResilientCarrierQueue {
       };
     }
 
-    // 3. Se composer está vazio ou tem o pacote anterior, é seguro reenviar exatamente este item
     this.state = 'IN_FLIGHT';
     this.saveState();
     return {
@@ -348,6 +370,7 @@ class ResilientCarrierQueue {
   reset() {
     this.queue = [];
     this.deliveredKeys.clear();
+    this.deliveredAckKeys.clear();
     this.inFlightItem = null;
     this.state = 'IDLE';
     this.saveState();
