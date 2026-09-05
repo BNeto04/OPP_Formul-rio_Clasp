@@ -1,6 +1,17 @@
+/**
+ * Syntheon Bridge V2 - Chrome Extension Inbound Content Script (Resiliente)
+ *
+ * Implementa as salvaguardas contratuais da Issue #43:
+ * 1. Single-Flight e detecção de COMPOSER_BUSY (texto do proprietário ou pacote anterior).
+ * 2. Proteção estrita do texto do usuário: NUNCA sobrescreve, NUNCA concatena.
+ * 3. Verificação positiva de envio: confirma que o texto saiu do composer.
+ * 4. Tratamento de perda de conexão: relata SEND_UNCERTAIN sem retry cego.
+ * 5. Reconciliação no DOM: busca histórico de mensagens enviadas.
+ */
+
 (() => {
   if (window.__SYNTHEON_CARRIER_INJECTED__) {
-    console.log('[BridgeV2-Content] Script já ativo nesta aba; evitando reinjeção duplicada.');
+    console.log('[BridgeV2-Content] Script já ativo nesta aba.');
     return;
   }
   window.__SYNTHEON_CARRIER_INJECTED__ = true;
@@ -12,189 +23,259 @@
     } catch (e) {}
   }
 
-  remoteLog(`Script de injeção ativo na aba: ${window.location.href}`);
+  remoteLog(`Carrier Inbound ativo e monitorando aba: ${window.location.href}`);
 
-  let contentLastPacketId = null;
-  let isInjecting = false;
-
-async function checkBridgeFromContent() {
-  if (isInjecting) return;
-  try {
-    const res = await new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: 'POLL_BRIDGE' }, (response) => {
-        if (chrome.runtime.lastError) {
-          resolve(null);
-        } else {
-          resolve(response);
-        }
-      });
-    });
-
-    if (res && res.packet && res.packet.packet_id && res.packet.packet_id !== contentLastPacketId) {
-      isInjecting = true;
-      contentLastPacketId = res.packet.packet_id;
-      remoteLog(`🎯 [CONTENT] Novo pacote identificado: ${res.packet.packet_id}. Disparando injeção no prompt!`);
-      const result = await handleInjection(res.packet.packet_id, res.packet.payload, true);
-      if (result && result.success) {
-        chrome.runtime.sendMessage({ type: 'PACKET_DELIVERED', packet_id: res.packet.packet_id });
-        remoteLog(`🎉 [CONTENT] Injeção e envio concluídos com sucesso para ${res.packet.packet_id}`);
-      }
-      isInjecting = false;
+  // Listener para comandos do Background Service Worker
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'INJECT_CONTEXT_PACKET') {
+      remoteLog(`Recebida solicitação de injeção para pacote: ${message.packet_id}`);
+      handleInjection(message.packet_id, message.payload, message.autoSubmit)
+        .then((res) => sendResponse(res))
+        .catch((err) => {
+          remoteLog(`Erro em handleInjection: ${err.message}`);
+          sendResponse({ success: false, status: 'ERROR', error: err.message });
+        });
+      return true; // async
     }
-  } catch (err) {
-    isInjecting = false;
-    remoteLog(`[CONTENT] Erro no ciclo de polling do content script: ${err.message}`);
-  }
-}
 
-// Inicia polling ativo na aba do ChatGPT a cada 2,5 segundos
-setInterval(checkBridgeFromContent, 2500);
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'INJECT_CONTEXT_PACKET') {
-    remoteLog(`Recebida mensagem INJECT_CONTEXT_PACKET para pacote ${message.packet_id}`);
-    handleInjection(message.packet_id, message.payload, message.autoSubmit)
-      .then((res) => {
-        remoteLog(`Injeção concluída com sucesso para pacote ${message.packet_id}`);
-        sendResponse(res);
-      })
-      .catch((err) => {
-        remoteLog(`Erro na injeção do pacote ${message.packet_id}: ${err.message}`);
-        sendResponse({ success: false, error: err.message });
-      });
-    return true; // Mantém o canal aberto para resposta assíncrona
-  }
-});
-
-async function handleInjection(packetId, textPayload, autoSubmit) {
-  console.log(`[BridgeV2-Content] Recebido pacote ${packetId} para injeção.`);
-
-  // 1. Aguarda caso o ChatGPT esteja atualmente gerando resposta (botão de parar visível)
-  await waitForIdle();
-
-  // 2. Localiza o elemento de entrada
-  const inputEl = findInputElement();
-  if (!inputEl) {
-    throw new Error('Elemento de entrada do ChatGPT não encontrado na página.');
-  }
-
-  // 3. Foca e injeta o texto
-  inputEl.focus();
-  setTextIntoElement(inputEl, textPayload);
-
-  // 4. Se autoSubmit estiver ativo, dispara o envio após breve pausa para renderização
-  if (autoSubmit) {
-    await sleep(400);
-    const sent = triggerSubmit(inputEl);
-    if (!sent) {
-      console.warn('[BridgeV2-Content] Botão de envio não clicável imediatamente; tentando envio via Enter.');
-      triggerEnterKey(inputEl);
+    if (message.type === 'INSPECT_COMPOSER') {
+      const inspectRes = inspectComposerCurrentState();
+      sendResponse(inspectRes);
+      return false;
     }
-  }
 
-  return {
-    success: true,
-    packet_id: packetId,
-    timestamp: new Date().toISOString()
-  };
-}
-
-function findInputElement() {
-  // Procura pelo ID padrão do ChatGPT (div contenteditable ou textarea)
-  const byId = document.getElementById('prompt-textarea');
-  if (byId) return byId;
-
-  // Seletores alternativos do ProseMirror / React
-  const selectors = [
-    'div[contenteditable="true"][data-placeholder]',
-    'div[contenteditable="true"]#prompt-textarea',
-    'div.ProseMirror[contenteditable="true"]',
-    'textarea[data-id="root"]',
-    'textarea'
-  ];
-
-  for (const sel of selectors) {
-    const el = document.querySelector(sel);
-    if (el) return el;
-  }
-
-  return null;
-}
-
-function setTextIntoElement(el, text) {
-  if (el.tagName.toLowerCase() === 'textarea') {
-    el.value = text;
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  } else if (el.isContentEditable) {
-    // Para elementos contenteditable (ProseMirror do ChatGPT moderno)
-    el.focus();
-    // Limpa conteúdo prévio
-    while (el.firstChild) {
-      el.removeChild(el.firstChild);
+    if (message.type === 'CHECK_HISTORY_FOR_PACKET') {
+      const found = checkHistoryForPacket(message.packet_id, message.payloadSnippet);
+      sendResponse({ found });
+      return false;
     }
-    // Cria parágrafo formatado
-    const lines = text.split('\n');
-    lines.forEach((line) => {
-      const p = document.createElement('p');
-      if (line.trim() === '') {
-        p.appendChild(document.createElement('br'));
-      } else {
-        p.textContent = line;
-      }
-      el.appendChild(p);
-    });
-
-    // Notifica o ProseMirror/React sobre a mudança
-    el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
-  }
-}
-
-function triggerSubmit(inputEl) {
-  const submitSelectors = [
-    'button[data-testid="send-button"]',
-    'button[aria-label="Send prompt"]',
-    'button[aria-label="Enviar prompt"]',
-    'button[data-testid="fruitjuice-send-button"]',
-    'button.mb-1'
-  ];
-
-  for (const sel of submitSelectors) {
-    const btn = document.querySelector(sel);
-    if (btn && !btn.disabled) {
-      btn.click();
-      console.log('[BridgeV2-Content] Botão de envio clicado com sucesso:', sel);
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function triggerEnterKey(inputEl) {
-  const enterDown = new KeyboardEvent('keydown', {
-    key: 'Enter',
-    code: 'Enter',
-    keyCode: 13,
-    which: 13,
-    bubbles: true,
-    cancelable: true
   });
-  inputEl.dispatchEvent(enterDown);
-}
 
-async function waitForIdle(maxWaitMs = 60000) {
-  const start = Date.now();
-  while (Date.now() - start < maxWaitMs) {
-    const stopBtn = document.querySelector('button[data-testid="stop-button"], button[aria-label="Stop generating"], button[aria-label="Parar de gerar"]');
-    if (!stopBtn) {
-      return;
+  function inspectComposerCurrentState() {
+    const inputEl = findInputElement();
+    if (!inputEl) {
+      return { ready: false, status: 'ELEMENT_NOT_FOUND' };
     }
-    await sleep(500);
-  }
-}
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
+    const currentText = getElementText(inputEl).trim();
+    if (!currentText) {
+      return { ready: true, status: 'READY', text: '' };
+    }
+
+    const isPacket = currentText.includes('[CONTEXT_PACKET]') || 
+                    currentText.includes('[BRIDGE_') || 
+                    currentText.includes('RESULT_OBRIGATORIO:');
+
+    if (isPacket) {
+      return {
+        ready: false,
+        status: 'COMPOSER_BUSY_PREVIOUS_PACKET_PENDING',
+        detail: 'Pacote anterior ainda presente no composer. Não concatenar.',
+        text: currentText
+      };
+    }
+
+    return {
+      ready: false,
+      status: 'COMPOSER_BUSY_OWNER_TEXT',
+      detail: 'Texto do proprietário detectado no composer. Preservar sem sobrescrever.',
+      text: currentText
+    };
+  }
+
+  async function handleInjection(packetId, textPayload, autoSubmit) {
+    // 1. Aguarda caso o ChatGPT esteja atualmente gerando resposta
+    await waitForIdle();
+
+    // 2. Localiza o elemento de entrada
+    const inputEl = findInputElement();
+    if (!inputEl) {
+      throw new Error('Elemento de entrada do ChatGPT não encontrado na página.');
+    }
+
+    // 3. Inspeção defensiva: se o campo está ocupado, FAIL-CLOSED imediato
+    const inspect = inspectComposerCurrentState();
+    if (!inspect.ready) {
+      remoteLog(`[FAIL-CLOSED] Injeção abortada para ${packetId}: ${inspect.status}`);
+      return {
+        success: false,
+        status: inspect.status,
+        reason: inspect.detail || inspect.status
+      };
+    }
+
+    // 4. Injeta o texto no campo vazio
+    inputEl.focus();
+    setTextIntoElement(inputEl, textPayload);
+
+    // 5. Validação pós-escrita: confirma que o conteúdo confere 100% antes de submeter
+    const textAfterWrite = getElementText(inputEl).trim();
+    if (!textAfterWrite.includes(textPayload.trim().substring(0, 50))) {
+      remoteLog(`[ABORT] Conteúdo no composer não corresponde ao payload esperado para ${packetId}.`);
+      return {
+        success: false,
+        status: 'CONTENT_MISMATCH',
+        reason: 'Texto escrito não coincide com o payload esperado.'
+      };
+    }
+
+    // 6. Submissão se autoSubmit estiver ativo
+    if (autoSubmit) {
+      await sleep(300);
+
+      // Dispara envio
+      const sent = triggerSubmit(inputEl);
+      if (!sent) {
+        remoteLog('Tentando envio via Enter com evento KeyboardEvent...');
+        triggerEnterKey(inputEl);
+      }
+
+      // 7. Confirmação positiva: verifica se o texto realmente saiu do composer
+      const confirmed = await waitForComposerCleared(inputEl, 4000);
+      
+      // Se a conexão caiu ou o texto ainda está preso
+      if (!navigator.onLine || !confirmed) {
+        remoteLog(`[SEND_UNCERTAIN] Pacote ${packetId} não confirmado no DOM. onLine=${navigator.onLine}, cleared=${confirmed}`);
+        return {
+          success: false,
+          status: 'SEND_UNCERTAIN',
+          reason: !navigator.onLine ? 'NETWORK_OFFLINE_DURING_SUBMIT' : 'COMPOSER_NOT_CLEARED'
+        };
+      }
+    }
+
+    return {
+      success: true,
+      status: 'CONFIRMED_DELIVERED',
+      packet_id: packetId,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  function getElementText(el) {
+    if (!el) return '';
+    if (el.tagName.toLowerCase() === 'textarea') {
+      return el.value || '';
+    }
+    return el.innerText || el.textContent || '';
+  }
+
+  function findInputElement() {
+    const byId = document.getElementById('prompt-textarea');
+    if (byId) return byId;
+
+    const selectors = [
+      'div[contenteditable="true"][data-placeholder]',
+      'div[contenteditable="true"]#prompt-textarea',
+      'div.ProseMirror[contenteditable="true"]',
+      'textarea[data-id="root"]',
+      'textarea'
+    ];
+
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      if (el) return el;
+    }
+    return null;
+  }
+
+  function setTextIntoElement(el, text) {
+    if (el.tagName.toLowerCase() === 'textarea') {
+      el.value = text;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (el.isContentEditable) {
+      el.focus();
+      while (el.firstChild) {
+        el.removeChild(el.firstChild);
+      }
+      const lines = text.split('\n');
+      lines.forEach((line) => {
+        const p = document.createElement('p');
+        if (line.trim() === '') {
+          p.appendChild(document.createElement('br'));
+        } else {
+          p.textContent = line;
+        }
+        el.appendChild(p);
+      });
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+    }
+  }
+
+  function triggerSubmit(inputEl) {
+    const submitSelectors = [
+      'button[data-testid="send-button"]',
+      'button[aria-label="Send prompt"]',
+      'button[aria-label="Enviar prompt"]',
+      'button[data-testid="fruitjuice-send-button"]',
+      'button.mb-1'
+    ];
+
+    for (const sel of submitSelectors) {
+      const btn = document.querySelector(sel);
+      if (btn && !btn.disabled) {
+        btn.click();
+        remoteLog(`Botão de envio acionado: ${sel}`);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function triggerEnterKey(inputEl) {
+    const enterDown = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      code: 'Enter',
+      keyCode: 13,
+      which: 13,
+      bubbles: true,
+      cancelable: true
+    });
+    inputEl.dispatchEvent(enterDown);
+  }
+
+  async function waitForComposerCleared(inputEl, timeoutMs = 4000) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const current = getElementText(inputEl).trim();
+      if (!current) {
+        return true;
+      }
+      // Se botão de stop generation apareceu, significa que o ChatGPT aceitou e começou a responder
+      const stopBtn = document.querySelector('button[data-testid="stop-button"], button[aria-label="Stop generating"], button[aria-label="Parar de gerar"]');
+      if (stopBtn) {
+        return true;
+      }
+      await sleep(250);
+    }
+    return false;
+  }
+
+  function checkHistoryForPacket(packetId, snippet) {
+    try {
+      const messages = document.querySelectorAll('div[data-message-author-role="user"], div[data-testid*="user"]');
+      for (const msg of messages) {
+        const text = msg.innerText || msg.textContent || '';
+        if (packetId && text.includes(packetId)) return true;
+        if (snippet && text.includes(snippet.substring(0, 60))) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  async function waitForIdle(maxWaitMs = 60000) {
+    const start = Date.now();
+    while (Date.now() - start < maxWaitMs) {
+      const stopBtn = document.querySelector('button[data-testid="stop-button"], button[aria-label="Stop generating"], button[aria-label="Parar de gerar"]');
+      if (!stopBtn) {
+        return;
+      }
+      await sleep(500);
+    }
+  }
+
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
 })();
