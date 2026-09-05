@@ -176,7 +176,7 @@ class OperationalResumeController {
       } else if (guiStatus.state === 'ANTIGRAVITY_BLOCKED_OR_WAITING_OWNER') {
         telegramMsg = 'Não enviei V: há modal de permissão ou segurança aberto na tela.';
       } else {
-        telegramMsg = 'O Antigravity foi reaberto, mas ainda não enviei V porque a interface não está pronta.';
+        telegramMsg = 'O Antigravity está rodando mas nenhuma janela foi encontrada na tela. Aguardando janela carregar.';
       }
 
       const journalEntry = {

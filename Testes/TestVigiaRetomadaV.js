@@ -530,11 +530,33 @@ async function runTestSuite() {
     console.log('  [PASS] Teste T: Todos os 6 estados factuais da Clarificação 3 distinguidos e validados.');
   }
 
+  // TESTE U: Janela minimizada (visible=false, minimized=true) → triggerResume deve fazer SEND_V
+  console.log('\nTESTE U: Janela minimizada → triggerResume aceita e envia V...');
+  {
+    cleanupFiles();
+    const mockDriver = new MockUiDriver();
+    mockDriver.running = true;
+    mockDriver.windows = [{ hwnd: 30, pid: 100, visible: false, minimized: true, className: 'Chrome_WidgetWin_1', title: 'OPP Formulário' }];
+    const adapter = new AntigravityUiAdapter({ customDriver: mockDriver });
+    const store = new ResumeEventStore({ storagePath: testStorePath, cooldownMs: 0 });
+    const ctrl = new OperationalResumeController({
+      uiAdapter: adapter,
+      eventStore: store,
+      journalPath: testJournalPath
+    });
+
+    const result = await ctrl.triggerResume('OWNER_REMOTE_TRIGGER', { resume_event_id: 'minimized_test_001' });
+    assert.strictEqual(result.action, 'SEND_V', `Deve fazer SEND_V com janela minimizada. Recebido: ${result.action}`);
+    assert.strictEqual(result.send_confirmation, true, 'Envio deve ser confirmado');
+    assert.strictEqual(mockDriver.sendCalls.length, 1, 'Deve ter chamado focusAndSendV uma vez');
+    console.log('  [PASS] Teste U: Janela minimizada aceita pelo controller, V enviado com sucesso.');
+  }
+
   // Limpeza final
   cleanupFiles();
 
   console.log('\n====================================================');
-  console.log('✨ SUÍTE DE RETOMADA AUTOMÁTICA E V (A a T) APROVADA!');
+  console.log('✨ SUÍTE DE RETOMADA AUTOMÁTICA E V (A a U) APROVADA!');
   console.log('====================================================\n');
 }
 

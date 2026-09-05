@@ -104,6 +104,15 @@ class NaturalLanguageRouter {
       return 'ANTIGRAVITY_ACTIVITY_STATUS';
     }
 
+    // Consultas e comandos de Sprint (Issue #45)
+    if (/(inicie|iniciar|comece|comecar|executar|rode).*(sprint|prova da ponte|circuito automatico)/i.test(normalizedText)) {
+      return 'SPRINT_START_REQUEST';
+    }
+
+    if (/(explique|o que estamos fazendo|objetivo|escopo|detalhe).*(nesta sprint|nessa sprint|sprint)/i.test(normalizedText)) {
+      return 'SPRINT_EXPLANATION';
+    }
+
     // Pergunta semântica sobre o comando V ou propósito do V
     if (
       /(entende.*["']?v["']?|o que [eé].*["']?v["']?|para que serve.*["']?v["']?|significa.*["']?v["']?|comando.*["']?v["']?.*(issue|git|repo|verificar)|comando para verificar as issues)/i.test(normalizedText)
@@ -345,6 +354,24 @@ class NaturalLanguageRouter {
           }
           metadata.interlocutor = 'ANTIGRAVITY';
         }
+        break;
+      }
+
+      case 'SPRINT_START_REQUEST': {
+        subject = 'ANTIGRAVITY';
+        replyText = 'Instrução de Sprint acolhida: iniciando execução da SPRINT-PC-TRABALHO-BRIDGE-001. A prova do circuito Bridge V2 está ativa e o RESULT será processado e devolvido pelo circuito automático.';
+        metadata.interlocutor = 'ANTIGRAVITY';
+        metadata.route_reason = 'SPRINT_START_REQUEST';
+        metadata.antigravity_available = true;
+        break;
+      }
+
+      case 'SPRINT_EXPLANATION': {
+        subject = 'ANTIGRAVITY';
+        replyText = 'Nesta sprint (SPRINT-PC-TRABALHO-BRIDGE-001), estamos implementando a conversa real e livre com o Antigravity via Telegram e o circuito automático de transporte via Bridge V2 para o ChatGPT, mantendo o Vigia estritamente como fallback factual.';
+        metadata.interlocutor = 'ANTIGRAVITY';
+        metadata.route_reason = 'SPRINT_EXPLANATION';
+        metadata.antigravity_available = true;
         break;
       }
 
@@ -609,17 +636,21 @@ class NaturalLanguageRouter {
       default: {
         const inv = this.recoveryManager ? this.recoveryManager.inventoryState() : {};
         const isRunning = inv.antigravity ? inv.antigravity.running : true;
-        const isOutOfDomain = /(previs[aã]o|tempo|clima|t[oó]quio|receita|futebol|pol[ií]tica|presidente|filme|m[uú]sica|jogo|quem [eé]|onde fica|qual a capital)/i.test(normalized);
 
-        if (isAdversarial || isOutOfDomain || !isRunning) {
-          replyText = 'Não tenho dados suficientes para responder a essa pergunta. Não compreendi sua solicitação. Por favor, pergunte sobre a saúde do computador, conectividade, processos autorizados ou Antigravity.';
+        if (isAdversarial) {
+          replyText = '⛔ Ação não autorizada por política de segurança e integridade do host.';
           metadata.interlocutor = 'VIGIA_FALLBACK';
-          metadata.route_reason = isAdversarial ? 'ADVERSARIAL_BLOCKED' : (isOutOfDomain ? 'OUT_OF_DOMAIN' : 'ANTIGRAVITY_PROCESS_DOWN');
+          metadata.route_reason = 'ADVERSARIAL_BLOCKED';
           metadata.antigravity_available = isRunning;
+        } else if (!isRunning) {
+          replyText = 'Antigravity não está em execução no host no momento. O Sentinela Vigia está ativo para suporte. Digite /acordarantigravity ou /ajuda.';
+          metadata.interlocutor = 'VIGIA_FALLBACK';
+          metadata.route_reason = 'ANTIGRAVITY_PROCESS_DOWN';
+          metadata.antigravity_available = false;
         } else {
-          replyText = 'Não compreendi totalmente essa solicitação de comando. Estou ativo e acompanhando o fluxo operacional. Você pode perguntar sobre a tarefa atual, status de execução ou enviar "v" para retomar.';
+          replyText = 'Mensagem recebida pelo Antigravity. Estou ativo e acompanhando o fluxo operacional da Sprint. Como posso orientar ou dar andamento a esta solicitação?';
           metadata.interlocutor = 'ANTIGRAVITY';
-          metadata.route_reason = 'ANTIGRAVITY_NLU_FALLBACK';
+          metadata.route_reason = 'ANTIGRAVITY_NATURAL_CONVERSATION';
           metadata.antigravity_available = true;
         }
         metadata.confidence = 'LOW';

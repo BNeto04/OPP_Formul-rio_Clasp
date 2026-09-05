@@ -204,8 +204,39 @@ async function testSuite() {
   assert.strictEqual(resJ.route_reason, 'ANTIGRAVITY_PROCESS_DOWN');
   console.log('  [PASS] Teste J: Fallback devidamente justificado com metadados factuais.');
 
+  // TESTE K: Janela minimizada → Vigia deve aceitar, restaurar e enviar V
+  console.log('\nTESTE K: Janela minimizada → aceita como GUI_READY, V enviado com sucesso...');
+  driver.running = true;
+  driver.locked = false;
+  driver.windows = [{ hwnd: 20, visible: false, minimized: true, className: 'Chrome_WidgetWin_1', title: 'OPP Formulário' }];
+  driver.sends = [];
+  const resK = await commandRouter.processUpdate({
+    message: { from: { id: 100 }, chat: { id: 100 }, text: 'v' }
+  });
+  assert.ok(resK.text.startsWith('ANTIGRAVITY > V recebido'), `Deve conter ACK. Recebido: ${resK.text}`);
+  assert.ok(resK.text.includes('Comando V enviado'), 'Deve confirmar envio de V');
+  assert.strictEqual(driver.sends.length, 1, 'Deve ter enviado V mesmo com janela minimizada');
+  assert.strictEqual(driver.sends[0].payload, 'V');
+  console.log('  [PASS] Teste K: Janela minimizada restaurada e V enviado autonomamente.');
+
+  // TESTE L: Nenhuma janela (nem visível nem minimizada) → GUI_NOT_READY
+  console.log('\nTESTE L: Nenhuma janela detectável → GUI_NOT_READY sem confusão de autoridade...');
+  driver.windows = [];
+  driver.sends = [];
+  const resL = await commandRouter.processUpdate({
+    message: { from: { id: 100 }, chat: { id: 100 }, text: 'v' }
+  });
+  assert.ok(resL.text.startsWith('ANTIGRAVITY > V recebido'), `Deve conter ACK. Recebido: ${resL.text}`);
+  assert.ok(resL.text.includes('não encontrada') || resL.text.includes('não está visível'), 'Deve indicar janela não encontrada');
+  assert.ok(!resL.text.includes('suspenso por segurança'), 'NÃO pode conter frase enganosa sobre segurança');
+  assert.strictEqual(driver.sends.length, 0, 'Nenhum envio sem janela detectável');
+  console.log('  [PASS] Teste L: Sem janela → mensagem clara sem confusão de autorização.');
+
+  // Restaurar estado padrão do driver
+  driver.windows = [{ hwnd: 10, visible: true, minimized: false, className: 'Chrome_WidgetWin_1', title: 'OPP Formulário' }];
+
   console.log('\n====================================================');
-  console.log('✨ TESTES DE INTERLOCUÇÃO E PRIORIDADE DE CANAL APROVADOS (A a J)!');
+  console.log('✨ TESTES DE INTERLOCUÇÃO E PRIORIDADE DE CANAL APROVADOS (A a L)!');
   console.log('====================================================\n');
 }
 

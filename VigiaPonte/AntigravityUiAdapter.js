@@ -170,7 +170,7 @@ class AntigravityUiAdapter {
     const list = windows || this.inspectWindows();
     
     // Janelas candidatas principais (visíveis e da classe Chrome_WidgetWin_1)
-    const mainCandidates = list.filter(w => w.visible && w.className.includes('Chrome_WidgetWin_1'));
+    const mainCandidates = list.filter(w => (w.visible || w.minimized) && w.className.includes('Chrome_WidgetWin_1'));
 
     if (mainCandidates.length === 0) {
       return {
@@ -285,7 +285,7 @@ class AntigravityUiAdapter {
     }
 
     const windows = this.inspectWindows();
-    if (windows.length === 0 || !windows.some(w => w.visible)) {
+    if (windows.length === 0 || !windows.some(w => w.visible || w.minimized)) {
       return {
         ready: false,
         state: 'ANTIGRAVITY_PROCESS_UP_GUI_NOT_READY',
@@ -391,8 +391,9 @@ class AntigravityUiAdapter {
 
             public static bool FocusAndTypeV(IntPtr hWnd) {
               ShowWindow(hWnd, 9); // SW_RESTORE
+              System.Threading.Thread.Sleep(300);
               bool fg = SetForegroundWindow(hWnd);
-              System.Threading.Thread.Sleep(150);
+              System.Threading.Thread.Sleep(300);
 
               // Disparo atômico da tecla V
               keybd_event(VK_V, 0, 0, UIntPtr.Zero);

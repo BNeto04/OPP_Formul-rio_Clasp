@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Syntheon Bridge V2 - Antigravity Outbound Sender",
+  "version": "1.0.0",
+  "description": "Transportador dedicado de saída ChatGPT -> Bridge V2 local sob envelope restrito [BRIDGE_TO_ANTIGRAVITY_V1].",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:8765/*",
+    "http://localhost:8765/*",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "action": {
+    "default_title": "Syntheon Bridge V2 - Outbound Sender"
+  }
+}

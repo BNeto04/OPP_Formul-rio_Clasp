@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Configurações - Syntheon Bridge V2</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 16px;
+      width: 320px;
+      color: #333;
+    }
+    h2 {
+      font-size: 16px;
+      margin-top: 0;
+      margin-bottom: 12px;
+      color: #111;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 8px;
+      font-size: 13px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .checkbox-row input {
+      margin-right: 8px;
+    }
+    button {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      font-size: 13px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #status {
+      margin-top: 10px;
+      font-size: 12px;
+      color: green;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>Syntheon Bridge V2</h2>
+  <div>
+    <label for="bridgeEndpoint">Endpoint da Bridge Local:</label>
+    <input type="text" id="bridgeEndpoint" value="http://127.0.0.1:8765">
+
+    <label for="pollIntervalMs">Intervalo de Verificação (ms):</label>
+    <input type="number" id="pollIntervalMs" value="3000">
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="autoSubmit" checked>
+      <label for="autoSubmit" style="margin-bottom: 0; font-weight: normal;">Disparar envio automaticamente</label>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="enabled" checked>
+      <label for="enabled" style="margin-bottom: 0; font-weight: normal;">Habilitar transportador</label>
+    </div>
+
+    <button id="saveBtn">Salvar Configurações</button>
+    <div id="status"></div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+{
+  "version": "1.0.0",
+  "lastSendTimestamp": 1788545962435,
+  "events": [
+    {
+      "resume_event_id": "live_dedupe_probe_1788543670254",
+      "trigger_type": "LIVE_PROBE",
+      "detected_at": "2026-09-04T17:41:10.255Z",
+      "conversation_identity_hash": null,
+      "send_attempted": false,
+      "send_confirmed": true,
+      "ack_observed": false,
+      "result": "V_SENT_CONFIRMED",
+      "reason": null,
+      "retry_count": 0,
+      "timestamp": 1788543670257
+    },
+    {
+      "resume_event_id": "live_dedupe_proof_1788545152550",
+      "trigger_type": "LIVE_PROBE",
+      "detected_at": "2026-09-04T18:05:52.550Z",
+      "conversation_identity_hash": null,
+      "send_attempted": false,
+      "send_confirmed": true,
+      "ack_observed": false,
+      "result": "V_SENT_CONFIRMED",
+      "reason": null,
+      "retry_count": 0,
+      "timestamp": 1788545152554
+    },
+    {
+      "resume_event_id": "live_dedupe_proof_1788545173981",
+      "trigger_type": "LIVE_PROBE",
+      "detected_at": "2026-09-04T18:06:13.982Z",
+      "conversation_identity_hash": null,
+      "send_attempted": false,
+      "send_confirmed": true,
+      "ack_observed": false,
+      "result": "V_SENT_CONFIRMED",
+      "reason": null,
+      "retry_count": 0,
+      "timestamp": 1788545173984
+    },
+    {
+      "resume_event_id": "live_dedupe_proof_1788545189066",
+      "trigger_type": "LIVE_PROBE",
+      "detected_at": "2026-09-04T18:06:29.066Z",
+      "conversation_identity_hash": null,
+      "send_attempted": false,
+      "send_confirmed": true,
+      "ack_observed": false,
+      "result": "V_SENT_CONFIRMED",
+      "reason": null,
+      "retry_count": 0,
+      "timestamp": 1788545189068
+    },
+    {
+      "resume_event_id": "live_dedupe_proof_1788545218643",
+      "trigger_type": "LIVE_PROBE",
+      "detected_at": "2026-09-04T18:06:58.643Z",
+      "conversation_identity_hash": null,
+      "send_attempted": false,
+      "send_confirmed": true,
+      "ack_observed": false,
+      "result": "V_SENT_CONFIRMED",
+      "reason": null,
+      "retry_count": 0,
+      "timestamp": 1788545218645
+    },
+    {
+      "resume_event_id": "live_dedupe_proof_1788545962433",
+      "trigger_type": "LIVE_PROBE",
+      "detected_at": "2026-09-04T18:19:22.433Z",
+      "conversation_identity_hash": null,
+      "send_attempted": false,
+      "send_confirmed": true,
+      "ack_observed": false,
+      "result": "V_SENT_CONFIRMED",
+      "reason": null,
+      "retry_count": 0,
+      "timestamp": 1788545962435
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "version": "1.0.0",
+  "updated_at": 1788646824123,
+  "sessions": {
+    "100": {
+      "subject": "ANTIGRAVITY",
+      "current_issue_number": null,
+      "current_task_id": null,
+      "previous_intent": "UNKNOWN_OR_UNSUPPORTED",
+      "last_factual_snapshot_ref": null,
+      "history": [
+        {
+          "role": "assistant",
+          "text": "Estou ativo e pronto para continuar o fluxo. Tarefa atual: Issue #ativa (em andamento).",
+          "timestamp": 1788646824060
+        },
+        {
+          "role": "user",
+          "text": "qual é o status atual da sprint?",
+          "timestamp": 1788646824103
+        },
+        {
+          "role": "assistant",
+          "text": "Mensagem recebida pelo Antigravity. Estou ativo e acompanhando o fluxo operacional da Sprint. Como posso orientar ou dar andamento a esta solicitação?",
+          "timestamp": 1788646824106
+        },
+        {
+          "role": "user",
+          "text": "xyz-random-unrecognized-string-999",
+          "timestamp": 1788646824120
+        },
+        {
+          "role": "assistant",
+          "text": "Mensagem recebida pelo Antigravity. Estou ativo e acompanhando o fluxo operacional da Sprint. Como posso orientar ou dar andamento a esta solicitação?",
+          "timestamp": 1788646824123
+        }
+      ],
+      "created_at": 1788646788431,
+      "updated_at": 1788646824123,
+      "expires_at": 1788647124123,
+      "confidence": "HIGH"
+    }
+  }
+}
