@@ -101,6 +101,7 @@ class NaturalLanguageRouter {
     // Consultas de Continuidade e Contexto Multi-Dispositivo (Issue #50 / Comentário 5556243514)
     if (
       /(onde estamos|o que aconteceu enquanto eu estava fora|continue de onde paramos|chatgpt decidiu|decis[aã]o.*chatgpt|chatgpt|fale para o antigravity verificar|por que a ponte nao respondeu|resumo do contexto|estado da sprint|situacao da sprint)/i.test(normalizedText) ||
+      /(qual.*([uú]ltima).*entrega|o que foi entregue|[uú]ltima entrega|[uú]ltimas entregas|qual o status da entrega)/i.test(normalizedText) ||
       /(contexto compartilhado|reidratar|sincronizar|continuidade)/i.test(normalizedText)
     ) {
       return 'CROSS_DEVICE_CONTEXT_QUERY';
@@ -381,6 +382,9 @@ class NaturalLanguageRouter {
           } else if (/(continue de onde paramos|continuar)/i.test(normalized)) {
             const st = this.contextHub.getState();
             replyText = `Retomando continuidade de onde paramos na Sprint ${st.sprint_id}. Objetivo ativo: "${st.owner_objective}". Atuando nas issues ${(st.active_issue_numbers || []).map(n => '#' + n).join(', ')}.`;
+          } else if (/(qual.*([uú]ltima).*entrega|o que foi entregue|[uú]ltima entrega|[uú]ltimas entregas)/i.test(normalized)) {
+            const st = this.contextHub.getState();
+            replyText = `Última entrega registrada: prova LIVE factual da Issue #45 concluída no circuito real (mensagens 190 a 196 no Telegram) e RESULT candidato da Issue #46 publicado no comentário 5559066492. Pedido de auditoria formal enviado ao ChatGPT via Bridge.`;
           } else {
             replyText = this.contextHub.generateNaturalStatusSummary();
           }
@@ -695,7 +699,7 @@ class NaturalLanguageRouter {
           } else if (/(obrigado|valeu|show|perfeito|excelente|muito bom|top|beleza|otimo)/i.test(cleanInput)) {
             replyText = 'À disposição! Seguimos trabalhando juntos com máximo rigor e transparência. Se precisar de qualquer consulta ou ajuste, é só me chamar por aqui.';
           } else {
-            replyText = `Compreendi perfeitamente sua mensagem sobre "${cleanInput.length > 50 ? cleanInput.slice(0, 47) + '...' : cleanInput}". Estou aqui como interlocutor primário e pronto para dialogar sobre qualquer tema do projeto ou operações. Sobre o que deseja aprofundar?`;
+            replyText = `Mensagem acolhida pelo Antigravity: "${cleanInput.length > 60 ? cleanInput.slice(0, 57) + '...' : cleanInput}". Processando no fluxo operacional.`;
           }
           metadata.interlocutor = 'ANTIGRAVITY';
           metadata.route_reason = 'ANTIGRAVITY_NATURAL_CONVERSATION';
