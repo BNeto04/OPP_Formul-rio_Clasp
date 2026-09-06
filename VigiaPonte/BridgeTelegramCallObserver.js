@@ -102,13 +102,10 @@ class BridgeTelegramCallObserver {
       };
     }
 
-    // 11. Circuito saudável: Antigravity acorda e Telegram recebe ACK correlacionado
-    const agAckText = 'ANTIGRAVITY > CALL ' + callId + ' recebida pela ponte; indo ao GitHub/execução.';
-    await this.sendTelegram(agAckText);
-
-    // 12. Mesma CALL: Vigia registra saúde do circuito sem assumir execução
-    const vigiaHealthText = 'VIGIA > ponte online; Antigravity recebeu CALL ' + callId;
-    await this.sendTelegram(vigiaHealthText);
+    // ISOLAMENTO ESTRITO: em circuito saudavel, Antigravity e Vigia nao enviam
+    // mensagens conversacionais ao Telegram. O canal humano e exclusivo do ChatGPT.
+    // Antigravity executa a CALL silenciosamente e publica RESULT no GitHub.
+    // Vigia permanece HEALTHY_SILENT.
 
     const entry = {
       timestamp: new Date().toISOString(),

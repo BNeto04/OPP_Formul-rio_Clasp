@@ -182,9 +182,8 @@ class VigiaBootEngine {
     if (this.telegramPoller) {
       try {
         this.telegramPoller.start();
-        if (this.telegramAlertManager) {
-          this.telegramAlertManager.sendAlert('VIGIA_ONLINE', '🛡️ *Vigia da Ponte ativo e conectado.*\n\nSistema online e monitoramento contínuo iniciado.');
-        }
+        // HEALTHY_SILENT: Vigia nao anuncia presenca no Telegram em estado normal.
+        // Alerta so e enviado em indisponibilidade factual (INTERNET_DOWN, BRIDGE_DOWN).
       } catch (e) {
         // fail-open
       }
