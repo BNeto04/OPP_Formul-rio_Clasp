@@ -185,7 +185,22 @@ TIMESTAMP: ${new Date().toISOString()}
 
     log(`[STAGE1_GPT_OUTBOUND] Pacote recebido do ChatGPT: call_id=${packet.call_id}, type=${packet.type}`);
 
-    // Se o pacote contém resposta conversacional para o proprietário
+    // 1. O pacote é uma ordem técnica destinada ao Antigravity (ex: [BRIDGE_TO_ANTIGRAVITY_V1], CALL_ID de correção/tarefa)?
+    const isTechnicalForAntigravity = packet.type === 'CALL' || 
+                                     packet.type === 'TASK' || 
+                                     packet.type === 'AUDIT' ||
+                                     packet.type === 'OWNER_DIRECTIVE' ||
+                                     (packet.call_id && (packet.call_id.startsWith('MESSAGE-53-FIX') || packet.call_id.startsWith('MESSAGE-53-STAGE1') || packet.call_id.includes('-ANTIGRAVITY-') || packet.call_id.includes('-EXEC-'))) ||
+                                     (packet.payload && (packet.payload.includes('Consuma a correção') || packet.payload.includes('Consuma o comentário') || packet.payload.includes('Issue #53') || packet.payload.includes('[BRIDGE_TO_ANTIGRAVITY_V1]')));
+
+    if (isTechnicalForAntigravity) {
+      log(`[WAKE_ANTIGRAVITY] Chamada técnica para o Antigravity detectada (${packet.call_id}). NÃO enviando ao Telegram. Disparando despertar do Antigravity!`);
+      // Encerra com código 0 para acionar o Reactive Wakeup imediato no IDE
+      process.exit(0);
+      return;
+    }
+
+    // 2. O pacote é uma resposta conversacional do ChatGPT destinada ao proprietário no Telegram
     const authorizedUser = this.allowlist.getAuthorizedUser();
     const targetChatId = authorizedUser?.authorized_chat_id;
 
@@ -193,7 +208,7 @@ TIMESTAMP: ${new Date().toISOString()}
       const cleanPayload = SanitizadorSegredos.sanitizarTexto(packet.payload);
       const tgText = `CHATGPT > ${cleanPayload}`;
 
-      log(`[STAGE1_GPT_TO_TG] Enviando resposta do ChatGPT para o Telegram...`);
+      log(`[STAGE1_GPT_TO_TG] Enviando resposta conversacional do ChatGPT para o Telegram...`);
       try {
         const res = await this.telegramClient.sendMessage(targetChatId, tgText, null);
         if (res && res.ok) {
