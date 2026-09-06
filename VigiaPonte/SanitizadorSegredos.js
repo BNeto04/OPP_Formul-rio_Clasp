@@ -14,8 +14,8 @@ function sanitizarTexto(texto) {
   let limpo = texto;
 
   // Substituir tokens GitHub
-  limpo = limpo.replace(/ghp_[a-zA-Z0-9]{20,}/g, '[REDACTED_GH_TOKEN]');
-  limpo = limpo.replace(/github_pat_[a-zA-Z0-9_]{20,}/g, '[REDACTED_GH_PAT]');
+  limpo = limpo.replace(/ghp_[a-zA-Z0-9]{15,}/g, '[REDACTED_GH_TOKEN]');
+  limpo = limpo.replace(/github_pat_[a-zA-Z0-9_]{15,}/g, '[REDACTED_GH_PAT]');
   
   // Substituir cabeçalhos Authorization
   limpo = limpo.replace(/Bearer\s+[a-zA-Z0-9_\-\.]+/gi, 'Bearer [REDACTED_BEARER]');
@@ -29,6 +29,9 @@ function sanitizarTexto(texto) {
   limpo = limpo.replace(/(?:password|senha|secret|token|api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9_\-\.]+)["']?/gi, function(match, secretVal) {
     return match.replace(secretVal, '[REDACTED_SECRET]');
   });
+
+  // Substituir chat_id do Telegram
+  limpo = limpo.replace(/chat_id\s*[:=]\s*["']?(\d+)["']?/gi, 'chat_id=[REDACTED_CHAT_ID]');
 
   return limpo;
 }
