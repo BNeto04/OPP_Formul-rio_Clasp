@@ -256,6 +256,13 @@ PAYLOAD: Sem fechamento`;
   // TESTE 10: Ciclo LIVE completo simulado: ChatGPT -> Outbound -> Bridge -> Inbound -> ChatGPT
   {
     console.log('[TEST 10] Verificando ciclo E2E completo: Outbound -> Bridge -> Queue -> Inbound...');
+    // Reset/drena a fila antes do teste 10 para isolamento limpo
+    await new Promise((resolve) => {
+      const r = http.request('http://127.0.0.1:8765/reset', { method: 'POST' }, () => resolve());
+      r.on('error', () => resolve());
+      r.end();
+    });
+
     const callId = 'CALL-E2E-' + Date.now();
     const chatGptOutput = `
 Decisão do ChatGPT sobre a auditoria:

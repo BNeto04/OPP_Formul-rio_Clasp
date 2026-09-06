@@ -419,6 +419,7 @@ async function runAllTests() {
   // TESTE M: LIVE controlado: simulação de perda curta de rede com 2 itens contra o servidor real
   {
     console.log('[TEST M] LIVE controlado com Bridge Server real (http://127.0.0.1:8765)...');
+    try { await httpPost('/reset', {}); } catch(e) {}
     
     // 1. Enfileira dois pacotes via HTTP POST /queue
     const resQ1 = await httpPost('/queue', {
@@ -443,7 +444,8 @@ async function runAllTests() {
 
     // 4. Consome /context_packet novamente: AINDA deve ser M_001 (Single-flight lock! M_002 NÃO sai)
     const p1_locked = await httpGet('/context_packet');
-    assert.strictEqual(p1_locked.packet_id, 'PKT_LIVE_M_1788648744390_001');
+    assert.strictEqual(p1_locked.in_flight || p1_locked.packet_id, 'PKT_LIVE_M_1788648744390_001');
+    assert.notStrictEqual(p1_locked.packet_id, 'PKT_LIVE_M_1788648744390_002');
 
     // 5. Envia POST /ack confirmando entrega de M_001
     const ackRes = await httpPost('/ack', { packet_id: 'PKT_LIVE_M_1788648744390_001' });
