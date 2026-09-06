@@ -185,7 +185,7 @@
       if (envelope.type === 'CHATGPT_REPLY') {
         remoteLog(`[CHATGPT_REPLY_PARSED] call_id=${envelope.call_id}, reply_to_event_id=${envelope.reply_to_event_id}, reply_to_message_id=${envelope.reply_to_message_id}`);
       } else {
-        remoteLog(`🎯 Envelope detectado para Antigravity! call_id=${envelope.call_id}, type=${envelope.type}`);
+        remoteLog(`[OUTBOUND_ENVELOPE_DETECTED] call_id=${envelope.call_id}, type=${envelope.type}`);
       }
       processedCallIds.add(envelope.call_id);
 
@@ -210,7 +210,7 @@
                 if (envelope.type === 'CHATGPT_REPLY') {
                   remoteLog(`[CHATGPT_REPLY_BACKGROUND_ACK] CHATGPT_REPLY ${envelope.call_id} entregue à Bridge com sucesso!`);
                 } else {
-                  remoteLog(`🎉 Envelope ${envelope.call_id} entregue à Bridge com sucesso!`);
+                  remoteLog(`[OUTBOUND_ENVELOPE_DELIVERED] call_id=${envelope.call_id}`);
                 }
                 if (chrome.storage && chrome.storage.local) {
                   chrome.storage.local.get(['outbound_processed_ids'], (data) => {

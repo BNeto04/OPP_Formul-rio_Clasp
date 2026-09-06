@@ -342,7 +342,7 @@ PAYLOAD: sua resposta conversacional
   async start() {
     this.running = true;
     log('===============================================================');
-    log('🚀 STAGE 1 DIRECT BRIDGE TRANSPORT INICIADO');
+    log('[STAGE 1 DIRECT BRIDGE TRANSPORT INICIADO]');
     log('Fluxo: Telegram <-> Ponte Local <-> ChatGPT Ativo (Sem Antigravity)');
     log('===============================================================');
 
