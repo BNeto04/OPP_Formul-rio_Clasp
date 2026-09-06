@@ -351,22 +351,14 @@ class NaturalLanguageRouter {
       }
 
       case 'GREETING_OR_CONVERSATION': {
-        subject = 'ANTIGRAVITY';
-        const inv = this.recoveryManager ? this.recoveryManager.inventoryState() : {};
-        const isRunning = inv.antigravity ? inv.antigravity.running : true;
-        if (!isRunning) {
-          replyText = 'Antigravity não está em execução no host no momento. O Sentinela Vigia está ativo para suporte. Digite /acordarantigravity ou /ajuda.';
-          metadata.interlocutor = 'VIGIA_FALLBACK';
-        } else {
-          const snapshot = await this.antigravityObserver.inspect();
-          if (snapshot.execution_phase === 'IN_PROGRESS') {
-            const taskStr = snapshot.current_task_id ? `(${snapshot.current_task_id})` : `(Issue #${snapshot.current_issue_number})`;
-            replyText = `Olá! Aqui é o Antigravity. Estou em execução ativa no host. No momento estou trabalhando na Issue #${snapshot.current_issue_number} ${taskStr}. Em que posso ajudar no fluxo operacional?`;
-          } else {
-            replyText = 'Olá! Aqui é o Antigravity. Estou ativo no host e com interface operacional pronta, aguardando o próximo comando ou instrução de trabalho.';
-          }
-          metadata.interlocutor = 'ANTIGRAVITY';
-        }
+        // ISOLAMENTO ESTRITO: Antigravity nao e interlocutor conversacional do proprietario.
+        // O canal Telegram e exclusivo do ChatGPT para conversa.
+        // Antigravity nao responde saudacoes, status conversacional nem canned responses.
+        // Mensagens naturais do proprietario devem chegar ao ChatGPT, nao ao Antigravity.
+        subject = null;
+        replyText = null;
+        metadata.interlocutor = 'NONE';
+        metadata.route_reason = 'OWNER_MESSAGE_NOT_FOR_ANTIGRAVITY';
         break;
       }
 
