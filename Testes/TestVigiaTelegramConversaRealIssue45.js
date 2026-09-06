@@ -260,9 +260,105 @@ async function runIssue45TestSuite() {
   assert.ok(hasAgPrefix ^ hasVigiaPrefix, 'A resposta DEVE ter exatamente um prefixo');
   console.log('  [PASS] Teste 10: Resposta única sem duplicidade entre Antigravity e Vigia garantida.');
 
-  console.log('\n====================================================');
-  console.log('✨ SUÍTE DE TESTES OBRIGATÓRIOS ISSUE #45 100% APROVADA (1 a 10)!');
-  console.log('====================================================\n');
+  // =========================================================================
+  // TESTES ADICIONAIS OBRIGATÓRIOS DO DONE GATE CORRIGIDO (11 a 17)
+  // Conforme auditoria da Issue #45 (comentário 5556220178)
+  // =========================================================================
+  const BridgeTelegramCallObserver = require('../VigiaPonte/BridgeTelegramCallObserver');
+
+  class MockTelegramClient {
+    constructor() {
+      this.messages = [];
+    }
+    async sendMessage(chatId, text) {
+      const msg = { chatId, text, timestamp: new Date().toISOString(), message_id: 2000 + this.messages.length };
+      this.messages.push(msg);
+      return { ok: true, result: msg };
+    }
+  }
+
+  const mockTgClient = new MockTelegramClient();
+  const mockAllowlist = {
+    isPaired: () => true,
+    getAuthorizedUser: () => ({ authorized_chat_id: 6857459665 })
+  };
+
+  const observer = new BridgeTelegramCallObserver({
+    client: mockTgClient,
+    allowlist: mockAllowlist,
+    recoveryManager,
+    bridgeAvailable: true
+  });
+
+  // TESTE 11: CALL válida originada fora do Telegram -> Antigravity acorda e Telegram mostra ACK correlacionado sem mensagem humana prévia
+  console.log('\nTESTE 11: CALL válida fora do Telegram -> ACK correlacionado no Telegram sem mensagem humana...');
+  mockTgClient.messages = [];
+  const callPkt11 = { call_id: 'CALL-EXT-TEST-011', sprint_id: 'SPRINT-PC-TRABALHO-SANEAMENTO-DONE-001', type: 'CALL' };
+  const res11 = await observer.onCallReceived(callPkt11);
+  assert.strictEqual(res11.success, true);
+  assert.strictEqual(res11.final_responder, 'ANTIGRAVITY');
+  assert.ok(mockTgClient.messages.some(m => m.text.includes('ANTIGRAVITY > CALL CALL-EXT-TEST-011 recebida pela ponte')));
+  console.log('  [PASS] Teste 11: Antigravity emite ACK correlacionado no Telegram para CALL externa.');
+
+  // TESTE 12: Mesma CALL -> Vigia registra/torna visível saúde do circuito no Telegram, sem assumir a execução
+  console.log('\nTESTE 12: Mesma CALL -> Vigia registra saúde do circuito sem competir pela execução...');
+  assert.strictEqual(res11.vigia_supervision, 'HEALTHY');
+  assert.ok(mockTgClient.messages.some(m => m.text.includes('VIGIA > ponte online; Antigravity recebeu CALL CALL-EXT-TEST-011')));
+  console.log('  [PASS] Teste 12: Vigia observa e reporta saúde sem assumir o papel de executor.');
+
+  // TESTE 13: RESULT da CALL -> Telegram mostra ANTIGRAVITY > ENTREGUE/RESULT correlacionado
+  console.log('\nTESTE 13: RESULT da CALL -> Telegram mostra ANTIGRAVITY > ENTREGUE/RESULT correlacionado...');
+  const resResult13 = await observer.onResultDelivered({ call_id: 'CALL-EXT-TEST-011' });
+  assert.strictEqual(resResult13.success, true);
+  assert.ok(mockTgClient.messages.some(m => m.text.includes('ANTIGRAVITY > ENTREGUE/RESULT: CALL CALL-EXT-TEST-011 concluída.')));
+  console.log('  [PASS] Teste 13: Notificação de RESULT entregue com sucesso no Telegram.');
+
+  // TESTE 14: Bridge/Antigravity realmente offline ao chegar CALL -> Telegram mostra VIGIA/FALLBACK com CALL_ID e route_reason factual
+  console.log('\nTESTE 14: Bridge/Antigravity offline ao chegar CALL -> VIGIA/FALLBACK factual com CALL_ID...');
+  observer.setBridgeAvailable(false);
+  mockTgClient.messages = [];
+  const callPkt14 = { call_id: 'CALL-EXT-OFFLINE-014', sprint_id: 'SPRINT-PC-TRABALHO-SANEAMENTO-DONE-001', type: 'CALL' };
+  const res14 = await observer.onCallReceived(callPkt14);
+  assert.strictEqual(res14.success, true);
+  assert.strictEqual(res14.final_responder, 'VIGIA');
+  assert.strictEqual(res14.route_type, 'VIGIA_FALLBACK');
+  assert.strictEqual(res14.route_reason, 'BRIDGE_OFFLINE');
+  assert.ok(mockTgClient.messages.some(m => m.text.startsWith('VIGIA/FALLBACK > CALL CALL-EXT-OFFLINE-014 não chegou')));
+  console.log('  [PASS] Teste 14: Queda factual da Bridge gera fallback do Vigia com motivo exato no Telegram.');
+
+  // TESTE 15: Recuperação do circuito -> próxima CALL volta automaticamente ao Antigravity, com observabilidade pelo Telegram
+  console.log('\nTESTE 15: Recuperação do circuito -> próxima CALL volta automaticamente ao Antigravity...');
+  observer.setBridgeAvailable(true);
+  mockTgClient.messages = [];
+  const callPkt15 = { call_id: 'CALL-EXT-RECOVERED-015', sprint_id: 'SPRINT-PC-TRABALHO-SANEAMENTO-DONE-001', type: 'CALL' };
+  const res15 = await observer.onCallReceived(callPkt15);
+  assert.strictEqual(res15.success, true);
+  assert.strictEqual(res15.final_responder, 'ANTIGRAVITY');
+  assert.ok(mockTgClient.messages.some(m => m.text.includes('ANTIGRAVITY > CALL CALL-EXT-RECOVERED-015 recebida')));
+  console.log('  [PASS] Teste 15: Circuito restabelecido devolve observabilidade e controle ao Antigravity.');
+
+  // TESTE 16: Dedupe: uma CALL gera no máximo um ACK operacional do Antigravity e um evento de saúde/fallback pertinente do Vigia
+  console.log('\nTESTE 16: Dedupe estrito de CALL (retry/reload sem duplicação)...');
+  mockTgClient.messages = [];
+  const res16Retry = await observer.onCallReceived(callPkt15);
+  assert.strictEqual(res16Retry.action, 'DEDUPE_NO_OP');
+  assert.strictEqual(res16Retry.duplicate, true);
+  assert.strictEqual(mockTgClient.messages.length, 0, 'Nenhuma mensagem deve ser reenviada em duplicata');
+  console.log('  [PASS] Teste 16: Deduplicação de CALL comprovada (zero spam/duplicações no Telegram).');
+
+  // TESTE 17: Provar que CALL recebida via Bridge desperta o Antigravity MESMO sem sessão ChatGPT local sincronizada e sem interação no Telegram
+  console.log('\nTESTE 17: CALL via Bridge desperta circuito sem dependência de sessão ChatGPT ou ação humana no Telegram...');
+  const callPkt17 = { call_id: 'CALL-AUTONOMOUS-017', sprint_id: 'SPRINT-PC-TRABALHO-SANEAMENTO-DONE-001', type: 'CALL' };
+  mockTgClient.messages = [];
+  const res17 = await observer.onCallReceived(callPkt17);
+  assert.strictEqual(res17.success, true);
+  assert.strictEqual(res17.final_responder, 'ANTIGRAVITY');
+  assert.strictEqual(mockTgClient.messages.length, 2, 'Gera exatamente o par correlacionado (Antigravity ACK + Vigia Health)');
+  console.log('  [PASS] Teste 17: Circuito autônomo e assíncrono comprovado sem amarras a abas locais.');
+
+  console.log('\n========================================================================');
+  console.log('✨ SUÍTE INTEGRAL DE TESTES ISSUE #45 100% APROVADA (1 a 17 COMPLETOS)!');
+  console.log('========================================================================\n');
 }
 
 if (require.main === module) {

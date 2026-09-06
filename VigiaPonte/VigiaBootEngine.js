@@ -11,6 +11,7 @@ const TelegramCommandRouter = require('./TelegramCommandRouter');
 const TelegramAlertManager = require('./TelegramAlertManager');
 const TelegramPoller = require('./TelegramPoller');
 const OperationalResumeController = require('./OperationalResumeController');
+const BridgeTelegramCallObserver = require('./BridgeTelegramCallObserver');
 
 class VigiaBootEngine {
   constructor(options = {}) {
@@ -57,6 +58,12 @@ class VigiaBootEngine {
         this.telegramPoller = new TelegramPoller({
           client: this.telegramClient,
           router: this.telegramRouter
+        });
+        this.bridgeCallObserver = new BridgeTelegramCallObserver({
+          client: this.telegramClient,
+          allowlist: this.telegramAllowlist,
+          recoveryManager: this.recoveryManager,
+          bridgeAvailable: options.bridgeAvailable !== undefined ? options.bridgeAvailable : true
         });
       }
     } catch (err) {
@@ -236,6 +243,20 @@ class VigiaBootEngine {
         // fail-open: não morre nem trava
       }
     }, this.pollIntervalMs);
+  }
+
+  async notifyCallReceived(callPacket) {
+    if (this.bridgeCallObserver) {
+      return await this.bridgeCallObserver.onCallReceived(callPacket);
+    }
+    return { handled: false, reason: 'NO_OBSERVER' };
+  }
+
+  async notifyResultDelivered(resultPacket) {
+    if (this.bridgeCallObserver) {
+      return await this.bridgeCallObserver.onResultDelivered(resultPacket);
+    }
+    return { handled: false, reason: 'NO_OBSERVER' };
   }
 
   stop() {
