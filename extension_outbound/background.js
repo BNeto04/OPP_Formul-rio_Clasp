@@ -93,6 +93,9 @@ async function dispatchToBridge(envelope) {
 
   try {
     const url = `${config.bridgeEndpoint}/outbound_packet`;
+    if (envelope.type === 'CHATGPT_REPLY') {
+      remoteLog(`[CHATGPT_REPLY_DISPATCHING_TO_BRIDGE] POST ${url}, call_id=${envelope.call_id}, reply_to_event_id=${envelope.reply_to_event_id}, reply_to_message_id=${envelope.reply_to_message_id}`);
+    }
     const res = await fetch(url, {
       method: 'POST',
       headers: {
@@ -115,7 +118,11 @@ async function dispatchToBridge(envelope) {
       chrome.action.setBadgeBackgroundColor({ color: '#28a745' });
     }
 
-    remoteLog(`Envio concluído com sucesso para Bridge: ${packetId} (ACK recebido)`);
+    if (envelope.type === 'CHATGPT_REPLY') {
+      remoteLog(`[CHATGPT_REPLY_BRIDGE_CONFIRMED] Bridge aceitou CHATGPT_REPLY: status=${res.status}, body=${JSON.stringify(resData)}`);
+    } else {
+      remoteLog(`Envio concluído com sucesso para Bridge: ${packetId} (ACK recebido)`);
+    }
 
     return {
       success: true,
@@ -148,6 +155,9 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
     }
 
     if (message && message.type === 'OUTBOUND_ENVELOPE_DETECTED') {
+      if (message.envelope && message.envelope.type === 'CHATGPT_REPLY') {
+        remoteLog(`[RECEIVED_CHATGPT_REPLY] Recebido do content script: call_id=${message.envelope.call_id}, reply_to_event_id=${message.envelope.reply_to_event_id}, reply_to_message_id=${message.envelope.reply_to_message_id}`);
+      }
       dispatchToBridge(message.envelope)
         .then((res) => sendResponse(res))
         .catch((err) => sendResponse({ success: false, error: err.message }));

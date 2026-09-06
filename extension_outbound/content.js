@@ -163,10 +163,8 @@
     if (!messageContainers || messageContainers.length === 0) return;
 
     for (const container of messageContainers) {
-      const text = container.innerText || container.textContent || '';
-      if (!text.includes('[BRIDGE_TO_ANTIGRAVITY_V1]') && !text.includes('[CHATGPT_REPLY_V1]') && !text.includes('[CHATGPT_REPLY]')) {
-        // Ignora texto normal do ChatGPT sem envelope
-        continue;
+      if (text.includes('[CHATGPT_REPLY_V1]') || text.includes('[CHATGPT_REPLY]')) {
+        remoteLog(`[CHATGPT_REPLY_DETECTED] Envelope CHATGPT_REPLY detectado no DOM.`);
       }
 
       const parsed = parseOutboundEnvelope(text);
@@ -184,11 +182,18 @@
         continue;
       }
 
-      remoteLog(`🎯 Envelope detectado para Antigravity! call_id=${envelope.call_id}, type=${envelope.type}`);
+      if (envelope.type === 'CHATGPT_REPLY') {
+        remoteLog(`[CHATGPT_REPLY_PARSED] call_id=${envelope.call_id}, reply_to_event_id=${envelope.reply_to_event_id}, reply_to_message_id=${envelope.reply_to_message_id}`);
+      } else {
+        remoteLog(`🎯 Envelope detectado para Antigravity! call_id=${envelope.call_id}, type=${envelope.type}`);
+      }
       processedCallIds.add(envelope.call_id);
 
       try {
         if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+          if (envelope.type === 'CHATGPT_REPLY') {
+            remoteLog(`[CHATGPT_REPLY_SENT_TO_BACKGROUND] Despachando CHATGPT_REPLY ao background service worker...`);
+          }
           chrome.runtime.sendMessage(
             {
               type: 'OUTBOUND_ENVELOPE_DETECTED',
@@ -196,13 +201,17 @@
             },
             (response) => {
               if (chrome.runtime.lastError) {
-                remoteLog(`Erro ao enviar mensagem ao background: ${chrome.runtime.lastError.message}`);
+                remoteLog(`[CHATGPT_REPLY_BACKGROUND_ERROR] Erro ao enviar mensagem ao background: ${chrome.runtime.lastError.message}`);
                 processedCallIds.delete(envelope.call_id);
                 return;
               }
 
               if (response && response.success) {
-                remoteLog(`🎉 Envelope ${envelope.call_id} entregue à Bridge com sucesso!`);
+                if (envelope.type === 'CHATGPT_REPLY') {
+                  remoteLog(`[CHATGPT_REPLY_BACKGROUND_ACK] CHATGPT_REPLY ${envelope.call_id} entregue à Bridge com sucesso!`);
+                } else {
+                  remoteLog(`🎉 Envelope ${envelope.call_id} entregue à Bridge com sucesso!`);
+                }
                 if (chrome.storage && chrome.storage.local) {
                   chrome.storage.local.get(['outbound_processed_ids'], (data) => {
                     const current = Array.isArray(data.outbound_processed_ids) ? data.outbound_processed_ids : [];
@@ -215,7 +224,7 @@
                 }
               } else {
                 const err = response ? response.error : 'Sem resposta';
-                remoteLog(`Falha na entrega do envelope ${envelope.call_id} à Bridge: ${err}`);
+                remoteLog(`[CHATGPT_REPLY_BACKGROUND_ERROR] Falha na entrega do envelope ${envelope.call_id} à Bridge: ${err}`);
                 processedCallIds.delete(envelope.call_id);
               }
             }

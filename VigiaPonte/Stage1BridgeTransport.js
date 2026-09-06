@@ -307,7 +307,7 @@ PAYLOAD: sua resposta conversacional
         const res = await this.telegramClient.sendMessage(targetChatId, tgText, null, replyToMsgId);
         if (res && res.ok) {
           const sentMsgId = res.result?.message_id;
-          log(`[STAGE1_DELIVERED_TG] Resposta entregue no Telegram com sucesso: message_id=${sentMsgId}, reply_to=${replyToMsgId}`);
+          log(`[TELEGRAM_SEND_CONFIRMED] delivery_key=${deliveryDedupeKey}, telegram_message_id=${sentMsgId}, reply_to=${replyToMsgId}`);
           this.saveDeliveryRecord(deliveryDedupeKey, {
             delivery_key: deliveryDedupeKey,
             telegram_message_id: sentMsgId,
@@ -317,7 +317,7 @@ PAYLOAD: sua resposta conversacional
             timestamp: new Date().toISOString()
           });
         } else {
-          log(`[STAGE1_TG_SEND_FAIL] Falha na entrega ao Telegram (SEND_UNCERTAIN): ${JSON.stringify(res)}`);
+          log(`[SEND_UNCERTAIN] Falha na entrega ao Telegram: delivery_key=${deliveryDedupeKey}, res=${JSON.stringify(res)}`);
           this.saveDeliveryRecord(deliveryDedupeKey, {
             delivery_key: deliveryDedupeKey,
             delivered: false,
@@ -327,7 +327,7 @@ PAYLOAD: sua resposta conversacional
           });
         }
       } catch (err) {
-        log(`[STAGE1_TG_ERROR] Erro ao enviar ao Telegram (SEND_UNCERTAIN): ${err.message}`);
+        log(`[SEND_UNCERTAIN] Erro ao enviar ao Telegram: delivery_key=${deliveryDedupeKey}, error=${err.message}`);
         this.saveDeliveryRecord(deliveryDedupeKey, {
           delivery_key: deliveryDedupeKey,
           delivered: false,
