@@ -10,6 +10,7 @@ const ResponseFormatter = require('./ResponseFormatter');
 const ConversationMemoryStore = require('./ConversationMemoryStore');
 const AdaptadorOllama = require('./AdaptadorOllama');
 const OperationalResumeController = require('./OperationalResumeController');
+const ContextHub = require('./ContextHub');
 
 class NaturalLanguageRouter {
   constructor(options = {}) {
@@ -29,6 +30,9 @@ class NaturalLanguageRouter {
     this.memoryStore = options.memoryStore || new ConversationMemoryStore({
       storagePath: options.memoryStoragePath,
       activeTtlMs: options.contextTtlMs || 300000 // 5 minutos padrão
+    });
+    this.contextHub = options.contextHub || new ContextHub({
+      storagePath: options.contextHubStoragePath
     });
   }
 
@@ -92,6 +96,14 @@ class NaturalLanguageRouter {
 
     if (/^v$/i.test(normalizedText.trim()) || /(retome o fluxo|retomar fluxo|retome a execucao|retomar o fluxo|pode retomar)/i.test(normalizedText)) {
       return 'OWNER_TRIGGER_RESUME';
+    }
+
+    // Consultas de Continuidade e Contexto Multi-Dispositivo (Issue #50 / Comentário 5556243514)
+    if (
+      /(onde estamos|o que aconteceu enquanto eu estava fora|continue de onde paramos|chatgpt decidiu|decis[aã]o.*chatgpt|chatgpt|fale para o antigravity verificar|por que a ponte nao respondeu|resumo do contexto|estado da sprint|situacao da sprint)/i.test(normalizedText) ||
+      /(contexto compartilhado|reidratar|sincronizar|continuidade)/i.test(normalizedText)
+    ) {
+      return 'CROSS_DEVICE_CONTEXT_QUERY';
     }
 
     if (
@@ -354,6 +366,30 @@ class NaturalLanguageRouter {
           }
           metadata.interlocutor = 'ANTIGRAVITY';
         }
+        break;
+      }
+
+      case 'CROSS_DEVICE_CONTEXT_QUERY': {
+        subject = 'ANTIGRAVITY';
+        if (this.contextHub) {
+          if (/(chatgpt decidiu|decis[aã]o.*chatgpt|chatgpt)/i.test(normalized)) {
+            const st = this.contextHub.getState();
+            replyText = `O ChatGPT avaliou o último resultado e emitiu a decisão: ${st.last_audit_decision || 'PENDING'} para a CALL ${st.last_call_id || 'recente'}. Próxima ação esperada: ${st.next_expected_action}.`;
+          } else if (/(o que aconteceu enquanto eu estava fora|enquanto estava fora)/i.test(normalized)) {
+            const st = this.contextHub.getState();
+            replyText = `Durante sua ausência, o circuito processou a fase ${st.current_phase} da Sprint ${st.sprint_id}. Último evento registrado: ${st.last_result_id || st.last_call_id}. Situação operacional: Antigravity ${st.antigravity_state}, Vigia ${st.vigia_state}.`;
+          } else if (/(continue de onde paramos|continuar)/i.test(normalized)) {
+            const st = this.contextHub.getState();
+            replyText = `Retomando continuidade de onde paramos na Sprint ${st.sprint_id}. Objetivo ativo: "${st.owner_objective}". Atuando nas issues ${(st.active_issue_numbers || []).map(n => '#' + n).join(', ')}.`;
+          } else {
+            replyText = this.contextHub.generateNaturalStatusSummary();
+          }
+        } else {
+          replyText = 'Contexto compartilhado ativo. Estamos na Sprint SPRINT-PC-TRABALHO-SANEAMENTO-DONE-001 em fase de homologação final.';
+        }
+        metadata.interlocutor = 'ANTIGRAVITY';
+        metadata.route_reason = 'CROSS_DEVICE_NATURAL_QUERY';
+        metadata.antigravity_available = true;
         break;
       }
 
