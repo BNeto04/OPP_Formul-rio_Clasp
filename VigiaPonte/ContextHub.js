@@ -26,6 +26,10 @@ class ContextHub {
       vigia_state: 'SENTINEL_ONLINE',
       bridge_state: 'ONLINE',
       telegram_state: 'CONVERSATIONAL_READY',
+      active_chatgpt_endpoint: 'chatgpt-default-session',
+      chatgpt_session_epoch: 1,
+      active_gravity_session: 'gravity-local-worker',
+      gravity_session_epoch: 1,
       next_expected_action: 'Homologação da Issue #50 e encerramento consolidado da Issue #46',
       is_stale: false,
       stale_reason: null,
@@ -95,7 +99,9 @@ class ContextHub {
       'owner_objective', 'current_phase', 'active_issue_numbers',
       'last_call_id', 'last_result_id', 'last_audit_decision',
       'open_blockers', 'last_human_message_summary', 'antigravity_state',
-      'vigia_state', 'bridge_state', 'telegram_state', 'next_expected_action'
+      'vigia_state', 'bridge_state', 'telegram_state', 'next_expected_action',
+      'active_chatgpt_endpoint', 'chatgpt_session_epoch',
+      'active_gravity_session', 'gravity_session_epoch'
     ];
 
     for (const key of allowed) {
@@ -114,6 +120,44 @@ class ContextHub {
 
     this._saveState();
     return { success: true, state: this.getState() };
+  }
+
+  registerChatGPTEndpoint(endpointId, updatedBy = 'SYSTEM_HANDOFF') {
+    if (!endpointId) return { success: false, reason: 'ENDPOINT_REQUIRED' };
+    const currentEpoch = this.state.chatgpt_session_epoch || 1;
+    this.updateState({
+      active_chatgpt_endpoint: endpointId,
+      chatgpt_session_epoch: currentEpoch + 1
+    }, updatedBy);
+    return {
+      success: true,
+      active_chatgpt_endpoint: this.state.active_chatgpt_endpoint,
+      chatgpt_session_epoch: this.state.chatgpt_session_epoch
+    };
+  }
+
+  isChatGPTEndpointActive(endpointId) {
+    if (!this.state.active_chatgpt_endpoint) return true; // Fail-open se não inicializado
+    return this.state.active_chatgpt_endpoint === endpointId;
+  }
+
+  registerGravitySession(sessionId, updatedBy = 'SYSTEM_HANDOFF') {
+    if (!sessionId) return { success: false, reason: 'SESSION_ID_REQUIRED' };
+    const currentEpoch = this.state.gravity_session_epoch || 1;
+    this.updateState({
+      active_gravity_session: sessionId,
+      gravity_session_epoch: currentEpoch + 1
+    }, updatedBy);
+    return {
+      success: true,
+      active_gravity_session: this.state.active_gravity_session,
+      gravity_session_epoch: this.state.gravity_session_epoch
+    };
+  }
+
+  isGravitySessionActive(sessionId) {
+    if (!this.state.active_gravity_session) return true; // Fail-open se não inicializado
+    return this.state.active_gravity_session === sessionId;
   }
 
   generateRehydrationPacket() {
