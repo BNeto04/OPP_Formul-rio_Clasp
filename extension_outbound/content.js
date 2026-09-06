@@ -163,6 +163,8 @@
     if (!messageContainers || messageContainers.length === 0) return;
 
     for (const container of messageContainers) {
+      const text = container.innerText || container.textContent || '';
+
       if (text.includes('[CHATGPT_REPLY_V1]') || text.includes('[CHATGPT_REPLY]')) {
         remoteLog(`[CHATGPT_REPLY_DETECTED] Envelope CHATGPT_REPLY detectado no DOM.`);
       }
@@ -257,7 +259,7 @@
   // Exportação para suporte a testes unitários/integrados
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = { parseOutboundEnvelope, ALLOWED_TYPES, scanAssistantMessages };
-  } else {
+  } else if (typeof window !== 'undefined') {
     window.__SYNTHEON_OUTBOUND_TEST__ = { parseOutboundEnvelope, ALLOWED_TYPES, scanAssistantMessages };
   }
 })();
