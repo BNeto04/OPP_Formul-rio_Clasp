@@ -15,7 +15,7 @@ const DEFAULT_CONFIG = {
   enabled: true
 };
 
-const ALLOWED_TYPES = ['CALL', 'MESSAGE', 'AUDIT', 'OWNER_DIRECTIVE'];
+const ALLOWED_TYPES = ['CALL', 'MESSAGE', 'AUDIT', 'OWNER_DIRECTIVE', 'CHATGPT_REPLY'];
 let sentCallIds = new Set();
 
 async function remoteLog(msg) {

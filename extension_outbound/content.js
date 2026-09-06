@@ -19,7 +19,7 @@
   }
 
   const LOG_PREFIX = '[OUTBOUND_SENDER_V2]';
-  const ALLOWED_TYPES = ['CALL', 'MESSAGE', 'AUDIT', 'OWNER_DIRECTIVE'];
+  const ALLOWED_TYPES = ['CALL', 'MESSAGE', 'AUDIT', 'OWNER_DIRECTIVE', 'CHATGPT_REPLY'];
   const processedCallIds = new Set();
 
   function remoteLog(msg) {
@@ -53,6 +53,46 @@
   function parseOutboundEnvelope(rawText) {
     if (!rawText || typeof rawText !== 'string') return null;
 
+    // 1. Envelope de Conversa (Data Plane): [CHATGPT_REPLY_V1] ou [CHATGPT_REPLY]
+    let replyStart = rawText.indexOf('[CHATGPT_REPLY_V1]');
+    let replyEndTag = '[/CHATGPT_REPLY_V1]';
+    let replyTagLen = '[CHATGPT_REPLY_V1]'.length;
+
+    if (replyStart === -1) {
+      replyStart = rawText.indexOf('[CHATGPT_REPLY]');
+      replyEndTag = '[/CHATGPT_REPLY]';
+      replyTagLen = '[CHATGPT_REPLY]'.length;
+    }
+
+    if (replyStart !== -1) {
+      const replyEnd = rawText.indexOf(replyEndTag, replyStart);
+      if (replyEnd !== -1) {
+        const body = rawText.substring(replyStart + replyTagLen, replyEnd).trim();
+        const evtMatch = body.match(/REPLY_TO_EVENT_ID:\s*([^\r\n]+)/i);
+        const msgMatch = body.match(/REPLY_TO_MESSAGE_ID:\s*([^\r\n]+)/i);
+        const payloadMatch = body.match(/(?:PAYLOAD|TEXT):\s*([\s\S]+)/i);
+
+        const reply_to_event_id = evtMatch ? evtMatch[1].trim() : null;
+        const reply_to_message_id = msgMatch ? msgMatch[1].trim() : null;
+        const payload = payloadMatch ? payloadMatch[1].trim() : body;
+        const call_id = `REPLY_${reply_to_event_id || reply_to_message_id || Date.now()}`;
+
+        return {
+          valid: true,
+          envelope: {
+            sprint_id: 'SPRINT-DATA-PLANE-001',
+            call_id,
+            type: 'CHATGPT_REPLY',
+            reply_to_event_id,
+            reply_to_message_id,
+            payload,
+            detected_at: new Date().toISOString()
+          }
+        };
+      }
+    }
+
+    // 2. Envelope de Controle (Control Plane): [BRIDGE_TO_ANTIGRAVITY_V1]
     const startTag = '[BRIDGE_TO_ANTIGRAVITY_V1]';
     const endTag = '[/BRIDGE_TO_ANTIGRAVITY_V1]';
 
@@ -124,7 +164,7 @@
 
     for (const container of messageContainers) {
       const text = container.innerText || container.textContent || '';
-      if (!text.includes('[BRIDGE_TO_ANTIGRAVITY_V1]')) {
+      if (!text.includes('[BRIDGE_TO_ANTIGRAVITY_V1]') && !text.includes('[CHATGPT_REPLY_V1]') && !text.includes('[CHATGPT_REPLY]')) {
         // Ignora texto normal do ChatGPT sem envelope
         continue;
       }

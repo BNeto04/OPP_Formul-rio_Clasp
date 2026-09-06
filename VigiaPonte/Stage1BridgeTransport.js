@@ -28,12 +28,32 @@ class Stage1BridgeTransport {
     this.allowlist = options.allowlist || new TelegramAllowlist(TelegramConfig.getAllowlistPath());
     this.telegramClient = options.telegramClient || (TelegramConfig.getBotToken() ? new TelegramClient(TelegramConfig.getBotToken()) : null);
     this.offsetFile = path.join(projectRoot, 'VigiaPonte', 'telegram_offset.json');
+    this.deliveryHistoryFile = path.join(projectRoot, 'VigiaPonte', 'stage1_delivery_history.json');
     this.seenTgMessages = new Set();
     this.seenOutboundCalls = new Set();
     this.seenTelegramDeliveries = new Set();
     this.ownerMessagesByEventId = new Map();
     this.lastOwnerMessageId = null;
     this.running = false;
+  }
+
+  loadDeliveryHistory() {
+    try {
+      if (fs.existsSync(this.deliveryHistoryFile)) {
+        return JSON.parse(fs.readFileSync(this.deliveryHistoryFile, 'utf8'));
+      }
+    } catch (e) {}
+    return {};
+  }
+
+  saveDeliveryRecord(deliveryKey, record) {
+    try {
+      const history = this.loadDeliveryHistory();
+      history[deliveryKey] = record;
+      fs.writeFileSync(this.deliveryHistoryFile, JSON.stringify(history, null, 2), 'utf8');
+    } catch (e) {
+      log(`[DELIVERY_PERSIST_ERROR] Erro ao salvar histórico de entrega: ${e.message}`);
+    }
   }
 
   getSavedOffset() {
@@ -163,6 +183,15 @@ TEXT: ${SanitizadorSegredos.sanitizarTexto(msg.text)}
 CONTEXT_VERSION: ${state.context_version}
 ACTIVE_CHATGPT_ENDPOINT: ${state.active_chatgpt_endpoint || 'DEFAULT'}
 TIMESTAMP: ${new Date().toISOString()}
+
+[DIRECTIVE_CHATGPT_REPLY]
+Para responder conversacionalmente ao proprietário no Telegram, produza exclusivamente:
+[CHATGPT_REPLY_V1]
+REPLY_TO_EVENT_ID: ${eventId}
+REPLY_TO_MESSAGE_ID: ${msg.message_id}
+PAYLOAD: sua resposta conversacional
+[/CHATGPT_REPLY_V1]
+[/DIRECTIVE_CHATGPT_REPLY]
 [/OWNER_MESSAGE_V1]`;
 
     log(`[STAGE1_TG_TO_GPT] Ingerindo mensagem do Telegram -> Fila da Bridge: event_id=${eventId}, text="${msg.text.substring(0, 40)}"`);
@@ -210,46 +239,102 @@ TIMESTAMP: ${new Date().toISOString()}
       return;
     }
 
-    // 2. O pacote é uma resposta conversacional do ChatGPT destinada ao proprietário no Telegram
+    // 2. Bloqueio absoluto: envelopes técnicos proibidos no Telegram (Data Plane)
+    const isForbiddenTechnicalEnvelope = typeof packet.payload === 'string' && (
+      packet.payload.includes('[BRIDGE_TO_ANTIGRAVITY_V1]') ||
+      packet.payload.includes('[BRIDGE_TO_GPT_V1]') ||
+      packet.payload.includes('RESULT:') ||
+      packet.payload.includes('CALL_ID:') ||
+      packet.payload.includes('HEALTH') ||
+      packet.payload.includes('HANDOFF')
+    );
+
+    if (isForbiddenTechnicalEnvelope) {
+      log(`[FORBIDDEN_ENVELOPE_BLOCKED] Envelope técnico proibido descartado para o Telegram: ${packet.call_id}`);
+      return;
+    }
+
+    // 3. O pacote é uma resposta conversacional do ChatGPT destinada ao proprietário no Telegram
     const authorizedUser = this.allowlist.getAuthorizedUser();
     const targetChatId = authorizedUser?.authorized_chat_id;
 
     if (targetChatId && this.telegramClient && packet.payload) {
       // Extrai correlação se presente no payload
       let replyToMsgId = this.lastOwnerMessageId;
+      let replyToEventId = null;
+      let cleanText = packet.payload;
+
       if (typeof packet.payload === 'string') {
-        const evtMatch = packet.payload.match(/REPLY_TO_EVENT_ID:\s*(EVT_TG_\d+)/i);
-        if (evtMatch && this.ownerMessagesByEventId.has(evtMatch[1])) {
-          replyToMsgId = this.ownerMessagesByEventId.get(evtMatch[1]);
-        } else {
-          const msgIdMatch = packet.payload.match(/REPLY_TO_MESSAGE_ID:\s*(\d+)/i);
-          if (msgIdMatch) {
-            replyToMsgId = parseInt(msgIdMatch[1], 10);
+        const evtMatch = packet.payload.match(/REPLY_TO_EVENT_ID:\s*([^\r\n]+)/i);
+        if (evtMatch) {
+          replyToEventId = evtMatch[1].trim();
+          if (this.ownerMessagesByEventId.has(replyToEventId)) {
+            replyToMsgId = this.ownerMessagesByEventId.get(replyToEventId);
           }
+        }
+        const msgIdMatch = packet.payload.match(/REPLY_TO_MESSAGE_ID:\s*(\d+)/i);
+        if (msgIdMatch) {
+          replyToMsgId = parseInt(msgIdMatch[1], 10);
+        }
+
+        // Limpa tags se o payload contiver o envelope [CHATGPT_REPLY_V1]
+        const payloadMatch = packet.payload.match(/(?:PAYLOAD|TEXT):\s*([\s\S]+?)(?:\[\/CHATGPT_REPLY_V1\]|\[\/CHATGPT_REPLY\]|$)/i);
+        if (payloadMatch) {
+          cleanText = payloadMatch[1].trim();
         }
       }
 
-      // Dedupe determinístico de entrega no Telegram (exactly-once)
-      const deliveryDedupeKey = `${packet.call_id}_${replyToMsgId || 'DEFAULT'}`;
+      // Dedupe determinístico com persistência de estado (exactly-once)
+      const deliveryDedupeKey = `REPLY_${replyToEventId || replyToMsgId || packet.call_id}`;
+      const history = this.loadDeliveryHistory();
+
+      if (history[deliveryDedupeKey] && history[deliveryDedupeKey].delivered === true) {
+        log(`[DEDUPE_NO_OP] Resposta para ${deliveryDedupeKey} já confirmada e entregue no Telegram. Descartando reentrega.`);
+        return;
+      }
+
       if (this.seenTelegramDeliveries.has(deliveryDedupeKey)) {
-        log(`[DEDUPE_TG_DELIVERY] Resposta para ${deliveryDedupeKey} já entregue ao Telegram. Ignorando.`);
+        log(`[DEDUPE_NO_OP] Resposta para ${deliveryDedupeKey} já em processamento/entregue em memória.`);
         return;
       }
       this.seenTelegramDeliveries.add(deliveryDedupeKey);
 
-      const cleanPayload = SanitizadorSegredos.sanitizarTexto(packet.payload);
+      const cleanPayload = SanitizadorSegredos.sanitizarTexto(cleanText);
       const tgText = `CHATGPT > ${cleanPayload}`;
 
       log(`[STAGE1_GPT_TO_TG] Enviando resposta conversacional do ChatGPT para o Telegram (reply_to=${replyToMsgId})...`);
       try {
         const res = await this.telegramClient.sendMessage(targetChatId, tgText, null, replyToMsgId);
         if (res && res.ok) {
-          log(`[STAGE1_DELIVERED_TG] Resposta entregue no Telegram com sucesso: message_id=${res.result?.message_id}, reply_to=${replyToMsgId}`);
+          const sentMsgId = res.result?.message_id;
+          log(`[STAGE1_DELIVERED_TG] Resposta entregue no Telegram com sucesso: message_id=${sentMsgId}, reply_to=${replyToMsgId}`);
+          this.saveDeliveryRecord(deliveryDedupeKey, {
+            delivery_key: deliveryDedupeKey,
+            telegram_message_id: sentMsgId,
+            reply_to_message_id: replyToMsgId,
+            reply_to_event_id: replyToEventId,
+            delivered: true,
+            timestamp: new Date().toISOString()
+          });
         } else {
-          log(`[STAGE1_TG_SEND_FAIL] Resposta não entregue: ${JSON.stringify(res)}`);
+          log(`[STAGE1_TG_SEND_FAIL] Falha na entrega ao Telegram (SEND_UNCERTAIN): ${JSON.stringify(res)}`);
+          this.saveDeliveryRecord(deliveryDedupeKey, {
+            delivery_key: deliveryDedupeKey,
+            delivered: false,
+            status: 'SEND_UNCERTAIN',
+            error: JSON.stringify(res),
+            timestamp: new Date().toISOString()
+          });
         }
       } catch (err) {
-        log(`[STAGE1_TG_ERROR] Erro ao enviar ao Telegram: ${err.message}`);
+        log(`[STAGE1_TG_ERROR] Erro ao enviar ao Telegram (SEND_UNCERTAIN): ${err.message}`);
+        this.saveDeliveryRecord(deliveryDedupeKey, {
+          delivery_key: deliveryDedupeKey,
+          delivered: false,
+          status: 'SEND_UNCERTAIN',
+          error: err.message,
+          timestamp: new Date().toISOString()
+        });
       }
     }
   }

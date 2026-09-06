@@ -91,9 +91,49 @@ async function main() {
   assert.strictEqual(sentTelegram.length, 1); // Não aumentou
   console.log('  [PASS] Teste 4 OK.');
 
+  // Teste 5: Envelope explícito [CHATGPT_REPLY_V1] com extração limpa e correlação
+  console.log('Teste 5: Envelope explícito [CHATGPT_REPLY_V1] com extração limpa e correlação...');
+  await transport.processChatGPTOutbound({
+    call_id: 'REPLY_EVT_TG_702',
+    type: 'CHATGPT_REPLY',
+    payload: `[CHATGPT_REPLY_V1]
+REPLY_TO_EVENT_ID: EVT_TG_702
+REPLY_TO_MESSAGE_ID: 702
+PAYLOAD: Mensagem conversacional limpa sem tags.
+[/CHATGPT_REPLY_V1]`
+  });
+  assert.strictEqual(sentTelegram.length, 2);
+  assert.strictEqual(sentTelegram[1].replyTo, 702);
+  assert.strictEqual(sentTelegram[1].text, 'CHATGPT > Mensagem conversacional limpa sem tags.');
+  console.log('  [PASS] Teste 5 OK.');
+
+  // Teste 6: Bloqueio estrito de envelopes técnicos para o Telegram
+  console.log('Teste 6: Bloqueio estrito de envelopes técnicos para o Telegram...');
+  await transport.processChatGPTOutbound({
+    call_id: 'CALL-GPT-FORBIDDEN-001',
+    payload: `RESULT: 58/58 PASS\n[BRIDGE_TO_GPT_V1]\nSTATUS: DONE`
+  });
+  assert.strictEqual(sentTelegram.length, 2); // NÃO aumentou!
+  console.log('  [PASS] Teste 6 OK (envelope técnico bloqueado).');
+
+  // Teste 7: Dedupe por persistência de entrega (DEDUPE_NO_OP)
+  console.log('Teste 7: Dedupe por persistência de entrega (DEDUPE_NO_OP)...');
+  await transport.processChatGPTOutbound({
+    call_id: 'REPLY_EVT_TG_702',
+    type: 'CHATGPT_REPLY',
+    payload: `[CHATGPT_REPLY_V1]
+REPLY_TO_EVENT_ID: EVT_TG_702
+REPLY_TO_MESSAGE_ID: 702
+PAYLOAD: Mensagem conversacional limpa sem tags.
+[/CHATGPT_REPLY_V1]`
+  });
+  assert.strictEqual(sentTelegram.length, 2); // NÃO aumentou!
+  console.log('  [PASS] Teste 7 OK (DEDUPE_NO_OP confirmado).');
+
   // Limpeza
   if (fs.existsSync(testStorage)) fs.unlinkSync(testStorage);
-  console.log('\n=== TODOS OS TESTES DA ETAPA 1 APROVADOS (4/4 PASS)! ===\n');
+  if (fs.existsSync(transport.deliveryHistoryFile)) fs.unlinkSync(transport.deliveryHistoryFile);
+  console.log('\n=== TODOS OS TESTES DA ETAPA 1 APROVADOS (7/7 PASS)! ===\n');
 }
 
 main().catch(err => {
