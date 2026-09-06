@@ -173,26 +173,17 @@ class Stage1BridgeTransport {
       last_call_id: eventId
     }, 'STAGE1_TELEGRAM_TRANSPORT');
 
-    const payload = 
-`[OWNER_MESSAGE_V1]
-EVENT_ID: ${eventId}
-ORIGIN_CHANNEL: TELEGRAM
-MESSAGE_ID: ${msg.message_id}
-FROM: ${SanitizadorSegredos.sanitizarTexto(msg.from?.first_name || 'OWNER')}
-TEXT: ${SanitizadorSegredos.sanitizarTexto(msg.text)}
-CONTEXT_VERSION: ${state.context_version}
-ACTIVE_CHATGPT_ENDPOINT: ${state.active_chatgpt_endpoint || 'DEFAULT'}
-TIMESTAMP: ${new Date().toISOString()}
+    const cleanFrom = SanitizadorSegredos.sanitizarTexto(msg.from?.first_name || 'Manoel');
+    const cleanText = SanitizadorSegredos.sanitizarTexto(msg.text);
 
-[DIRECTIVE_CHATGPT_REPLY]
-Para responder conversacionalmente ao proprietário no Telegram, produza exclusivamente:
+    const payload = 
+`[TELEGRAM de ${cleanFrom}]: ${cleanText}
+
+Responda exclusivamente no formato:
 [CHATGPT_REPLY_V1]
-REPLY_TO_EVENT_ID: ${eventId}
 REPLY_TO_MESSAGE_ID: ${msg.message_id}
-PAYLOAD: sua resposta conversacional
-[/CHATGPT_REPLY_V1]
-[/DIRECTIVE_CHATGPT_REPLY]
-[/OWNER_MESSAGE_V1]`;
+PAYLOAD: sua resposta
+[/CHATGPT_REPLY_V1]`;
 
     log(`[STAGE1_TG_TO_GPT] Ingerindo mensagem do Telegram -> Fila da Bridge: event_id=${eventId}, text="${msg.text.substring(0, 40)}"`);
 

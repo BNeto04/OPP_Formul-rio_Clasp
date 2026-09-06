@@ -121,10 +121,13 @@
 
     // 6. Submissão se autoSubmit estiver ativo
     if (autoSubmit) {
-      await sleep(300);
+      let sent = false;
+      for (let attempt = 0; attempt < 8; attempt++) {
+        await sleep(250);
+        sent = triggerSubmit(inputEl);
+        if (sent) break;
+      }
 
-      // Dispara envio
-      const sent = triggerSubmit(inputEl);
       if (!sent) {
         remoteLog('Tentando envio via Enter com evento KeyboardEvent...');
         triggerEnterKey(inputEl);
@@ -200,6 +203,8 @@
         el.appendChild(p);
       });
       el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
 
@@ -208,6 +213,9 @@
       'button[data-testid="send-button"]',
       'button[aria-label="Send prompt"]',
       'button[aria-label="Enviar prompt"]',
+      'button[aria-label*="Enviar"]',
+      'button[aria-label*="Send"]',
+      'button[data-testid*="send"]',
       'button[data-testid="fruitjuice-send-button"]',
       'button.mb-1'
     ];
