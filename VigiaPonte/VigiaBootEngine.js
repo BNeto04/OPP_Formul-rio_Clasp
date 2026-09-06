@@ -179,15 +179,10 @@ class VigiaBootEngine {
       return bootRes;
     }
 
-    if (this.telegramPoller) {
-      try {
-        this.telegramPoller.start();
-        // HEALTHY_SILENT: Vigia nao anuncia presenca no Telegram em estado normal.
-        // Alerta so e enviado em indisponibilidade factual (INTERNET_DOWN, BRIDGE_DOWN).
-      } catch (e) {
-        // fail-open
-      }
-    }
+    // ISOLAMENTO ESTRITO: VigiaBootEngine NAO inicia TelegramPoller.
+    // O Stage1BridgeTransport e o unico consumidor canonico de mensagens do Telegram.
+    // Vigia usa exclusivamente TelegramAlertManager para alertas de falha real (INTERNET_DOWN/UP).
+    // Nenhum segundo poller/getUpdates concorrente e permitido.
 
     this.timer = setInterval(async () => {
       if (!this.isRunning) return;
