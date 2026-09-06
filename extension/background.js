@@ -22,21 +22,27 @@ const DEFAULT_CONFIG = {
 let currentInFlight = null;
 let lastDeliveredPacketId = null;
 let isDispatching = false;
-let networkStatus = navigator.onLine ? 'ONLINE' : 'OFFLINE';
+let networkStatus = (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean')
+  ? (navigator.onLine ? 'ONLINE' : 'OFFLINE')
+  : 'ONLINE';
 
-// Monitoramento de conectividade de rede
-window.addEventListener('online', () => {
-  networkStatus = 'ONLINE';
-  remoteLog('Rede restabelecida (ONLINE). Acionando reconciliação...');
-  reconcileAndResume();
-});
+// Monitoramento de conectividade de rede compativel com Service Worker
+if (typeof self !== 'undefined' && typeof self.addEventListener === 'function') {
+  self.addEventListener('online', () => {
+    networkStatus = 'ONLINE';
+    remoteLog('[NETWORK_ONLINE] Rede restabelecida. Acionando reconciliação...');
+    reconcileAndResume();
+  });
 
-window.addEventListener('offline', () => {
-  networkStatus = 'OFFLINE';
-  remoteLog('Rede desconectada (OFFLINE). Pausando envios automáticos.');
-  chrome.action.setBadgeText({ text: 'OFF' });
-  chrome.action.setBadgeBackgroundColor({ color: '#6c757d' });
-});
+  self.addEventListener('offline', () => {
+    networkStatus = 'OFFLINE';
+    remoteLog('[NETWORK_OFFLINE] Rede desconectada. Pausando envios automáticos.');
+    if (typeof chrome !== 'undefined' && chrome.action) {
+      chrome.action.setBadgeText({ text: 'OFF' });
+      chrome.action.setBadgeBackgroundColor({ color: '#6c757d' });
+    }
+  });
+}
 
 async function remoteLog(msg) {
   console.log('[BridgeV2-BG]', msg);
@@ -103,7 +109,8 @@ async function reconcileAndResume() {
 
 async function checkBridge() {
   const config = await getConfig();
-  if (!config.enabled || !navigator.onLine) {
+  const isOnline = (typeof navigator === 'undefined' || typeof navigator.onLine !== 'boolean') ? true : navigator.onLine;
+  if (!config.enabled || !isOnline) {
     return;
   }
 
@@ -149,7 +156,7 @@ async function checkBridge() {
 
     // Aloca item in-flight sob single-flight lock
     currentInFlight = data;
-    remoteLog(`🚀 Novo pacote adquirido (Single-Flight): ${data.packet_id}`);
+    remoteLog(`[SINGLE_FLIGHT_ACQUIRED] Novo pacote adquirido: ${data.packet_id}`);
     await deliverPacket(data, config);
   } catch (err) {
     remoteLog(`Erro em checkBridge: ${err.message}`);
@@ -177,7 +184,7 @@ async function deliverPacket(packet, config) {
     });
 
     if (response && response.success) {
-      remoteLog(`🎉 Pacote ${packet.packet_id} entregue e aceito pelo ChatGPT!`);
+      remoteLog(`[DELIVERY_ACCEPTED] Pacote ${packet.packet_id} entregue e aceito pelo ChatGPT!`);
       lastDeliveredPacketId = packet.packet_id;
       currentInFlight = null;
 
