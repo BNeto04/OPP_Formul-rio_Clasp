@@ -17,8 +17,8 @@ async function main() {
   const sentTelegram = [];
 
   const mockClient = {
-    sendMessage: async (chatId, text) => {
-      sentTelegram.push({ chatId, text, id: 1000 + sentTelegram.length });
+    sendMessage: async (chatId, text, parseMode, replyToMessageId) => {
+      sentTelegram.push({ chatId, text, replyTo: replyToMessageId, id: 1000 + sentTelegram.length });
       return { ok: true, result: { message_id: 1000 + sentTelegram.length } };
     }
   };
@@ -77,9 +77,10 @@ async function main() {
   });
 
   assert.strictEqual(sentTelegram.length, 1);
+  assert.strictEqual(sentTelegram[0].replyTo, 701);
   assert.ok(sentTelegram[0].text.startsWith('CHATGPT > '));
   assert.ok(sentTelegram[0].text.includes('Resposta direta do ChatGPT'));
-  console.log('  [PASS] Teste 3 OK.');
+  console.log('  [PASS] Teste 3 OK (reply_to=701 confirmado).');
 
   // Teste 4: Dedupe de resposta do ChatGPT
   console.log('Teste 4: Dedupe de resposta do ChatGPT...');

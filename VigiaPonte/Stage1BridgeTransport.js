@@ -30,6 +30,9 @@ class Stage1BridgeTransport {
     this.offsetFile = path.join(projectRoot, 'VigiaPonte', 'telegram_offset.json');
     this.seenTgMessages = new Set();
     this.seenOutboundCalls = new Set();
+    this.seenTelegramDeliveries = new Set();
+    this.ownerMessagesByEventId = new Map();
+    this.lastOwnerMessageId = null;
     this.running = false;
   }
 
@@ -137,7 +140,11 @@ class Stage1BridgeTransport {
       return;
     }
 
-    const eventId = `EVT_TG_${msg.message_id}_${Date.now()}`;
+    const eventId = `EVT_TG_${msg.message_id}`;
+    const packetId = `PACKET_OWNER_MSG_${msg.message_id}`;
+    this.lastOwnerMessageId = msg.message_id;
+    this.ownerMessagesByEventId.set(eventId, msg.message_id);
+
     const state = this.contextHub.getState();
 
     // Registra no ContextHub sem acionar Antigravity
@@ -146,7 +153,6 @@ class Stage1BridgeTransport {
       last_call_id: eventId
     }, 'STAGE1_TELEGRAM_TRANSPORT');
 
-    const packetId = `PACKET_OWNER_MSG_${Date.now()}`;
     const payload = 
 `[OWNER_MESSAGE_V1]
 EVENT_ID: ${eventId}
@@ -168,7 +174,11 @@ TIMESTAMP: ${new Date().toISOString()}
         type: 'OWNER_MESSAGE',
         source: 'STAGE1_TELEGRAM_TRANSPORT'
       });
-      log(`[STAGE1_BRIDGE_ENQUEUED] Pacote entregue à Bridge: ${packetId}, res=${JSON.stringify(qRes)}`);
+      if (qRes && qRes.status === 'DUPLICATE_NO_OP') {
+        log(`[STAGE1_TG_DEDUPE_NO_OP] Mensagem duplicada ignorada na fila da Bridge: ${packetId}`);
+      } else {
+        log(`[STAGE1_BRIDGE_ENQUEUED] Pacote entregue à Bridge: ${packetId}, res=${JSON.stringify(qRes)}`);
+      }
     } catch (err) {
       log(`[STAGE1_BRIDGE_ERROR] Falha ao enfileirar na Bridge: ${err.message}`);
     }
@@ -190,8 +200,8 @@ TIMESTAMP: ${new Date().toISOString()}
                                      packet.type === 'TASK' || 
                                      packet.type === 'AUDIT' ||
                                      packet.type === 'OWNER_DIRECTIVE' ||
-                                     (packet.call_id && (packet.call_id.startsWith('MESSAGE-53-FIX') || packet.call_id.startsWith('MESSAGE-53-STAGE1') || packet.call_id.includes('-ANTIGRAVITY-') || packet.call_id.includes('-EXEC-'))) ||
-                                     (packet.payload && (packet.payload.includes('Consuma a correção') || packet.payload.includes('Consuma o comentário') || packet.payload.includes('Issue #53') || packet.payload.includes('[BRIDGE_TO_ANTIGRAVITY_V1]')));
+                                     (packet.call_id && (packet.call_id.startsWith('MESSAGE-53-FIX') || packet.call_id.startsWith('MESSAGE-53-STAGE1') || packet.call_id.startsWith('MESSAGE-53-RESTORE') || packet.call_id.startsWith('MESSAGE-53-START') || packet.call_id.includes('-ANTIGRAVITY-') || packet.call_id.includes('-EXEC-'))) ||
+                                     (packet.payload && (packet.payload.includes('Consuma a correção') || packet.payload.includes('Consuma o comentário') || packet.payload.includes('Consuma a auditoria') || packet.payload.includes('Issue #53') || packet.payload.includes('[BRIDGE_TO_ANTIGRAVITY_V1]')));
 
     if (isTechnicalForAntigravity) {
       log(`[WAKE_ANTIGRAVITY] Chamada técnica para o Antigravity detectada (${packet.call_id}). NÃO enviando ao Telegram. Disparando despertar do Antigravity!`);
@@ -205,14 +215,36 @@ TIMESTAMP: ${new Date().toISOString()}
     const targetChatId = authorizedUser?.authorized_chat_id;
 
     if (targetChatId && this.telegramClient && packet.payload) {
+      // Extrai correlação se presente no payload
+      let replyToMsgId = this.lastOwnerMessageId;
+      if (typeof packet.payload === 'string') {
+        const evtMatch = packet.payload.match(/REPLY_TO_EVENT_ID:\s*(EVT_TG_\d+)/i);
+        if (evtMatch && this.ownerMessagesByEventId.has(evtMatch[1])) {
+          replyToMsgId = this.ownerMessagesByEventId.get(evtMatch[1]);
+        } else {
+          const msgIdMatch = packet.payload.match(/REPLY_TO_MESSAGE_ID:\s*(\d+)/i);
+          if (msgIdMatch) {
+            replyToMsgId = parseInt(msgIdMatch[1], 10);
+          }
+        }
+      }
+
+      // Dedupe determinístico de entrega no Telegram (exactly-once)
+      const deliveryDedupeKey = `${packet.call_id}_${replyToMsgId || 'DEFAULT'}`;
+      if (this.seenTelegramDeliveries.has(deliveryDedupeKey)) {
+        log(`[DEDUPE_TG_DELIVERY] Resposta para ${deliveryDedupeKey} já entregue ao Telegram. Ignorando.`);
+        return;
+      }
+      this.seenTelegramDeliveries.add(deliveryDedupeKey);
+
       const cleanPayload = SanitizadorSegredos.sanitizarTexto(packet.payload);
       const tgText = `CHATGPT > ${cleanPayload}`;
 
-      log(`[STAGE1_GPT_TO_TG] Enviando resposta conversacional do ChatGPT para o Telegram...`);
+      log(`[STAGE1_GPT_TO_TG] Enviando resposta conversacional do ChatGPT para o Telegram (reply_to=${replyToMsgId})...`);
       try {
-        const res = await this.telegramClient.sendMessage(targetChatId, tgText, null);
+        const res = await this.telegramClient.sendMessage(targetChatId, tgText, null, replyToMsgId);
         if (res && res.ok) {
-          log(`[STAGE1_DELIVERED_TG] Resposta entregue no Telegram com sucesso: message_id=${res.result?.message_id}`);
+          log(`[STAGE1_DELIVERED_TG] Resposta entregue no Telegram com sucesso: message_id=${res.result?.message_id}, reply_to=${replyToMsgId}`);
         } else {
           log(`[STAGE1_TG_SEND_FAIL] Resposta não entregue: ${JSON.stringify(res)}`);
         }

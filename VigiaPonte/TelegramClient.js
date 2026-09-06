@@ -65,20 +65,26 @@ class TelegramClient {
     return res.data;
   }
 
-  async sendMessage(chatId, text, parseMode = 'Markdown') {
+  async sendMessage(chatId, text, parseMode = 'Markdown', replyToMessageId = null) {
     const sanitizedText = SanitizadorSegredos.sanitizarTexto(text);
     let res = null;
+    const extra = {};
+    if (replyToMessageId) {
+      extra.reply_to_message_id = replyToMessageId;
+    }
     try {
       res = await this.request('sendMessage', {
         chat_id: chatId,
         text: sanitizedText,
-        ...(parseMode ? { parse_mode: parseMode } : {})
+        ...(parseMode ? { parse_mode: parseMode } : {}),
+        ...extra
       });
     } catch (e) {
       if (parseMode) {
         res = await this.request('sendMessage', {
           chat_id: chatId,
-          text: sanitizedText
+          text: sanitizedText,
+          ...extra
         });
         return res ? res.data : null;
       }
@@ -88,7 +94,8 @@ class TelegramClient {
     if (res && res.data && !res.data.ok && parseMode) {
       const retryRes = await this.request('sendMessage', {
         chat_id: chatId,
-        text: sanitizedText
+        text: sanitizedText,
+        ...extra
       });
       return retryRes ? retryRes.data : null;
     }
