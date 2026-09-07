@@ -1,18 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Syntheon Bridge V2 - ChatGPT Carrier",
+  "name": "Syntheon Ponte 1 - Telegram ChatGPT",
   "version": "1.0.0",
-  "description": "Transportador leve de CONTEXT_PACKET da Bridge V2 local para a aba ativa do ChatGPT sem intervenção manual.",
+  "description": "Ponte direta e exclusiva de transporte conversacional entre Telegram e ChatGPT (Fase 1).",
   "permissions": [
     "storage",
     "tabs",
-    "scripting",
     "alarms"
   ],
   "host_permissions": [
-    "<all_urls>",
-    "http://127.0.0.1:8765/*",
-    "http://localhost:8765/*",
+    "http://127.0.0.1:8766/*",
     "https://chatgpt.com/*",
     "https://chat.openai.com/*"
   ],
@@ -31,11 +28,7 @@
       "run_at": "document_idle"
     }
   ],
-  "options_ui": {
-    "page": "options.html",
-    "open_in_tab": false
-  },
   "action": {
-    "default_title": "Syntheon Bridge V2 Carrier"
+    "default_title": "Syntheon Ponte 1"
   }
 }
