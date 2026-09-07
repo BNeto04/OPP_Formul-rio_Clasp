@@ -294,13 +294,14 @@ class Ponte2Daemon {
 
             // Deduplicação persistente determinística: DEDUPE_NO_OP
             const resultKey = `RESULT_${callId}_${type}`;
-            if (this.seenResultIds.has(resultKey)) {
+            if (this.seenResultIds.has(resultKey) || this.seenResultIds.has(callId)) {
               log(`[DEDUPE_NO_OP] Resultado ${resultKey} já registrado. Retornando DEDUPE_NO_OP.`);
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ ok: true, dedupe: true, status: 'DEDUPE_NO_OP', call_id: callId }));
               return;
             }
             this.seenResultIds.add(resultKey);
+            this.seenResultIds.add(callId);
             this.saveDedupe();
 
             const envelope = 

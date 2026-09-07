@@ -109,8 +109,24 @@ async function checkResultQueue() {
       return;
     }
 
-    // Dedupe determinístico
+    // Dedupe determinístico antes de qualquer injeção
     if (deliveredResultIds.has(data.call_id) || data.call_id === lastDeliveredResultId) {
+      await fetch(`${CONFIG.endpoint}/result_ack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ call_id: data.call_id })
+      });
+      isPollingResult = false;
+      return;
+    }
+
+    // Supressão na Origem: se o payload contiver envelope outbound, descarta imediatamente sem tocar no ChatGPT
+    if (data.payload.includes('[BRIDGE_TO_ANTIGRAVITY_V1]')) {
+      console.warn('[Ponte2-Background] ECHO_NO_OP: Descartado envelope outbound na origem antes do DOM:', data.call_id);
+      deliveredResultIds.add(data.call_id);
+      lastDeliveredResultId = data.call_id;
+      currentInFlightResult = null;
+      await persist();
       await fetch(`${CONFIG.endpoint}/result_ack`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -168,7 +184,7 @@ async function deliverResultToChatGPT(packet) {
       }
     }
 
-    if (response && response.success) {
+    if (response && (response.success || response.status === 'DEDUPE_NO_OP' || response.status === 'ECHO_NO_OP')) {
       lastDeliveredResultId = packet.call_id;
       deliveredResultIds.add(packet.call_id);
       currentInFlightResult = null;

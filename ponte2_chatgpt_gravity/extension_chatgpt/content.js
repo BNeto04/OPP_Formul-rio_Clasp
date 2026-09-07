@@ -250,26 +250,41 @@
     return { success: true, warning: 'TEXT_MIGHT_STILL_BE_IN_COMPOSER' };
   }
 
+  const deliveredResultIds = new Set();
+
   // 1. Inbound listener (Injeção de RESULT / ACK do Gravity)
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'PONTE2_INJECT_RESULT') {
       const payload = msg.payload || '';
+      const callId = msg.call_id || null;
+
+      // Regra 0: Deduplicação determinística no content script (não injeta se já entregue)
+      if (callId && deliveredResultIds.has(callId)) {
+        console.log('[Ponte2-Content] DEDUPE_NO_OP: RESULT', callId, 'já injetado anteriormente no ChatGPT.');
+        sendResponse({ success: true, status: 'DEDUPE_NO_OP', call_id: callId });
+        return false;
+      }
 
       // Regra 1: Impedir eco de [BRIDGE_TO_ANTIGRAVITY_V1] de volta ao ChatGPT
       if (payload.includes('[BRIDGE_TO_ANTIGRAVITY_V1]')) {
-        console.error('[Ponte2-Content] REJEITADO: Tentativa de eco de [BRIDGE_TO_ANTIGRAVITY_V1] de volta ao ChatGPT!');
-        sendResponse({ success: false, error: 'ECHO_FORBIDDEN' });
+        console.warn('[Ponte2-Content] ECHO_NO_OP: Rejeitado eco de [BRIDGE_TO_ANTIGRAVITY_V1] de volta ao ChatGPT!');
+        sendResponse({ success: false, status: 'ECHO_NO_OP', error: 'ECHO_NO_OP', call_id: callId });
         return false;
       }
 
       // Regra 2: Inbound do ChatGPT aceita apenas [BRIDGE_FROM_ANTIGRAVITY_V1]
       if (!payload.includes('[BRIDGE_FROM_ANTIGRAVITY_V1]')) {
         console.error('[Ponte2-Content] REJEITADO: Inbound do ChatGPT aceita apenas envelopes [BRIDGE_FROM_ANTIGRAVITY_V1]!');
-        sendResponse({ success: false, error: 'INVALID_INBOUND_ENVELOPE' });
+        sendResponse({ success: false, status: 'INVALID_INBOUND_ENVELOPE', error: 'INVALID_INBOUND_ENVELOPE' });
         return false;
       }
 
-      handleInjection(payload).then(res => sendResponse(res));
+      handleInjection(payload).then(res => {
+        if (res && res.success && callId) {
+          deliveredResultIds.add(callId);
+        }
+        sendResponse(res);
+      });
       return true; // async
     }
   });
