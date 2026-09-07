@@ -16,8 +16,8 @@ const fs = require('fs');
 const CONFIG = {
   port: 8767,
   host: '127.0.0.1',
-  historyFile: path.join(__dirname, 'ponte2_history.json'),
-  logFile: path.join(__dirname, 'ponte2.log')
+  historyFile: path.join(__dirname, '..', 'state', 'ponte2_history.json'),
+  logFile: path.join(__dirname, '..', 'logs', 'ponte2.log')
 };
 
 const ALLOWED_CALL_TYPES = new Set(['CALL', 'AUDIT']);

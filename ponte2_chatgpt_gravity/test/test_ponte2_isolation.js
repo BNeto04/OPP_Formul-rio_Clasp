@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Testes Automatizados de Isolamento e Conformidade da Ponte 2 (ChatGPT <-> Gravity)
  *
  * TASK_ID: BRIDGE-V2-PONTE2-CHATGPT-GRAVITY-001
@@ -154,16 +154,22 @@ async function runTests() {
       dupCall.data.dedupe === true && dupResult.data.dedupe === true
     );
 
-    // 7. Isolamento estrutural de arquivos
+    // 7. Isolamento estrutural de arquivos (ambas extensões e daemon)
     const daemonContent = fs.readFileSync(path.join(__dirname, '..', 'server', 'ponte2_daemon.js'), 'utf8');
-    const bgContent = fs.readFileSync(path.join(__dirname, '..', 'extension', 'background.js'), 'utf8');
-    const contentContent = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content.js'), 'utf8');
-    const manifestContent = fs.readFileSync(path.join(__dirname, '..', 'extension', 'manifest.json'), 'utf8');
+    const bgChatContent = fs.readFileSync(path.join(__dirname, '..', 'extension_chatgpt', 'background.js'), 'utf8');
+    const contentChatContent = fs.readFileSync(path.join(__dirname, '..', 'extension_chatgpt', 'content.js'), 'utf8');
+    const manifestChatContent = fs.readFileSync(path.join(__dirname, '..', 'extension_chatgpt', 'manifest.json'), 'utf8');
 
-    const hasPonte1Ref = daemonContent.includes('ponte1') || bgContent.includes('ponte1') || contentContent.includes('ponte1');
-    const hasTelegramRef = daemonContent.includes('Telegram') || daemonContent.includes('telegram') || bgContent.includes('telegram');
-    const hasVigiaRef = daemonContent.includes('Vigia') || bgContent.includes('Vigia');
-    const hasPort8766 = daemonContent.includes('8766') || bgContent.includes('8766') || manifestContent.includes('8766');
+    const bgGravContent = fs.readFileSync(path.join(__dirname, '..', 'extension_gravity', 'background.js'), 'utf8');
+    const contentGravContent = fs.readFileSync(path.join(__dirname, '..', 'extension_gravity', 'content.js'), 'utf8');
+    const manifestGravContent = fs.readFileSync(path.join(__dirname, '..', 'extension_gravity', 'manifest.json'), 'utf8');
+
+    const allCode = [daemonContent, bgChatContent, contentChatContent, manifestChatContent, bgGravContent, contentGravContent, manifestGravContent].join('\n');
+
+    const hasPonte1Ref = allCode.includes('ponte1');
+    const hasTelegramRef = allCode.includes('Telegram') || allCode.includes('telegram');
+    const hasVigiaRef = allCode.includes('Vigia');
+    const hasPort8766 = allCode.includes('8766');
 
     report(7, 'Isolamento estrito: zero ponte1, zero Telegram, zero Vigia, zero porta 8766',
       !hasPonte1Ref && !hasTelegramRef && !hasVigiaRef && !hasPort8766
