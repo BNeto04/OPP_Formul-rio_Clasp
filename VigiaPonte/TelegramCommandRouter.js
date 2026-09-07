@@ -264,17 +264,16 @@ class TelegramCommandRouter {
       let routeReason = '';
       let finalResponder = '';
 
-      if (isHostQuery) {
-        prefix = 'VIGIA > ';
-        routeType = 'RESERVED_COMMAND';
-        routeReason = 'HOST_TELEMETRY_QUERY';
-        finalResponder = 'VIGIA';
-      } else {
-        prefix = 'ANTIGRAVITY > ';
-        routeType = 'ANTIGRAVITY_CONVERSATION';
-        routeReason = (nlResult.metadata && nlResult.metadata.route_reason) ? nlResult.metadata.route_reason : 'ANTIGRAVITY_PRIMARY_CONVERSATION';
-        finalResponder = 'ANTIGRAVITY';
+      if (!isHostQuery || !nlResult || !nlResult.text || !nlResult.text.trim()) {
+        // ISOLAMENTO ESTRITO: Antigravity NUNCA fala no Telegram em fluxo conversacional.
+        // O canal de conversa é exclusivo do ChatGPT.
+        return null;
       }
+
+      prefix = 'VIGIA > ';
+      routeType = 'RESERVED_COMMAND';
+      routeReason = 'HOST_TELEMETRY_QUERY';
+      finalResponder = 'VIGIA';
 
       return {
         chatId,
