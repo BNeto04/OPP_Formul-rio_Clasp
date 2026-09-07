@@ -286,4 +286,15 @@
   function sleep(ms) {
     return new Promise((r) => setTimeout(r, ms));
   }
+
+  // Heartbeat do content script: acorda e estimula o service worker enquanto a aba estiver aberta
+  setInterval(() => {
+    try {
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ type: 'HEARTBEAT_CHECK_BRIDGE' }, () => {
+          if (chrome.runtime.lastError) {}
+        });
+      }
+    } catch (e) {}
+  }, 3000);
 })();

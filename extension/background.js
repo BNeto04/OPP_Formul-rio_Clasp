@@ -114,9 +114,19 @@ async function checkBridge() {
     return;
   }
 
-  // Single-flight: se já temos item em voo não resolvido, não consome outro
+  // Single-flight defensivo: se já temos item em voo, tenta reconciliar antes de travar
   if (currentInFlight) {
-    return;
+    await reconcileAndResume();
+    if (currentInFlight) {
+      if (!currentInFlight._acquiredAt) {
+        currentInFlight._acquiredAt = Date.now();
+      } else if (Date.now() - currentInFlight._acquiredAt > 15000) {
+        remoteLog(`[TIMEOUT_RELEASE] Pacote ${currentInFlight.packet_id} retido por mais de 15s. Liberando trava.`);
+        currentInFlight = null;
+      } else {
+        return;
+      }
+    }
   }
 
   if (isDispatching) return;
@@ -203,8 +213,10 @@ async function deliverPacket(packet, config) {
       remoteLog(`[UNCERTAIN] Envio incerto para ${packet.packet_id}. Aguardando reconciliação sem retry cego.`);
       chrome.action.setBadgeText({ text: 'UNC' });
       chrome.action.setBadgeBackgroundColor({ color: '#e83e8c' });
+      setTimeout(reconcileAndResume, 2000);
     } else {
       remoteLog(`Falha na entrega: ${JSON.stringify(response)}`);
+      currentInFlight = null;
     }
   } catch (err) {
     remoteLog(`Erro de comunicação com content script: ${err.message}`);
@@ -223,6 +235,27 @@ async function sendAckToBridge(endpoint, packetId) {
       })
     });
   } catch (e) {}
+}
+
+// Listener de Heartbeat disparado pelo content script da aba do ChatGPT
+if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message && message.type === 'HEARTBEAT_CHECK_BRIDGE') {
+      checkBridge();
+      sendResponse({ ok: true });
+      return false;
+    }
+  });
+}
+
+// Alarme do Chrome para manter polling ativo mesmo com service worker reiniciado
+if (typeof chrome !== 'undefined' && chrome.alarms) {
+  chrome.alarms.create('checkBridgeAlarm', { periodInMinutes: 0.1 });
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm && alarm.name === 'checkBridgeAlarm') {
+      checkBridge();
+    }
+  });
 }
 
 // Inicia ciclo de polling do background a cada 3 segundos
