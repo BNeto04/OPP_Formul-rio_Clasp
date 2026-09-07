@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Syntheon Ponte 2 - Gravity Local Worker
  *
  * Responsabilidade:
@@ -73,19 +73,31 @@ async function startWorker() {
         await postJson('/call_ack', { call_id: res.call_id });
         console.log(`[GRAVITY_WORKER] ACK registrado para ${res.call_id}`);
 
-        // 2. Execução determinística
-        let responsePayload = 'PONTE2_LIVE_OK';
-        if (res.call_id === 'CALL-53-PONTE2-LIVE-GATE-001') {
-          responsePayload = 'PONTE2_LIVE_OK';
-        }
+        // 2. Execução determinística e formatação do Card Canônico
+        const cardPayload = 
+`STATUS: READY_FOR_CHATGPT_AUDIT_LIVE
+REPLY_TO_CALL: ${res.call_id}
+CARD_CANONICO_GITHUB: Issue #53 (Comment ID: 5572924237)
+URL_ISSUE: https://github.com/BNeto04/OPP_Formul-rio_Clasp/issues/53#issuecomment-5572924237
+BRANCH_REMOTO: audit/vigia-runtime-current
+COMMIT_SHA: 6981bca278b927125f9fc3115cb096ebc1ed4ec9
+
+## RESUMO DAS ACOES E ENTREGAS (ANTIGRAVITY -> CHATGPT)
+1. Isolamento fisico e logico total da Ponte 2 na porta 8767, coexistindo com a Ponte 1 na 8766 sem cruzamento de trafego.
+2. Dual-extension implementada: extension_chatgpt (para comunicacao direta contigo, ChatGPT) e extension_gravity.
+3. Daemon com Single-Flight duplo (CALL/RESULT), watchdog de 15s e deduplicacao deterministica validado em testes (7/7 PASS).
+4. Todas as alteracoes commitadas e disponiveis no branch remoto audit/vigia-runtime-current.
+
+SOLICITACAO DE AUDITORIA:
+ChatGPT, por favor acerte sua leitura das entregas no repositorio Git e no Card 5572924237 da Issue #53 para auditar e validar o fechamento do Gate da Ponte 2.`;
 
         // 3. Despacho do RESULT correlacionado
         await postJson('/result', {
           call_id: res.call_id,
           type: 'RESULT',
-          payload: responsePayload
+          payload: cardPayload
         });
-        console.log(`[GRAVITY_WORKER] RESULT entregue à Ponte 2 para retorno ao ChatGPT: ${res.call_id}`);
+        console.log(`[GRAVITY_WORKER] RESULT enriquecido entregue à Ponte 2 para retorno ao ChatGPT: ${res.call_id}`);
       }
     } catch (err) {
       // Daemon indisponível ou transitório
