@@ -222,32 +222,30 @@
     for (let i = 0; i < 8; i++) {
       await sleep(250);
       submitted = triggerSubmit(inputEl);
-      if (submitted) break;
+      if (submitted) {
+        console.log('[Ponte2-Content] Submissão confirmada via botão. Retornando imediatamente sem Enter.');
+        return { success: true };
+      }
     }
 
+    // Fallback: somente se nenhum botão submeteu
     if (!submitted) {
+      console.log('[Ponte2-Content] Nenhum botão acionou. Executando fallback único de Enter...');
       triggerEnterKey(inputEl);
       await sleep(300);
-      submitted = triggerSubmit(inputEl);
+      const postSubmit = triggerSubmit(inputEl);
+      if (postSubmit) {
+        return { success: true };
+      }
     }
 
-    triggerEnterKey(inputEl);
-
-    // Aguarda e verifica se o composer foi esvaziado pelo envio
+    // Aguarda e verifica se o composer foi esvaziado
     await sleep(400);
     const postText = getElementText(inputEl).trim();
     if (postText === '') {
-      console.log('[Ponte2-Content] Sucesso: mensagem confirmada enviada.');
+      console.log('[Ponte2-Content] Sucesso: composer limpo após envio.');
       return { success: true };
     }
-
-    // Se o texto ainda está no input, tenta mais uma vez enviar via form
-    const form = inputEl.closest('form');
-    if (form && typeof form.requestSubmit === 'function') {
-      try { form.requestSubmit(); } catch (e) {}
-    }
-    triggerEnterKey(inputEl);
-    await sleep(300);
 
     return { success: true, warning: 'TEXT_MIGHT_STILL_BE_IN_COMPOSER' };
   }

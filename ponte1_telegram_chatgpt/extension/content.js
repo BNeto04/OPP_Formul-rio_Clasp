@@ -174,16 +174,20 @@
     for (let i = 0; i < 8; i++) {
       await sleep(250);
       submitted = triggerSubmit(inputEl);
-      if (submitted) break;
+      if (submitted) {
+        return { success: true };
+      }
     }
 
+    // Fallback: somente se nenhum botão submeteu
     if (!submitted) {
       triggerEnterKey(inputEl);
       await sleep(300);
-      submitted = triggerSubmit(inputEl);
+      const postSubmit = triggerSubmit(inputEl);
+      if (postSubmit) {
+        return { success: true };
+      }
     }
-
-    triggerEnterKey(inputEl);
 
     return { success: true };
   }
