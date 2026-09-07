@@ -62,12 +62,18 @@ async function persist() {
 async function findChatGPTTab() {
   return new Promise(resolve => {
     if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.query) {
-      chrome.tabs.query({}, tabs => {
-        if (!tabs || tabs.length === 0) return resolve(null);
-        const gptTabs = tabs.filter(t => t.url && (t.url.includes('chatgpt.com') || t.url.includes('chat.openai.com')));
-        if (gptTabs.length === 0) return resolve(null);
-        const activeTab = gptTabs.find(t => t.active);
-        resolve(activeTab || gptTabs[0]);
+      chrome.tabs.query({ url: ['https://chatgpt.com/*', 'https://chat.openai.com/*'] }, tabs => {
+        if (tabs && tabs.length > 0) {
+          const activeTab = tabs.find(t => t.active);
+          return resolve(activeTab || tabs[0]);
+        }
+        chrome.tabs.query({}, allTabs => {
+          if (!allTabs || allTabs.length === 0) return resolve(null);
+          const gptTabs = allTabs.filter(t => t.url && (t.url.includes('chatgpt.com') || t.url.includes('chat.openai.com')));
+          if (gptTabs.length === 0) return resolve(null);
+          const active = gptTabs.find(t => t.active);
+          resolve(active || gptTabs[0]);
+        });
       });
     } else {
       resolve(null);
@@ -80,6 +86,16 @@ async function checkBridge() {
   isDispatching = true;
 
   try {
+    // 1. Se existe um pacote retido em voo, tenta entregá-lo prioritariamente
+    if (currentInFlight) {
+      const ok = await deliverToChatGPT(currentInFlight);
+      if (!ok) {
+        isDispatching = false;
+        return;
+      }
+    }
+
+    // 2. Consulta novo pacote
     const res = await fetch(`${CONFIG.endpoint}/packet`, { cache: 'no-store' });
     if (!res.ok) {
       isDispatching = false;
@@ -118,15 +134,38 @@ async function deliverToChatGPT(packet) {
   const tab = await findChatGPTTab();
   if (!tab) {
     updateBadge('WAIT', '#ffc107');
-    return;
+    return false;
   }
 
   try {
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      type: 'PONTE1_INJECT_MESSAGE',
-      packet_id: packet.packet_id,
-      payload: packet.payload
-    });
+    let response = null;
+    try {
+      response = await chrome.tabs.sendMessage(tab.id, {
+        type: 'PONTE1_INJECT_MESSAGE',
+        packet_id: packet.packet_id,
+        payload: packet.payload
+      });
+    } catch (sendErr) {
+      // Auto-injeção dinâmica: se o content script não estiver ativo na aba (ex: aba não recarregada)
+      if (typeof chrome !== 'undefined' && chrome.scripting && tab.id) {
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content.js']
+          });
+          await new Promise(r => setTimeout(r, 400));
+          response = await chrome.tabs.sendMessage(tab.id, {
+            type: 'PONTE1_INJECT_MESSAGE',
+            packet_id: packet.packet_id,
+            payload: packet.payload
+          });
+        } catch (scriptErr) {
+          throw sendErr;
+        }
+      } else {
+        throw sendErr;
+      }
+    }
 
     if (response && response.success) {
       lastDeliveredId = packet.packet_id;
@@ -141,12 +180,16 @@ async function deliverToChatGPT(packet) {
       });
 
       updateBadge('OK', '#28a745');
+      return true;
     } else if (response && response.status === 'COMPOSER_BUSY') {
       updateBadge('BUSY', '#ffc107');
+      return false;
     }
   } catch (e) {
     updateBadge('ERR', '#dc3545');
+    return false;
   }
+  return false;
 }
 
 // Escuta eventos vindos do content script da aba do ChatGPT

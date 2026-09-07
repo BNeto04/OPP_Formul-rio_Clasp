@@ -44,33 +44,55 @@
   }
 
   function setTextIntoElement(el, text) {
-    if (el.tagName.toLowerCase() === 'textarea') {
-      el.value = text;
+    el.focus();
+    if (el.tagName && el.tagName.toLowerCase() === 'textarea') {
+      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+      if (nativeSetter) {
+        nativeSetter.call(el, text);
+      } else {
+        el.value = text;
+      }
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
     } else if (el.isContentEditable) {
-      el.focus();
-      while (el.firstChild) {
-        el.removeChild(el.firstChild);
-      }
-      const lines = text.split('\n');
-      lines.forEach(line => {
-        const p = document.createElement('p');
-        if (line.trim() === '') {
-          p.appendChild(document.createElement('br'));
-        } else {
-          p.textContent = line;
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      let success = false;
+      try {
+        success = document.execCommand('insertText', false, text);
+      } catch (e) {}
+
+      if (!success || !el.textContent || el.textContent.trim() === '') {
+        while (el.firstChild) {
+          el.removeChild(el.firstChild);
         }
-        el.appendChild(p);
-      });
-      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
+        const lines = text.split('\n');
+        lines.forEach(line => {
+          const p = document.createElement('p');
+          if (line.trim() === '') {
+            p.appendChild(document.createElement('br'));
+          } else {
+            p.textContent = line;
+          }
+          el.appendChild(p);
+        });
+        el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     }
   }
 
   function clickBtn(btn) {
     btn.focus();
+    if (btn.disabled) {
+      btn.removeAttribute('disabled');
+      btn.disabled = false;
+    }
     btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
     btn.click();
@@ -92,14 +114,14 @@
 
     for (const sel of selectors) {
       const btn = document.querySelector(sel);
-      if (btn && !btn.disabled) {
+      if (btn) {
         return clickBtn(btn);
       }
     }
 
     const container = inputEl ? (inputEl.closest('form') || inputEl.closest('div[class*="composer"]') || inputEl.parentElement?.parentElement) : null;
     if (container) {
-      const buttons = Array.from(container.querySelectorAll('button:not([disabled])'));
+      const buttons = Array.from(container.querySelectorAll('button'));
       for (const btn of buttons) {
         const testId = (btn.getAttribute('data-testid') || '').toLowerCase();
         const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
@@ -149,7 +171,7 @@
     setTextIntoElement(inputEl, payload);
 
     let submitted = false;
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 8; i++) {
       await sleep(250);
       submitted = triggerSubmit(inputEl);
       if (submitted) break;
@@ -158,8 +180,10 @@
     if (!submitted) {
       triggerEnterKey(inputEl);
       await sleep(300);
-      triggerSubmit(inputEl);
+      submitted = triggerSubmit(inputEl);
     }
+
+    triggerEnterKey(inputEl);
 
     return { success: true };
   }

@@ -202,8 +202,16 @@ PAYLOAD: sua resposta
       // GET /packet -> Entrega 1 pacote sob Single-Flight Lock
       if (req.method === 'GET' && url.pathname === '/packet') {
         let packetToSend = null;
+        // Se inFlightPacket expirou (> 15 segundos sem ACK), libera o lock
+        if (this.inFlightPacket && this.inFlightPacket._dispatchedAt && (Date.now() - this.inFlightPacket._dispatchedAt > 15000)) {
+          log(`[IN_FLIGHT_TIMEOUT] Pacote ${this.inFlightPacket.packet_id} retido por mais de 15s. Devolvendo para fila.`);
+          this.packetQueue.unshift(this.inFlightPacket);
+          this.inFlightPacket = null;
+        }
+
         if (this.inFlightPacket === null && this.packetQueue.length > 0) {
           this.inFlightPacket = this.packetQueue.shift();
+          this.inFlightPacket._dispatchedAt = Date.now();
           packetToSend = this.inFlightPacket;
           log(`[SINGLE_FLIGHT_DISPATCH] Pacote alocado para o ChatGPT Carrier: ${packetToSend.packet_id}`);
         }
@@ -308,6 +316,14 @@ PAYLOAD: sua resposta
   start() {
     this.startHttpServer();
     this.startTelegramPolling();
+    // Watchdog periódico para liberar pacotes retidos sem ACK por > 15s
+    setInterval(() => {
+      if (this.inFlightPacket && this.inFlightPacket._dispatchedAt && (Date.now() - this.inFlightPacket._dispatchedAt > 15000)) {
+        log(`[IN_FLIGHT_WATCHDOG] Pacote ${this.inFlightPacket.packet_id} retido por mais de 15s. Devolvendo para fila.`);
+        this.packetQueue.unshift(this.inFlightPacket);
+        this.inFlightPacket = null;
+      }
+    }, 5000);
   }
 }
 
