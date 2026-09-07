@@ -6,3 +6,10 @@ telegram_allowlist.json
 VigiaPonte/vigia.lock
 VigiaPonte/*.log
 Testes/temp_test_vigia_boot/
+ponte1_telegram_chatgpt/config/*
+ponte1_telegram_chatgpt/server/*.log
+ponte1_telegram_chatgpt/server/ponte1_offset.json
+ponte1_telegram_chatgpt/server/ponte1_delivery_history.json
+ponte2_chatgpt_gravity/server/*.log
+ponte2_chatgpt_gravity/server/ponte2_offset.json
+ponte2_chatgpt_gravity/server/ponte2_history.json
