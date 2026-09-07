@@ -38,9 +38,15 @@ async function runTests() {
   console.log('TESTES DE ISOLAMENTO E CONFORMIDADE: PONTE 2 (CHATGPT <-> GRAVITY)');
   console.log('===============================================================');
 
-  const daemon = new Ponte2Daemon();
-  daemon.start();
-  await new Promise(r => setTimeout(r, 600));
+  let ownDaemon = null;
+  try {
+    const check = await httpRequest({ host: '127.0.0.1', port: 8767, path: '/status', method: 'GET' });
+    if (!check || check.status !== 200) throw new Error('Not running');
+  } catch (e) {
+    ownDaemon = new Ponte2Daemon();
+    ownDaemon.start();
+    await new Promise(r => setTimeout(r, 600));
+  }
 
   let passed = 0;
   let failed = 0;
@@ -179,7 +185,7 @@ async function runTests() {
     console.error('Erro na execução dos testes:', err);
     failed++;
   } finally {
-    daemon.stop();
+    if (ownDaemon) ownDaemon.stop();
   }
 
   console.log('---------------------------------------------------------------');

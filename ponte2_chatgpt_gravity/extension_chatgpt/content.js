@@ -61,19 +61,38 @@
       }
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
-    } else if (el.isContentEditable) {
-      const sel = window.getSelection();
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      sel.removeAllRanges();
-      sel.addRange(range);
+      return;
+    }
 
-      let success = false;
+    if (el.isContentEditable) {
+      el.focus();
+
+      // 1. Tenta via ClipboardEvent ('paste') para compatibilidade nativa com ProseMirror
       try {
-        success = document.execCommand('insertText', false, text);
+        const dt = new DataTransfer();
+        dt.setData('text/plain', text);
+        const pasteEvt = new ClipboardEvent('paste', {
+          bubbles: true,
+          cancelable: true,
+          clipboardData: dt
+        });
+        el.dispatchEvent(pasteEvt);
       } catch (e) {}
 
-      if (!success || !el.textContent || el.textContent.trim() === '') {
+      // 2. Se vazio, tenta execCommand('insertText')
+      if (!el.textContent || el.textContent.trim() === '') {
+        try {
+          const sel = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          sel.removeAllRanges();
+          sel.addRange(range);
+          document.execCommand('insertText', false, text);
+        } catch (e) {}
+      }
+
+      // 3. Fallback estrutural: criação direta de parágrafos DOM
+      if (!el.textContent || el.textContent.trim() === '') {
         while (el.firstChild) {
           el.removeChild(el.firstChild);
         }
@@ -87,10 +106,12 @@
           }
           el.appendChild(p);
         });
-        el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
       }
+
+      // Dispara eventos para sincronização do React e ProseMirror
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
 
@@ -122,8 +143,21 @@
     for (const sel of selectors) {
       const btn = document.querySelector(sel);
       if (btn) {
-        return clickBtn(btn);
+        if (btn.disabled) {
+          btn.removeAttribute('disabled');
+          btn.disabled = false;
+        }
+        clickBtn(btn);
+        return true;
       }
+    }
+
+    const form = inputEl ? inputEl.closest('form') : document.querySelector('form');
+    if (form && typeof form.requestSubmit === 'function') {
+      try {
+        form.requestSubmit();
+        return true;
+      } catch (e) {}
     }
 
     const container = inputEl ? (inputEl.closest('form') || inputEl.closest('div[class*="composer"]') || inputEl.parentElement?.parentElement) : null;
@@ -134,14 +168,16 @@
         const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
         if (testId.includes('speech') || aria.includes('voz') || aria.includes('voice')) continue;
         if (testId.includes('send') || aria.includes('enviar') || aria.includes('send') || btn.querySelector('svg')) {
-          return clickBtn(btn);
+          clickBtn(btn);
+          return true;
         }
       }
       if (buttons.length > 0) {
         const lastBtn = buttons[buttons.length - 1];
         const testId = (lastBtn.getAttribute('data-testid') || '').toLowerCase();
         if (!testId.includes('speech')) {
-          return clickBtn(lastBtn);
+          clickBtn(lastBtn);
+          return true;
         }
       }
     }
@@ -167,11 +203,16 @@
   }
 
   async function handleInjection(payload) {
+    console.log('[Ponte2-Content] handleInjection acionado para payload de tamanho:', payload.length);
     const inputEl = findInputElement();
-    if (!inputEl) return { success: false, reason: 'INPUT_NOT_FOUND' };
+    if (!inputEl) {
+      console.error('[Ponte2-Content] Campo de entrada (inputEl) não encontrado no DOM!');
+      return { success: false, reason: 'INPUT_NOT_FOUND' };
+    }
 
     const current = getElementText(inputEl).trim();
     if (current && !current.includes('[BRIDGE_FROM_ANTIGRAVITY')) {
+      console.warn('[Ponte2-Content] Composer ocupado com outro texto.');
       return { success: false, status: 'COMPOSER_BUSY' };
     }
 
@@ -191,7 +232,24 @@
     }
 
     triggerEnterKey(inputEl);
-    return { success: true };
+
+    // Aguarda e verifica se o composer foi esvaziado pelo envio
+    await sleep(400);
+    const postText = getElementText(inputEl).trim();
+    if (postText === '') {
+      console.log('[Ponte2-Content] Sucesso: mensagem confirmada enviada.');
+      return { success: true };
+    }
+
+    // Se o texto ainda está no input, tenta mais uma vez enviar via form
+    const form = inputEl.closest('form');
+    if (form && typeof form.requestSubmit === 'function') {
+      try { form.requestSubmit(); } catch (e) {}
+    }
+    triggerEnterKey(inputEl);
+    await sleep(300);
+
+    return { success: true, warning: 'TEXT_MIGHT_STILL_BE_IN_COMPOSER' };
   }
 
   // 1. Inbound listener (Injeção de RESULT / ACK do Gravity)
@@ -252,9 +310,11 @@
   // Heartbeat com o Service Worker a cada 2.5s
   setInterval(() => {
     try {
-      chrome.runtime.sendMessage({ type: 'PONTE2_HEARTBEAT' }, () => {
-        if (chrome.runtime.lastError) {}
-      });
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+        chrome.runtime.sendMessage({ type: 'PONTE2_HEARTBEAT' }, () => {
+          void chrome.runtime.lastError;
+        });
+      }
     } catch (e) {}
   }, 2500);
 })();
