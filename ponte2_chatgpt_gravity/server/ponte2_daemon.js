@@ -136,7 +136,11 @@ class Ponte2Daemon {
             };
 
             this.callQueue.push(callPacket);
-            log(`[CALL_ENQUEUED] Nova ${type} enfileirada: call_id=${callId}, task_id=${callPacket.task_id}`);
+            log(`[CALL_ENQUEUED] Nova ${type} enfileirada: call_id=${callId}, task_id=${callPacket.task_id}\n[CALL_PAYLOAD]:\n${callPacket.payload}\n---`);
+            this.recordHistory({ event: 'CALL_RECEIVED', call_id: callId, type: type, payload: callPacket.payload });
+            try {
+              fs.writeFileSync(path.join(__dirname, '..', 'state', 'last_received_call.json'), JSON.stringify(callPacket, null, 2), 'utf8');
+            } catch (e) {}
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ ok: true, queued: true, call_id: callId }));
