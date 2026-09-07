@@ -62,6 +62,9 @@ async function runTests() {
   }
 
   try {
+    // 0. Limpeza controlada de filas e dedupe para o teste
+    await httpRequest({ host: '127.0.0.1', port: 8767, path: '/reset', method: 'POST' });
+
     // 1. GET /status na porta 8767
     const st = await httpRequest({ host: '127.0.0.1', port: 8767, path: '/status', method: 'GET' });
     report(1, 'Servidor da Ponte 2 ativo na porta 8767', st.status === 200 && st.data.bridge === 'PONTE_2_CHATGPT_GRAVITY' && st.data.port === 8767);

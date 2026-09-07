@@ -7,6 +7,10 @@
  *     ChatGPT -> Gravity: CALL, AUDIT
  *     Gravity -> ChatGPT: RESULT, ACK, ERROR
  * - Servidor HTTP na porta 8767 dedicado à Ponte 2.
+ * - Resolução Canônica CALL-53-PONTE2-FIX-012:
+ *     1. Zero eco: Rejeição de [BRIDGE_TO_ANTIGRAVITY_V1] no outbound para ChatGPT.
+ *     2. Zero requeue automático após timeout: estado SEND_UNCERTAIN com reconciliação.
+ *     4. Segregação e isolamento operacional estrito.
  */
 
 const http = require('http');
@@ -17,6 +21,8 @@ const CONFIG = {
   port: 8767,
   host: '127.0.0.1',
   historyFile: path.join(__dirname, '..', 'state', 'ponte2_history.json'),
+  dedupeFile: path.join(__dirname, '..', 'state', 'ponte2_dedupe.json'),
+  lastCallFile: path.join(__dirname, '..', 'state', 'last_received_call.json'),
   logFile: path.join(__dirname, '..', 'logs', 'ponte2.log')
 };
 
@@ -37,16 +43,51 @@ class Ponte2Daemon {
     this.callQueue = [];
     this.inFlightCall = null;
     this.seenCallIds = new Set();
+    this.uncertainCalls = new Map(); // call_id -> { packet, marked_at, status: 'SEND_UNCERTAIN' }
     this.callsProcessed = 0;
 
     this.resultQueue = [];
     this.inFlightResult = null;
     this.seenResultIds = new Set();
+    this.uncertainResults = new Map(); // call_id -> { packet, marked_at, status: 'SEND_UNCERTAIN' }
     this.resultsDelivered = 0;
 
     this.running = false;
     this.server = null;
     this.watchdogInterval = null;
+
+    this.loadDedupe();
+  }
+
+  loadDedupe() {
+    try {
+      if (fs.existsSync(CONFIG.dedupeFile)) {
+        const raw = fs.readFileSync(CONFIG.dedupeFile, 'utf8');
+        const data = JSON.parse(raw);
+        if (Array.isArray(data.seenCallIds)) {
+          this.seenCallIds = new Set(data.seenCallIds);
+        }
+        if (Array.isArray(data.seenResultIds)) {
+          this.seenResultIds = new Set(data.seenResultIds);
+        }
+        log(`[DEDUPE_INIT] Estado persistido carregado: ${this.seenCallIds.size} CALLs, ${this.seenResultIds.size} RESULTs.`);
+      }
+    } catch (e) {
+      log(`[DEDUPE_INIT_ERROR] Falha ao carregar dedupe persistido: ${e.message}`);
+    }
+  }
+
+  saveDedupe() {
+    try {
+      const data = {
+        seenCallIds: Array.from(this.seenCallIds),
+        seenResultIds: Array.from(this.seenResultIds),
+        updated_at: new Date().toISOString()
+      };
+      fs.writeFileSync(CONFIG.dedupeFile, JSON.stringify(data, null, 2), 'utf8');
+    } catch (e) {
+      log(`[DEDUPE_SAVE_ERROR] Falha ao salvar dedupe persistido: ${e.message}`);
+    }
   }
 
   recordHistory(record) {
@@ -86,8 +127,12 @@ class Ponte2Daemon {
           port: CONFIG.port,
           call_queue_length: this.callQueue.length,
           in_flight_call: this.inFlightCall ? this.inFlightCall.call_id : null,
+          uncertain_calls_count: this.uncertainCalls.size,
+          uncertain_calls: Array.from(this.uncertainCalls.keys()),
           result_queue_length: this.resultQueue.length,
           in_flight_result: this.inFlightResult ? this.inFlightResult.call_id : null,
+          uncertain_results_count: this.uncertainResults.size,
+          uncertain_results: Array.from(this.uncertainResults.keys()),
           calls_processed: this.callsProcessed,
           results_delivered: this.resultsDelivered,
           running: this.running
@@ -118,13 +163,15 @@ class Ponte2Daemon {
               return;
             }
 
+            // Deduplicação persistente determinística: DEDUPE_NO_OP
             if (this.seenCallIds.has(callId)) {
-              log(`[DEDUPE_CALL] CALL ${callId} já registrada anteriormente.`);
+              log(`[DEDUPE_NO_OP] CALL ${callId} já registrada anteriormente. Descartando com DEDUPE_NO_OP.`);
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ ok: true, dedupe: true, call_id: callId }));
+              res.end(JSON.stringify({ ok: true, dedupe: true, status: 'DEDUPE_NO_OP', call_id: callId }));
               return;
             }
             this.seenCallIds.add(callId);
+            this.saveDedupe();
 
             const callPacket = {
               call_id: callId,
@@ -139,7 +186,7 @@ class Ponte2Daemon {
             log(`[CALL_ENQUEUED] Nova ${type} enfileirada: call_id=${callId}, task_id=${callPacket.task_id}\n[CALL_PAYLOAD]:\n${callPacket.payload}\n---`);
             this.recordHistory({ event: 'CALL_RECEIVED', call_id: callId, type: type, payload: callPacket.payload });
             try {
-              fs.writeFileSync(path.join(__dirname, '..', 'state', 'last_received_call.json'), JSON.stringify(callPacket, null, 2), 'utf8');
+              fs.writeFileSync(CONFIG.lastCallFile, JSON.stringify(callPacket, null, 2), 'utf8');
             } catch (e) {}
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -157,9 +204,14 @@ class Ponte2Daemon {
       if (req.method === 'GET' && url.pathname === '/call') {
         let callToSend = null;
 
+        // Zero requeue automático: transição para SEND_UNCERTAIN sem colocar de volta na fila
         if (this.inFlightCall && this.inFlightCall._dispatchedAt && (Date.now() - this.inFlightCall._dispatchedAt > 15000)) {
-          log(`[CALL_TIMEOUT] CALL ${this.inFlightCall.call_id} expirou (>15s). Retornando à fila.`);
-          this.callQueue.unshift(this.inFlightCall);
+          log(`[SEND_UNCERTAIN] CALL ${this.inFlightCall.call_id} expirou (>15s) sem ACK. Marcada como SEND_UNCERTAIN sem requeue automático.`);
+          this.uncertainCalls.set(this.inFlightCall.call_id, {
+            packet: this.inFlightCall,
+            marked_at: new Date().toISOString(),
+            status: 'SEND_UNCERTAIN'
+          });
           this.inFlightCall = null;
         }
 
@@ -195,6 +247,11 @@ class Ponte2Daemon {
               this.inFlightCall = null;
               this.callsProcessed++;
               this.recordHistory({ event: 'CALL_ACK', call_id: data.call_id });
+            } else if (this.uncertainCalls.has(data.call_id)) {
+              log(`[RECONCILE_ACK] CALL ${data.call_id} reconciliada de SEND_UNCERTAIN para ACK_CONFIRMED.`);
+              this.uncertainCalls.delete(data.call_id);
+              this.callsProcessed++;
+              this.recordHistory({ event: 'CALL_ACK_RECONCILED', call_id: data.call_id });
             }
           } catch (e) {}
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -226,16 +283,26 @@ class Ponte2Daemon {
               return;
             }
 
+            // Regra Anti-Eco: Impede eco de [BRIDGE_TO_ANTIGRAVITY_V1] para o ChatGPT
+            const rawPayload = data.payload || '';
+            if (rawPayload.includes('[BRIDGE_TO_ANTIGRAVITY_V1]')) {
+              log(`[REJECT_ECHO] Tentativa de despachar [BRIDGE_TO_ANTIGRAVITY_V1] para o ChatGPT via /result.`);
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ ok: false, error: 'ECHO_FORBIDDEN_CANNOT_DISPATCH_TO_ANTIGRAVITY_TO_CHATGPT' }));
+              return;
+            }
+
+            // Deduplicação persistente determinística: DEDUPE_NO_OP
             const resultKey = `RESULT_${callId}_${type}`;
             if (this.seenResultIds.has(resultKey)) {
-              log(`[DEDUPE_RESULT] Resultado para ${resultKey} já registrado. Descartando.`);
+              log(`[DEDUPE_NO_OP] Resultado ${resultKey} já registrado. Retornando DEDUPE_NO_OP.`);
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ ok: true, dedupe: true, call_id: callId }));
+              res.end(JSON.stringify({ ok: true, dedupe: true, status: 'DEDUPE_NO_OP', call_id: callId }));
               return;
             }
             this.seenResultIds.add(resultKey);
+            this.saveDedupe();
 
-            const rawPayload = data.payload || '';
             const envelope = 
 `[BRIDGE_FROM_ANTIGRAVITY_V1]
 CALL_ID: ${callId}
@@ -270,9 +337,14 @@ ${rawPayload}
       if (req.method === 'GET' && url.pathname === '/result') {
         let resultToSend = null;
 
+        // Zero requeue automático: transição para SEND_UNCERTAIN sem devolução cega à fila
         if (this.inFlightResult && this.inFlightResult._dispatchedAt && (Date.now() - this.inFlightResult._dispatchedAt > 15000)) {
-          log(`[RESULT_TIMEOUT] RESULT ${this.inFlightResult.call_id} expirou (>15s). Retornando à fila.`);
-          this.resultQueue.unshift(this.inFlightResult);
+          log(`[SEND_UNCERTAIN] RESULT ${this.inFlightResult.call_id} expirou (>15s) sem ACK. Marcado como SEND_UNCERTAIN sem requeue automático.`);
+          this.uncertainResults.set(this.inFlightResult.call_id, {
+            packet: this.inFlightResult,
+            marked_at: new Date().toISOString(),
+            status: 'SEND_UNCERTAIN'
+          });
           this.inFlightResult = null;
         }
 
@@ -308,6 +380,11 @@ ${rawPayload}
               this.inFlightResult = null;
               this.resultsDelivered++;
               this.recordHistory({ event: 'RESULT_DELIVERED', call_id: data.call_id });
+            } else if (this.uncertainResults.has(data.call_id)) {
+              log(`[RECONCILE_ACK] RESULT ${data.call_id} reconciliado de SEND_UNCERTAIN para DELIVERED.`);
+              this.uncertainResults.delete(data.call_id);
+              this.resultsDelivered++;
+              this.recordHistory({ event: 'RESULT_DELIVERED_RECONCILED', call_id: data.call_id });
             }
           } catch (e) {}
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -316,15 +393,78 @@ ${rawPayload}
         return;
       }
 
-      // 8. POST /reset -> Limpa filas e locks para testes controlados
+      // 8. POST /reconcile -> Reconciliação explícita por CALL_ID antes de qualquer retry
+      if (req.method === 'POST' && url.pathname === '/reconcile') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+          try {
+            const data = JSON.parse(body);
+            const callId = data.call_id;
+            const action = data.action || 'STATUS'; // STATUS, RESOLVE_CONFIRMED, DISCARD, REQUEUE_EXPLICIT
+
+            const callUncertain = this.uncertainCalls.get(callId);
+            const resultUncertain = this.uncertainResults.get(callId);
+
+            if (action === 'RESOLVE_CONFIRMED') {
+              if (callUncertain) {
+                this.uncertainCalls.delete(callId);
+                this.callsProcessed++;
+              }
+              if (resultUncertain) {
+                this.uncertainResults.delete(callId);
+                this.resultsDelivered++;
+              }
+              log(`[RECONCILE] ${callId} reconciliado manualmente como RESOLVE_CONFIRMED.`);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ ok: true, status: 'RESOLVED_CONFIRMED', call_id: callId }));
+              return;
+            }
+
+            if (action === 'REQUEUE_EXPLICIT') {
+              if (callUncertain) {
+                this.callQueue.unshift(callUncertain.packet);
+                this.uncertainCalls.delete(callId);
+                log(`[RECONCILE] CALL ${callId} reenfileirada explicitamente sob ordem controlada.`);
+              }
+              if (resultUncertain) {
+                this.resultQueue.unshift(resultUncertain.packet);
+                this.uncertainResults.delete(callId);
+                log(`[RECONCILE] RESULT ${callId} reenfileirado explicitamente sob ordem controlada.`);
+              }
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ ok: true, status: 'REQUEUED_EXPLICIT', call_id: callId }));
+              return;
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              call_id: callId,
+              is_call_uncertain: !!callUncertain,
+              is_result_uncertain: !!resultUncertain,
+              seen_call: this.seenCallIds.has(callId),
+              seen_result: this.seenResultIds.has(`RESULT_${callId}_RESULT`)
+            }));
+          } catch (e) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: 'BAD_JSON' }));
+          }
+        });
+        return;
+      }
+
+      // 9. POST /reset -> Limpa filas, locks e incertos para testes controlados
       if (req.method === 'POST' && url.pathname === '/reset') {
         this.callQueue = [];
         this.inFlightCall = null;
         this.resultQueue = [];
         this.inFlightResult = null;
+        this.uncertainCalls.clear();
+        this.uncertainResults.clear();
         this.seenCallIds.clear();
         this.seenResultIds.clear();
-        log('[RESET] Filas da Ponte 2 limpas.');
+        this.saveDedupe();
+        log('[RESET] Filas e dedupe da Ponte 2 limpos.');
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true, status: 'RESET_OK' }));
         return;
@@ -344,14 +484,23 @@ ${rawPayload}
   startWatchdog() {
     this.watchdogInterval = setInterval(() => {
       const now = Date.now();
+      // Zero requeue automático: marca SEND_UNCERTAIN
       if (this.inFlightCall && this.inFlightCall._dispatchedAt && (now - this.inFlightCall._dispatchedAt > 15000)) {
-        log(`[WATCHDOG] Liberando CALL ${this.inFlightCall.call_id} retida sem ACK por > 15s.`);
-        this.callQueue.unshift(this.inFlightCall);
+        log(`[WATCHDOG_SEND_UNCERTAIN] CALL ${this.inFlightCall.call_id} retida >15s marcada como SEND_UNCERTAIN (zero requeue).`);
+        this.uncertainCalls.set(this.inFlightCall.call_id, {
+          packet: this.inFlightCall,
+          marked_at: new Date().toISOString(),
+          status: 'SEND_UNCERTAIN'
+        });
         this.inFlightCall = null;
       }
       if (this.inFlightResult && this.inFlightResult._dispatchedAt && (now - this.inFlightResult._dispatchedAt > 15000)) {
-        log(`[WATCHDOG] Liberando RESULT ${this.inFlightResult.call_id} retido sem ACK por > 15s.`);
-        this.resultQueue.unshift(this.inFlightResult);
+        log(`[WATCHDOG_SEND_UNCERTAIN] RESULT ${this.inFlightResult.call_id} retido >15s marcado como SEND_UNCERTAIN (zero requeue).`);
+        this.uncertainResults.set(this.inFlightResult.call_id, {
+          packet: this.inFlightResult,
+          marked_at: new Date().toISOString(),
+          status: 'SEND_UNCERTAIN'
+        });
         this.inFlightResult = null;
       }
     }, 5000);

@@ -253,7 +253,23 @@
   // 1. Inbound listener (Injeção de RESULT / ACK do Gravity)
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'PONTE2_INJECT_RESULT') {
-      handleInjection(msg.payload).then(res => sendResponse(res));
+      const payload = msg.payload || '';
+
+      // Regra 1: Impedir eco de [BRIDGE_TO_ANTIGRAVITY_V1] de volta ao ChatGPT
+      if (payload.includes('[BRIDGE_TO_ANTIGRAVITY_V1]')) {
+        console.error('[Ponte2-Content] REJEITADO: Tentativa de eco de [BRIDGE_TO_ANTIGRAVITY_V1] de volta ao ChatGPT!');
+        sendResponse({ success: false, error: 'ECHO_FORBIDDEN' });
+        return false;
+      }
+
+      // Regra 2: Inbound do ChatGPT aceita apenas [BRIDGE_FROM_ANTIGRAVITY_V1]
+      if (!payload.includes('[BRIDGE_FROM_ANTIGRAVITY_V1]')) {
+        console.error('[Ponte2-Content] REJEITADO: Inbound do ChatGPT aceita apenas envelopes [BRIDGE_FROM_ANTIGRAVITY_V1]!');
+        sendResponse({ success: false, error: 'INVALID_INBOUND_ENVELOPE' });
+        return false;
+      }
+
+      handleInjection(payload).then(res => sendResponse(res));
       return true; // async
     }
   });
