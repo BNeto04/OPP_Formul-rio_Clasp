@@ -211,36 +211,74 @@
   function triggerSubmit(inputEl) {
     const submitSelectors = [
       'button[data-testid="send-button"]',
+      'button[data-testid*="send"]',
       'button[aria-label="Send prompt"]',
+      'button[aria-label="Send message"]',
       'button[aria-label="Enviar prompt"]',
+      'button[aria-label="Enviar mensagem"]',
       'button[aria-label*="Enviar"]',
       'button[aria-label*="Send"]',
-      'button[data-testid*="send"]',
-      'button[data-testid="fruitjuice-send-button"]',
-      'button.mb-1'
+      'button[data-testid="fruitjuice-send-button"]'
     ];
 
+    function clickBtn(btn, desc) {
+      btn.focus();
+      btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+      btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+      btn.click();
+      remoteLog(`Botão de envio acionado: ${desc}`);
+      return true;
+    }
+
+    // 1. Seletores diretos
     for (const sel of submitSelectors) {
       const btn = document.querySelector(sel);
       if (btn && !btn.disabled) {
-        btn.click();
-        remoteLog(`Botão de envio acionado: ${sel}`);
-        return true;
+        return clickBtn(btn, sel);
       }
     }
+
+    // 2. Busca qualquer botão não desabilitado no container do composer/form
+    const container = inputEl ? (inputEl.closest('form') || inputEl.closest('div[class*="composer"]') || inputEl.parentElement?.parentElement) : null;
+    if (container) {
+      const buttons = Array.from(container.querySelectorAll('button:not([disabled])'));
+      // Prioriza botões com SVG ou no final do container
+      for (const btn of buttons) {
+        const testId = (btn.getAttribute('data-testid') || '').toLowerCase();
+        const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
+        if (testId.includes('speech') || aria.includes('voz') || aria.includes('voice')) continue;
+        if (testId.includes('send') || aria.includes('enviar') || aria.includes('send') || btn.querySelector('svg')) {
+          return clickBtn(btn, `container button [${testId || aria || 'svg'}]`);
+        }
+      }
+      if (buttons.length > 0) {
+        const lastBtn = buttons[buttons.length - 1];
+        const testId = (lastBtn.getAttribute('data-testid') || '').toLowerCase();
+        if (!testId.includes('speech')) {
+          return clickBtn(lastBtn, 'container last button');
+        }
+      }
+    }
+
     return false;
   }
 
   function triggerEnterKey(inputEl) {
-    const enterDown = new KeyboardEvent('keydown', {
+    if (!inputEl) return;
+    inputEl.focus();
+    const eventInit = {
       key: 'Enter',
       code: 'Enter',
       keyCode: 13,
       which: 13,
+      charCode: 13,
       bubbles: true,
-      cancelable: true
-    });
-    inputEl.dispatchEvent(enterDown);
+      cancelable: true,
+      composed: true
+    };
+    inputEl.dispatchEvent(new KeyboardEvent('keydown', eventInit));
+    inputEl.dispatchEvent(new KeyboardEvent('keypress', eventInit));
+    inputEl.dispatchEvent(new KeyboardEvent('keyup', eventInit));
   }
 
   async function waitForComposerCleared(inputEl, timeoutMs = 4000) {
