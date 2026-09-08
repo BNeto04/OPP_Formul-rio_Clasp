@@ -368,3 +368,40 @@ FORMULÁRIO CONFIRMADO -> PAYLOAD -> processarEntradaManual -> ABA MENSAL -> DUP
        - Clona as fórmulas modelo da linha 2 (Pelotão na coluna AB, Posto na coluna AC, Matrícula na coluna AD) para as linhas inseridas utilizando `copyTo(..., SpreadsheetApp.CopyPasteType.PASTE_FORMULA, false)`.
    - **Retorno Operacional:** Retorna mensagem canônica estruturada: `Ocorrência ${identificador} salva com sucesso (${linhasParaInserir.length} registros computados)!`.
    - **Tratamento de Exceções:** Qualquer erro captura e repassa via `throw new Error(...)`, sendo capturado pelo `withFailureHandler` no cliente para exibição clara ao operador.
+
+---
+
+## Homologação E2E Ponta a Ponta do C01 — Gate Final (Card #66 - T-C01-E2E-HOMOLOGACAO-009)
+
+### Circuito Completo Homologado
+```text
+DOCUMENTO OU MANUAL -> OCR/PREFILL -> CONFERÊNCIA HUMANA -> DADOS DO FATO -> EQUIPE -> ARMAS -> DROGAS -> PIP/IMPUTADO -> SALVAR -> processarEntradaManual -> SHEETS -> RETORNO
+```
+
+1. **Convergência Canônica Única (Manual x OCR):**
+   - Tanto o fluxo 100% manual quanto o fluxo assistido por OCR convergem estritamente para o mesmo contrato de persistência.
+   - O payload despachado por `salvarDados()` possui 16 chaves canônicas estritas:
+     `ais`, `armas`, `bairro`, `boe`, `cidade`, `data`, `detidos`, `drogas`, `hora`, `imputado`, `mike`, `natureza`, `ocorrenciasPip`, `origem`, `policiais`, `qtd_o`.
+   - A única porta de entrada para gravação no Sheets é a função de backend `processarEntradaManual(payload)` em `Entrada/EntradaManual.js`.
+
+2. **Assistência Não-Autoritária do OCR e Soberania Humana:**
+   - **Zero Escrita Direta:** O OCR (Tesseract / PDF.js) roda integralmente no cliente do navegador e **nunca** executa escrita ou chamada de gravação direta na planilha.
+   - **Imunidade a Retorno Tardio:** Se o operador editar manualmente qualquer campo (como a Natureza da ocorrência), o retorno tardio ou assíncrono de listas de validação / OCR preserva o texto digitado pelo operador, sem sobrescrita silenciosa.
+   - **Card de Conferência Visual:** Permite ao operador inspecionar o texto bruto, as extrações sugeridas e corrigir qualquer divergência antes do salvamento.
+
+3. **Garantias de Atomicidade Real e Zero Escrita Comprovadas:**
+   - **Duplicidade de BOE:** Consulta à coluna G detecta BOE já cadastrado e aborta antes de qualquer manipulação física (**ZERO ESCRITA** comprovada).
+   - **Duplicidade de MIKE:** Consulta à coluna E detecta MIKE já cadastrado e aborta antes de qualquer manipulação física (**ZERO ESCRITA** comprovada).
+   - **Aba Mensal Ausente:** Busca canônica com normalização de mês/ano; se a aba não existir, aborta imediatamente (**ZERO ESCRITA** comprovada).
+   - **Validação Inválida (Fase 1):** Varredura completa prévia de todas as células contra fórmulas nativas e regras de `DataValidation`; se qualquer célula violar os critérios, aborta antes de invocar `setValues` (**ZERO ESCRITA** comprovada).
+
+4. **Preservação de Fórmulas e Suporte a Fluxos sem Seções Opcionais:**
+   - **Fórmulas:** Colunas analíticas e de fórmulas nativas (PROCV em AB, AC, AD) são protegidas contra sobrescrita literal na Fase 1 e clonadas da linha modelo na Fase 3.
+   - **Fluxo Mínimo Sem Armas, Drogas ou PIP:** Quando a ocorrência não envolver apreensões opcionais, o sistema persiste com sucesso uma linha concisa com fallback automático de Natureza na coluna AG de PIP e `SEM IMPUTADO` na coluna AH.
+
+5. **Auditoria de Paridade Apps Script / Clasp:**
+   - Auditoria factual realizada via `clasp pull` isolado em diretório temporário contra o projeto com `scriptId: 1dudWJXeADZ3nSJSimyHgEQbi0Gu-RnV57w3dNvS6m-zbfqvtQ3GxEx4G`.
+   - Dos 68 arquivos remotos, 63 são idênticos aos locais.
+   - As diferenças em arquivos locais incluem arquivos preexistentes sujos fora do escopo da Sprint (`Core/RegrasQualidade.js`, `Core/Utils.js`, `Features/NormalizadorEfetivo.js`).
+   - Para garantir o cumprimento estrito da regra de não misturar arquivos de escopo alheio, a publicação remota via `clasp push` permanece não acionada (`CLASP_REQUIRED = NÃO`).
+

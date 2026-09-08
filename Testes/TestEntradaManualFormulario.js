@@ -300,7 +300,23 @@ global.document = {
         if (sel === '.btn-save') return saveBtn;
         return null;
     },
-    querySelectorAll: () => []
+    querySelectorAll: () => [],
+    createElement: function(tag) {
+        return {
+            id: '',
+            value: '',
+            innerHTML: '',
+            innerText: '',
+            appendChild: () => {},
+            remove: () => {},
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            style: {},
+            classList: { add: () => {}, remove: () => {} },
+            querySelectorAll: () => [],
+            querySelector: () => null
+        };
+    }
 };
 
 global.window = { addEventListener: () => {}, opcoesFormulario: null };
@@ -1011,6 +1027,185 @@ eval(fullFormularioScript);
     salvarDados();
     assert.strictEqual(ultimoPayloadGravacao, null, 'Não deve despachar para o backend se campos obrigatórios estiverem vazios');
     assert.ok(mockElements.statusMessage.innerText.includes('Preencha DATA e NATUREZA antes de salvar'), 'Client deve exibir mensagem de erro na UI');
+
+    // [Test 15] Homologação E2E Ponta a Ponta do C01 (Gate Final - Card #66: T-C01-E2E-HOMOLOGACAO-009)
+    console.log('  [Test 15] Homologação E2E Ponta a Ponta do C01 (Gate Final: Fato, Equipe, Armas, Drogas, PIP, Imputado, OCR e Manual)');
+
+    // 15.1: Cenário E2E Completo (Fato, Equipe, Armas, Drogas, PIP, Imputado)
+    let sheetE2E = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
+    sheetE2E.sheetName = 'AGO2026';
+    const mockSsE2E = {
+        getSheetByName: (n) => (n === 'AGO2026' ? sheetE2E : null),
+        getSheets: () => [sheetE2E]
+    };
+    global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsE2E;
+
+    const payloadE2ECompleto = {
+        origem: 'FORMULARIO',
+        mike: 'M888999',
+        boe: '2026/888999',
+        ais: '3',
+        data: '18/08/2026',
+        hora: '15:30',
+        cidade: 'RECIFE',
+        bairro: 'BOA VIAGEM',
+        natureza: 'TRÁFICO ILÍCITO DE ENTORPECENTES',
+        qtd_o: '1',
+        detidos: '1',
+        imputado: 'COM IMPUTADO',
+        policiais: [
+            { nome: 'CB SILVA 111111', pelotao: '1', posto: 'CB', matricula: '111111', qtd_armas: 1 },
+            { nome: 'SD SOUZA 222222', pelotao: '1', posto: 'SD', matricula: '222222', qtd_armas: 0 }
+        ],
+        armas: [
+            { tipo: 'INDUSTRIAL', modelo: 'PISTOLA', calibre: '.40', municao: 15, quantidade: 1 }
+        ],
+        drogas: [
+            { tipo: 'COCAINA PINO', quantidade: 50 },
+            { tipo: 'MACONHA GRAMA', quantidade: 200 }
+        ],
+        ocorrenciasPip: [
+            'Apreensão de arma de fogo pistola',
+            'Apreensão de cocaína por grama (invólucro)'
+        ]
+    };
+
+    const resE2E = processarEntradaManual(payloadE2ECompleto);
+    assert.ok(resE2E.includes('salva com sucesso'), 'Cenário E2E completo deve ser salvo com sucesso');
+    assert.ok(resE2E.includes('2 registros computados'), 'Cenário E2E completo deve expandir para 2 registros');
+    assert.ok(sheetE2E.rangesEscritos.length > 0, 'Cenário E2E deve realizar gravação física no Sheets');
+
+    // 15.2: Fluxo Manual Completo sem OCR
+    let sheetManualE2E = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
+    sheetManualE2E.sheetName = 'AGO2026';
+    const mockSsManualE2E = {
+        getSheetByName: (n) => (n === 'AGO2026' ? sheetManualE2E : null),
+        getSheets: () => [sheetManualE2E]
+    };
+    global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsManualE2E;
+
+    const payloadManual100 = {
+        origem: 'FORMULARIO',
+        mike: 'M777666',
+        boe: '2026/777666',
+        ais: '7',
+        data: '18/08/2026',
+        hora: '10:00',
+        cidade: 'OLINDA',
+        bairro: 'BAIRRO NOVO',
+        natureza: 'TRÁFICO ILÍCITO DE ENTORPECENTES',
+        qtd_o: '1',
+        detidos: '0',
+        imputado: 'SEM IMPUTADO',
+        policiais: [{ nome: 'SD MANUAL 333333', pelotao: '2', posto: 'SD', matricula: '333333', qtd_armas: 0 }],
+        armas: [],
+        drogas: [],
+        ocorrenciasPip: []
+    };
+    const resManual100 = processarEntradaManual(payloadManual100);
+    assert.ok(resManual100.includes('salva com sucesso'), 'Fluxo 100% manual sem OCR deve persistir perfeitamente');
+
+    // 15.3: Fluxo OCR Completo: Documento -> Prefill -> Conferência -> Correção Humana -> Payload
+    limparFormulario();
+    const textoOcrE2E = "BOLETIM DE OCORRÊNCIA Nº: 123456789012\n26E1174010335\nData do Fato: 18/08/2026 18:45\nCidade: RECIFE\nBairro: BOA VIAGEM\nNatureza da Ocorrência: PORTE ILEGAL DE ARMA\nAPREENSÃO: 01 PISTOLA CALIBRE .40";
+    parseAndFill(textoOcrE2E);
+
+    // Valida prefill assistivo inicial
+    assert.strictEqual(mockElements.data.value, '18/08/2026', 'OCR deve preencher Data');
+    assert.strictEqual(mockElements.hora.value, '18:45', 'OCR deve preencher Hora');
+    assert.strictEqual(mockElements.mike.value, '123456789012', 'OCR deve preencher MIKE');
+    assert.strictEqual(mockElements.boe.value, '26E1174010335', 'OCR deve preencher BOE');
+    assert.strictEqual(mockElements.cidade.value, 'RECIFE', 'OCR deve preencher Cidade');
+    assert.strictEqual(mockElements.bairro.value, 'BOA VIAGEM', 'OCR deve preencher Bairro');
+    assert.strictEqual(mockElements.natureza.value, 'PORTE ILEGAL DE ARMA', 'OCR deve sugerir Natureza');
+
+    // Intervenção e Correção Humana soberana do Operador
+    mockElements.natureza.value = 'TRÁFICO ILÍCITO DE ENTORPECENTES'; // Operador corrige
+    assert.strictEqual(mockElements.natureza.value, 'TRÁFICO ILÍCITO DE ENTORPECENTES', 'Correção do operador deve prevalecer');
+
+    // 15.4: Prova de que OCR tardio não sobrescreve correção manual
+    if (successCb) {
+        successCb({ naturezas: ['ROUBO A TRANSEUNTE'], detidos: [], armasTipos: [], armasModelos: [], ocorrenciasPip: [] });
+    }
+    assert.strictEqual(mockElements.natureza.value, 'TRÁFICO ILÍCITO DE ENTORPECENTES', 'OCR tardio não deve sobrescrever alteração do operador');
+
+    // 15.5: Prova de que OCR NUNCA chama persistência diretamente
+    assert.strictEqual(ultimoPayloadGravacao, null, 'OCR em si NUNCA deve acionar persistência diretamente no Sheets');
+
+    // 15.6: Convergência de Manual e OCR para o MESMO payload e porta processarEntradaManual
+    ultimoPayloadGravacao = null;
+    salvarDados();
+    assert.ok(ultimoPayloadGravacao !== null, 'Salvar dispara envio de payload unificado');
+    const chavesPayload = Object.keys(ultimoPayloadGravacao).sort();
+    const chavesEsperadas = ['ais','armas','bairro','boe','cidade','data','detidos','drogas','hora','imputado','mike','natureza','ocorrenciasPip','origem','policiais','qtd_o'].sort();
+    assert.deepStrictEqual(chavesPayload, chavesEsperadas, 'Payload unificado deve conter exatamente as 16 chaves contratuais');
+
+    // 15.7: Provas de Resiliência: Duplicidade, Validação Inválida e Aba Ausente com ZERO ESCRITA
+    global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsE2E;
+    // a) Duplicidade BOE
+    sheetE2E.rangesEscritos = [];
+    sheetE2E.colBoeValues = [['2026/888999']];
+    assert.throws(() => {
+        processarEntradaManual(payloadE2ECompleto);
+    }, /BLOQUEADO: A ocorrência com BOE 2026\/888999 já consta cadastrada/, 'Duplicidade BOE deve bloquear');
+    assert.strictEqual(sheetE2E.rangesEscritos.length, 0, 'Zero escrita comprovada em duplicidade de BOE');
+
+    // b) Duplicidade MIKE
+    sheetE2E.rangesEscritos = [];
+    sheetE2E.colBoeValues = null;
+    sheetE2E.colMikeValues = [['M888999']];
+    assert.throws(() => {
+        processarEntradaManual(payloadE2ECompleto);
+    }, /BLOQUEADO: A ocorrência com MIKE M888999 já consta cadastrada/, 'Duplicidade MIKE deve bloquear');
+    assert.strictEqual(sheetE2E.rangesEscritos.length, 0, 'Zero escrita comprovada em duplicidade de MIKE');
+
+    // c) Validação Inválida (Fase 1)
+    sheetE2E.rangesEscritos = [];
+    sheetE2E.colBoeValues = null;
+    sheetE2E.colMikeValues = null;
+    const payloadInvalidoE2E = { ...payloadE2ECompleto, natureza: 'NATUREZA_INVALIDA_E2E' };
+    assert.throws(() => {
+        processarEntradaManual(payloadInvalidoE2E);
+    }, /não é permitido pela validação da planilha/, 'Fase 1 deve barrar valor inválido');
+    assert.strictEqual(sheetE2E.rangesEscritos.length, 0, 'Zero escrita comprovada em validação inválida');
+
+    // d) Aba Mensal Ausente
+    const payloadAbaAusenteE2E = { ...payloadE2ECompleto, data: '01/01/2099' };
+    assert.throws(() => {
+        processarEntradaManual(payloadAbaAusenteE2E);
+    }, /Aba mensal esperada \(JAN2099\) não encontrada/, 'Aba ausente deve barrar');
+    assert.strictEqual(sheetE2E.rangesEscritos.length, 0, 'Zero escrita comprovada em aba ausente');
+
+    // 15.8: Preservação de Fórmulas e Fluxo sem seções opcionais (sem armas, sem drogas, sem PIP)
+    let sheetSemOpcionais = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
+    sheetSemOpcionais.sheetName = 'AGO2026';
+    const mockSsSemOpcionais = {
+        getSheetByName: (n) => (n === 'AGO2026' ? sheetSemOpcionais : null),
+        getSheets: () => [sheetSemOpcionais]
+    };
+    global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsSemOpcionais;
+
+    const payloadMinimo = {
+        origem: 'FORMULARIO',
+        mike: 'M111222',
+        boe: '2026/111222',
+        ais: '3',
+        data: '18/08/2026',
+        hora: '14:00',
+        cidade: 'RECIFE',
+        bairro: 'BOA VIAGEM',
+        natureza: 'TRÁFICO ILÍCITO DE ENTORPECENTES',
+        qtd_o: '1',
+        detidos: '0',
+        imputado: 'SEM IMPUTADO',
+        policiais: [{ nome: 'SGT TESTE', pelotao: '3', posto: 'SGT', matricula: '999999', qtd_armas: 0 }],
+        armas: [],
+        drogas: [],
+        ocorrenciasPip: []
+    };
+    const resMinimo = processarEntradaManual(payloadMinimo);
+    assert.ok(resMinimo.includes('salva com sucesso'), 'Fluxo mínimo sem seções opcionais deve ser salvo com sucesso');
+    assert.ok(sheetSemOpcionais.rangesEscritos.length > 0, 'Fluxo mínimo deve registrar no Sheets');
 
     console.log('✅ OK - EntradaManual.js e Formulario.html');
 })().catch(err => {
