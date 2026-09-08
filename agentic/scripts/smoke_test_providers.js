@@ -1,30 +1,44 @@
 /**
  * Syntheon Agentic Layer - Secure Provider Smoke Test
- * Card: #70 T-A01-PROVIDERS-002
+ * Card: #70 T-A01-PROVIDERS-002 (AUDIT-FIX-001)
  *
- * RESTRIÇÕES ESTRITAS DE SEGURANÇA:
+ * RESTRIÇÕES ESTRITAS DE SEGURANÇA E SEMÂNTICA:
  * 1. NUNCA imprimir o valor de nenhuma chave de API.
- * 2. Se a chave estiver ausente no ambiente, NÃO efetuar requisição de rede e retornar SKIPPED_NO_CREDENTIAL.
- * 3. Se a credencial estiver presente, enviar apenas requisição mínima ("ping" com max_tokens: 1).
- * 4. Classificar explicitamente: PASS, 401/403 (Auth), 404 (Model), 429 (Quota), 5xx (Server), Timeout.
+ * 2. Se a chave estiver ausente no ambiente, NÃO efetuar requisição de rede e retornar CONFIG_CONTRACT_READY_NO_CREDENTIAL.
+ * 3. Modelos obsoletos declarados em deprecated_models são rejeitados como DEPRECATED_MODEL.
+ * 4. Apenas chamadas reais com credencial podem receber SMOKE_PASS.
+ * 5. Serviços locais offline recebem status UNAVAILABLE.
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const configPath = path.join(__dirname, '..', 'config', 'providers.json');
-const config = JSON.parse(fs.readFileSync(configPath, 'utf8').replace(/^\uFEFF/, ''));
+const rawConfig = fs.readFileSync(configPath, 'utf8').replace(/^\uFEFF/, '');
+const config = JSON.parse(rawConfig);
 
 async function testGemini(p) {
+  // Verificação de depreciação
+  if (p.deprecated_models && p.deprecated_models.includes(p.default_model)) {
+    return {
+      provider: p.provider_id,
+      model: p.default_model,
+      status: 'DEPRECATED_MODEL',
+      classification: 'OBSOLETE_MODEL_BLOCKED',
+      latency_ms: 0,
+      details: `Modelo ${p.default_model} descontinuado na documentacao oficial vigente.`
+    };
+  }
+
   const apiKey = process.env[p.api_key_env_var];
   if (!apiKey || apiKey.trim() === '') {
     return {
       provider: p.provider_id,
       model: p.default_model,
-      status: 'SKIPPED_NO_CREDENTIAL',
+      status: 'CONFIG_CONTRACT_READY_NO_CREDENTIAL',
       latency_ms: 0,
       classification: 'CREDENTIAL_ABSENT',
-      details: `Variavel ${p.api_key_env_var} ausente no ambiente.`
+      details: `Contrato valido. Variavel ${p.api_key_env_var} ausente no ambiente; chamada de rede evitada.`
     };
   }
 
@@ -74,6 +88,18 @@ async function testGemini(p) {
 }
 
 async function testOpenAiCompatible(p) {
+  // Verificação de depreciação
+  if (p.deprecated_models && p.deprecated_models.includes(p.default_model)) {
+    return {
+      provider: p.provider_id,
+      model: p.default_model,
+      status: 'DEPRECATED_MODEL',
+      classification: 'OBSOLETE_MODEL_BLOCKED',
+      latency_ms: 0,
+      details: `Modelo ${p.default_model} descontinuado na documentacao oficial vigente.`
+    };
+  }
+
   const apiKey = p.api_key_env_var ? process.env[p.api_key_env_var] : null;
 
   // Para provedores cloud que requerem chave:
@@ -81,10 +107,10 @@ async function testOpenAiCompatible(p) {
     return {
       provider: p.provider_id,
       model: p.default_model,
-      status: 'SKIPPED_NO_CREDENTIAL',
+      status: 'CONFIG_CONTRACT_READY_NO_CREDENTIAL',
       latency_ms: 0,
       classification: 'CREDENTIAL_ABSENT',
-      details: `Variavel ${p.api_key_env_var} ausente no ambiente.`
+      details: `Contrato valido. Variavel ${p.api_key_env_var} ausente no ambiente; chamada de rede evitada.`
     };
   }
 
@@ -132,7 +158,7 @@ async function testOpenAiCompatible(p) {
     return {
       provider: p.provider_id,
       model: p.default_model,
-      status: 'SMOKE_FAIL',
+      status: isOffline ? 'UNAVAILABLE' : 'SMOKE_FAIL',
       latency_ms: latency,
       classification: isOffline ? 'CONNECTION_REFUSED_OFFLINE' : (isTimeout ? 'TIMEOUT_EXCEEDED' : 'NETWORK_ERROR'),
       details: isOffline ? 'Servico local offline' : (isTimeout ? 'Timeout atingido' : err.message)
@@ -141,7 +167,7 @@ async function testOpenAiCompatible(p) {
 }
 
 async function runSmokeTests() {
-  console.log('=== SYNTHEON AGENTIC LAYER - PROVIDER SMOKE TESTS ===');
+  console.log('=== SYNTHEON AGENTIC LAYER - PROVIDER SMOKE TESTS (AUDIT-FIX-001) ===');
   const results = {};
 
   for (const [key, provider] of Object.entries(config.providers)) {

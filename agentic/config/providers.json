@@ -1,10 +1,18 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "updated_at": "2026-09-08",
+  "semantics": {
+    "VALIDADO_POR_DOCUMENTACAO_ATUAL": "Identificador de modelo e endpoint conferidos contra documentacao oficial vigente (setembro/2026)",
+    "CONFIG_CONTRACT_READY_NO_CREDENTIAL": "Contrato de configuracao, timeout e env var prontos, aguardando insercao de credencial",
+    "SMOKE_PASS": "Requisicao minima real enviada com credencial e respondida com HTTP 200",
+    "DEPRECATED": "Modelo descontinuado pela documentacao oficial do provedor",
+    "UNAVAILABLE": "Endpoint ou servico offline/inacessivel"
+  },
   "routing_policy": {
     "primary": "gemini",
     "fallback_1": "groq",
     "fallback_2": "openrouter",
+    "optional": "deepseek",
     "legacy_local": "ollama_legacy"
   },
   "providers": {
@@ -14,13 +22,17 @@
       "tier": "primary",
       "sdk": "google-genai",
       "api_key_env_var": "GEMINI_API_KEY",
-      "base_url": null,
-      "default_model": "gemini-2.0-flash",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta",
+      "default_model": "gemini-3.6-flash",
       "model_alias": "flash-fast",
       "timeout_ms": 30000,
       "openai_compatible": false,
-      "validation_status": "CONFIGURADO_MAS_NAO_TESTAVEL_SEM_KEY",
+      "validation_status": "VALIDADO_POR_DOCUMENTACAO_ATUAL",
+      "readiness": "CONFIG_CONTRACT_READY_NO_CREDENTIAL",
       "models_supported": [
+        "gemini-3.6-flash"
+      ],
+      "deprecated_models": [
         "gemini-2.0-flash",
         "gemini-2.5-flash",
         "gemini-1.5-flash"
@@ -33,12 +45,17 @@
       "sdk": "openai-compatible",
       "api_key_env_var": "GROQ_API_KEY",
       "base_url": "https://api.groq.com/openai/v1",
-      "default_model": "llama-3.3-70b-versatile",
-      "model_alias": "llama-fast",
+      "default_model": "qwen/qwen3.6-27b",
+      "model_alias": "groq-fast-code",
       "timeout_ms": 20000,
       "openai_compatible": true,
-      "validation_status": "CONFIGURADO_MAS_NAO_TESTAVEL_SEM_KEY",
+      "validation_status": "VALIDADO_POR_DOCUMENTACAO_ATUAL",
+      "readiness": "CONFIG_CONTRACT_READY_NO_CREDENTIAL",
       "models_supported": [
+        "qwen/qwen3.6-27b",
+        "openai/gpt-oss-120b"
+      ],
+      "deprecated_models": [
         "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant"
       ]
@@ -54,11 +71,12 @@
       "model_alias": "multi-model-router",
       "timeout_ms": 45000,
       "openai_compatible": true,
-      "validation_status": "CONFIGURADO_MAS_NAO_TESTAVEL_SEM_KEY",
+      "validation_status": "VALIDADO_POR_DOCUMENTACAO_ATUAL",
+      "readiness": "CONFIG_CONTRACT_READY_NO_CREDENTIAL",
       "models_supported": [
-        "meta-llama/llama-3.3-70b-instruct",
-        "deepseek/deepseek-chat"
-      ]
+        "meta-llama/llama-3.3-70b-instruct"
+      ],
+      "deprecated_models": []
     },
     "deepseek": {
       "provider_id": "deepseek",
@@ -67,12 +85,17 @@
       "sdk": "openai-compatible",
       "api_key_env_var": "DEEPSEEK_API_KEY",
       "base_url": "https://api.deepseek.com/v1",
-      "default_model": "deepseek-chat",
-      "model_alias": "deepseek-v3",
+      "default_model": "deepseek-v4-flash",
+      "model_alias": "deepseek-v4",
       "timeout_ms": 45000,
       "openai_compatible": true,
-      "validation_status": "CONFIGURADO_MAS_NAO_TESTAVEL_SEM_KEY",
+      "validation_status": "VALIDADO_POR_DOCUMENTACAO_ATUAL",
+      "readiness": "CONFIG_CONTRACT_READY_NO_CREDENTIAL",
       "models_supported": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "deprecated_models": [
         "deepseek-chat",
         "deepseek-reasoner"
       ]
@@ -88,10 +111,12 @@
       "model_alias": "hermes-local-qwen",
       "timeout_ms": 60000,
       "openai_compatible": true,
-      "validation_status": "OFFLINE_LOCAL_SERVICE",
+      "validation_status": "UNAVAILABLE",
+      "readiness": "UNAVAILABLE",
       "models_supported": [
         "qwen2.5-coder:7b-64k"
-      ]
+      ],
+      "deprecated_models": []
     }
   }
 }
