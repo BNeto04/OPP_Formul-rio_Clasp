@@ -257,3 +257,62 @@ OCR/MANUAL -> DROGA/UNIDADE/QUANTIDADE -> NORMALIZAÇÃO/CONVERSÃO -> PAYLOAD -
 8. **Soberania Manual e Precedência do Operador:**
    - O OCR apenas sugere valores nos campos de drogas da interface. O operador humano possui total liberdade para alterar tipos, ajustar gramagens ou contagens, excluir itens clicando em `&times;` ou adicionar drogas omitidas pelo scanner.
 
+---
+
+## Contrato Factual e Operacional: Ocorrências PIP e Imputado (Card #64 - T-C01-PIP-007)
+
+### Circuito Canônico
+```text
+OCR/MANUAL -> TÍTULO PIP -> CONCILIAÇÃO/EDIÇÃO -> IMPUTADO -> PAYLOAD -> SHEETS
+```
+
+1. **Estrutura da Seção PIP no Formulario.html:**
+   - Campo select `#imputado` com opções explícitas: `SEM IMPUTADO` (padrão) e `COM IMPUTADO`.
+   - Contêiner dinâmico `#pipList` com botão `+ Adicionar Título PIP` (`adicionarPipField()`).
+   - Cada item dinâmico (`.dynamic-item`) possui:
+     - Select `.pip-tipo` populado a partir de `opcoesFormulario.ocorrenciasPip` (ou `naturezas`);
+     - Botão de remoção rápida `&times;` (`onclick="document.getElementById('${id}').remove()"`).
+
+2. **Inclusão Derivada do OCR e Função `conciliarTitulosPipOcr`:**
+   - Função canônica `conciliarTitulosPipOcr(text, armasDetectadas, drogasDetectadas, natSelecionada)` analisa o texto e as apreensões contextuais:
+     - **Armas:** Mapeia modelos detectados para os títulos canônicos PIP (`Apreensão de arma de fogo revólver`, `pistola`, `artesanal`, `12 industrial`, `fuzil`).
+     - **Munições:** Se o texto citar munição/cartuchos, mapeia para calibre .12, fuzil ou revólver/pistola.
+     - **Drogas:** Avalia a grandeza da apreensão (`qtd >= 1000` ou unidade em KG/QUILOGRAMAS):
+       - Maconha: `Apreensão de maconha (1Kg)` vs `Apreensão de maconha por grama (invólucro ou papelote)`.
+       - Cocaína: `Apreensão de cocaína por grama (kg)` vs `Apreensão de cocaína por grama (invólucro)`.
+       - Crack: `Apreensão de crack (1Kg)` vs `Apreensão de crack por grama`.
+     - **Veículos e Mandados (Proteção de Narrativa Negativa/Ambígua):**
+       - Palavras soltas no corpo do BO (ex: "vítima de roubo" ou "não foram encontrados mandados de prisão") são estritamente ignoradas para evitar falsos positivos.
+       - Apenas geram títulos PIP se confirmados por regex diretamente no campo `natureza` selecionado (`RECUPERAÇÃO DE VEÍCULO ROUBADO` ou `MANDADO DE PRISÃO`).
+     - **Não Invenção de Títulos (`encontrarOpcaoValida`):**
+       - Função interna normaliza e valida cada título contra a lista oficial `opcoesFormulario.ocorrenciasPip` (busca exata e depois parcial).
+
+3. **Inclusão Manual, Edição e Remoção:**
+   - O operador pode clicar em `+ Adicionar Título PIP` para incluir manualmente qualquer título PIP da lista.
+   - Qualquer título sugerido pelo OCR pode ser alterado através do `<select class="pip-tipo">` ou removido pelo botão `&times;`.
+   - Precedência soberana do operador humano sobre as sugestões da automação.
+
+4. **Regras Factual e Precedência do Campo `imputado`:**
+   - **Precedência 1 (Valor Explícito do Operador):** Se `payload.imputado` for fornecido e não-vazio, seu valor literal (`"COM IMPUTADO"` ou `"SEM IMPUTADO"`) é adotado soberanamente, independentemente do valor de `detidos`.
+   - **Precedência 2 (Fallback por Detidos):** Se `payload.imputado` for ausente ou vazio (ex: integrações legadas):
+     - `parseInt(payload.detidos, 10) > 0` -> `"COM IMPUTADO"`;
+     - Caso contrário -> `"SEM IMPUTADO"`.
+   - **Distribuição Multi-Linhas:**
+     - Linha 0: Recebe `imputadoVal`.
+     - Linhas seguintes (`idx > 0`): Se a linha possuir título PIP (`eventoPip`), recebe `imputadoVal`; caso a linha exista apenas para comportar policiais ou armas extras, recebe string vazia `""`.
+
+5. **Estrutura Factual do Payload:**
+   - `ocorrenciasPip`: Array de strings correspondentes aos títulos selecionados no DOM (`obterPip()`): `['TÍTULO 1', 'TÍTULO 2', ...]`.
+   - `imputado`: String `"COM IMPUTADO"` ou `"SEM IMPUTADO"`.
+
+6. **Mapeamento Físico no Sheets (Colunas AG e AH):**
+   - Comprovado em `Entrada/EntradaManual.js` (linhas 180–237):
+     - **Coluna AG (`OCORRÊNCIA PIP`, idx 32):** Recebe `eventoPip` (`ocorrenciasPip[idx] || (isFirst && payload.natureza ? payload.natureza : "")`).
+     - **Coluna AH (`IMPUTADO?`, idx 33):** Recebe `imputadoPip` (`isFirst ? imputadoVal : (eventoPip ? imputadoVal : "")`).
+
+7. **Expansão Multi-Linhas e Fluxo Sem PIP:**
+   - **Expansão Multi-Linhas:** `numLinhas = Math.max(policiais.length, armas.length, ocorrenciasPip.length, drogas.length ? 1 : 0)`.
+     Se houver 3 títulos PIP e apenas 1 policial, o sistema gera 3 linhas físicas no Sheets, alinhando posicionalmente cada título PIP em sua respectiva linha.
+   - **Fluxo Sem PIP:** Se `payload.ocorrenciasPip` for vazio (`[]`), a Linha 0 assume `payload.natureza` como fallback na Coluna AG, e `imputadoVal` na Coluna AH. Linhas subsequentes recebem strings vazias `""` em ambas as colunas.
+
+

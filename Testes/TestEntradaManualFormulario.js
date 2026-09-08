@@ -675,6 +675,170 @@ eval(fullFormularioScript);
         gravarLinhasEntradaManual(sheetComFormulaDroga, [linhaInvalida]);
     }, /Tentativa de sobrescrever a fórmula da coluna 'TOTAL DE MACONHA'/, 'Deve lançar erro bloqueante ao tentar sobrescrever fórmula de drogas');
 
+    // [Test 13] Contrato Operacional de Ocorrências PIP e Imputado (Card #64: T-C01-PIP-007)
+    console.log('  [Test 13] Contrato Operacional de Ocorrências PIP e Imputado (Mapeamento AG/AH, expansão multi-linhas, precedência de imputado e conciliação OCR)');
+
+    // 13.1: Teste de conciliarTitulosPipOcr (Formulario.html)
+    window.opcoesFormulario = {
+        ocorrenciasPip: [
+            'Apreensão de arma de fogo revólver',
+            'Apreensão de arma de fogo pistola',
+            'Apreensão de arma de fogo artesanal',
+            'Apreensão de arma longa (12 industrial)',
+            'Apreensão de arma longa (fuzil)',
+            'Apreensão de munição fuzil',
+            'Apreensão de munição revólver/pistola',
+            'Apreensão de maconha por grama (invólucro ou papelote)',
+            'Apreensão de maconha (1Kg)',
+            'Apreensão de cocaína por grama (invólucro)',
+            'Apreensão de cocaína por grama (kg)',
+            'Apreensão de crack por grama',
+            'Apreensão de crack (1Kg)',
+            'Apreensão de veículo furtado ou roubado',
+            'Prisão por mandado'
+        ]
+    };
+
+    // Caso A: Conciliação de armas e munição
+    const armasOcr = [{ tipo: 'INDUSTRIAL', modelo: 'REVÓLVER' }, { tipo: 'FABRICAÇÃO CASEIRA', modelo: 'PISTOLA' }];
+    const titulosArmas = conciliarTitulosPipOcr('Apreensão de 6 cartuchos de munição', armasOcr, [], 'PORTE DE ARMA');
+    assert.ok(titulosArmas.includes('Apreensão de arma de fogo revólver'), 'Deve conciliar revólver');
+    assert.ok(titulosArmas.includes('Apreensão de arma de fogo artesanal'), 'Deve conciliar arma caseira');
+    assert.ok(titulosArmas.includes('Apreensão de munição revólver/pistola'), 'Deve conciliar munição');
+
+    // Caso B: Conciliação de drogas (gramas vs kg)
+    const drogasGramas = [{ tipo: 'MACONHA', quantidade: 50, unidadeMedida: 'GRAMAS' }];
+    const titulosDrogasG = conciliarTitulosPipOcr('', [], drogasGramas, 'TRÁFICO');
+    assert.ok(titulosDrogasG.includes('Apreensão de maconha por grama (invólucro ou papelote)'), 'Deve conciliar maconha por grama');
+
+    const drogasKg = [{ tipo: 'MACONHA', quantidade: 2, unidadeMedida: 'QUILOGRAMAS' }];
+    const titulosDrogasKg = conciliarTitulosPipOcr('', [], drogasKg, 'TRÁFICO');
+    assert.ok(titulosDrogasKg.includes('Apreensão de maconha (1Kg)'), 'Deve conciliar maconha 1Kg');
+
+    // Caso C: Narrativa negativa/ambígua no texto do BO
+    // Texto contém 'não foram encontrados mandados de prisão' e histórico de 'roubo de celular', mas a natureza é 'PORTE ILEGAL DE ARMA DE FOGO'
+    const textoAmbiguo = 'Durante a busca pessoal, não foram encontrados mandados de prisão em aberto contra o indivíduo, que alegou ser vítima de roubo.';
+    const titulosAmbiguos = conciliarTitulosPipOcr(textoAmbiguo, [{ tipo: 'INDUSTRIAL', modelo: 'PISTOLA' }], [], 'PORTE ILEGAL DE ARMA DE FOGO');
+    assert.strictEqual(titulosAmbiguos.includes('Prisão por mandado'), false, 'Não deve criar Prisão por Mandado por menção negativa no texto');
+    assert.strictEqual(titulosAmbiguos.includes('Apreensão de veículo furtado ou roubado'), false, 'Não deve criar Veículo Roubado sem natureza correspondente');
+
+    // Caso D: Mandado e Veículo confirmados na natureza
+    const titulosMandado = conciliarTitulosPipOcr('Cumprimento realizado', [], [], 'CUMPRIMENTO DE MANDADO DE PRISÃO');
+    assert.ok(titulosMandado.includes('Prisão por mandado'), 'Deve reconhecer Prisão por Mandado quando presente na natureza');
+
+    const titulosVeiculo = conciliarTitulosPipOcr('Veículo localizado', [], [], 'RECUPERAÇÃO DE VEÍCULO ROUBADO');
+    assert.ok(titulosVeiculo.includes('Apreensão de veículo furtado ou roubado'), 'Deve reconhecer Veículo recuperado quando presente na natureza');
+
+    // 13.2: Integração com EntradaManual.js, Expansão Multi-Linhas e Mapeamento AG (idx 32) e AH (idx 33)
+    const idxAG = 32; // OCORRÊNCIA PIP
+    const idxAH = 33; // IMPUTADO?
+
+    // Cenário 1: Múltiplos títulos PIP (3 títulos) com 1 policial -> deve expandir para 3 linhas
+    const payloadMultiPip = {
+        origem: 'FORMULARIO',
+        data: '17/08/2026',
+        hora: '18:00',
+        natureza: 'TRÁFICO ILÍCITO DE ENTORPECENTES',
+        imputado: 'COM IMPUTADO', // Valor explícito do operador
+        detidos: '1',
+        policiais: [
+            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 0 }
+        ],
+        ocorrenciasPip: [
+            'Apreensão de cocaína por grama (invólucro)',
+            'Apreensão de maconha por grama (invólucro ou papelote)',
+            'Apreensão de munição revólver/pistola'
+        ]
+    };
+
+    const linhasMultiPip = EntradaManualMod.montarLinhasEntradaManual(payloadMultiPip);
+    assert.strictEqual(linhasMultiPip.length, 3, 'Deve expandir para 3 linhas baseado na quantidade de títulos PIP');
+
+    // Linha 0: Policial 0, PIP 0, Imputado
+    assert.strictEqual(linhasMultiPip[0][idxAG], 'Apreensão de cocaína por grama (invólucro)', 'Linha 0 Coluna AG deve ter o primeiro título PIP');
+    assert.strictEqual(linhasMultiPip[0][idxAH], 'COM IMPUTADO', 'Linha 0 Coluna AH deve ter COM IMPUTADO');
+    assert.strictEqual(linhasMultiPip[0][30], 'POLICIAL UM', 'Linha 0 deve ter o policial');
+
+    // Linha 1: Policial vazio, PIP 1, Imputado
+    assert.strictEqual(linhasMultiPip[1][idxAG], 'Apreensão de maconha por grama (invólucro ou papelote)', 'Linha 1 Coluna AG deve ter o segundo título PIP');
+    assert.strictEqual(linhasMultiPip[1][idxAH], 'COM IMPUTADO', 'Linha 1 Coluna AH deve ter COM IMPUTADO pois há eventoPip');
+    assert.strictEqual(linhasMultiPip[1][30], '', 'Linha 1 Coluna AE (POLICIAL) deve ser vazia pois só há 1 policial');
+
+    // Linha 2: Policial vazio, PIP 2, Imputado
+    assert.strictEqual(linhasMultiPip[2][idxAG], 'Apreensão de munição revólver/pistola', 'Linha 2 Coluna AG deve ter o terceiro título PIP');
+    assert.strictEqual(linhasMultiPip[2][idxAH], 'COM IMPUTADO', 'Linha 2 Coluna AH deve ter COM IMPUTADO pois há eventoPip');
+
+    // 13.3: Regra de Precedência do Campo Imputado (Operador > Detidos)
+    // Precedência explícita do operador: mesmo se detidos for 0, se operador marcou COM IMPUTADO, respeita o operador
+    const payloadImputadoExplicito = {
+        origem: 'FORMULARIO',
+        data: '17/08/2026',
+        natureza: 'APREENSÃO',
+        imputado: 'COM IMPUTADO',
+        detidos: '0',
+        policiais: [{ nome: 'POLICIAL UM' }]
+    };
+    const linhasExplicito = EntradaManualMod.montarLinhasEntradaManual(payloadImputadoExplicito);
+    assert.strictEqual(linhasExplicito[0][idxAH], 'COM IMPUTADO', 'Precedência explícita do operador sobre detidos=0');
+
+    // Fallback por detidos: quando payload.imputado for ausente/vazio
+    const payloadFallbackComDetidos = {
+        origem: 'API_LEGADA',
+        data: '17/08/2026',
+        natureza: 'FLAGRANTE',
+        detidos: '2',
+        policiais: [{ nome: 'POLICIAL UM' }]
+    };
+    const linhasFallbackCom = EntradaManualMod.montarLinhasEntradaManual(payloadFallbackComDetidos);
+    assert.strictEqual(linhasFallbackCom[0][idxAH], 'COM IMPUTADO', 'Fallback por detidos > 0 gera COM IMPUTADO');
+
+    const payloadFallbackSemDetidos = {
+        origem: 'API_LEGADA',
+        data: '17/08/2026',
+        natureza: 'AVERIGUAÇÃO',
+        detidos: '0',
+        policiais: [{ nome: 'POLICIAL UM' }]
+    };
+    const linhasFallbackSem = EntradaManualMod.montarLinhasEntradaManual(payloadFallbackSemDetidos);
+    assert.strictEqual(linhasFallbackSem[0][idxAH], 'SEM IMPUTADO', 'Fallback por detidos = 0 gera SEM IMPUTADO');
+
+    // 13.4: Fluxo SEM Ocorrências PIP (payload.ocorrenciasPip = [])
+    const payloadSemPip = {
+        origem: 'FORMULARIO',
+        data: '17/08/2026',
+        natureza: 'PATRULHAMENTO DE ROTINA',
+        imputado: 'SEM IMPUTADO',
+        policiais: [
+            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM' },
+            { pelotao: '1º PEL', posto: 'CB', matricula: '1002', nome: 'POLICIAL DOIS' }
+        ],
+        ocorrenciasPip: []
+    };
+    const linhasSemPip = EntradaManualMod.montarLinhasEntradaManual(payloadSemPip);
+    assert.strictEqual(linhasSemPip.length, 2, 'Gera 2 linhas para 2 policiais');
+    assert.strictEqual(linhasSemPip[0][idxAG], 'PATRULHAMENTO DE ROTINA', 'Linha 0 Coluna AG faz fallback para payload.natureza');
+    assert.strictEqual(linhasSemPip[0][idxAH], 'SEM IMPUTADO', 'Linha 0 Coluna AH recebe SEM IMPUTADO');
+    assert.strictEqual(linhasSemPip[1][idxAG], '', 'Linha 1 Coluna AG deve ser vazia no fluxo sem PIP extra');
+    assert.strictEqual(linhasSemPip[1][idxAH], '', 'Linha 1 Coluna AH deve ser vazia para linha sem evento PIP');
+
+    // 13.5: Gravação física confirmada no mockSheet
+    const validationsPip = (row, col, numRows, numCols) => {
+        return Array(numRows).fill(CABECALHOS_ORIGINAIS.map(c => {
+            if (c === 'NATUREZA DA OCORRÊNCIA') return mockDataValidation(['TRÁFICO ILÍCITO DE ENTORPECENTES']);
+            if (c === 'OCORRÊNCIA PIP') return mockDataValidation([
+                'Apreensão de cocaína por grama (invólucro)',
+                'Apreensão de maconha por grama (invólucro ou papelote)',
+                'Apreensão de munição revólver/pistola'
+            ]);
+            if (c === 'IMPUTADO?') return mockDataValidation(['COM IMPUTADO', 'SEM IMPUTADO']);
+            return null;
+        })).map(rowVals => rowVals.slice(col - 1, col - 1 + numCols));
+    };
+
+    let sheetPip = mockSheet(CABECALHOS_ORIGINAIS, null, null, validationsPip);
+    gravarLinhasEntradaManual(sheetPip, linhasMultiPip);
+    assert.ok(sheetPip.rangesEscritos.length > 0, 'Deve persistir colunas AG e AH de PIP e Imputado no Sheets');
+
     console.log('✅ OK - EntradaManual.js e Formulario.html');
 })().catch(err => {
     console.error("Falha no teste:", err);
