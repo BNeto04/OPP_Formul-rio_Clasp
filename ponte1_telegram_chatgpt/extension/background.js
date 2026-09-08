@@ -119,6 +119,22 @@ async function checkBridge() {
       return;
     }
 
+    // Supressão na Origem: se o payload contiver envelope técnico [BRIDGE_TO_ANTIGRAVITY_V1], descarta imediatamente
+    if (data.payload && data.payload.includes('[BRIDGE_TO_ANTIGRAVITY_V1]')) {
+      console.warn('[Ponte1-Background] ECHO_NO_OP: Descartado envelope técnico na origem antes do DOM:', data.packet_id);
+      deliveredIds.add(data.packet_id);
+      lastDeliveredId = data.packet_id;
+      currentInFlight = null;
+      await persist();
+      await fetch(`${CONFIG.endpoint}/ack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packet_id: data.packet_id })
+      });
+      isDispatching = false;
+      return;
+    }
+
     currentInFlight = data;
     await persist();
     await deliverToChatGPT(data);
@@ -143,6 +159,7 @@ async function deliverToChatGPT(packet) {
       response = await chrome.tabs.sendMessage(tab.id, {
         type: 'PONTE1_INJECT_MESSAGE',
         packet_id: packet.packet_id,
+        telegram_message_id: packet.telegram_message_id || null,
         payload: packet.payload
       });
     } catch (sendErr) {
@@ -157,6 +174,7 @@ async function deliverToChatGPT(packet) {
           response = await chrome.tabs.sendMessage(tab.id, {
             type: 'PONTE1_INJECT_MESSAGE',
             packet_id: packet.packet_id,
+            telegram_message_id: packet.telegram_message_id || null,
             payload: packet.payload
           });
         } catch (scriptErr) {
@@ -167,7 +185,7 @@ async function deliverToChatGPT(packet) {
       }
     }
 
-    if (response && response.success) {
+    if (response && (response.success || response.status === 'DEDUPE_NO_OP' || response.status === 'ECHO_NO_OP')) {
       lastDeliveredId = packet.packet_id;
       deliveredIds.add(packet.packet_id);
       currentInFlight = null;

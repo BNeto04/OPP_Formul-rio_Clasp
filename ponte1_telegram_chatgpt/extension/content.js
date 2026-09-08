@@ -192,10 +192,36 @@
     return { success: true };
   }
 
+  const deliveredMessageIds = new Set();
+
   // Listener para injeção vinda do background
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'PONTE1_INJECT_MESSAGE') {
-      handleInjection(msg.payload).then(res => sendResponse(res));
+      const payload = msg.payload || '';
+
+      // Extrai MESSAGE_ID para deduplicação determinística na origem antes de tocar no DOM
+      const match = payload.match(/REPLY_TO_MESSAGE_ID:\s*(\d+)/i);
+      const msgId = msg.telegram_message_id || msg.packet_id || (match ? match[1] : null);
+
+      if (msgId && deliveredMessageIds.has(String(msgId))) {
+        console.log('[Ponte1-Content] DEDUPE_NO_OP: Mensagem do Telegram', msgId, 'já injetada anteriormente no ChatGPT.');
+        sendResponse({ success: true, status: 'DEDUPE_NO_OP', message_id: msgId });
+        return false;
+      }
+
+      // Rejeição estrita de eco técnico [BRIDGE_TO_ANTIGRAVITY_V1]
+      if (payload.includes('[BRIDGE_TO_ANTIGRAVITY_V1]')) {
+        console.warn('[Ponte1-Content] ECHO_NO_OP: Envelope técnico [BRIDGE_TO_ANTIGRAVITY_V1] descartado na Ponte 1.');
+        sendResponse({ success: false, status: 'ECHO_NO_OP', error: 'ECHO_NO_OP' });
+        return false;
+      }
+
+      handleInjection(payload).then(res => {
+        if (res && res.success && msgId) {
+          deliveredMessageIds.add(String(msgId));
+        }
+        sendResponse(res);
+      });
       return true; // async
     }
   });

@@ -17,9 +17,10 @@ const CONFIG = {
   port: 8766,
   host: '127.0.0.1',
   pollIntervalMs: 2000,
-  tokenFile: 'C:\\Users\\Bneto04\\AppData\\Local\\SyntheonVigia\\telegram.token',
-  allowlistFile: 'C:\\Users\\Bneto04\\AppData\\Local\\SyntheonVigia\\allowlist.json',
+  tokenFile: path.join(__dirname, '..', 'config', 'telegram.token'),
+  allowlistFile: path.join(__dirname, '..', 'config', 'allowlist.json'),
   offsetFile: path.join(__dirname, 'ponte1_offset.json'),
+  dedupeFile: path.join(__dirname, 'ponte1_dedupe.json'),
   deliveryHistoryFile: path.join(__dirname, 'ponte1_delivery_history.json'),
   logFile: path.join(__dirname, 'ponte1.log')
 };
@@ -61,10 +62,34 @@ class Ponte1Daemon {
     this.packetQueue = [];
     this.inFlightPacket = null;
     this.seenMessageIds = new Set();
+    this.uncertainPackets = new Map();
     this.seenReplyIds = new Set();
     this.deliveredCount = 0;
     this.running = false;
     this.currentOffset = this.loadOffset();
+    this.loadDedupe();
+  }
+
+  loadDedupe() {
+    try {
+      if (fs.existsSync(CONFIG.dedupeFile)) {
+        const raw = fs.readFileSync(CONFIG.dedupeFile, 'utf8');
+        const data = JSON.parse(raw);
+        if (Array.isArray(data.seenMessageIds)) {
+          this.seenMessageIds = new Set(data.seenMessageIds);
+        }
+      }
+    } catch (e) {}
+  }
+
+  saveDedupe() {
+    try {
+      const data = {
+        seenMessageIds: Array.from(this.seenMessageIds),
+        updated_at: new Date().toISOString()
+      };
+      fs.writeFileSync(CONFIG.dedupeFile, JSON.stringify(data, null, 2), 'utf8');
+    } catch (e) {}
   }
 
   loadOffset() {
@@ -130,6 +155,7 @@ class Ponte1Daemon {
               continue;
             }
             this.seenMessageIds.add(msgId);
+            this.saveDedupe();
 
             // Filtro de isolamento: descarta envelopes técnicos da outra ponte se algum dia chegarem
             if (msg.text.includes('[BRIDGE_TO_ANTIGRAVITY') || msg.text.includes('[RESULT]') || msg.text.includes('CALL_ID:')) {
@@ -193,6 +219,8 @@ PAYLOAD: sua resposta
           bridge: 'PONTE_1_TELEGRAM_CHATGPT',
           queue_length: this.packetQueue.length,
           in_flight: this.inFlightPacket ? this.inFlightPacket.packet_id : null,
+          uncertain_packets_count: this.uncertainPackets.size,
+          uncertain_packets: Array.from(this.uncertainPackets.keys()),
           delivered_count: this.deliveredCount,
           running: this.running
         }));
@@ -202,10 +230,14 @@ PAYLOAD: sua resposta
       // GET /packet -> Entrega 1 pacote sob Single-Flight Lock
       if (req.method === 'GET' && url.pathname === '/packet') {
         let packetToSend = null;
-        // Se inFlightPacket expirou (> 15 segundos sem ACK), libera o lock
+        // Zero requeue automático: transição para SEND_UNCERTAIN sem devolução cega à fila
         if (this.inFlightPacket && this.inFlightPacket._dispatchedAt && (Date.now() - this.inFlightPacket._dispatchedAt > 15000)) {
-          log(`[IN_FLIGHT_TIMEOUT] Pacote ${this.inFlightPacket.packet_id} retido por mais de 15s. Devolvendo para fila.`);
-          this.packetQueue.unshift(this.inFlightPacket);
+          log(`[SEND_UNCERTAIN] Pacote ${this.inFlightPacket.packet_id} retido por mais de 15s sem ACK. Marcado como SEND_UNCERTAIN sem requeue automático.`);
+          this.uncertainPackets.set(this.inFlightPacket.packet_id, {
+            packet: this.inFlightPacket,
+            marked_at: new Date().toISOString(),
+            status: 'SEND_UNCERTAIN'
+          });
           this.inFlightPacket = null;
         }
 
@@ -239,6 +271,10 @@ PAYLOAD: sua resposta
             if (this.inFlightPacket && this.inFlightPacket.packet_id === data.packet_id) {
               log(`[CARRIER_ACK_CONFIRMED] Pacote ${data.packet_id} confirmado entregue no ChatGPT.`);
               this.inFlightPacket = null;
+              this.deliveredCount++;
+            } else if (this.uncertainPackets.has(data.packet_id)) {
+              log(`[RECONCILE_ACK] Pacote ${data.packet_id} reconciliado de SEND_UNCERTAIN para DELIVERED.`);
+              this.uncertainPackets.delete(data.packet_id);
               this.deliveredCount++;
             }
           } catch (e) {}
@@ -316,11 +352,15 @@ PAYLOAD: sua resposta
   start() {
     this.startHttpServer();
     this.startTelegramPolling();
-    // Watchdog periódico para liberar pacotes retidos sem ACK por > 15s
+    // Watchdog periódico: marca como SEND_UNCERTAIN se expirar (> 15s) sem ACK, sem requeue automático
     setInterval(() => {
       if (this.inFlightPacket && this.inFlightPacket._dispatchedAt && (Date.now() - this.inFlightPacket._dispatchedAt > 15000)) {
-        log(`[IN_FLIGHT_WATCHDOG] Pacote ${this.inFlightPacket.packet_id} retido por mais de 15s. Devolvendo para fila.`);
-        this.packetQueue.unshift(this.inFlightPacket);
+        log(`[SEND_UNCERTAIN_WATCHDOG] Pacote ${this.inFlightPacket.packet_id} retido por mais de 15s sem ACK. Marcado como SEND_UNCERTAIN sem requeue.`);
+        this.uncertainPackets.set(this.inFlightPacket.packet_id, {
+          packet: this.inFlightPacket,
+          marked_at: new Date().toISOString(),
+          status: 'SEND_UNCERTAIN'
+        });
         this.inFlightPacket = null;
       }
     }, 5000);
