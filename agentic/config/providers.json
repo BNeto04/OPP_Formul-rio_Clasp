@@ -1,0 +1,97 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-09-08",
+  "routing_policy": {
+    "primary": "gemini",
+    "fallback_1": "groq",
+    "fallback_2": "openrouter",
+    "legacy_local": "ollama_legacy"
+  },
+  "providers": {
+    "gemini": {
+      "provider_id": "gemini",
+      "name": "Google Gemini",
+      "tier": "primary",
+      "sdk": "google-genai",
+      "api_key_env_var": "GEMINI_API_KEY",
+      "base_url": null,
+      "default_model": "gemini-2.0-flash",
+      "model_alias": "flash-fast",
+      "timeout_ms": 30000,
+      "openai_compatible": false,
+      "validation_status": "CONFIGURADO_MAS_NAO_TESTAVEL_SEM_KEY",
+      "models_supported": [
+        "gemini-2.0-flash",
+        "gemini-2.5-flash",
+        "gemini-1.5-flash"
+      ]
+    },
+    "groq": {
+      "provider_id": "groq",
+      "name": "Groq Cloud",
+      "tier": "fallback_1",
+      "sdk": "openai-compatible",
+      "api_key_env_var": "GROQ_API_KEY",
+      "base_url": "https://api.groq.com/openai/v1",
+      "default_model": "llama-3.3-70b-versatile",
+      "model_alias": "llama-fast",
+      "timeout_ms": 20000,
+      "openai_compatible": true,
+      "validation_status": "CONFIGURADO_MAS_NAO_TESTAVEL_SEM_KEY",
+      "models_supported": [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant"
+      ]
+    },
+    "openrouter": {
+      "provider_id": "openrouter",
+      "name": "OpenRouter",
+      "tier": "fallback_2",
+      "sdk": "openai-compatible",
+      "api_key_env_var": "OPENROUTER_API_KEY",
+      "base_url": "https://openrouter.ai/api/v1",
+      "default_model": "meta-llama/llama-3.3-70b-instruct",
+      "model_alias": "multi-model-router",
+      "timeout_ms": 45000,
+      "openai_compatible": true,
+      "validation_status": "CONFIGURADO_MAS_NAO_TESTAVEL_SEM_KEY",
+      "models_supported": [
+        "meta-llama/llama-3.3-70b-instruct",
+        "deepseek/deepseek-chat"
+      ]
+    },
+    "deepseek": {
+      "provider_id": "deepseek",
+      "name": "DeepSeek Direct API",
+      "tier": "optional",
+      "sdk": "openai-compatible",
+      "api_key_env_var": "DEEPSEEK_API_KEY",
+      "base_url": "https://api.deepseek.com/v1",
+      "default_model": "deepseek-chat",
+      "model_alias": "deepseek-v3",
+      "timeout_ms": 45000,
+      "openai_compatible": true,
+      "validation_status": "CONFIGURADO_MAS_NAO_TESTAVEL_SEM_KEY",
+      "models_supported": [
+        "deepseek-chat",
+        "deepseek-reasoner"
+      ]
+    },
+    "ollama_legacy": {
+      "provider_id": "ollama_legacy",
+      "name": "Hermes Local Ollama Endpoint",
+      "tier": "local_diagnostic",
+      "sdk": "openai-compatible",
+      "api_key_env_var": null,
+      "base_url": "http://127.0.0.1:11434/v1",
+      "default_model": "qwen2.5-coder:7b-64k",
+      "model_alias": "hermes-local-qwen",
+      "timeout_ms": 60000,
+      "openai_compatible": true,
+      "validation_status": "OFFLINE_LOCAL_SERVICE",
+      "models_supported": [
+        "qwen2.5-coder:7b-64k"
+      ]
+    }
+  }
+}
