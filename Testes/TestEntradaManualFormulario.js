@@ -320,6 +320,9 @@ global.atualizarDataLists = atualizarDataLists;
 global.salvarDados = salvarDados;
 global.parseAndFill = parseAndFill;
 global.limparFormulario = limparFormulario;
+global.limparDadosDocumentoAnterior = limparDadosDocumentoAnterior;
+global.conciliarTitulosPipOcr = conciliarTitulosPipOcr;
+global.montarConferenciaOcrHtml = montarConferenciaOcrHtml;
 `;
 eval(fullFormularioScript);
 
@@ -398,6 +401,127 @@ eval(fullFormularioScript);
     assert.deepStrictEqual(results[1].naturezas, ['NAT_CORRETA_ATUAL'], "Req 2 deve ser resolvida corretamente");
     assert.ok(mockElements.naturezasList.innerHTML.includes('NAT_CORRETA_ATUAL'), "Datalist deve conter a resposta atual");
     assert.ok(!mockElements.naturezasList.innerHTML.includes('NAT_ERRADA_OBSOLETA'), "Datalist NÃO deve conter a resposta obsoleta");
+
+    // 9.6: Um novo BO zera integralmente o estado derivado do OCR anterior.
+    mockElements.mike.value = 'MIKE_ANTERIOR';
+    mockElements.boe.value = 'BOE_ANTERIOR';
+    mockElements.data.value = '12/01/2026';
+    mockElements.natureza.value = 'NATUREZA_ANTERIOR';
+    mockElements.armasList.innerHTML = 'ARMA_ANTERIOR';
+    mockElements.drogasList.innerHTML = 'DROGA_ANTERIOR';
+    mockElements.pipList.innerHTML = 'PIP_ANTERIOR';
+    mockElements.imputado.value = 'COM IMPUTADO';
+    mockElements.ocrConferenceCard.style.display = 'block';
+    mockElements.ocrConferenceContent.innerHTML = 'CONFERENCIA_ANTERIOR';
+    window.opcoesFormulario = { naturezas: ['NATUREZA_ANTERIOR'] };
+
+    global.limparDadosDocumentoAnterior();
+
+    assert.strictEqual(mockElements.mike.value, '', 'Novo BO deve limpar MIKE anterior');
+    assert.strictEqual(mockElements.boe.value, '', 'Novo BO deve limpar BOE anterior');
+    assert.strictEqual(mockElements.data.value, '', 'Novo BO deve limpar DATA anterior');
+    assert.strictEqual(mockElements.natureza.value, '', 'Novo BO deve limpar NATUREZA anterior');
+    assert.strictEqual(mockElements.armasList.innerHTML, '', 'Novo BO deve limpar armas anteriores');
+    assert.strictEqual(mockElements.drogasList.innerHTML, '', 'Novo BO deve limpar drogas anteriores');
+    assert.strictEqual(mockElements.pipList.innerHTML, '', 'Novo BO deve limpar PIP anterior');
+    assert.strictEqual(mockElements.imputado.value, 'SEM IMPUTADO', 'Novo BO deve restaurar imputado padrão');
+    assert.strictEqual(mockElements.ocrConferenceCard.style.display, 'none', 'Novo BO deve ocultar conferência anterior');
+    assert.strictEqual(mockElements.ocrConferenceContent.innerHTML, '', 'Novo BO deve limpar conferência anterior');
+    assert.strictEqual(window.opcoesFormulario, null, 'Novo BO deve invalidar opções do mês anterior');
+
+    // 9.7: Termos soltos e negativos da narrativa não podem criar PIP falso.
+    window.opcoesFormulario = {
+        ocorrenciasPip: ['Prisão por mandado', 'Apreensão de veículo furtado ou roubado']
+    };
+    const textoBoSemPip = 'ROUBO A TRANSEUNTE. NÃO ENCONTRAMOS ANTECEDENTES OU MANDADOS DE PRISÃO. BICICLETA APREENDIDA.';
+    assert.deepStrictEqual(
+        global.conciliarTitulosPipOcr(textoBoSemPip, [], [], 'ROUBO A TRANSEUNTE'),
+        [],
+        'Narrativa com mandado negado e bicicleta apreendida não deve sugerir PIP'
+    );
+    assert.deepStrictEqual(
+        global.conciliarTitulosPipOcr('', [], [], 'RECUPERAÇÃO DE VEÍCULO ROUBADO'),
+        ['Apreensão de veículo furtado ou roubado'],
+        'Natureza confirmada deve sugerir PIP de veículo'
+    );
+    assert.deepStrictEqual(
+        global.conciliarTitulosPipOcr('', [], [], 'CUMPRIMENTO DE MANDADO DE PRISÃO'),
+        ['Prisão por mandado'],
+        'Natureza confirmada deve sugerir PIP de mandado'
+    );
+
+    // 9.8: Conferência deve agrupar a informação geral em blocos legíveis.
+    const conferencia = global.montarConferenciaOcrHtml({
+        data: '20/08/2026', hora: '09:23', mike: '202608200953381429', boe: '26E1174012127',
+        cidade: 'RECIFE', bairro: 'PINA', totalEquipe: 4, totalArmas: 0, totalDrogas: 0,
+        statusNatureza: '[OK] Natureza: ROUBO A TRANSEUNTE'
+    });
+    assert.ok(conferencia.includes('DATA / HORA') && conferencia.includes('LEITURA DO OCR'), 'Conferência deve separar identificação e leitura OCR');
+
+    // [Test 10] Contrato Operacional de Equipe/Policiais (Card #61: T-C01-EQUIPE-004)
+    console.log('  [Test 10] Contrato Operacional de Equipe/Policiais (Mapeamento AB a AF, fórmulas e qtd_armas)');
+    const payloadEquipe = {
+        origem: 'FORMULARIO',
+        data: '10/08/2026',
+        hora: '14:30',
+        natureza: 'PORTE ILEGAL DE ARMA DE FOGO',
+        policiais: [
+            { pelotao: '1º PEL GTAR', posto: '3º SGT', matricula: '102140', nome: 'JOÃO SILVA', qtd_armas: 2 },
+            { pelotao: '2º PEL GTAR', posto: 'CABO', matricula: '987654', nome: 'MARIA SANTOS', qtd_armas: 0 }
+        ],
+        armas: [
+            { tipo: 'INDUSTRIAL', modelo: 'PISTOLA', calibre: '.40', municao: 15, quantidade: 1 },
+            { tipo: 'INDUSTRIAL', modelo: 'REVÓLVER', calibre: '.38', municao: 6, quantidade: 1 }
+        ]
+    };
+
+    const EntradaManualMod = require('../Entrada/EntradaManual');
+    const linhasEquipe = EntradaManualMod.montarLinhasEntradaManual(payloadEquipe);
+    assert.strictEqual(linhasEquipe.length, 2, 'Deve gerar exatamente 2 linhas para 2 policiais e 2 armas');
+
+    // Mapeamento de índices canônicos:
+    // 27: PELOTÃO (AB), 28: GRAD (AC), 29: MATRÍCULA (AD), 30: POLICIAL (AE), 31: QDT ARMAS (AF)
+    const idxPel = 27; const idxGrad = 28; const idxMat = 29; const idxPol = 30; const idxArmas = 31;
+
+    // Linha 0 (Policial 1: JOÃO SILVA com 2 armas)
+    assert.strictEqual(linhasEquipe[0][idxPel], '', 'Coluna AB (PELOTÃO) deve ser vazia no payload para preservação de fórmula PROCV');
+    assert.strictEqual(linhasEquipe[0][idxGrad], '', 'Coluna AC (GRAD) deve ser vazia no payload para preservação de fórmula PROCV');
+    assert.strictEqual(linhasEquipe[0][idxMat], '', 'Coluna AD (MATRÍCULA) deve ser vazia no payload para preservação de fórmula PROCV');
+    assert.strictEqual(linhasEquipe[0][idxPol], 'JOÃO SILVA', 'Coluna AE (POLICIAL) deve conter o nome do policial para alimentar PROCV');
+    assert.strictEqual(linhasEquipe[0][idxArmas], 2, 'Coluna AF (QDT ARMAS) deve conter a quantidade positiva de armas do policial');
+
+    // Linha 1 (Policial 2: MARIA SANTOS com 0 armas)
+    assert.strictEqual(linhasEquipe[1][idxPel], '', 'Coluna AB (PELOTÃO) na linha 2 deve ser vazia para fórmula');
+    assert.strictEqual(linhasEquipe[1][idxGrad], '', 'Coluna AC (GRAD) na linha 2 deve ser vazia para fórmula');
+    assert.strictEqual(linhasEquipe[1][idxMat], '', 'Coluna AD (MATRÍCULA) na linha 2 deve ser vazia para fórmula');
+    assert.strictEqual(linhasEquipe[1][idxPol], 'MARIA SANTOS', 'Coluna AE (POLICIAL) na linha 2 deve conter o nome');
+    assert.strictEqual(linhasEquipe[1][idxArmas], '', 'Coluna AF (QDT ARMAS) deve ser string vazia quando qtd_armas for 0');
+
+    // Teste de gravação física comprovando proteção e clonagem de fórmulas
+    const validationsEquipe = (row, col, numRows, numCols) => {
+        return Array(numRows).fill(CABECALHOS_ORIGINAIS.map(c => {
+            if (c === 'NATUREZA DA OCORRÊNCIA') return mockDataValidation(['PORTE ILEGAL DE ARMA DE FOGO']);
+            if (c === 'TIPO') return mockDataValidation(['INDUSTRIAL']);
+            if (c === 'MODELO') return mockDataValidation(['PISTOLA', 'REVÓLVER']);
+            if (c === 'OCORRÊNCIA PIP') return mockDataValidation(['PORTE ILEGAL DE ARMA DE FOGO']);
+            return null;
+        })).map(rowVals => rowVals.slice(col - 1, col - 1 + numCols));
+    };
+
+    let sheetEquipe = mockSheet(CABECALHOS_ORIGINAIS, null, null, validationsEquipe);
+    gravarLinhasEntradaManual(sheetEquipe, linhasEquipe);
+    assert.ok(sheetEquipe.rangesEscritos.length > 0, 'Deve gravar as colunas permitidas no Sheets');
+
+    // Proteção estrita: se payload tentar sobrescrever fórmulas com valor literal, deve abortar
+    const linhaComSobrescrita = [...linhasEquipe[0]];
+    linhaComSobrescrita[idxMat] = '102140'; // valor literal na coluna de fórmula MATRÍCULA
+    let sheetComFormula = mockSheet(CABECALHOS_ORIGINAIS, null, (r, c, nr, nc) => {
+        const fomColsMat = ["TOTAL DE MACONHA", "DIVIDIDO MAC", "TOTAL CRACK (GR)", "TOTAL DE COCAINA", "DIVIDIDO COC", "PONTOS TOTAIS", "PONTOS FICÇÃO (1/4)", "CHAVE OCORRÊNCIA", "MATRÍCULA"];
+        return Array(nr).fill(0).map(() => CABECALHOS_ORIGINAIS.map(h => (fomColsMat.includes(h.toUpperCase()) ? '=1' : '')).slice(c - 1, c - 1 + nc));
+    }, validationsEquipe);
+    assert.throws(() => {
+        gravarLinhasEntradaManual(sheetComFormula, [linhaComSobrescrita]);
+    }, /Tentativa de sobrescrever a fórmula da coluna 'MATR[ÍI]CULA'/, 'Deve lançar erro bloqueante se tentar sobrescrever coluna com fórmula');
 
     console.log('✅ OK - EntradaManual.js e Formulario.html');
 })().catch(err => {
