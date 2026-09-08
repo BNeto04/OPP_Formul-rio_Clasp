@@ -25,6 +25,7 @@ let uncertainInFlight = null;
 let lastDeliveredId = null;
 let deliveredIds = new Set();
 let isDispatching = false;
+let uncertainReconcileAttempts = 0;
 
 function updateBadge(text, color) {
   try {
@@ -111,8 +112,15 @@ async function reconcileUncertainPacket(packet) {
       uncertainInFlight = null;
       await deliverToChatGPT(packet);
     }
+    uncertainReconcileAttempts = 0;
   } catch (e) {
-    // Se a aba não responder, NUNCA faz retry cego; mantém quarentena.
+    uncertainReconcileAttempts = (uncertainReconcileAttempts || 0) + 1;
+    if (uncertainReconcileAttempts >= 2) {
+      console.warn('[Ponte1-Background] Reconciliação expirou após 2 tentativas. Liberando quarentena:', packet.packet_id);
+      uncertainInFlight = null;
+      uncertainReconcileAttempts = 0;
+      await persist();
+    }
   }
 }
 
