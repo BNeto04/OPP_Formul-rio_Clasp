@@ -89,7 +89,16 @@ async function reconcileUncertainResult(packet) {
   }
 
   const tab = await findChatGPTTab();
-  if (!tab) return; // Mantém em quarentena incerta sem reenviar
+  if (!tab) {
+    uncertainReconcileAttempts = (uncertainReconcileAttempts || 0) + 1;
+    if (uncertainReconcileAttempts >= 2) {
+      console.warn('[Ponte2-Background] Aba do ChatGPT não localizada após 2 tentativas. Liberando quarentena:', packet.call_id);
+      uncertainInFlightResult = null;
+      uncertainReconcileAttempts = 0;
+      await persist();
+    }
+    return;
+  }
 
   try {
     const resp = await chrome.tabs.sendMessage(tab.id, {
@@ -106,6 +115,7 @@ async function reconcileUncertainResult(packet) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ call_id: packet.call_id })
+      });
     } else if (resp && resp.delivered === false) {
       // Certeza explícita de que a entrega NÃO ocorreu: permite injeção única
       uncertainInFlightResult = null;
@@ -157,8 +167,14 @@ async function checkResultQueue() {
       return;
     }
 
-    // 2. Single-Flight Lock: se já existe um envio em trânsito não confirmado, aguarda
+    // 2. Single-Flight Lock com Watchdog: se o envio em trânsito travou por >15s sem retorno, limpa
     if (currentInFlightResult) {
+      if (currentInFlightResult._dispatchedAt && (Date.now() - currentInFlightResult._dispatchedAt > 15000)) {
+        console.warn('[Ponte2-Background] Watchdog: currentInFlightResult expirou >15s. Movendo para quarentena:', currentInFlightResult.call_id);
+        uncertainInFlightResult = currentInFlightResult;
+        currentInFlightResult = null;
+        await persist();
+      }
       isPollingResult = false;
       return;
     }
@@ -203,6 +219,7 @@ async function checkResultQueue() {
       return;
     }
 
+    data._dispatchedAt = Date.now();
     currentInFlightResult = data;
     await persist();
     await deliverResultToChatGPT(data);
