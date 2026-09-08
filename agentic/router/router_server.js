@@ -12,6 +12,7 @@ const {
   classifyError,
   CONSTANTS
 } = require('./fallback_policy');
+const { globalObservability } = require('./observability');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'config', 'providers.json');
 const LOG_DIR = path.join(__dirname, '..', 'logs');
@@ -20,12 +21,31 @@ const PID_FILE = path.join(LOG_DIR, 'router.pid');
 
 const HOST = '127.0.0.1';
 const PORT = 4000;
+const SERVER_BOOT_TIME = Date.now();
+const MAX_LOG_SIZE_BYTES = 500 * 1024; // 500 KB default
 
 if (!fs.existsSync(LOG_DIR)) {
   fs.mkdirSync(LOG_DIR, { recursive: true });
 }
 
+function rotateLogIfNeeded() {
+  try {
+    if (fs.existsSync(LOG_FILE)) {
+      const stats = fs.statSync(LOG_FILE);
+      const limit = parseInt(process.env.SYNTHEON_MAX_LOG_BYTES || String(MAX_LOG_SIZE_BYTES), 10);
+      if (stats.size >= limit) {
+        const backupFile = `${LOG_FILE}.1`;
+        if (fs.existsSync(backupFile)) {
+          fs.unlinkSync(backupFile);
+        }
+        fs.renameSync(LOG_FILE, backupFile);
+      }
+    }
+  } catch (e) {}
+}
+
 function log(msg) {
+  rotateLogIfNeeded();
   const ts = new Date().toISOString();
   const line = `[${ts}] [ROUTER] ${msg}`;
   console.log(line);
@@ -99,7 +119,9 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({
       status: 'healthy',
       router: 'syntheon-local-router',
-      version: '1.2.0',
+      router_alive: true,
+      uptime_seconds: Math.floor((Date.now() - SERVER_BOOT_TIME) / 1000),
+      version: '1.3.0',
       host: HOST,
       port: PORT,
       base_url: `http://${HOST}:${PORT}/v1`,
@@ -107,15 +129,34 @@ const server = http.createServer(async (req, res) => {
       routing_policy: config ? config.routing_policy : {},
       active_providers: activeProviders,
       deferred_providers: ['openrouter', 'deepseek'],
+      credential_present: {
+        gemini: Boolean(providersState.gemini && providersState.gemini.credential_present),
+        groq: Boolean(providersState.groq && providersState.groq.credential_present)
+      },
       has_active_cloud_credentials: hasActiveCloudCred,
+      circuit_state: {
+        gemini: globalCircuitBreaker.getState('gemini'),
+        groq: globalCircuitBreaker.getState('groq')
+      },
       circuit_breaker: {
         gemini: globalCircuitBreaker.getState('gemini'),
         groq: globalCircuitBreaker.getState('groq')
       },
-      providers: providersState,
-      idle_llm_calls: 0,
-      idle_network_calls: 0
+      idle_llm_calls: globalObservability.idle_llm_calls,
+      idle_network_calls: globalObservability.idle_network_calls,
+      total_requests: globalObservability.requests_total,
+      successful_requests: globalObservability.requests_success,
+      failed_requests: globalObservability.requests_failed,
+      fallback_count: globalObservability.fallbacks_total,
+      providers: providersState
     }, null, 2));
+    return;
+  }
+
+  // 1b. GET /metrics & GET /v1/metrics
+  if (req.method === 'GET' && (url.pathname === '/metrics' || url.pathname === '/v1/metrics')) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(globalObservability.getMetricsSnapshot(), null, 2));
     return;
   }
 
@@ -139,17 +180,24 @@ const server = http.createServer(async (req, res) => {
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
+        const reqStartTime = Date.now();
         const payload = JSON.parse(body || '{}');
         const requestedModel = payload.model || 'syntheon-worker';
         const mockHeader = req.headers['x-syntheon-mock-routing'];
         const faultHeader = req.headers['x-syntheon-fault-injection'];
         const idempotencyKey = req.headers['x-syntheon-idempotency-key'] || payload.idempotency_key || null;
+        const executionId = payload.execution_id || req.headers['x-syntheon-execution-id'] || `exec_${Date.now()}`;
+        const taskId = payload.task_id || req.headers['x-syntheon-task-id'] || 'TASK_UNSPECIFIED';
+
+        // REGISTRO DE REQUISIÇÃO EM OBSERVABILIDADE
+        globalObservability.recordRequest(executionId, taskId);
 
         // VERIFICAÇÃO DE IDEMPOTÊNCIA (REPLAY)
         if (idempotencyKey) {
           const cached = globalIdempotencyStore.get(idempotencyKey);
           if (cached) {
             log(`[IDEMPOTENCY_REPLAY] Requisicao repetida detectada para key=${idempotencyKey}. Retornando resultado em cache.`);
+            globalObservability.recordReplay(idempotencyKey, executionId, taskId);
             const replayResp = Object.assign({}, cached.result, { replay_detected: true });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(replayResp));
@@ -167,6 +215,7 @@ const server = http.createServer(async (req, res) => {
             log(`[FAULT_INJECTION] Simulando 401 AUTH_ERROR no primary (Gemini). Policy: ZERO retry, ZERO fallback.`);
             const c = classifyError({ message: 'Unauthorized API key' }, 401);
             globalCircuitBreaker.recordFailure('gemini', c.is_provider_failure); // false!
+            globalObservability.recordFailure('gemini', 'AUTH_ERROR', false, Date.now() - reqStartTime, executionId, taskId);
 
             res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
@@ -186,6 +235,8 @@ const server = http.createServer(async (req, res) => {
             log(`[FAULT_INJECTION] Simulando 404 MODEL_NOT_FOUND no primary. Policy: fallback para groq.`);
             attempts.push({ provider: 'gemini', attempt: 1, error_class: 'MODEL_NOT_FOUND', action: 'fallback_to_groq' });
             globalCircuitBreaker.recordFailure('gemini', true);
+            globalObservability.recordFallback('gemini', 'groq', 'MODEL_NOT_FOUND', executionId, taskId);
+            globalObservability.recordSuccess('groq', Date.now() - reqStartTime, true, 'primary_model_not_found_404', executionId, taskId);
 
             const resultObj = {
               id: 'fault-404-' + Date.now(),
@@ -210,6 +261,9 @@ const server = http.createServer(async (req, res) => {
             attempts.push({ provider: 'gemini', attempt: 1, error_class: 'QUOTA_429', action: 'retry_gemini' });
             attempts.push({ provider: 'gemini', attempt: 2, error_class: 'QUOTA_429', action: 'fallback_to_groq' });
             globalCircuitBreaker.recordFailure('gemini', true);
+            globalObservability.recordRetry('gemini', executionId, taskId);
+            globalObservability.recordFallback('gemini', 'groq', 'QUOTA_429', executionId, taskId);
+            globalObservability.recordSuccess('groq', Date.now() - reqStartTime, true, 'primary_quota_429_exhausted', executionId, taskId);
 
             const resultObj = {
               id: 'fault-429-' + Date.now(),
@@ -234,6 +288,9 @@ const server = http.createServer(async (req, res) => {
             attempts.push({ provider: 'gemini', attempt: 1, error_class: 'TIMEOUT', action: 'retry_gemini' });
             attempts.push({ provider: 'gemini', attempt: 2, error_class: 'TIMEOUT', action: 'fallback_to_groq' });
             globalCircuitBreaker.recordFailure('gemini', true);
+            globalObservability.recordRetry('gemini', executionId, taskId);
+            globalObservability.recordFallback('gemini', 'groq', 'TIMEOUT', executionId, taskId);
+            globalObservability.recordSuccess('groq', Date.now() - reqStartTime, true, 'primary_timeout_exceeded', executionId, taskId);
 
             const resultObj = {
               id: 'fault-to-' + Date.now(),
@@ -257,6 +314,8 @@ const server = http.createServer(async (req, res) => {
             log(`[FAULT_INJECTION] Simulando CONNECTION_ERROR no primary. Policy: fallback imediato para groq.`);
             attempts.push({ provider: 'gemini', attempt: 1, error_class: 'CONNECTION_ERROR', action: 'fallback_to_groq' });
             globalCircuitBreaker.recordFailure('gemini', true);
+            globalObservability.recordFallback('gemini', 'groq', 'CONNECTION_ERROR', executionId, taskId);
+            globalObservability.recordSuccess('groq', Date.now() - reqStartTime, true, 'primary_connection_refused', executionId, taskId);
 
             const resultObj = {
               id: 'fault-conn-' + Date.now(),
@@ -281,6 +340,9 @@ const server = http.createServer(async (req, res) => {
             attempts.push({ provider: 'gemini', attempt: 1, error_class: 'SERVER_5XX', action: 'retry_gemini' });
             attempts.push({ provider: 'gemini', attempt: 2, error_class: 'SERVER_5XX', action: 'fallback_to_groq' });
             globalCircuitBreaker.recordFailure('gemini', true);
+            globalObservability.recordRetry('gemini', executionId, taskId);
+            globalObservability.recordFallback('gemini', 'groq', 'SERVER_5XX', executionId, taskId);
+            globalObservability.recordSuccess('groq', Date.now() - reqStartTime, true, 'primary_server_500', executionId, taskId);
 
             const resultObj = {
               id: 'fault-500-' + Date.now(),
@@ -304,6 +366,7 @@ const server = http.createServer(async (req, res) => {
             log(`[FAULT_INJECTION] Simulando INVALID_REQUEST (400). Policy: ZERO fallback, TASK_FAILURE pura.`);
             const c = classifyError({ message: 'Bad request syntax' }, 400);
             globalCircuitBreaker.recordFailure('gemini', false); // Não afeta circuit breaker!
+            globalObservability.recordFailure('none', 'INVALID_REQUEST', false, Date.now() - reqStartTime, executionId, taskId);
 
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
@@ -321,6 +384,7 @@ const server = http.createServer(async (req, res) => {
           if (faultHeader === 'fault_task_logic') {
             log(`[FAULT_INJECTION] Simulando TASK_LOGIC_ERROR. Policy: ZERO fallback (bug de negocio nao deve mascarar modelo).`);
             const c = classifyError({ message: 'business_rule_violation: AIS validation failed' }, 422);
+            globalObservability.recordFailure('none', 'TASK_LOGIC_ERROR', false, Date.now() - reqStartTime, executionId, taskId);
 
             res.writeHead(422, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
@@ -343,6 +407,10 @@ const server = http.createServer(async (req, res) => {
             attempts.push({ provider: 'groq', attempt: 2, error_class: 'SERVER_5XX', action: 'terminate_exhausted' });
             globalCircuitBreaker.recordFailure('gemini', true);
             globalCircuitBreaker.recordFailure('groq', true);
+            globalObservability.recordRetry('gemini', executionId, taskId);
+            globalObservability.recordFallback('gemini', 'groq', 'SERVER_5XX', executionId, taskId);
+            globalObservability.recordRetry('groq', executionId, taskId);
+            globalObservability.recordFailure('groq', 'SERVER_5XX', true, Date.now() - reqStartTime, executionId, taskId);
 
             res.writeHead(502, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
@@ -366,6 +434,7 @@ const server = http.createServer(async (req, res) => {
             globalCircuitBreaker.recordFailure('gemini', true);
             globalCircuitBreaker.recordFailure('gemini', true);
             globalCircuitBreaker.recordFailure('gemini', true);
+            globalObservability.recordCircuitOpen('gemini');
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
@@ -383,6 +452,8 @@ const server = http.createServer(async (req, res) => {
           if (mockHeader === 'simulate_primary_success') {
             if (!globalCircuitBreaker.canExecute('gemini')) {
               log(`[ROUTER] Gemini esta em estado OPEN no Circuit Breaker. Desviando para fallback_1 (Groq).`);
+              globalObservability.recordFallback('gemini', 'groq', 'primary_circuit_breaker_open', executionId, taskId);
+              globalObservability.recordSuccess('groq', Date.now() - reqStartTime, true, 'primary_circuit_breaker_open', executionId, taskId);
               resultObj = {
                 id: 'mock-cb-fallback-' + Date.now(),
                 object: 'chat.completion',
@@ -396,6 +467,7 @@ const server = http.createServer(async (req, res) => {
               };
             } else {
               globalCircuitBreaker.recordSuccess('gemini');
+              globalObservability.recordSuccess('gemini', Date.now() - reqStartTime, false, null, executionId, taskId);
               resultObj = {
                 id: 'mock-cmpl-' + Date.now(),
                 object: 'chat.completion',
@@ -408,6 +480,8 @@ const server = http.createServer(async (req, res) => {
               };
             }
           } else if (mockHeader === 'simulate_fallback_1_success') {
+            globalObservability.recordFallback('gemini', 'groq', 'primary_provider_failed', executionId, taskId);
+            globalObservability.recordSuccess('groq', Date.now() - reqStartTime, true, 'primary_provider_failed', executionId, taskId);
             resultObj = {
               id: 'mock-cmpl-' + Date.now(),
               object: 'chat.completion',
@@ -446,6 +520,7 @@ const server = http.createServer(async (req, res) => {
 
         if (!selectedProvider) {
           log(`[NO_CREDENTIAL] Rejeicao segura: nenhum provedor ativo com credencial valida no ambiente. Zero chamadas de rede externas.`);
+          globalObservability.recordFailure('none', 'NO_PROVIDER_CREDENTIAL', false, Date.now() - reqStartTime, executionId, taskId);
           res.writeHead(401, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             error: {
