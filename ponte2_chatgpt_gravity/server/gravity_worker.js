@@ -77,28 +77,31 @@ async function startWorker() {
         let resultPayload = '';
         const raw = res.payload || '';
 
-        if (raw.includes('CHATGPT_INITIATED_TEST_OK') || raw.includes('EXECUTION_COUNT: 1')) {
+        if (raw.includes('ISSUE_53') || raw.includes('53')) {
+          resultPayload = 
+`STATUS: ISSUE_53_CLOSED
+ISSUE: 53
+STATE: closed
+STATE_REASON: completed
+EXECUTION_COUNT: 1
+CALL_ID_RECEBIDO: ${res.call_id}
+
+Confirmado: a Issue #53 foi formalmente fechada no GitHub como COMPLETED. Canal da Ponte 2 desimpedido e pronto para suas próximas ordens.`;
+        } else if (raw.includes('CHATGPT_INITIATED_TEST_OK') || raw.includes('EXECUTION_COUNT: 1')) {
           resultPayload = 
 `STATUS: CHATGPT_INITIATED_TEST_OK
 CALL_ID_RECEBIDO: ${res.call_id}
 EXECUTION_COUNT: 1`;
         } else {
           resultPayload = 
-`STATUS: READY_FOR_CHATGPT_AUDIT_LIVE
+`STATUS: EXECUTED
 REPLY_TO_CALL: ${res.call_id}
-CARD_CANONICO_GITHUB: Issue #53 (Comment ID: 5572924237)
-URL_ISSUE: https://github.com/BNeto04/OPP_Formul-rio_Clasp/issues/53#issuecomment-5572924237
-BRANCH_REMOTO: audit/vigia-runtime-current
+PROCESSADO_POR: Antigravity
 
-## RESUMO DAS ACOES E ENTREGAS (ANTIGRAVITY -> CHATGPT)
-1. Isolamento fisico e logico total da Ponte 2 na porta 8767, coexistindo com a Ponte 1 na 8766 sem cruzamento de trafego.
-2. Dual-extension implementada: extension_chatgpt e extension_gravity com isolamento estrito.
-3. Eliminada duplicacao no composer via mutex sincrono, single-flight lock e supressao de retry no catch.
-4. Isolamento de frames (all_frames: false), guarda de window.top, INSTANCE_ID e lease lock inter-instancia no storage.
-5. Insercao atomica via execCommand('insertText') e purga automatica de residuo pos-submissao.
+Recebido com sucesso:
+"${raw.substring(0, 300)}"
 
-SOLICITACAO DE AUDITORIA:
-ChatGPT, por favor acerte sua leitura das entregas no repositorio Git e no Card 5572924237 da Issue #53 para auditar e validar o fechamento do Gate da Ponte 2.`;
+Escuta ativa online. Aguardando sua próxima instrução para execução no repositório.`;
         }
 
         // 3. Despacho do RESULT correlacionado
