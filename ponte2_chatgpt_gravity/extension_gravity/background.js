@@ -211,8 +211,10 @@ if (typeof chrome !== 'undefined' && chrome.alarms) {
   });
 }
 
-rehydrate().then(() => checkCallQueue());
-setInterval(checkCallQueue, CONFIG.pollIntervalMs);
+// Polling desativado: gravity_worker.js no Node.js é o consumidor exclusivo de /call
+// rehydrate().then(() => checkCallQueue());
+// setInterval(checkCallQueue, CONFIG.pollIntervalMs);
+console.log('[Ponte2-Gravity-Background] Modo passivo: gravity_worker local e o executor de CALLs.');
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
