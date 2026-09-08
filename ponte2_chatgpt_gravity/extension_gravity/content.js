@@ -136,11 +136,11 @@
     inputEl.dispatchEvent(new KeyboardEvent('keyup', eventInit));
   }
 
-  async function handleInjection(payload) {
+  async function handleInjection(payload, callId = 'UNKNOWN') {
     const inputEl = findInputElement();
     if (!inputEl) return { success: false, reason: 'INPUT_NOT_FOUND' };
 
-    setTextIntoElement(inputEl, payload);
+    setTextIntoElement(inputEl, payload, callId);
 
     let submitted = false;
     for (let i = 0; i < 6; i++) {
@@ -162,7 +162,7 @@
   // Inbound: recebe CALL do background e injeta
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'PONTE2_GRAVITY_INJECT_CALL') {
-      handleInjection(msg.payload).then(res => sendResponse(res));
+      handleInjection(msg.payload, msg.call_id).then(res => sendResponse(res));
       return true; // async
     }
   });

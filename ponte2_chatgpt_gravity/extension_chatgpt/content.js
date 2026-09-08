@@ -166,7 +166,7 @@
     inputEl.dispatchEvent(new KeyboardEvent('keyup', eventInit));
   }
 
-  async function handleInjection(payload) {
+  async function handleInjection(payload, callId = 'UNKNOWN') {
     console.log('[Ponte2-Content] handleInjection acionado para payload de tamanho:', payload.length);
     const inputEl = findInputElement();
     if (!inputEl) {
