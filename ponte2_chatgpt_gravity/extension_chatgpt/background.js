@@ -15,6 +15,12 @@ const CONFIG = {
   pollIntervalMs: 2500
 };
 
+const WORKER_INSTANCE_ID = (typeof crypto !== 'undefined' && crypto.randomUUID)
+  ? crypto.randomUUID()
+  : 'worker_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+
+console.log(`[Ponte2-Background] [WORKER_INIT] ID: ${WORKER_INSTANCE_ID}`);
+
 let currentInFlightResult = null;
 let uncertainInFlightResult = null;
 let lastDeliveredResultId = null;
@@ -207,6 +213,7 @@ async function deliverResultToChatGPT(packet) {
     updateBadge('WAIT', '#ffc107');
     return false;
   }
+  console.log(`[Ponte2-Background] [DISPATCH_TAB] Target tabId: ${tab.id}, active: ${tab.active}, url: ${tab.url}, worker: ${WORKER_INSTANCE_ID}`);
 
   try {
     let response = null;

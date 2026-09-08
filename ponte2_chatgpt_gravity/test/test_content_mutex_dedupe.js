@@ -109,5 +109,36 @@ assert(ponte1Content.includes('const inFlightInjectionIds = new Set();'), 'inFli
 assert(!ponte1Content.includes('new ClipboardEvent'), 'new ClipboardEvent removido da Ponte 1');
 console.log('PASS 9: Ponte 1 Content Script: Sets declarados e insercao atomica sem new ClipboardEvent');
 
+// PASS 10: Hardening de Manifesto: all_frames: false em todos os manifest.json
+const m1 = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'extension', 'manifest.json'), 'utf8'));
+const m2 = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'ponte1_telegram_chatgpt', 'extension', 'manifest.json'), 'utf8'));
+const m3 = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'extension_chatgpt', 'manifest.json'), 'utf8'));
+const m4 = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'extension_gravity', 'manifest.json'), 'utf8'));
+assert.strictEqual(m1.content_scripts[0].all_frames, false, 'extension manifest deve ter all_frames false');
+assert.strictEqual(m2.content_scripts[0].all_frames, false, 'ponte1 manifest deve ter all_frames false');
+assert.strictEqual(m3.content_scripts[0].all_frames, false, 'extension_chatgpt manifest deve ter all_frames false');
+assert.strictEqual(m4.content_scripts[0].all_frames, false, 'extension_gravity manifest deve ter all_frames false');
+console.log('PASS 10: Manifests: all_frames: false configurado em todas as extensoes');
+
+// PASS 11: Bloqueio estrito de execucao em Iframes nos content scripts
+assert(ponte1Content.includes('window.self !== window.top'), 'ponte1 content.js deve ter guarda de iframe');
+assert(contentJs.includes('window.self !== window.top'), 'extension_chatgpt content.js deve ter guarda de iframe');
+assert(gravityContentJs.includes('window.self !== window.top'), 'extension_gravity content.js deve ter guarda de iframe');
+console.log('PASS 11: Content Scripts: Bloqueio estrito de iframes (apenas frame principal ativo)');
+
+// PASS 12: Instrumentacao com INSTANCE_ID e traces de auditoria
+assert(ponte1Content.includes('INSTANCE_ID'), 'ponte1 deve gerar INSTANCE_ID');
+assert(contentJs.includes('INSTANCE_ID'), 'extension_chatgpt deve gerar INSTANCE_ID');
+assert(ponte1Content.includes('[INJECT_TRACE]'), 'ponte1 deve emitir [INJECT_TRACE]');
+assert(contentJs.includes('[INJECT_TRACE]'), 'extension_chatgpt deve emitir [INJECT_TRACE]');
+console.log('PASS 12: Instrumentacao: INSTANCE_ID e INJECT_TRACE presentes em todos os content scripts');
+
+// PASS 13: Trava compartilhada de Lease Lock via chrome.storage.local
+assert(ponte1Content.includes('acquireStorageLease'), 'ponte1 deve implementar acquireStorageLease');
+assert(contentJs.includes('acquireStorageLease'), 'extension_chatgpt deve implementar acquireStorageLease');
+assert(ponte1Content.includes('releaseStorageLease'), 'ponte1 deve implementar releaseStorageLease');
+assert(contentJs.includes('releaseStorageLease'), 'extension_chatgpt deve implementar releaseStorageLease');
+console.log('PASS 13: Lease Lock: Trava compartilhada via storage ativo contra concorrencia inter-instancia');
+
 console.log('----------------------------------------------------------------');
-console.log('RESULTADO: 10 PASS / 0 FAIL');
+console.log('RESULTADO: 13 PASS / 0 FAIL');

@@ -8,10 +8,19 @@
  */
 
 (() => {
+  // 0. Rejeição estrita de execução dentro de iframes (apenas frame principal)
+  if (typeof window !== 'undefined' && window.self !== window.top) {
+    return;
+  }
+
   if (window.__SYNTHEON_PONTE1_CONTENT_INJECTED__) return;
   window.__SYNTHEON_PONTE1_CONTENT_INJECTED__ = true;
 
-  console.log('[Ponte1-Content] Ativo e monitorando chatgpt.com');
+  const INSTANCE_ID = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : 'inst_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+
+  console.log(`[Ponte1-Content] [INSTANCE_INIT] ID: ${INSTANCE_ID} | URL: ${window.location.href} | is_top: ${window.self === window.top}`);
 
   const seenReplies = new Set();
   const deliveredMessageIds = new Set();
@@ -46,7 +55,8 @@
     return null;
   }
 
-  function setTextIntoElement(el, text) {
+  function setTextIntoElement(el, text, msgId = 'UNKNOWN') {
+    console.warn(`[Ponte1-Content] [INJECT_TRACE] { instance_id: "${INSTANCE_ID}", is_top: ${window.self === window.top}, msg_id: "${msgId}", time: ${Date.now()} }`);
     el.focus();
     if (el.tagName && el.tagName.toLowerCase() === 'textarea') {
       const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
@@ -144,7 +154,7 @@
     inputEl.dispatchEvent(new KeyboardEvent('keyup', eventInit));
   }
 
-  async function handleInjection(payload) {
+  async function handleInjection(payload, msgId = 'UNKNOWN') {
     const inputEl = findInputElement();
     if (!inputEl) return { success: false, reason: 'INPUT_NOT_FOUND' };
 
@@ -154,7 +164,7 @@
     }
 
     // 1. Inserção determinística única (sem paste duplo)
-    setTextIntoElement(inputEl, payload);
+    setTextIntoElement(inputEl, payload, msgId);
 
     let submitted = false;
     // 2. Aguarda o React habilitar o botão de envio (até 3 segundos)
@@ -206,6 +216,54 @@
     return { success: true };
   }
 
+  // Trava de lease compartilhada via chrome.storage.local (impede concorrência entre frames/abas)
+  async function acquireStorageLease(msgId, ttlMs = 20000) {
+    return new Promise(resolve => {
+      if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        return resolve(true);
+      }
+      const leaseKey = `ponte1_lease_${msgId}`;
+      const now = Date.now();
+
+      chrome.storage.local.get([leaseKey, 'ponte1_delivered_ids'], res => {
+        const delivered = (res && Array.isArray(res.ponte1_delivered_ids)) ? res.ponte1_delivered_ids : [];
+        if (delivered.includes(msgId)) {
+          console.warn(`[Ponte1-Content] [LEASE_REJECT] Mensagem ${msgId} já consta entregue no storage compartilhado.`);
+          return resolve(false);
+        }
+
+        const existing = res ? res[leaseKey] : null;
+        if (existing && existing.expires_at > now && existing.holder !== INSTANCE_ID) {
+          console.warn(`[Ponte1-Content] [LEASE_COLLISION] Mensagem ${msgId} em execução por outra instância: ${existing.holder}`);
+          return resolve(false);
+        }
+
+        chrome.storage.local.set({
+          [leaseKey]: { holder: INSTANCE_ID, acquired_at: now, expires_at: now + ttlMs }
+        }, () => resolve(true));
+      });
+    });
+  }
+
+  async function releaseStorageLease(msgId, markedDelivered = true) {
+    return new Promise(resolve => {
+      if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        return resolve();
+      }
+      const leaseKey = `ponte1_lease_${msgId}`;
+      chrome.storage.local.get(['ponte1_delivered_ids'], res => {
+        let delivered = (res && Array.isArray(res.ponte1_delivered_ids)) ? res.ponte1_delivered_ids : [];
+        if (markedDelivered && !delivered.includes(msgId)) {
+          delivered.push(msgId);
+        }
+        chrome.storage.local.set({
+          [leaseKey]: null,
+          ponte1_delivered_ids: delivered
+        }, () => resolve());
+      });
+    });
+  }
+
   // 0. Listener de reconciliação pós-restart do service worker para evitar retry cego
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'PONTE1_CHECK_DELIVERED') {
@@ -224,6 +282,8 @@
       // Extrai MESSAGE_ID para deduplicação determinística na origem antes de tocar no DOM
       const match = payload.match(/REPLY_TO_MESSAGE_ID:\s*(\d+)/i);
       const msgId = msg.telegram_message_id || msg.packet_id || (match ? match[1] : null);
+
+      console.log(`[Ponte1-Content] [MSG_RECEIVED] msg_id: ${msgId} | sender frameId: ${sender?.frameId} | instance: ${INSTANCE_ID}`);
 
       // Regra 0: Deduplicação síncrona imediata no content script
       if (msgId && (deliveredMessageIds.has(String(msgId)) || inFlightInjectionIds.has(String(msgId)))) {
@@ -254,15 +314,23 @@
         return false;
       }
 
-      // Trava imediata síncrona
+      // Trava de lease compartilhada via storage antes de tocar no DOM
       if (msgId) inFlightInjectionIds.add(String(msgId));
       isInjectingCurrently = true;
 
-      handleInjection(payload).then(res => {
-        if (res && res.success && msgId) {
-          deliveredMessageIds.add(String(msgId));
+      acquireStorageLease(String(msgId)).then(hasLease => {
+        if (!hasLease) {
+          sendResponse({ success: true, status: 'DEDUPE_NO_OP', reason: 'STORAGE_LEASE_REJECT', message_id: msgId });
+          return;
         }
-        sendResponse(res);
+
+        handleInjection(payload, String(msgId)).then(async res => {
+          if (res && res.success && msgId) {
+            deliveredMessageIds.add(String(msgId));
+          }
+          await releaseStorageLease(String(msgId), res && res.success);
+          sendResponse(res);
+        });
       }).finally(() => {
         isInjectingCurrently = false;
         if (msgId) inFlightInjectionIds.delete(String(msgId));

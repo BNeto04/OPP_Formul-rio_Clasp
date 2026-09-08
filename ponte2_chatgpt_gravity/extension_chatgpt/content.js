@@ -14,10 +14,19 @@
  */
 
 (() => {
+  // 0. Rejeição estrita de execução dentro de iframes (apenas frame principal)
+  if (typeof window !== 'undefined' && window.self !== window.top) {
+    return;
+  }
+
   if (window.__SYNTHEON_PONTE2_CONTENT_INJECTED__) return;
   window.__SYNTHEON_PONTE2_CONTENT_INJECTED__ = true;
 
-  console.log('[Ponte2-Content] Ativo na aba do ChatGPT (Porta 8767)');
+  const INSTANCE_ID = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : 'inst_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+
+  console.log(`[Ponte2-Content] [INSTANCE_INIT] ID: ${INSTANCE_ID} | URL: ${window.location.href} | is_top: ${window.self === window.top}`);
 
   const seenCallIds = new Set();
   const ALLOWED_OUTBOUND_TYPES = new Set(['CALL', 'AUDIT']);
@@ -50,7 +59,8 @@
     return null;
   }
 
-  function setTextIntoElement(el, text) {
+  function setTextIntoElement(el, text, callId = 'UNKNOWN') {
+    console.warn(`[Ponte2-Content] [INJECT_TRACE] { instance_id: "${INSTANCE_ID}", is_top: ${window.self === window.top}, call_id: "${callId}", time: ${Date.now()} }`);
     el.focus();
     if (el.tagName && el.tagName.toLowerCase() === 'textarea') {
       const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
@@ -171,7 +181,7 @@
     }
 
     // 1. Inserção determinística única (sem paste duplo)
-    setTextIntoElement(inputEl, payload);
+    setTextIntoElement(inputEl, payload, callId);
 
     let submitted = false;
     // 2. Aguarda o React habilitar o botão de envio (até 3 segundos)
@@ -227,6 +237,54 @@
   const inFlightInjectionIds = new Set();
   let isInjectingCurrently = false;
 
+  // Trava de lease compartilhada via chrome.storage.local (impede concorrência entre frames/abas)
+  async function acquireStorageLease(callId, ttlMs = 20000) {
+    return new Promise(resolve => {
+      if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        return resolve(true);
+      }
+      const leaseKey = `ponte2_lease_${callId}`;
+      const now = Date.now();
+
+      chrome.storage.local.get([leaseKey, 'ponte2_delivered_ids'], res => {
+        const delivered = (res && Array.isArray(res.ponte2_delivered_ids)) ? res.ponte2_delivered_ids : [];
+        if (delivered.includes(callId)) {
+          console.warn(`[Ponte2-Content] [LEASE_REJECT] RESULT ${callId} já consta entregue no storage compartilhado.`);
+          return resolve(false);
+        }
+
+        const existing = res ? res[leaseKey] : null;
+        if (existing && existing.expires_at > now && existing.holder !== INSTANCE_ID) {
+          console.warn(`[Ponte2-Content] [LEASE_COLLISION] RESULT ${callId} em execução por outra instância: ${existing.holder}`);
+          return resolve(false);
+        }
+
+        chrome.storage.local.set({
+          [leaseKey]: { holder: INSTANCE_ID, acquired_at: now, expires_at: now + ttlMs }
+        }, () => resolve(true));
+      });
+    });
+  }
+
+  async function releaseStorageLease(callId, markedDelivered = true) {
+    return new Promise(resolve => {
+      if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        return resolve();
+      }
+      const leaseKey = `ponte2_lease_${callId}`;
+      chrome.storage.local.get(['ponte2_delivered_ids'], res => {
+        let delivered = (res && Array.isArray(res.ponte2_delivered_ids)) ? res.ponte2_delivered_ids : [];
+        if (markedDelivered && !delivered.includes(callId)) {
+          delivered.push(callId);
+        }
+        chrome.storage.local.set({
+          [leaseKey]: null,
+          ponte2_delivered_ids: delivered
+        }, () => resolve());
+      });
+    });
+  }
+
   // 0. Listener de reconciliação para evitar retry cego pós-restart do service worker
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'PONTE2_CHECK_DELIVERED') {
@@ -242,6 +300,8 @@
     if (msg.type === 'PONTE2_INJECT_RESULT') {
       const payload = msg.payload || '';
       const callId = msg.call_id || null;
+
+      console.log(`[Ponte2-Content] [MSG_RECEIVED] call_id: ${callId} | sender frameId: ${sender?.frameId} | instance: ${INSTANCE_ID}`);
 
       // Regra 0: Deduplicação determinística síncrona imediata no content script
       if (callId && (deliveredResultIds.has(callId) || inFlightInjectionIds.has(callId))) {
@@ -279,15 +339,23 @@
         return false;
       }
 
-      // Trava imediata síncrona
+      // Trava de lease compartilhada via storage antes de tocar no DOM
       if (callId) inFlightInjectionIds.add(callId);
       isInjectingCurrently = true;
 
-      handleInjection(payload).then(res => {
-        if (res && res.success && callId) {
-          deliveredResultIds.add(callId);
+      acquireStorageLease(callId).then(hasLease => {
+        if (!hasLease) {
+          sendResponse({ success: true, status: 'DEDUPE_NO_OP', reason: 'STORAGE_LEASE_REJECT', call_id: callId });
+          return;
         }
-        sendResponse(res);
+
+        handleInjection(payload, callId).then(async res => {
+          if (res && res.success && callId) {
+            deliveredResultIds.add(callId);
+          }
+          await releaseStorageLease(callId, res && res.success);
+          sendResponse(res);
+        });
       }).finally(() => {
         isInjectingCurrently = false;
         if (callId) inFlightInjectionIds.delete(callId);

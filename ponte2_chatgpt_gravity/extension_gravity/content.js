@@ -12,15 +12,22 @@
  */
 
 (() => {
-  // Isolamento Estrito: extension_gravity NUNCA deve executar em páginas do ChatGPT
+  // 0. Isolamento Estrito: extension_gravity NUNCA deve executar em páginas do ChatGPT ou dentro de iframes
   if (typeof window !== 'undefined' && window.location && (window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com'))) {
+    return;
+  }
+  if (typeof window !== 'undefined' && window.self !== window.top) {
     return;
   }
 
   if (window.__SYNTHEON_PONTE2_GRAVITY_CONTENT_INJECTED__) return;
   window.__SYNTHEON_PONTE2_GRAVITY_CONTENT_INJECTED__ = true;
 
-  console.log('[Ponte2-Gravity-Content] Ativo na interface do Antigravity');
+  const INSTANCE_ID = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : 'inst_grav_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+
+  console.log(`[Ponte2-Gravity-Content] [INSTANCE_INIT] ID: ${INSTANCE_ID} | URL: ${window.location.href} | is_top: ${window.self === window.top}`);
 
   const seenResultIds = new Set();
 
@@ -50,7 +57,8 @@
     return null;
   }
 
-  function setTextIntoElement(el, text) {
+  function setTextIntoElement(el, text, callId = 'UNKNOWN') {
+    console.warn(`[Ponte2-Gravity-Content] [INJECT_TRACE] { instance_id: "${INSTANCE_ID}", is_top: ${window.self === window.top}, call_id: "${callId}", time: ${Date.now()} }`);
     el.focus();
     if (el.tagName && el.tagName.toLowerCase() === 'textarea') {
       const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
