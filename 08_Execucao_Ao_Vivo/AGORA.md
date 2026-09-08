@@ -1,9 +1,11 @@
 # Execução ao Vivo: Agora
 
 - **Data/Hora:** 2026-09-08
-- **Card Ativo:** #66 (`T-C01-E2E-HOMOLOGACAO-009`) — Homologar fluxo ponta a ponta do C01 (Gate Final).
-- **Chamada:** `CALL-T-C01-E2E-HOMOLOGACAO-009-EXEC-001`
-- **Branch:** `sprint/c01-ocr-form-sheets-001`
-- **Status:** Teste 15 adicionado a `Testes/TestEntradaManualFormulario.js`, cobrindo homologação completa E2E (Fato, Equipe, Armas, Drogas, PIP, Imputado), fluxo manual vs OCR, soberania humana, zero escrita em falhas (duplicidade BOE/MIKE, Fase 1 e aba ausente), fluxo sem seções opcionais e auditoria de paridade Apps Script / Clasp. NOTA_DE_RESPONSABILIDADE.md atualizada. Testes 100% aprovados (15/15 pass).
-- **Suítes Testadas:** `TestEntradaManualFormulario.js` (exit code 0), `TestFormularioAis.js` (exit code 0), `TestFormularioCidadeBairro.js` (exit code 0), `ValidarIntegridadeTabelaAIS.js` (exit code 0).
-- **Próximo Passo:** Commit, push, envio do RESULT via Ponte 2 (porta 8767) e rearme do wake waiter.
+- **Programa:** #67 (`PROGRAM-AGENTIC-ROADMAP-001`)
+- **Sprint Ativa:** #68 (`SPRINT-A01-MULTIPROVIDER-FALLBACKS-001`)
+- **Card Ativo:** #69 (`T-A01-BASELINE-001`) — Inventariar runtime, provedores, secrets e pontos de integração.
+- **Chamada:** `CALL-T-A01-BASELINE-001-EXEC-001`
+- **Branch:** `sprint/a01-multi-provider-fallbacks-001`
+- **Status:** Baseline factual inventariado. Runtimes: Python 3.13.6, pip 25.2, Node v24.14.0, npm 11.9.0. Hermes Agent v0.20.4 localizado em AppData/Local/hermes (configurado com endpoint custom Ollama offline). Provedores cloud (Gemini, Groq, OpenRouter, DeepSeek) com SDKs parcialmente instalados mas credenciais ausentes no ambiente. Circuito atual (ChatGPT -> Ponte 2 -> Gravity/Antigravity) mapeado; ponto de inserção futuro (Ponte 2 -> Router Local -> Worker) isolado sem substituição da Ponte 2.
+- **Suítes Testadas:** N/A (card estritamente de baseline e inventário factual).
+- **Próximo Passo:** Commit e push da documentação na branch nova, envio do RESULT obrigatório via Ponte 2 (porta 8767) e rearme do wake waiter.
