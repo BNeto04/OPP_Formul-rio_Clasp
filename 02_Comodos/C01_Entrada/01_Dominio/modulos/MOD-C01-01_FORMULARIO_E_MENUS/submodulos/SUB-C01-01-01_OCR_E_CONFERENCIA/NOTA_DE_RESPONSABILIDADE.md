@@ -171,3 +171,89 @@ OCR/MANUAL -> ITEM DE ARMA -> NORMALIZAÇÃO/VALIDAÇÃO -> LISTA DINÂMICA -> P
    - O número total de linhas da ocorrência é expandido por `numLinhas = Math.max(policiais.length, armas.length, ocorrenciasPip.length, ...)`.
    - A combinação é estritamente **posicional pelo índice `idx`** na aba mensal.
    - **NÃO EXISTE VÍNCULO DIRETO ENTRE ARMA E POLICIAL NA PLANILHA OPP:** Se houver 2 armas e 1 policial, a linha 0 conterá o policial 0 e a arma 0; a linha 1 conterá a arma 1 e policial vazio `""`. O único vínculo individual de pontuação é a coluna AF (`QDT ARMAS`), onde o operador define a contagem agregada de armas creditadas àquele policial para mérito/produtividade individual.
+
+---
+
+## Contrato Factual e Operacional: Drogas Apreendidas (Card #63 - T-C01-DROGAS-006)
+
+### Circuito Canônico
+```text
+OCR/MANUAL -> DROGA/UNIDADE/QUANTIDADE -> NORMALIZAÇÃO/CONVERSÃO -> PAYLOAD -> SHEETS
+```
+
+1. **Estrutura da Seção Drogas no Formulario.html:**
+   - Contêiner dinâmico `#drogasList` com botão `+ Adicionar Droga` (`adicionarDrogaField()`).
+   - Cada item dinâmico (`.dynamic-item`) possui:
+     - Select `.droga-tipo` com 6 opções fechadas:
+       1. `MACONHA DOLAR` (Label: `MACONHA DÓLAR`)
+       2. `MACONHA GRAMA` (Label: `MACONHA GRAMA`)
+       3. `CRACK PEDRA` (Label: `CRACK PEDRA`)
+       4. `CRACK GRAMA` (Label: `CRACK GRAMA`)
+       5. `COCAINA PINO` (Label: `COCAÍNA PINO`)
+       6. `COCAINA GRAMA` (Label: `COCAÍNA GRAMA`)
+     - Input numérico `.droga-qtd` com `min="0" step="0.01"`;
+     - Botão de remoção rápida `&times;` (`onclick="document.getElementById('${id}').remove();"`).
+
+2. **Estrutura Factual do Objeto de Drogas:**
+   - Objeto individual no array `drogas`:
+     `{ tipo: string, quantidade: number }`.
+   - Gerado pela função `obterDrogas()` em `Formulario.html`:
+     `[...document.querySelectorAll('#drogasList .dynamic-item')].map(...).filter(d => d.quantidade > 0)`.
+   - Filtro ativo: itens com quantidade `<= 0` são automaticamente excluídos do payload.
+
+3. **Inclusão Derivada do OCR:**
+   - 5 padrões contextuais inteligentes por regex varrem o texto do BO em busca de termos de drogas (`MACONHA`, `CRACK`, `COCAÍNA`):
+     1. Padrão estruturado BOE (`CATEGORIA: COCAINA ... QUANTIDADE: 500`);
+     2. Padrão imagens complementares (`ENTORPECENTE/COCAINA, 500 UNIDADE`);
+     3. Peso antes (`50g de maconha`);
+     4. Unidades antes (`497 ziplocks de cocaína`, papelotes, pedras, invólucros, etc.);
+     5. Peso depois (`cocaína 50 g`).
+   - Deduplicação em memória via `drogasMap` por tipo normalizado (`MACONHA`, `CRACK`, `COCAÍNA`), preservando o maior valor encontrado.
+   - Heurística de classificação de unidades no preenchimento de `adicionarDrogaField(tipoRaw, quantidade, unidade)`:
+     - `MACONHA`: `UNIDADES` ou `DÓLAR` -> `MACONHA DOLAR`; caso contrário -> `MACONHA GRAMA`.
+     - `CRACK`: `UNIDADES` ou `PEDRAS` -> `CRACK PEDRA`; caso contrário -> `CRACK GRAMA`.
+     - `COCAINA`: `UNIDADES` ou `PINO` -> `COCAINA PINO`; caso contrário -> `COCAINA GRAMA`.
+
+4. **Regras de Normalização, Conversão e Valores de Entrada vs Derivados:**
+   - **Zero fatores de conversão em código/memória:** O código não possui multiplicadores ou fatores de conversão empíricos (ex: converter dólar em gramas ou pedra em gramas). Cada valor é preservado estritamente na unidade de entrada designada.
+   - **Campos de Entrada Literal:**
+     - Papelote / Dólar: `MACONHA DOLAR`
+     - Gramas: `MACONHA GRAMA`
+     - Pedra: `CRACK PEDRA`
+     - Gramas: `CRACK GRAMA`
+     - Pino: `COCAINA PINO`
+     - Gramas: `COCAINA GRAMA`
+   - **Campos Derivados (Fórmulas):**
+     - `TOTAL DE MACONHA` (Coluna S)
+     - `DIVIDIDO MAC` (Coluna T)
+     - `TOTAL CRACK (GR)` (Coluna W)
+     - `TOTAL DE COCAINA` (Coluna Z)
+     - `DIVIDIDO COC` (Coluna AA)
+     Esses campos são cálculos analíticos ou fórmulas nativas da planilha. O código `EntradaManual.js` envia estritamente string vazia `""` para não sobrescrever as fórmulas preexistentes.
+   - **Acumulação por Tipo:** Se o operador inserir múltiplos itens do mesmo tipo (ex: duas linhas de `MACONHA DOLAR`), `Entrada/EntradaManual.js` soma as quantidades na mesma ocorrência antes de gravar.
+
+5. **Mapeamento Físico no Sheets (Colunas Q a AA):**
+   - Comprovado em `Entrada/EntradaManual.js` (linhas 155–173 e 216–226):
+     - **Coluna Q (`MACONHA DOLAR`, idx 16):** `isFirst ? (maconhaDolar || "") : ""` (Literal)
+     - **Coluna R (`MACONHA GRAMA`, idx 17):** `isFirst ? (maconhaGrama || "") : ""` (Literal)
+     - **Coluna S (`TOTAL DE MACONHA`, idx 18):** `""` (Preservado para Fórmula)
+     - **Coluna T (`DIVIDIDO MAC`, idx 19):** `""` (Preservado para Fórmula)
+     - **Coluna U (`CRACK PEDRA`, idx 20):** `isFirst ? (crackPedra || "") : ""` (Literal)
+     - **Coluna V (`CRACK GRAMA`, idx 21):** `isFirst ? (crackGrama || "") : ""` (Literal)
+     - **Coluna W (`TOTAL CRACK (GR)`, idx 22):** `""` (Preservado para Fórmula)
+     - **Coluna X (`COCAINA PINO`, idx 23):** `isFirst ? (cocainaPino || "") : ""` (Literal)
+     - **Coluna Y (`COCAINA GRAMA`, idx 24):** `isFirst ? (cocainaGrama || "") : ""` (Literal)
+     - **Coluna Z (`TOTAL DE COCAINA`, idx 25):** `""` (Preservado para Fórmula)
+     - **Coluna AA (`DIVIDIDO COC`, idx 26):** `""` (Preservado para Fórmula)
+
+6. **Preservação das Fórmulas Derivadas e Proteção Estrita:**
+   - As colunas de fórmulas obrigatórias (`TOTAL DE MACONHA`, `DIVIDIDO MAC`, `TOTAL CRACK (GR)`, `TOTAL DE COCAINA`, `DIVIDIDO COC`) NÃO constam no array `colsPermitidasNomes` de `EntradaManual.js`.
+   - Na Fase 1 de validação (`EntradaManual.js` linhas 349-354), qualquer tentativa de passar valor literal para uma célula que contenha fórmula (`=...`) lança imediatamente uma exceção fatal: `Tentativa de sobrescrever a fórmula da coluna '${headerOrig}'`.
+
+7. **Comportamento Multi-Linhas e Fluxo Sem Drogas:**
+   - **Multi-Linhas:** Drogas são gravadas exclusivamente na primeira linha da ocorrência (`isFirst === true`). Linhas subsequentes da mesma ocorrência (expansão de múltiplos policiais ou armas) recebem strings vazias `""` em todas as colunas Q:AA, eliminando qualquer risco de contabilidade duplicada.
+   - **Fluxo Sem Drogas:** Se o formulário não contiver drogas (`payload.drogas = []` ou omitido), todos os acumuladores permanecem `0`, resultando em strings vazias `""` em todas as colunas Q a AA. Além disso, a ausência de drogas não expande desnecessariamente o número de linhas da planilha (`drogas.length ? 1 : 0`).
+
+8. **Soberania Manual e Precedência do Operador:**
+   - O OCR apenas sugere valores nos campos de drogas da interface. O operador humano possui total liberdade para alterar tipos, ajustar gramagens ou contagens, excluir itens clicando em `&times;` ou adicionar drogas omitidas pelo scanner.
+

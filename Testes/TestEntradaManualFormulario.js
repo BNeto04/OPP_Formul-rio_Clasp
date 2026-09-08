@@ -586,6 +586,95 @@ eval(fullFormularioScript);
     gravarLinhasEntradaManual(sheetArmas, linhasArmas);
     assert.ok(sheetArmas.rangesEscritos.length > 0, 'Deve persistir colunas de armas no Sheets');
 
+    // [Test 12] Contrato Operacional de Drogas Apreendidas (Card #63: T-C01-DROGAS-006)
+    console.log('  [Test 12] Contrato Operacional de Drogas Apreendidas (Mapeamento Q a AA, acumulação por tipo, fórmulas e fluxo sem drogas)');
+    const payloadDrogas = {
+        origem: 'FORMULARIO',
+        data: '16/08/2026',
+        hora: '10:30',
+        natureza: 'TRÁFICO DE ENTORPECENTES',
+        policiais: [
+            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 0 },
+            { pelotao: '1º PEL', posto: 'CB', matricula: '1002', nome: 'POLICIAL DOIS', qtd_armas: 0 }
+        ],
+        drogas: [
+            { tipo: 'MACONHA DOLAR', quantidade: 10 },
+            { tipo: 'MACONHA DOLAR', quantidade: 5 }, // Acumulação: 15
+            { tipo: 'MACONHA GRAMA', quantidade: 50 },
+            { tipo: 'CRACK PEDRA', quantidade: 20 },
+            { tipo: 'CRACK GRAMA', quantidade: 5.5 },
+            { tipo: 'COCAINA PINO', quantidade: 30 },
+            { tipo: 'COCAINA GRAMA', quantidade: 12.8 }
+        ]
+    };
+
+    const linhasDrogas = EntradaManualMod.montarLinhasEntradaManual(payloadDrogas);
+    assert.strictEqual(linhasDrogas.length, 2, 'Deve gerar 2 linhas (max entre 2 policiais e drogas)');
+
+    // Índices de drogas:
+    // 16: MACONHA DOLAR (Q), 17: MACONHA GRAMA (R), 18: TOTAL DE MACONHA (S), 19: DIVIDIDO MAC (T)
+    // 20: CRACK PEDRA (U), 21: CRACK GRAMA (V), 22: TOTAL CRACK (GR) (W)
+    // 23: COCAINA PINO (X), 24: COCAINA GRAMA (Y), 25: TOTAL DE COCAINA (Z), 26: DIVIDIDO COC (AA)
+    const idxQ = 16; const idxR = 17; const idxS = 18; const idxT = 19;
+    const idxU = 20; const idxV = 21; const idxW = 22;
+    const idxX = 23; const idxY = 24; const idxZ = 25; const idxAA = 26;
+
+    // Linha 0: Valores literais acumulados presentes apenas na Linha 0 (isFirst === true)
+    assert.strictEqual(linhasDrogas[0][idxQ], 15, 'Linha 0 Coluna Q (MACONHA DOLAR) deve acumular 10+5 = 15');
+    assert.strictEqual(linhasDrogas[0][idxR], 50, 'Linha 0 Coluna R (MACONHA GRAMA) deve ser 50');
+    assert.strictEqual(linhasDrogas[0][idxS], '', 'Linha 0 Coluna S (TOTAL DE MACONHA) deve ser vazia (preservada para fórmula)');
+    assert.strictEqual(linhasDrogas[0][idxT], '', 'Linha 0 Coluna T (DIVIDIDO MAC) deve ser vazia (preservada para fórmula)');
+    assert.strictEqual(linhasDrogas[0][idxU], 20, 'Linha 0 Coluna U (CRACK PEDRA) deve ser 20');
+    assert.strictEqual(linhasDrogas[0][idxV], 5.5, 'Linha 0 Coluna V (CRACK GRAMA) deve ser 5.5');
+    assert.strictEqual(linhasDrogas[0][idxW], '', 'Linha 0 Coluna W (TOTAL CRACK GR) deve ser vazia (preservada para fórmula)');
+    assert.strictEqual(linhasDrogas[0][idxX], 30, 'Linha 0 Coluna X (COCAINA PINO) deve ser 30');
+    assert.strictEqual(linhasDrogas[0][idxY], 12.8, 'Linha 0 Coluna Y (COCAINA GRAMA) deve ser 12.8');
+    assert.strictEqual(linhasDrogas[0][idxZ], '', 'Linha 0 Coluna Z (TOTAL DE COCAINA) deve ser vazia (preservada para fórmula)');
+    assert.strictEqual(linhasDrogas[0][idxAA], '', 'Linha 0 Coluna AA (DIVIDIDO COC) deve ser vazia (preservada para fórmula)');
+
+    // Linha 1: Múltiplos policiais -> Linha 1 NÃO repete drogas (isFirst === false)
+    for (let c = idxQ; c <= idxAA; c++) {
+        assert.strictEqual(linhasDrogas[1][c], '', `Linha 1 Coluna ${c} de drogas deve ser vazia para evitar duplicação`);
+    }
+
+    // Fluxo SEM Drogas: payload sem drogas ou com array vazio
+    const payloadSemDrogas = {
+        origem: 'FORMULARIO',
+        data: '16/08/2026',
+        hora: '10:30',
+        natureza: 'AVERIGUAÇÃO',
+        policiais: [
+            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 0 }
+        ],
+        drogas: []
+    };
+    const linhasSemDrogas = EntradaManualMod.montarLinhasEntradaManual(payloadSemDrogas);
+    assert.strictEqual(linhasSemDrogas.length, 1, 'Deve gerar 1 linha para 1 policial sem drogas');
+    for (let c = idxQ; c <= idxAA; c++) {
+        assert.strictEqual(linhasSemDrogas[0][c], '', `Fluxo sem drogas: Coluna ${c} deve ser string vazia`);
+    }
+
+    // Gravação física confirmada no mockSheet e preservação de fórmulas derivadas
+    const validationsDrogas = (row, col, numRows, numCols) => {
+        return Array(numRows).fill(CABECALHOS_ORIGINAIS.map(c => {
+            if (c === 'NATUREZA DA OCORRÊNCIA') return mockDataValidation(['TRÁFICO DE ENTORPECENTES', 'AVERIGUAÇÃO']);
+            if (c === 'OCORRÊNCIA PIP') return mockDataValidation(['TRÁFICO DE ENTORPECENTES', 'AVERIGUAÇÃO']);
+            return null;
+        })).map(rowVals => rowVals.slice(col - 1, col - 1 + numCols));
+    };
+
+    let sheetDrogas = mockSheet(CABECALHOS_ORIGINAIS, null, null, validationsDrogas);
+    gravarLinhasEntradaManual(sheetDrogas, linhasDrogas);
+    assert.ok(sheetDrogas.rangesEscritos.length > 0, 'Deve persistir colunas literais de drogas no Sheets');
+
+    // Tentativa de sobrescrever fórmula derivada deve lançar erro bloqueante
+    assert.throws(() => {
+        let sheetComFormulaDroga = mockSheet(CABECALHOS_ORIGINAIS, null, null, validationsDrogas);
+        let linhaInvalida = CABECALHOS_ORIGINAIS.map(() => '');
+        linhaInvalida[idxS] = 100; // Tentando gravar no TOTAL DE MACONHA
+        gravarLinhasEntradaManual(sheetComFormulaDroga, [linhaInvalida]);
+    }, /Tentativa de sobrescrever a fórmula da coluna 'TOTAL DE MACONHA'/, 'Deve lançar erro bloqueante ao tentar sobrescrever fórmula de drogas');
+
     console.log('✅ OK - EntradaManual.js e Formulario.html');
 })().catch(err => {
     console.error("Falha no teste:", err);
