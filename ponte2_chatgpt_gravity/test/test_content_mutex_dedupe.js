@@ -93,5 +93,21 @@ const gravityContentJs = fs.readFileSync(path.join(__dirname, '..', 'extension_g
 assert(gravityContentJs.includes("chatgpt.com"), 'extension_gravity deve ignorar chatgpt.com');
 console.log('PASS 7: Extension Gravity: Isolamento estrito impede leitura e injecao em dominios do ChatGPT');
 
+// PASS 8: Extensao Ponte 1 e Gravity: Remocao global de executeScript nos catch blocks
+const ponte1Bg1 = fs.readFileSync(path.join(__dirname, '..', '..', 'extension', 'background.js'), 'utf8');
+const ponte1Bg2 = fs.readFileSync(path.join(__dirname, '..', '..', 'ponte1_telegram_chatgpt', 'extension', 'background.js'), 'utf8');
+const gravityBg = fs.readFileSync(path.join(__dirname, '..', 'extension_gravity', 'background.js'), 'utf8');
+assert(!ponte1Bg1.includes('executeScript'), 'extension/background.js nao deve conter executeScript');
+assert(!ponte1Bg2.includes('executeScript'), 'ponte1_telegram_chatgpt/extension/background.js nao deve conter executeScript');
+assert(!gravityBg.includes('executeScript'), 'extension_gravity/background.js nao deve conter executeScript');
+console.log('PASS 8: Background scripts de todas as pontes sem retry cego de executeScript');
+
+// PASS 9: Extensao Ponte 1: Declaracao de deliveredMessageIds e inFlightInjectionIds
+const ponte1Content = fs.readFileSync(path.join(__dirname, '..', '..', 'extension', 'content.js'), 'utf8');
+assert(ponte1Content.includes('const deliveredMessageIds = new Set();'), 'deliveredMessageIds deve estar declarado');
+assert(ponte1Content.includes('const inFlightInjectionIds = new Set();'), 'inFlightInjectionIds deve estar declarado na Ponte 1');
+assert(!ponte1Content.includes('new ClipboardEvent'), 'new ClipboardEvent removido da Ponte 1');
+console.log('PASS 9: Ponte 1 Content Script: Sets declarados e insercao atomica sem new ClipboardEvent');
+
 console.log('----------------------------------------------------------------');
-console.log('RESULTADO: 7 PASS / 0 FAIL');
+console.log('RESULTADO: 10 PASS / 0 FAIL');

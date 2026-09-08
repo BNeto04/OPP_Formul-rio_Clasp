@@ -14,6 +14,9 @@
   console.log('[Ponte1-Content] Ativo e monitorando chatgpt.com');
 
   const seenReplies = new Set();
+  const deliveredMessageIds = new Set();
+  const inFlightInjectionIds = new Set();
+  let isInjectingCurrently = false;
 
   function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
@@ -54,45 +57,33 @@
       }
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
-    } else if (el.isContentEditable) {
+      return;
+    }
+
+    if (el.isContentEditable) {
+      el.focus();
+
+      // Limpa qualquer seleção e conteúdo anterior
       const sel = window.getSelection();
       const range = document.createRange();
       range.selectNodeContents(el);
       sel.removeAllRanges();
       sel.addRange(range);
 
-      let success = false;
+      // Inserção ÚNICA e atômica via execCommand ('insertText')
+      // Sem ClipboardEvent, sem criação paralela de tags p e sem InputEvent duplicado
       try {
-        success = document.execCommand('insertText', false, text);
+        document.execCommand('insertText', false, text);
       } catch (e) {}
 
-      if (!success || !el.textContent || el.textContent.trim() === '') {
-        while (el.firstChild) {
-          el.removeChild(el.firstChild);
-        }
-        const lines = text.split('\n');
-        lines.forEach(line => {
-          const p = document.createElement('p');
-          if (line.trim() === '') {
-            p.appendChild(document.createElement('br'));
-          } else {
-            p.textContent = line;
-          }
-          el.appendChild(p);
-        });
-        el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-      }
+      // Sincronização limpa com o estado do React
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
 
   function clickBtn(btn) {
     btn.focus();
-    if (btn.disabled) {
-      btn.removeAttribute('disabled');
-      btn.disabled = false;
-    }
     btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
     btn.click();
@@ -112,9 +103,10 @@
       'button[data-testid="fruitjuice-send-button"]'
     ];
 
+    // Aguarda o botão estar realmente habilitado pelo React; NUNCA remove disabled à força
     for (const sel of selectors) {
       const btn = document.querySelector(sel);
-      if (btn) {
+      if (btn && !btn.disabled && !btn.getAttribute('aria-disabled')) {
         return clickBtn(btn);
       }
     }
@@ -126,15 +118,8 @@
         const testId = (btn.getAttribute('data-testid') || '').toLowerCase();
         const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
         if (testId.includes('speech') || aria.includes('voz') || aria.includes('voice')) continue;
-        if (testId.includes('send') || aria.includes('enviar') || aria.includes('send') || btn.querySelector('svg')) {
+        if ((testId.includes('send') || aria.includes('enviar') || aria.includes('send')) && !btn.disabled && !btn.getAttribute('aria-disabled')) {
           return clickBtn(btn);
-        }
-      }
-      if (buttons.length > 0) {
-        const lastBtn = buttons[buttons.length - 1];
-        const testId = (lastBtn.getAttribute('data-testid') || '').toLowerCase();
-        if (!testId.includes('speech')) {
-          return clickBtn(lastBtn);
         }
       }
     }
@@ -168,24 +153,53 @@
       return { success: false, status: 'COMPOSER_BUSY' };
     }
 
+    // 1. Inserção determinística única (sem paste duplo)
     setTextIntoElement(inputEl, payload);
 
     let submitted = false;
-    for (let i = 0; i < 8; i++) {
-      await sleep(250);
+    // 2. Aguarda o React habilitar o botão de envio (até 3 segundos)
+    for (let i = 0; i < 15; i++) {
+      await sleep(200);
       submitted = triggerSubmit(inputEl);
       if (submitted) {
+        console.log('[Ponte1-Content] Submissão confirmada via botão habilitado.');
+        break;
+      }
+    }
+
+    // 3. Fallback de submissão: apenas se o botão nunca foi habilitado
+    if (!submitted) {
+      console.log('[Ponte1-Content] Nenhum botão habilitado. Tentando submissão via Enter...');
+      triggerEnterKey(inputEl);
+      await sleep(300);
+    }
+
+    // 4. Verificação de esvaziamento do composer
+    for (let i = 0; i < 10; i++) {
+      await sleep(200);
+      const postText = getElementText(inputEl).trim();
+      if (postText === '') {
+        console.log('[Ponte1-Content] Sucesso: composer limpo após envio.');
         return { success: true };
       }
     }
 
-    // Fallback: somente se nenhum botão submeteu
-    if (!submitted) {
-      triggerEnterKey(inputEl);
-      await sleep(300);
-      const postSubmit = triggerSubmit(inputEl);
-      if (postSubmit) {
-        return { success: true };
+    // 5. Limpeza de resíduo garantida pós-envio: elimina qualquer fragmento ou réplica na caixa
+    const residual = getElementText(inputEl).trim();
+    if (residual.length > 0) {
+      console.warn('[Ponte1-Content] Limpando resíduo que permaneceu no composer após envio.');
+      if (inputEl.isContentEditable) {
+        const sel = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(inputEl);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        document.execCommand('delete', false, null);
+        while (inputEl.firstChild) inputEl.removeChild(inputEl.firstChild);
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (inputEl.value) {
+        inputEl.value = '';
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
       }
     }
 
@@ -196,7 +210,7 @@
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'PONTE1_CHECK_DELIVERED') {
       const msgId = msg.telegram_message_id || msg.packet_id;
-      const isDelivered = (msgId && deliveredMessageIds.has(String(msgId))) || false;
+      const isDelivered = (msgId && (deliveredMessageIds.has(String(msgId)) || inFlightInjectionIds.has(String(msgId)))) || false;
       sendResponse({ delivered: isDelivered, message_id: msgId });
       return false;
     }
@@ -211,9 +225,25 @@
       const match = payload.match(/REPLY_TO_MESSAGE_ID:\s*(\d+)/i);
       const msgId = msg.telegram_message_id || msg.packet_id || (match ? match[1] : null);
 
-      if (msgId && deliveredMessageIds.has(String(msgId))) {
-        console.log('[Ponte1-Content] DEDUPE_NO_OP: Mensagem do Telegram', msgId, 'já injetada anteriormente no ChatGPT.');
+      // Regra 0: Deduplicação síncrona imediata no content script
+      if (msgId && (deliveredMessageIds.has(String(msgId)) || inFlightInjectionIds.has(String(msgId)))) {
+        console.log('[Ponte1-Content] DEDUPE_NO_OP: Mensagem do Telegram', msgId, 'já em injeção ou entregue anteriormente no ChatGPT.');
         sendResponse({ success: true, status: 'DEDUPE_NO_OP', message_id: msgId });
+        return false;
+      }
+
+      // Trava de exclusão mútua: impede injeções concorrentes no mesmo composer
+      if (isInjectingCurrently) {
+        console.warn('[Ponte1-Content] COMPOSER_BUSY: Injeção já em andamento no DOM.');
+        sendResponse({ success: false, status: 'COMPOSER_BUSY', reason: 'INJECTION_IN_PROGRESS' });
+        return false;
+      }
+
+      // Verificação de geração ativa: se o ChatGPT está gerando resposta (botão stop ativo), aguardar
+      const stopBtn = document.querySelector('button[data-testid="stop-button"], button[aria-label*="Stop"], button[aria-label*="Parar"]');
+      if (stopBtn) {
+        console.warn('[Ponte1-Content] COMPOSER_BUSY: ChatGPT está gerando resposta ativa. Injeção adiada.');
+        sendResponse({ success: false, status: 'COMPOSER_BUSY', reason: 'CHATGPT_GENERATING' });
         return false;
       }
 
@@ -224,11 +254,18 @@
         return false;
       }
 
+      // Trava imediata síncrona
+      if (msgId) inFlightInjectionIds.add(String(msgId));
+      isInjectingCurrently = true;
+
       handleInjection(payload).then(res => {
         if (res && res.success && msgId) {
           deliveredMessageIds.add(String(msgId));
         }
         sendResponse(res);
+      }).finally(() => {
+        isInjectingCurrently = false;
+        if (msgId) inFlightInjectionIds.delete(String(msgId));
       });
       return true; // async
     }

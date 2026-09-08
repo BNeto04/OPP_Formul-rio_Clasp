@@ -212,26 +212,12 @@ async function deliverToChatGPT(packet) {
         payload: packet.payload
       });
     } catch (sendErr) {
-      // Auto-injeção dinâmica: se o content script não estiver ativo na aba (ex: aba não recarregada)
-      if (typeof chrome !== 'undefined' && chrome.scripting && tab.id) {
-        try {
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ['content.js']
-          });
-          await new Promise(r => setTimeout(r, 400));
-          response = await chrome.tabs.sendMessage(tab.id, {
-            type: 'PONTE1_INJECT_MESSAGE',
-            packet_id: packet.packet_id,
-            telegram_message_id: packet.telegram_message_id || null,
-            payload: packet.payload
-          });
-        } catch (scriptErr) {
-          throw sendErr;
-        }
-      } else {
-        throw sendErr;
-      }
+      console.warn('[Ponte1-Background] Falha de comunicação com a aba do ChatGPT:', sendErr.message);
+      // Zero retry cego: transita para incerto sem auto-reinjeção de script
+      uncertainInFlight = packet;
+      currentInFlight = null;
+      await persist();
+      return false;
     }
 
     if (response && (response.success || response.status === 'DEDUPE_NO_OP' || response.status === 'ECHO_NO_OP')) {

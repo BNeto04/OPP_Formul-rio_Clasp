@@ -62,44 +62,27 @@
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
     } else if (el.isContentEditable) {
+      el.focus();
+
+      // Limpa qualquer seleção e conteúdo anterior
       const sel = window.getSelection();
       const range = document.createRange();
       range.selectNodeContents(el);
       sel.removeAllRanges();
       sel.addRange(range);
 
-      let success = false;
+      // Inserção atômica canônica
       try {
-        success = document.execCommand('insertText', false, text);
+        document.execCommand('insertText', false, text);
       } catch (e) {}
 
-      if (!success || !el.textContent || el.textContent.trim() === '') {
-        while (el.firstChild) {
-          el.removeChild(el.firstChild);
-        }
-        const lines = text.split('\n');
-        lines.forEach(line => {
-          const p = document.createElement('p');
-          if (line.trim() === '') {
-            p.appendChild(document.createElement('br'));
-          } else {
-            p.textContent = line;
-          }
-          el.appendChild(p);
-        });
-        el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-      }
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
 
   function clickBtn(btn) {
     btn.focus();
-    if (btn.disabled) {
-      btn.removeAttribute('disabled');
-      btn.disabled = false;
-    }
     btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
     btn.click();

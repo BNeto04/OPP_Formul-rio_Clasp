@@ -141,24 +141,10 @@ async function deliverCallToGravity(packet) {
         payload: packet.payload
       });
     } catch (sendErr) {
-      if (typeof chrome !== 'undefined' && chrome.scripting && tab.id) {
-        try {
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ['content.js']
-          });
-          await new Promise(r => setTimeout(r, 400));
-          response = await chrome.tabs.sendMessage(tab.id, {
-            type: 'PONTE2_GRAVITY_INJECT_CALL',
-            call_id: packet.call_id,
-            payload: packet.payload
-          });
-        } catch (scriptErr) {
-          throw sendErr;
-        }
-      } else {
-        throw sendErr;
-      }
+      console.warn('[Ponte2-Gravity-Background] Falha de comunicação com a aba do Antigravity:', sendErr.message);
+      currentInFlightCall = null;
+      await persist();
+      return false;
     }
 
     if (response && response.success) {

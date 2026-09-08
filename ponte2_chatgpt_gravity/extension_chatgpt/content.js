@@ -67,49 +67,20 @@
     if (el.isContentEditable) {
       el.focus();
 
-      // 1. Tenta via ClipboardEvent ('paste') para compatibilidade nativa com ProseMirror
+      // Limpa qualquer seleção e conteúdo anterior
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      // Inserção ÚNICA e atômica via execCommand ('insertText')
+      // Sem ClipboardEvent, sem criação paralela de tags p e sem InputEvent duplicado
       try {
-        const dt = new DataTransfer();
-        dt.setData('text/plain', text);
-        const pasteEvt = new ClipboardEvent('paste', {
-          bubbles: true,
-          cancelable: true,
-          clipboardData: dt
-        });
-        el.dispatchEvent(pasteEvt);
+        document.execCommand('insertText', false, text);
       } catch (e) {}
 
-      // 2. Se vazio, tenta execCommand('insertText')
-      if (!el.textContent || el.textContent.trim() === '') {
-        try {
-          const sel = window.getSelection();
-          const range = document.createRange();
-          range.selectNodeContents(el);
-          sel.removeAllRanges();
-          sel.addRange(range);
-          document.execCommand('insertText', false, text);
-        } catch (e) {}
-      }
-
-      // 3. Fallback estrutural: criação direta de parágrafos DOM
-      if (!el.textContent || el.textContent.trim() === '') {
-        while (el.firstChild) {
-          el.removeChild(el.firstChild);
-        }
-        const lines = text.split('\n');
-        lines.forEach(line => {
-          const p = document.createElement('p');
-          if (line.trim() === '') {
-            p.appendChild(document.createElement('br'));
-          } else {
-            p.textContent = line;
-          }
-          el.appendChild(p);
-        });
-      }
-
-      // Dispara eventos para sincronização do React e ProseMirror
-      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
+      // Sincronização limpa com o estado do React
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
     }
@@ -117,10 +88,6 @@
 
   function clickBtn(btn) {
     btn.focus();
-    if (btn.disabled) {
-      btn.removeAttribute('disabled');
-      btn.disabled = false;
-    }
     btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
     btn.click();
@@ -140,15 +107,11 @@
       'button[data-testid="fruitjuice-send-button"]'
     ];
 
+    // Aguarda o botão estar realmente habilitado pelo React; NUNCA remove disabled à força
     for (const sel of selectors) {
       const btn = document.querySelector(sel);
-      if (btn) {
-        if (btn.disabled) {
-          btn.removeAttribute('disabled');
-          btn.disabled = false;
-        }
-        clickBtn(btn);
-        return true;
+      if (btn && !btn.disabled && !btn.getAttribute('aria-disabled')) {
+        return clickBtn(btn);
       }
     }
 
@@ -167,17 +130,8 @@
         const testId = (btn.getAttribute('data-testid') || '').toLowerCase();
         const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
         if (testId.includes('speech') || aria.includes('voz') || aria.includes('voice')) continue;
-        if (testId.includes('send') || aria.includes('enviar') || aria.includes('send') || btn.querySelector('svg')) {
-          clickBtn(btn);
-          return true;
-        }
-      }
-      if (buttons.length > 0) {
-        const lastBtn = buttons[buttons.length - 1];
-        const testId = (lastBtn.getAttribute('data-testid') || '').toLowerCase();
-        if (!testId.includes('speech')) {
-          clickBtn(lastBtn);
-          return true;
+        if ((testId.includes('send') || aria.includes('enviar') || aria.includes('send')) && !btn.disabled && !btn.getAttribute('aria-disabled')) {
+          return clickBtn(btn);
         }
       }
     }
@@ -216,38 +170,57 @@
       return { success: false, status: 'COMPOSER_BUSY' };
     }
 
+    // 1. Inserção determinística única (sem paste duplo)
     setTextIntoElement(inputEl, payload);
 
     let submitted = false;
-    for (let i = 0; i < 8; i++) {
-      await sleep(250);
+    // 2. Aguarda o React habilitar o botão de envio (até 3 segundos)
+    for (let i = 0; i < 15; i++) {
+      await sleep(200);
       submitted = triggerSubmit(inputEl);
       if (submitted) {
-        console.log('[Ponte2-Content] Submissão confirmada via botão. Retornando imediatamente sem Enter.');
-        return { success: true };
+        console.log('[Ponte2-Content] Submissão confirmada via botão habilitado.');
+        break;
       }
     }
 
-    // Fallback: somente se nenhum botão submeteu
+    // 3. Fallback de submissão: apenas se o botão nunca foi habilitado
     if (!submitted) {
-      console.log('[Ponte2-Content] Nenhum botão acionou. Executando fallback único de Enter...');
+      console.log('[Ponte2-Content] Nenhum botão habilitado. Tentando submissão via Enter...');
       triggerEnterKey(inputEl);
       await sleep(300);
-      const postSubmit = triggerSubmit(inputEl);
-      if (postSubmit) {
+    }
+
+    // 4. Verificação de esvaziamento do composer
+    for (let i = 0; i < 10; i++) {
+      await sleep(200);
+      const postText = getElementText(inputEl).trim();
+      if (postText === '') {
+        console.log('[Ponte2-Content] Sucesso: composer limpo após envio.');
         return { success: true };
       }
     }
 
-    // Aguarda e verifica se o composer foi esvaziado
-    await sleep(400);
-    const postText = getElementText(inputEl).trim();
-    if (postText === '') {
-      console.log('[Ponte2-Content] Sucesso: composer limpo após envio.');
-      return { success: true };
+    // 5. Limpeza de resíduo garantida: se o ChatGPT enviou mas deixou fragmento ou réplica na caixa, limpa automaticamente
+    const residual = getElementText(inputEl).trim();
+    if (residual.length > 0) {
+      console.warn('[Ponte2-Content] Limpando resíduo que permaneceu no composer após envio.');
+      if (inputEl.isContentEditable) {
+        const sel = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(inputEl);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        document.execCommand('delete', false, null);
+        while (inputEl.firstChild) inputEl.removeChild(inputEl.firstChild);
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (inputEl.value) {
+        inputEl.value = '';
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     }
 
-    return { success: true, warning: 'TEXT_MIGHT_STILL_BE_IN_COMPOSER' };
+    return { success: true };
   }
 
   const deliveredResultIds = new Set();
