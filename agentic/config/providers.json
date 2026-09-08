@@ -11,8 +11,10 @@
   "routing_policy": {
     "primary": "gemini",
     "fallback_1": "groq",
-    "fallback_2": "openrouter",
-    "optional": "deepseek",
+    "deferred": [
+      "openrouter",
+      "deepseek"
+    ],
     "legacy_local": "ollama_legacy"
   },
   "providers": {
@@ -63,7 +65,7 @@
     "openrouter": {
       "provider_id": "openrouter",
       "name": "OpenRouter",
-      "tier": "fallback_2",
+      "tier": "deferred",
       "sdk": "openai-compatible",
       "api_key_env_var": "OPENROUTER_API_KEY",
       "base_url": "https://openrouter.ai/api/v1",
@@ -72,7 +74,7 @@
       "timeout_ms": 45000,
       "openai_compatible": true,
       "validation_status": "VALIDADO_POR_DOCUMENTACAO_ATUAL",
-      "readiness": "CONFIG_CONTRACT_READY_NO_CREDENTIAL",
+      "readiness": "DEFERRED",
       "models_supported": [
         "meta-llama/llama-3.3-70b-instruct"
       ],
@@ -81,7 +83,7 @@
     "deepseek": {
       "provider_id": "deepseek",
       "name": "DeepSeek Direct API",
-      "tier": "optional",
+      "tier": "deferred",
       "sdk": "openai-compatible",
       "api_key_env_var": "DEEPSEEK_API_KEY",
       "base_url": "https://api.deepseek.com/v1",
@@ -90,7 +92,7 @@
       "timeout_ms": 45000,
       "openai_compatible": true,
       "validation_status": "VALIDADO_POR_DOCUMENTACAO_ATUAL",
-      "readiness": "CONFIG_CONTRACT_READY_NO_CREDENTIAL",
+      "readiness": "DEFERRED",
       "models_supported": [
         "deepseek-v4-flash",
         "deepseek-v4-pro"

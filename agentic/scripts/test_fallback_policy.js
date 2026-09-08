@@ -1,6 +1,6 @@
 /**
  * Syntheon Agentic Layer - Fallback, Retry & Idempotency Test Suite
- * Card: #73 T-A01-POLICY-005
+ * Card: #73 T-A01-POLICY-005 (AUDIT-FIX-002: 2 Active Providers: Gemini -> Groq)
  */
 
 const { start, isRouterAlive } = require('./start_router');
@@ -16,7 +16,7 @@ const {
 async function runTests() {
   console.log('================================================================');
   console.log('  TEST SUITE: FALLBACK, RETRY, CIRCUIT BREAKER & IDEMPOTENCY    ');
-  console.log('  Card #73 T-A01-POLICY-005                                     ');
+  console.log('  Card #73 T-A01-POLICY-005 (AUDIT-FIX-002: 2 Providers Only)   ');
   console.log('================================================================\n');
 
   let passed = 0;
@@ -68,33 +68,42 @@ async function runTests() {
       '422 classificado como TASK_LOGIC_ERROR (TASK_FAILURE, allow_fallback=false)');
   }
 
-  // 2. Testes Unitários de Circuit Breaker
-  console.log('\n--- 2. Circuit Breaker State Machine & Isolation ---');
+  // 2. Testes Unitários de Circuit Breaker Independente por Provider
+  console.log('\n--- 2. Circuit Breaker Independente (Gemini vs Groq) & Isolamento ---');
   {
     const cb = new CircuitBreaker(3, 200); // 3 falhas, cooldown 200ms
-    assert(cb.getState('p1') === 'CLOSED', 'Estado inicial eh CLOSED');
-    assert(cb.canExecute('p1') === true, 'canExecute() eh true em CLOSED');
+    assert(cb.getState('gemini') === 'CLOSED', 'Estado inicial do Gemini eh CLOSED');
+    assert(cb.getState('groq') === 'CLOSED', 'Estado inicial do Groq eh CLOSED');
 
     // Falhas de tarefa NAO devem abrir o circuito
-    cb.recordFailure('p1', false); // isProviderFailure = false
-    assert(cb.getState('p1') === 'CLOSED', 'Falha de tarefa (TASK_FAILURE) NAO incrementa nem abre circuito');
+    cb.recordFailure('gemini', false); // isProviderFailure = false
+    assert(cb.getState('gemini') === 'CLOSED', 'Falha de tarefa (TASK_FAILURE) NAO incrementa nem abre circuito do Gemini');
 
-    // 3 falhas de provedor consecutivas devem abrir o circuito
-    cb.recordFailure('p1', true);
-    cb.recordFailure('p1', true);
-    assert(cb.getState('p1') === 'CLOSED', 'Apos 2 falhas, estado continua CLOSED');
-    cb.recordFailure('p1', true);
-    assert(cb.getState('p1') === 'OPEN', 'Apos 3 falhas de provedor, circuito transita para OPEN');
-    assert(cb.canExecute('p1') === false, 'canExecute() eh false em OPEN');
+    // 3 falhas no Gemini abrem Gemini mas mantem Groq CLOSED
+    cb.recordFailure('gemini', true);
+    cb.recordFailure('gemini', true);
+    cb.recordFailure('gemini', true);
+    assert(cb.getState('gemini') === 'OPEN', 'Apos 3 falhas de provedor, circuito do Gemini transita para OPEN');
+    assert(cb.canExecute('gemini') === false, 'canExecute(gemini) eh false em OPEN');
+    assert(cb.getState('groq') === 'CLOSED', 'Circuito do Groq permanece 100% CLOSED (independencia garantida)');
+    assert(cb.canExecute('groq') === true, 'canExecute(groq) continua true');
 
     // Aguarda cooldown
     await new Promise(r => setTimeout(r, 250));
-    assert(cb.canExecute('p1') === true, 'Apos cooldown, canExecute() eh true (transita para HALF_OPEN)');
-    assert(cb.getState('p1') === 'HALF_OPEN', 'Circuito transita para HALF_OPEN');
+    assert(cb.canExecute('gemini') === true, 'Apos cooldown, canExecute(gemini) eh true (transita para HALF_OPEN)');
+    assert(cb.getState('gemini') === 'HALF_OPEN', 'Circuito Gemini transita para HALF_OPEN');
 
     // Sucesso em HALF_OPEN fecha o circuito
-    cb.recordSuccess('p1');
-    assert(cb.getState('p1') === 'CLOSED', 'Sucesso em HALF_OPEN restaura circuito para CLOSED');
+    cb.recordSuccess('gemini');
+    assert(cb.getState('gemini') === 'CLOSED', 'Sucesso em HALF_OPEN restaura circuito Gemini para CLOSED');
+
+    // Testa circuito do Groq de forma independente
+    cb.recordFailure('groq', true);
+    cb.recordFailure('groq', true);
+    cb.recordFailure('groq', true);
+    assert(cb.getState('groq') === 'OPEN', 'Circuito do Groq transita para OPEN independentemente');
+    assert(cb.getState('gemini') === 'CLOSED', 'Gemini permanece CLOSED enquanto Groq esta OPEN');
+    cb.recordSuccess('groq');
   }
 
   // 3. Testes Unitários de Idempotência
@@ -159,7 +168,7 @@ async function runTests() {
       faultInjectionHeader: 'fault_401'
     });
     assert(resD.status === 'FAILED_AUTH_ERROR' && resD.fallback_used === false,
-      '401 Auth devolve erro explícito sem retry e sem fallback silencioso');
+      '401 Auth devolve erro explicito sem retry e sem fallback silencioso');
     assert(resD.error && resD.error.allow_fallback === false, 'Metadata explicita allow_fallback=false');
 
     // Cenário E: Invalid Request (400)
@@ -217,11 +226,23 @@ async function runTests() {
     assert(resH2.status === 'COMPLETED' && resH2.replay_detected === true,
       'Segunda execucao com mesma chave detecta replay e retorna resultado sem reprocessar (replay_detected=true)');
 
-    // Cenário I: Limite Global de Tentativas
-    console.log('\n[Cenario I: Limites Globais Contra Loops]');
+    // Cenário I: Limites Factuais de 2 Providers
+    console.log('\n[Cenario I: Limites Factuais de 2 Provedores (Gemini -> Groq)]');
     assert(CONSTANTS.MAX_RETRIES_PER_PROVIDER === 1, 'Max retries por provider = 1');
-    assert(CONSTANTS.MAX_PROVIDERS_PER_EXECUTION === 3, 'Max providers por execucao = 3');
-    assert(CONSTANTS.GLOBAL_ATTEMPT_LIMIT === 6, 'Limite global de tentativas = 6 (sem loops infinitos)');
+    assert(CONSTANTS.MAX_PROVIDERS_PER_EXECUTION === 2, 'Max providers por execucao = 2 (exclusivo Gemini -> Groq)');
+    assert(CONSTANTS.GLOBAL_ATTEMPT_LIMIT === 4, 'Limite global factual de tentativas = 4 (2 providers x 2 tentativas)');
+
+    // Cenário J: Esgotamento da Cadeia de 2 Providers sem Terceiro
+    console.log('\n[Cenario J: Falha no Fallback 1 Encerra Cadeia sem Terceiro Provedor]');
+    const resJ = await executeTask({
+      taskId: 'T-A01-TEST-J',
+      instruction: 'Teste de esgotamento de cadeia de 2 providers',
+      faultInjectionHeader: 'fault_groq_failure'
+    });
+    assert(resJ.status === 'FAILED_ALL_PROVIDERS_EXHAUSTED', 'Status eh FAILED_ALL_PROVIDERS_EXHAUSTED');
+    assert(resJ.error && resJ.error.third_provider_attempted === false, 'Zero tentativa de terceiro provider (third_provider_attempted=false)');
+    assert(resJ.error && resJ.error.providers_attempted.length === 2, 'Apenas 2 providers foram tentados (Gemini e Groq)');
+    assert(resJ.error && resJ.error.attempts.length === 4, 'Exatamente 4 tentativas no total antes do encerramento seguro');
 
   } finally {
     console.log('\nEncerrando router apos testes...');

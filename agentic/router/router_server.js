@@ -51,14 +51,25 @@ function getProviderCredentialsState(config) {
   for (const [key, p] of Object.entries(config.providers)) {
     const envVar = p.api_key_env_var;
     const hasKey = envVar ? (Boolean(process.env[envVar]) && process.env[envVar].trim() !== '') : false;
+    let status = 'DEFERRED';
+    if (p.tier === 'primary') {
+      status = hasKey ? 'ACTIVE_PRIMARY_READY' : 'ACTIVE_PRIMARY_NO_CREDENTIAL';
+    } else if (p.tier === 'fallback_1') {
+      status = hasKey ? 'ACTIVE_FALLBACK_READY' : 'ACTIVE_FALLBACK_NO_CREDENTIAL';
+    } else if (p.tier === 'deferred') {
+      status = 'DEFERRED';
+    } else if (p.tier === 'local_diagnostic') {
+      status = 'UNAVAILABLE';
+    }
+
     state[key] = {
       provider_id: p.provider_id,
       name: p.name,
       tier: p.tier,
       model: p.default_model,
       credential_present: hasKey,
-      circuit_state: globalCircuitBreaker.getState(p.provider_id),
-      status: hasKey ? 'READY_CREDENTIAL_CONFIGURED' : (p.tier === 'local_diagnostic' ? 'UNAVAILABLE' : 'CONFIG_CONTRACT_READY_NO_CREDENTIAL')
+      circuit_state: (p.tier === 'primary' || p.tier === 'fallback_1') ? globalCircuitBreaker.getState(p.provider_id) : 'DISABLED',
+      status: status
     };
   }
   return state;
@@ -81,7 +92,8 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && (url.pathname === '/health' || url.pathname === '/v1/health')) {
     const config = loadConfig();
     const providersState = getProviderCredentialsState(config);
-    const hasAnyCloudCred = Object.values(providersState).some(p => p.credential_present);
+    const activeProviders = ['gemini', 'groq'];
+    const hasActiveCloudCred = activeProviders.some(id => providersState[id] && providersState[id].credential_present);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
@@ -93,11 +105,12 @@ const server = http.createServer(async (req, res) => {
       base_url: `http://${HOST}:${PORT}/v1`,
       aliases: ['syntheon-worker', 'syntheon-fast', 'syntheon-reasoning'],
       routing_policy: config ? config.routing_policy : {},
-      has_active_cloud_credentials: hasAnyCloudCred,
+      active_providers: activeProviders,
+      deferred_providers: ['openrouter', 'deepseek'],
+      has_active_cloud_credentials: hasActiveCloudCred,
       circuit_breaker: {
         gemini: globalCircuitBreaker.getState('gemini'),
-        groq: globalCircuitBreaker.getState('groq'),
-        openrouter: globalCircuitBreaker.getState('openrouter')
+        groq: globalCircuitBreaker.getState('groq')
       },
       providers: providersState,
       idle_llm_calls: 0,
@@ -322,6 +335,32 @@ const server = http.createServer(async (req, res) => {
             return;
           }
 
+          if (faultHeader === 'fault_groq_failure') {
+            log(`[FAULT_INJECTION] Simulando falha total nos 2 provedores ativos (Gemini falha -> Groq falha). Policy: encerra sem tentar 3o provider.`);
+            attempts.push({ provider: 'gemini', attempt: 1, error_class: 'SERVER_5XX', action: 'retry_gemini' });
+            attempts.push({ provider: 'gemini', attempt: 2, error_class: 'SERVER_5XX', action: 'fallback_to_groq' });
+            attempts.push({ provider: 'groq', attempt: 1, error_class: 'SERVER_5XX', action: 'retry_groq' });
+            attempts.push({ provider: 'groq', attempt: 2, error_class: 'SERVER_5XX', action: 'terminate_exhausted' });
+            globalCircuitBreaker.recordFailure('gemini', true);
+            globalCircuitBreaker.recordFailure('groq', true);
+
+            res.writeHead(502, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: {
+                message: 'All active providers failed (Gemini, Groq). Fallback chain exhausted (2 providers max, 4 total attempts). OpenRouter and DeepSeek are deferred.',
+                type: 'ALL_PROVIDERS_EXHAUSTED',
+                providers_attempted: ['gemini', 'groq'],
+                third_provider_attempted: false,
+                attempts: attempts,
+                circuit_state: {
+                  gemini: globalCircuitBreaker.getState('gemini'),
+                  groq: globalCircuitBreaker.getState('groq')
+                }
+              }
+            }));
+            return;
+          }
+
           if (faultHeader === 'fault_circuit_break') {
             log(`[FAULT_INJECTION] Injetando 3 falhas de provedor no Gemini para disparar Circuit Breaker OPEN.`);
             globalCircuitBreaker.recordFailure('gemini', true);
@@ -393,7 +432,7 @@ const server = http.createServer(async (req, res) => {
         // VERIFICAÇÃO REAL DE CREDENCIAIS
         const config = loadConfig();
         const providersState = getProviderCredentialsState(config);
-        const routeOrder = ['gemini', 'groq', 'openrouter'];
+        const routeOrder = ['gemini', 'groq'];
         let selectedProvider = null;
 
         for (const provId of routeOrder) {
@@ -406,11 +445,11 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (!selectedProvider) {
-          log(`[NO_CREDENTIAL] Rejeicao segura: nenhum provedor com credencial valida no ambiente. Zero chamadas de rede externas.`);
+          log(`[NO_CREDENTIAL] Rejeicao segura: nenhum provedor ativo com credencial valida no ambiente. Zero chamadas de rede externas.`);
           res.writeHead(401, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             error: {
-              message: 'Nenhum provedor configurado com credencial valida no ambiente. Configure GEMINI_API_KEY, GROQ_API_KEY ou OPENROUTER_API_KEY no arquivo .env local.',
+              message: 'Nenhum provedor ativo configurado com credencial valida no ambiente. Configure GEMINI_API_KEY ou GROQ_API_KEY no arquivo .env local.',
               type: 'NO_PROVIDER_CREDENTIAL',
               code: 'no_credentials_available',
               providers_checked: routeOrder
