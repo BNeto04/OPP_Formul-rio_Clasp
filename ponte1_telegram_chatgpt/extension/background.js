@@ -15,6 +15,7 @@ const CONFIG = {
 };
 
 let currentInFlight = null;
+let uncertainInFlight = null;
 let lastDeliveredId = null;
 let deliveredIds = new Set();
 let isDispatching = false;
@@ -31,9 +32,15 @@ function updateBadge(text, color) {
 async function rehydrate() {
   return new Promise(resolve => {
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-      chrome.storage.local.get(['ponte1_in_flight', 'ponte1_last_delivered', 'ponte1_delivered_ids'], res => {
+      chrome.storage.local.get(['ponte1_in_flight', 'ponte1_uncertain', 'ponte1_last_delivered', 'ponte1_delivered_ids'], res => {
         if (res) {
-          if (res.ponte1_in_flight) currentInFlight = res.ponte1_in_flight;
+          // Supressão de Causa: pacote reidratado sem ACK NUNCA é reenviado cegamente; transita para uncertain
+          if (res.ponte1_in_flight) {
+            uncertainInFlight = res.ponte1_in_flight;
+            currentInFlight = null;
+          } else if (res.ponte1_uncertain) {
+            uncertainInFlight = res.ponte1_uncertain;
+          }
           if (res.ponte1_last_delivered) lastDeliveredId = res.ponte1_last_delivered;
           if (Array.isArray(res.ponte1_delivered_ids)) deliveredIds = new Set(res.ponte1_delivered_ids);
         }
@@ -50,6 +57,7 @@ async function persist() {
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.set({
         ponte1_in_flight: currentInFlight,
+        ponte1_uncertain: uncertainInFlight,
         ponte1_last_delivered: lastDeliveredId,
         ponte1_delivered_ids: Array.from(deliveredIds)
       }, () => resolve());
@@ -57,6 +65,49 @@ async function persist() {
       resolve();
     }
   });
+}
+
+async function reconcileUncertainPacket(packet) {
+  if (!packet || !packet.packet_id) return;
+  if (deliveredIds.has(packet.packet_id)) {
+    uncertainInFlight = null;
+    await persist();
+    await fetch(`${CONFIG.endpoint}/ack`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packet_id: packet.packet_id })
+    });
+    return;
+  }
+
+  const tab = await findChatGPTTab();
+  if (!tab) return; // Mantém em quarentena incerta sem reenviar
+
+  try {
+    const resp = await chrome.tabs.sendMessage(tab.id, {
+      type: 'PONTE1_CHECK_DELIVERED',
+      packet_id: packet.packet_id,
+      telegram_message_id: packet.telegram_message_id || null
+    });
+    if (resp && resp.delivered) {
+      // Injeção já havia ocorrido no DOM antes da suspensão/restart
+      deliveredIds.add(packet.packet_id);
+      lastDeliveredId = packet.packet_id;
+      uncertainInFlight = null;
+      await persist();
+      await fetch(`${CONFIG.endpoint}/ack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packet_id: packet.packet_id })
+      });
+    } else if (resp && resp.delivered === false) {
+      // Certeza explícita de que a entrega NÃO ocorreu: permite injeção única
+      uncertainInFlight = null;
+      await deliverToChatGPT(packet);
+    }
+  } catch (e) {
+    // Se a aba não responder, NUNCA faz retry cego; mantém quarentena.
+  }
 }
 
 async function findChatGPTTab() {
@@ -86,13 +137,11 @@ async function checkBridge() {
   isDispatching = true;
 
   try {
-    // 1. Se existe um pacote retido em voo, tenta entregá-lo prioritariamente
-    if (currentInFlight) {
-      const ok = await deliverToChatGPT(currentInFlight);
-      if (!ok) {
-        isDispatching = false;
-        return;
-      }
+    // 1. Se há pacote em estado incerto pós-rehydrate, apenas reconcilia; NUNCA faz retry cego
+    if (uncertainInFlight) {
+      await reconcileUncertainPacket(uncertainInFlight);
+      isDispatching = false;
+      return;
     }
 
     // 2. Consulta novo pacote

@@ -16,6 +16,7 @@ const CONFIG = {
 };
 
 let currentInFlightResult = null;
+let uncertainInFlightResult = null;
 let lastDeliveredResultId = null;
 let deliveredResultIds = new Set();
 let isPollingResult = false;
@@ -32,9 +33,15 @@ function updateBadge(text, color) {
 async function rehydrate() {
   return new Promise(resolve => {
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-      chrome.storage.local.get(['ponte2_in_flight_result', 'ponte2_last_delivered', 'ponte2_delivered_ids'], res => {
+      chrome.storage.local.get(['ponte2_in_flight_result', 'ponte2_uncertain_result', 'ponte2_last_delivered', 'ponte2_delivered_ids'], res => {
         if (res) {
-          if (res.ponte2_in_flight_result) currentInFlightResult = res.ponte2_in_flight_result;
+          // Supressão de Causa: pacote reidratado sem ACK NUNCA é reenviado cegamente; transita para uncertain
+          if (res.ponte2_in_flight_result) {
+            uncertainInFlightResult = res.ponte2_in_flight_result;
+            currentInFlightResult = null;
+          } else if (res.ponte2_uncertain_result) {
+            uncertainInFlightResult = res.ponte2_uncertain_result;
+          }
           if (res.ponte2_last_delivered) lastDeliveredResultId = res.ponte2_last_delivered;
           if (Array.isArray(res.ponte2_delivered_ids)) deliveredResultIds = new Set(res.ponte2_delivered_ids);
         }
@@ -51,6 +58,7 @@ async function persist() {
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.set({
         ponte2_in_flight_result: currentInFlightResult,
+        ponte2_uncertain_result: uncertainInFlightResult,
         ponte2_last_delivered: lastDeliveredResultId,
         ponte2_delivered_ids: Array.from(deliveredResultIds)
       }, () => resolve());
@@ -58,6 +66,48 @@ async function persist() {
       resolve();
     }
   });
+}
+
+async function reconcileUncertainResult(packet) {
+  if (!packet || !packet.call_id) return;
+  if (deliveredResultIds.has(packet.call_id)) {
+    uncertainInFlightResult = null;
+    await persist();
+    await fetch(`${CONFIG.endpoint}/result_ack`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call_id: packet.call_id })
+    });
+    return;
+  }
+
+  const tab = await findChatGPTTab();
+  if (!tab) return; // Mantém em quarentena incerta sem reenviar
+
+  try {
+    const resp = await chrome.tabs.sendMessage(tab.id, {
+      type: 'PONTE2_CHECK_DELIVERED',
+      call_id: packet.call_id
+    });
+    if (resp && resp.delivered) {
+      // Injeção já havia ocorrido no DOM antes da suspensão/restart
+      deliveredResultIds.add(packet.call_id);
+      lastDeliveredResultId = packet.call_id;
+      uncertainInFlightResult = null;
+      await persist();
+      await fetch(`${CONFIG.endpoint}/result_ack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ call_id: packet.call_id })
+      });
+    } else if (resp && resp.delivered === false) {
+      // Certeza explícita de que a entrega NÃO ocorreu: permite injeção única
+      uncertainInFlightResult = null;
+      await deliverResultToChatGPT(packet);
+    }
+  } catch (e) {
+    // Se a aba não responder, NUNCA faz retry cego; mantém quarentena.
+  }
 }
 
 async function findChatGPTTab() {
@@ -87,13 +137,11 @@ async function checkResultQueue() {
   isPollingResult = true;
 
   try {
-    // 1. Se há um resultado pendente em voo que não completou, tenta entregá-lo
-    if (currentInFlightResult) {
-      const ok = await deliverResultToChatGPT(currentInFlightResult);
-      if (!ok) {
-        isPollingResult = false;
-        return;
-      }
+    // 1. Se há pacote em estado incerto pós-rehydrate, apenas reconcilia; NUNCA faz retry cego
+    if (uncertainInFlightResult) {
+      await reconcileUncertainResult(uncertainInFlightResult);
+      isPollingResult = false;
+      return;
     }
 
     // 2. Consulta novo resultado vindo do Gravity

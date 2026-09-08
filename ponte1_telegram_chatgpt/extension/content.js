@@ -192,9 +192,17 @@
     return { success: true };
   }
 
-  const deliveredMessageIds = new Set();
+  // 0. Listener de reconciliação pós-restart do service worker para evitar retry cego
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.type === 'PONTE1_CHECK_DELIVERED') {
+      const msgId = msg.telegram_message_id || msg.packet_id;
+      const isDelivered = (msgId && deliveredMessageIds.has(String(msgId))) || false;
+      sendResponse({ delivered: isDelivered, message_id: msgId });
+      return false;
+    }
+  });
 
-  // Listener para injeção vinda do background
+  // 1. Listener para injeção vinda do background
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'PONTE1_INJECT_MESSAGE') {
       const payload = msg.payload || '';

@@ -252,6 +252,16 @@
 
   const deliveredResultIds = new Set();
 
+  // 0. Listener de reconciliação para evitar retry cego pós-restart do service worker
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.type === 'PONTE2_CHECK_DELIVERED') {
+      const callId = msg.call_id;
+      const isDelivered = (callId && deliveredResultIds.has(callId)) || false;
+      sendResponse({ delivered: isDelivered, call_id: callId });
+      return false;
+    }
+  });
+
   // 1. Inbound listener (Injeção de RESULT / ACK do Gravity)
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'PONTE2_INJECT_RESULT') {
