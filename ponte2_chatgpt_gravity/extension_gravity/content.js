@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Syntheon Ponte 2 - Content Script (Gravity Carrier)
  *
  * Responsabilidades Estritas:
@@ -12,6 +12,11 @@
  */
 
 (() => {
+  // Isolamento Estrito: extension_gravity NUNCA deve executar em páginas do ChatGPT
+  if (typeof window !== 'undefined' && window.location && (window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com'))) {
+    return;
+  }
+
   if (window.__SYNTHEON_PONTE2_GRAVITY_CONTENT_INJECTED__) return;
   window.__SYNTHEON_PONTE2_GRAVITY_CONTENT_INJECTED__ = true;
 
@@ -218,9 +223,11 @@
 
   setInterval(() => {
     try {
-      chrome.runtime.sendMessage({ type: 'PONTE2_GRAVITY_HEARTBEAT' }, () => {
-        if (chrome.runtime.lastError) {}
-      });
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+        chrome.runtime.sendMessage({ type: 'PONTE2_GRAVITY_HEARTBEAT' }, () => {
+          void chrome.runtime.lastError;
+        });
+      }
     } catch (e) {}
   }, 2500);
 })();

@@ -144,7 +144,13 @@ async function checkResultQueue() {
       return;
     }
 
-    // 2. Consulta novo resultado vindo do Gravity
+    // 2. Single-Flight Lock: se já existe um envio em trânsito não confirmado, aguarda
+    if (currentInFlightResult) {
+      isPollingResult = false;
+      return;
+    }
+
+    // 3. Consulta novo resultado vindo do Gravity
     const res = await fetch(`${CONFIG.endpoint}/result`, { cache: 'no-store' });
     if (!res.ok) {
       isPollingResult = false;
@@ -211,31 +217,19 @@ async function deliverResultToChatGPT(packet) {
         payload: packet.payload
       });
     } catch (sendErr) {
-      // Auto-injeção dinâmica via chrome.scripting se aba ainda não recarregou
-      if (typeof chrome !== 'undefined' && chrome.scripting && tab.id) {
-        try {
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ['content.js']
-          });
-          await new Promise(r => setTimeout(r, 400));
-          response = await chrome.tabs.sendMessage(tab.id, {
-            type: 'PONTE2_INJECT_RESULT',
-            call_id: packet.call_id,
-            payload: packet.payload
-          });
-        } catch (scriptErr) {
-          throw sendErr;
-        }
-      } else {
-        throw sendErr;
-      }
+      console.warn('[Ponte2-Background] Falha de comunicação com a aba do ChatGPT:', sendErr.message);
+      // Zero retry cego: transita para quarentena incerta sem reenviar na mesma chamada
+      uncertainInFlightResult = packet;
+      currentInFlightResult = null;
+      await persist();
+      return false;
     }
 
     if (response && (response.success || response.status === 'DEDUPE_NO_OP' || response.status === 'ECHO_NO_OP')) {
       lastDeliveredResultId = packet.call_id;
       deliveredResultIds.add(packet.call_id);
       currentInFlightResult = null;
+      uncertainInFlightResult = null;
       await persist();
 
       await fetch(`${CONFIG.endpoint}/result_ack`, {

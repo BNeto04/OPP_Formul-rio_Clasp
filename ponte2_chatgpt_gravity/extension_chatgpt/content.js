@@ -251,12 +251,14 @@
   }
 
   const deliveredResultIds = new Set();
+  const inFlightInjectionIds = new Set();
+  let isInjectingCurrently = false;
 
   // 0. Listener de reconciliação para evitar retry cego pós-restart do service worker
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'PONTE2_CHECK_DELIVERED') {
       const callId = msg.call_id;
-      const isDelivered = (callId && deliveredResultIds.has(callId)) || false;
+      const isDelivered = (callId && (deliveredResultIds.has(callId) || inFlightInjectionIds.has(callId))) || false;
       sendResponse({ delivered: isDelivered, call_id: callId });
       return false;
     }
@@ -268,10 +270,25 @@
       const payload = msg.payload || '';
       const callId = msg.call_id || null;
 
-      // Regra 0: Deduplicação determinística no content script (não injeta se já entregue)
-      if (callId && deliveredResultIds.has(callId)) {
-        console.log('[Ponte2-Content] DEDUPE_NO_OP: RESULT', callId, 'já injetado anteriormente no ChatGPT.');
+      // Regra 0: Deduplicação determinística síncrona imediata no content script
+      if (callId && (deliveredResultIds.has(callId) || inFlightInjectionIds.has(callId))) {
+        console.log('[Ponte2-Content] DEDUPE_NO_OP: RESULT', callId, 'já em injeção ou entregue anteriormente no ChatGPT.');
         sendResponse({ success: true, status: 'DEDUPE_NO_OP', call_id: callId });
+        return false;
+      }
+
+      // Trava de exclusão mútua: impede injeções concorrentes no mesmo composer
+      if (isInjectingCurrently) {
+        console.warn('[Ponte2-Content] COMPOSER_BUSY: Injeção já em andamento no DOM.');
+        sendResponse({ success: false, status: 'COMPOSER_BUSY', reason: 'INJECTION_IN_PROGRESS' });
+        return false;
+      }
+
+      // Verificação de geração ativa: se o ChatGPT está gerando resposta (botão stop ativo), aguardar
+      const stopBtn = document.querySelector('button[data-testid="stop-button"], button[aria-label*="Stop"], button[aria-label*="Parar"]');
+      if (stopBtn) {
+        console.warn('[Ponte2-Content] COMPOSER_BUSY: ChatGPT está gerando resposta ativa. Injeção adiada.');
+        sendResponse({ success: false, status: 'COMPOSER_BUSY', reason: 'CHATGPT_GENERATING' });
         return false;
       }
 
@@ -289,11 +306,18 @@
         return false;
       }
 
+      // Trava imediata síncrona
+      if (callId) inFlightInjectionIds.add(callId);
+      isInjectingCurrently = true;
+
       handleInjection(payload).then(res => {
         if (res && res.success && callId) {
           deliveredResultIds.add(callId);
         }
         sendResponse(res);
+      }).finally(() => {
+        isInjectingCurrently = false;
+        if (callId) inFlightInjectionIds.delete(callId);
       });
       return true; // async
     }
