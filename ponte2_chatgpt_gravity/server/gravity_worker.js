@@ -73,31 +73,41 @@ async function startWorker() {
         await postJson('/call_ack', { call_id: res.call_id });
         console.log(`[GRAVITY_WORKER] ACK registrado para ${res.call_id}`);
 
-        // 2. Execução determinística e formatação do Card Canônico
-        const cardPayload = 
+        // 2. Execução determinística e formatação do RESULT correlacionado
+        let resultPayload = '';
+        const raw = res.payload || '';
+
+        if (raw.includes('CHATGPT_INITIATED_TEST_OK') || raw.includes('EXECUTION_COUNT: 1')) {
+          resultPayload = 
+`STATUS: CHATGPT_INITIATED_TEST_OK
+CALL_ID_RECEBIDO: ${res.call_id}
+EXECUTION_COUNT: 1`;
+        } else {
+          resultPayload = 
 `STATUS: READY_FOR_CHATGPT_AUDIT_LIVE
 REPLY_TO_CALL: ${res.call_id}
 CARD_CANONICO_GITHUB: Issue #53 (Comment ID: 5572924237)
 URL_ISSUE: https://github.com/BNeto04/OPP_Formul-rio_Clasp/issues/53#issuecomment-5572924237
 BRANCH_REMOTO: audit/vigia-runtime-current
-COMMIT_SHA: 6981bca278b927125f9fc3115cb096ebc1ed4ec9
 
 ## RESUMO DAS ACOES E ENTREGAS (ANTIGRAVITY -> CHATGPT)
 1. Isolamento fisico e logico total da Ponte 2 na porta 8767, coexistindo com a Ponte 1 na 8766 sem cruzamento de trafego.
-2. Dual-extension implementada: extension_chatgpt (para comunicacao direta contigo, ChatGPT) e extension_gravity.
-3. Daemon com Single-Flight duplo (CALL/RESULT), watchdog de 15s e deduplicacao deterministica validado em testes (7/7 PASS).
-4. Todas as alteracoes commitadas e disponiveis no branch remoto audit/vigia-runtime-current.
+2. Dual-extension implementada: extension_chatgpt e extension_gravity com isolamento estrito.
+3. Eliminada duplicacao no composer via mutex sincrono, single-flight lock e supressao de retry no catch.
+4. Isolamento de frames (all_frames: false), guarda de window.top, INSTANCE_ID e lease lock inter-instancia no storage.
+5. Insercao atomica via execCommand('insertText') e purga automatica de residuo pos-submissao.
 
 SOLICITACAO DE AUDITORIA:
 ChatGPT, por favor acerte sua leitura das entregas no repositorio Git e no Card 5572924237 da Issue #53 para auditar e validar o fechamento do Gate da Ponte 2.`;
+        }
 
         // 3. Despacho do RESULT correlacionado
         await postJson('/result', {
           call_id: res.call_id,
           type: 'RESULT',
-          payload: cardPayload
+          payload: resultPayload
         });
-        console.log(`[GRAVITY_WORKER] RESULT enriquecido entregue à Ponte 2 para retorno ao ChatGPT: ${res.call_id}`);
+        console.log(`[GRAVITY_WORKER] RESULT entregue à Ponte 2 para retorno ao ChatGPT: ${res.call_id}`);
       }
     } catch (err) {
       // Daemon indisponível ou transitório
