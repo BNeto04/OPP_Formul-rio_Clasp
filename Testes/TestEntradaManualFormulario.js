@@ -18,11 +18,13 @@ global.SpreadsheetApp = {
 global.Logger = { log: console.log };
 
 const entradaManualCode = fs.readFileSync(path.join(__dirname, '../Entrada/EntradaManual.js'), 'utf8');
-eval(entradaManualCode + '\nif(typeof gravarLinhasEntradaManual !== "undefined") global.gravarLinhasEntradaManual = gravarLinhasEntradaManual; if(typeof obterOpcoesValidacao !== "undefined") global.obterOpcoesValidacao = obterOpcoesValidacao; if(typeof localizarAbaMensalTratada !== "undefined") global.localizarAbaMensalTratada = localizarAbaMensalTratada; if(typeof processarEntradaManual !== "undefined") global.processarEntradaManual = processarEntradaManual;'); 
+eval(entradaManualCode + '\nif(typeof gravarLinhasEntradaManual !== "undefined") global.gravarLinhasEntradaManual = gravarLinhasEntradaManual; if(typeof obterOpcoesValidacao !== "undefined") global.obterOpcoesValidacao = obterOpcoesValidacao; if(typeof localizarAbaMensalTratada !== "undefined") global.localizarAbaMensalTratada = localizarAbaMensalTratada; if(typeof processarEntradaManual !== "undefined") global.processarEntradaManual = processarEntradaManual; if(typeof verificarDuplicidadeOcorrencia !== "undefined") global.verificarDuplicidadeOcorrencia = verificarDuplicidadeOcorrencia; if(typeof resolverNomeAbaMensal !== "undefined") global.resolverNomeAbaMensal = resolverNomeAbaMensal;'); 
 const gravarLinhasEntradaManual = global.gravarLinhasEntradaManual;
 const obterOpcoesValidacao = global.obterOpcoesValidacao;
 const localizarAbaMensalTratada = global.localizarAbaMensalTratada;
 const processarEntradaManual = global.processarEntradaManual;
+const verificarDuplicidadeOcorrencia = global.verificarDuplicidadeOcorrencia;
+const resolverNomeAbaMensal = global.resolverNomeAbaMensal;
 
 function mockDataValidation(listaValores) {
     return {
@@ -48,7 +50,10 @@ function mockRange(row, col, values, formulas = null, validations = null) {
 
 function mockSheet(headers, mockValuesCallback, mockFormulasCallback, mockValidationsCallback) {
     let mockAba = {
-        getName: () => 'JAN2026',
+        sheetName: 'JAN2026',
+        getName: function() { return this.sheetName; },
+        colBoeValues: null,
+        colMikeValues: null,
         rangesEscritos: [],
         getLastColumn: () => headers.length,
         getMaxRows: () => 100,
@@ -61,6 +66,16 @@ function mockSheet(headers, mockValuesCallback, mockFormulasCallback, mockValida
                     colB[1] = ['02/01/2026']; // Ocupa a linha 2, forçando a gravar na linha 3
                 }
                 return mockRange(1, 2, colB, colB.map(()=>['']), colB.map(()=>[null]));
+            }
+            if (typeof row === 'string' && (row.startsWith('G2:G') || row.startsWith('E2:E'))) {
+                const maxRows = mockAba.getMaxRows();
+                let vals;
+                if (row.startsWith('G2:G')) {
+                    vals = mockAba.colBoeValues || Array(maxRows).fill(['']);
+                } else {
+                    vals = mockAba.colMikeValues || Array(maxRows).fill(['']);
+                }
+                return mockRange(2, row.startsWith('G2:G') ? 7 : 5, vals);
             }
             if (row === 1 && numRows === 1) {
                 return mockRange(row, col, [headers.slice(col - 1, col - 1 + numCols)]);
@@ -838,6 +853,164 @@ eval(fullFormularioScript);
     let sheetPip = mockSheet(CABECALHOS_ORIGINAIS, null, null, validationsPip);
     gravarLinhasEntradaManual(sheetPip, linhasMultiPip);
     assert.ok(sheetPip.rangesEscritos.length > 0, 'Deve persistir colunas AG e AH de PIP e Imputado no Sheets');
+
+    // [Test 14] Contrato Operacional de Salvar / Persistência no Sheets (Card #65: T-C01-PERSISTENCIA-008)
+    console.log('  [Test 14] Contrato Operacional de Salvar e Persistência no Sheets (Pipeline completo, duplicidade, validação e atomicidade real)');
+
+    // 14.1: Pipeline completo de processarEntradaManual (Fato, Equipe, Armas, Drogas, PIP, Imputado)
+    const validacoesPersistencia = (row, col, numRows, numCols) => {
+        return Array(numRows).fill(CABECALHOS_ORIGINAIS.map(c => {
+            if (c === 'NATUREZA DA OCORRÊNCIA') return mockDataValidation(['TRÁFICO ILÍCITO DE ENTORPECENTES']);
+            if (c === 'TIPO') return mockDataValidation(['INDUSTRIAL']);
+            if (c === 'MODELO') return mockDataValidation(['PISTOLA']);
+            if (c === 'OCORRÊNCIA PIP') return mockDataValidation(['Apreensão de arma de fogo pistola', 'Apreensão de cocaína por grama (invólucro)', 'TRÁFICO ILÍCITO DE ENTORPECENTES']);
+            if (c === 'IMPUTADO?') return mockDataValidation(['COM IMPUTADO', 'SEM IMPUTADO']);
+            return null;
+        })).map(rowVals => rowVals.slice(col - 1, col - 1 + numCols));
+    };
+
+    let sheetPersistencia = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
+    sheetPersistencia.sheetName = 'AGO2026';
+
+    const mockSs = {
+        getSheetByName: (n) => (n === sheetPersistencia.getName() ? sheetPersistencia : null),
+        getSheets: () => [sheetPersistencia]
+    };
+    global.SpreadsheetApp.getActiveSpreadsheet = () => mockSs;
+    global.SpreadsheetApp.openById = () => mockSs;
+
+    const payloadCompleto = {
+        origem: 'FORMULARIO',
+        data: '18/08/2026',
+        hora: '15:40',
+        qtd_o: '1',
+        mike: 'M123456',
+        boe: '2026/000123',
+        natureza: 'TRÁFICO ILÍCITO DE ENTORPECENTES',
+        ais: '3',
+        cidade: 'RECIFE',
+        bairro: 'BOA VIAGEM',
+        detidos: '1',
+        imputado: 'COM IMPUTADO',
+        policiais: [
+            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 1 },
+            { pelotao: '1º PEL', posto: 'CB', matricula: '1002', nome: 'POLICIAL DOIS', qtd_armas: 0 }
+        ],
+        armas: [
+            { tipo: 'INDUSTRIAL', modelo: 'PISTOLA', calibre: '.40', municao: 15, quantidade: 1 }
+        ],
+        drogas: [
+            { tipo: 'COCAINA PINO', quantidade: 50 },
+            { tipo: 'MACONHA GRAMA', quantidade: 100 }
+        ],
+        ocorrenciasPip: [
+            'Apreensão de arma de fogo pistola',
+            'Apreensão de cocaína por grama (invólucro)'
+        ]
+    };
+
+    const resSucesso = processarEntradaManual(payloadCompleto);
+    assert.ok(resSucesso.includes('salva com sucesso'), 'Deve retornar mensagem canônica de sucesso');
+    assert.ok(resSucesso.includes('2 registros computados'), 'Deve computar 2 registros (max entre policiais, armas e PIP)');
+    assert.ok(sheetPersistencia.rangesEscritos.length > 0, 'Deve registrar escrita física no Sheets');
+
+    // 14.2: Bloqueio por Duplicidade de BOE com ZERO ESCRITA
+    let sheetBoeDup = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
+    sheetBoeDup.sheetName = 'AGO2026';
+    sheetBoeDup.colBoeValues = [['2026/000123']]; // BOE já presente
+    const mockSsBoeDup = {
+        getSheetByName: () => sheetBoeDup,
+        getSheets: () => [sheetBoeDup]
+    };
+    global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsBoeDup;
+
+    assert.throws(() => {
+        processarEntradaManual(payloadCompleto);
+    }, /BLOQUEADO: A ocorrência com BOE 2026\/000123 já consta cadastrada nesta planilha/, 'Deve bloquear duplicidade de BOE');
+    assert.strictEqual(sheetBoeDup.rangesEscritos.length, 0, 'Zero escrita comprovada quando BOE for duplicado');
+
+    // 14.3: Bloqueio por Duplicidade de MIKE com ZERO ESCRITA
+    let sheetMikeDup = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
+    sheetMikeDup.sheetName = 'AGO2026';
+    sheetMikeDup.colMikeValues = [['M123456']]; // MIKE já presente
+    const mockSsMikeDup = {
+        getSheetByName: () => sheetMikeDup,
+        getSheets: () => [sheetMikeDup]
+    };
+    global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsMikeDup;
+
+    assert.throws(() => {
+        processarEntradaManual(payloadCompleto);
+    }, /BLOQUEADO: A ocorrência com MIKE M123456 já consta cadastrada nesta planilha/, 'Deve bloquear duplicidade de MIKE');
+    assert.strictEqual(sheetMikeDup.rangesEscritos.length, 0, 'Zero escrita comprovada quando MIKE for duplicado');
+
+    // 14.4: Bloqueio por Aba Mensal Ausente com ZERO ESCRITA
+    let sheetAgo2026 = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
+    sheetAgo2026.sheetName = 'AGO2026';
+    const mockSsMesInexistente = {
+        getSheetByName: (name) => name === 'AGO2026' ? sheetAgo2026 : null,
+        getSheets: () => [sheetAgo2026]
+    };
+    global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsMesInexistente;
+
+    const payloadMesInexistente = { ...payloadCompleto, data: '18/12/2099' };
+    assert.throws(() => {
+        processarEntradaManual(payloadMesInexistente);
+    }, /Aba mensal esperada \(DEZ2099\) não encontrada/, 'Deve bloquear se a aba mensal não existir');
+
+    // 14.5: Bloqueio por Falha de Validação na Fase 1 com ZERO ESCRITA
+    let sheetValFalha = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
+    sheetValFalha.sheetName = 'AGO2026';
+    const mockSsValFalha = {
+        getSheetByName: () => sheetValFalha,
+        getSheets: () => [sheetValFalha]
+    };
+    global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsValFalha;
+
+    const payloadInvalido = { ...payloadCompleto, natureza: 'NATUREZA_FORA_DA_LISTA_TOTALMENTE_INVALIDA' };
+    assert.throws(() => {
+        processarEntradaManual(payloadInvalido);
+    }, /não é permitido pela validação da planilha/, 'Fase 1 deve barrar valor fora da validação');
+    assert.strictEqual(sheetValFalha.rangesEscritos.length, 0, 'Zero escrita comprovada quando validação da Fase 1 falhar');
+
+    // 14.6: Fluxo Manual Sem OCR
+    let sheetManualPuro = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
+    sheetManualPuro.sheetName = 'AGO2026';
+    const mockSsManualPuro = {
+        getSheetByName: () => sheetManualPuro,
+        getSheets: () => [sheetManualPuro]
+    };
+    global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsManualPuro;
+
+    const payloadManualSemOcr = {
+        origem: 'FORMULARIO',
+        data: '18/08/2026',
+        hora: '11:00',
+        mike: 'M987654',
+        boe: '2026/987654',
+        natureza: 'TRÁFICO ILÍCITO DE ENTORPECENTES',
+        ais: '3',
+        cidade: 'RECIFE',
+        bairro: 'BOA VIAGEM',
+        detidos: '0',
+        imputado: 'SEM IMPUTADO',
+        policiais: [{ nome: 'POLICIAL DIGITADO MANUAL' }],
+        armas: [],
+        drogas: [],
+        ocorrenciasPip: []
+    };
+    const resManual = processarEntradaManual(payloadManualSemOcr);
+    assert.ok(resManual.includes('salva com sucesso'), 'Fluxo manual puro deve salvar com sucesso');
+    assert.ok(sheetManualPuro.rangesEscritos.length > 0, 'Fluxo manual deve registrar escrita no Sheets');
+
+    // 14.7: Validações no Client-Side (salvarDados em Formulario.html)
+    ultimoPayloadGravacao = null;
+    mockElements.statusMessage.innerText = '';
+    mockElements.data.value = '';
+    mockElements.natureza.value = '';
+    salvarDados();
+    assert.strictEqual(ultimoPayloadGravacao, null, 'Não deve despachar para o backend se campos obrigatórios estiverem vazios');
+    assert.ok(mockElements.statusMessage.innerText.includes('Preencha DATA e NATUREZA antes de salvar'), 'Client deve exibir mensagem de erro na UI');
 
     console.log('✅ OK - EntradaManual.js e Formulario.html');
 })().catch(err => {

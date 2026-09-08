@@ -315,4 +315,56 @@ OCR/MANUAL -> TÍTULO PIP -> CONCILIAÇÃO/EDIÇÃO -> IMPUTADO -> PAYLOAD -> SH
      Se houver 3 títulos PIP e apenas 1 policial, o sistema gera 3 linhas físicas no Sheets, alinhando posicionalmente cada título PIP em sua respectiva linha.
    - **Fluxo Sem PIP:** Se `payload.ocorrenciasPip` for vazio (`[]`), a Linha 0 assume `payload.natureza` como fallback na Coluna AG, e `imputadoVal` na Coluna AH. Linhas subsequentes recebem strings vazias `""` em ambas as colunas.
 
+---
 
+## Contrato Factual e Operacional: Salvar / Persistência no Sheets (Card #65 - T-C01-PERSISTENCIA-008)
+
+### Circuito Canônico de Persistência
+```text
+FORMULÁRIO CONFIRMADO -> PAYLOAD -> processarEntradaManual -> ABA MENSAL -> DUPLICIDADE -> MONTAGEM DE LINHAS -> VALIDAÇÃO (FASE 1) -> GRAVAÇÃO (FASE 2) -> FÓRMULAS (FASE 3) -> RETORNO
+```
+
+1. **Função de Salvar no Client-Side (`salvarDados` em `Entrada/Formulario.html`):**
+   - Disparada pelo clique do usuário no botão `#btnSave` (`.btn-save`).
+   - **Validações Locais Obrigatórias:**
+     - Verifica preenchimento de `data` e `natureza`. Se ausentes, aborta localmente emitindo mensagem em `#statusMessage` (`>> ERRO: Preencha DATA e NATUREZA antes de salvar.`) sem disparar requisição remota ao backend.
+   - **Montagem do Payload Uniforme Completo:**
+     - `origem: 'FORMULARIO'`
+     - Dados do Fato: `mike`, `boe`, `ais`, `data`, `hora`, `cidade`, `bairro`, `natureza`, `qtd_o`, `detidos`, `imputado`
+     - Equipe: lista ordenada com `{ pelotao, posto, matricula, nome, qtd_armas }` extraída de `#policeTableBody`
+     - Armas: lista filtrada de `obterArmas()` com `{ tipo, modelo, calibre, municao, quantidade }`
+     - Drogas: lista filtrada de `obterDrogas()` com `{ tipo, quantidade }`
+     - PIP: lista de títulos de `obterPip()`
+   - **Despacho Canônico Único:**
+     - `google.script.run.withSuccessHandler(res => { setStatus('>> ' + res, ...); limparFormulario(); }).withFailureHandler(err => setStatus('>> ERRO: ' + err.message, ...)).processarEntradaManual(payload)`
+
+2. **Backend Único de Persistência (`processarEntradaManual` em `Entrada/EntradaManual.js`):**
+   - **Resolução de Aba Mensal:**
+     - Chama `localizarAbaMensalTratada(ss, payload.data)` que deriva o nome canônico do mês (ex: `AGO2026`).
+     - Se a aba não existir no arquivo da planilha, lança erro fatal com a lista de abas examinadas: `Aba mensal esperada (...) não encontrada. Abas examinadas: [...]`. A execução é imediatamente abortada com **ZERO ESCRITA**.
+   - **Bloqueio Prévio de Duplicidade (`verificarDuplicidadeOcorrencia`):**
+     - Varre a coluna G (`BOE`) e a coluna E (`MIKE`) da aba mensal.
+     - Se encontrar registro existente coincidente com `payload.boe` ou `payload.mike`, interrompe imediatamente lançando `BLOQUEADO: A ocorrência com BOE/MIKE ... já consta cadastrada nesta planilha.`. A interrupção ocorre antes da criação ou reserva de linhas físicas, garantindo **ZERO ESCRITA**.
+
+3. **Montagem e Expansão Multi-Linhas (`montarLinhasEntradaManual`):**
+   - Calcula a dimensão vertical da ocorrência: `numLinhas = Math.max(policiais.length, armas.length, ocorrenciasPip.length, drogas.length ? 1 : 0)`.
+   - Normaliza cada linha gerando o vetor contíguo de 37 colunas (A a AK).
+   - Dados de cabeçalho do fato (Data, Hora, Qtd O, Mike, Boe, Natureza, Ais, Cidade, Bairro, Detidos) são inseridos ou referenciados de acordo com a regra de primeira linha (`isFirst`).
+   - Drogas são agregadas por somatório consolidado na Linha 0 (colunas Q a AA).
+   - Policiais, armas e ocorrências PIP são distribuídos ordinalmente nas respectivas linhas (0 a `numLinhas - 1`).
+
+4. **Gravação e Atomicidade Operacional Real (`gravarLinhasEntradaManual`):**
+   - **Realidade da Atomicidade no Google Apps Script:** O ambiente Google Apps Script não dispõe de transações ACID nem instruções de `rollback`. A integridade atômica é construída via **arquitetura de duas fases (Pré-Validação em Memória antes da Gravação)**:
+     - **Fase 1 (Pré-Validação e Integridade Estrutural):**
+       - Localiza o bloco contíguo disponível de linhas na aba (`localizarBlocoModeloDisponivel_`).
+       - Lê fórmulas existentes (`getFormulas()`) e validações de dados configuradas (`getDataValidations()`).
+       - **Proteção Contra Sobrescrita de Fórmulas:** Se uma coluna configurada com fórmula (ex: colunas analíticas, totais de drogas ou PROCV) for alvo de escrita literal, lança erro fatal e aborta imediatamente.
+       - **Validação Semântica de Domínio:** Se qualquer valor a ser inserido violar a lista de validação da célula (`mockDataValidation` / `DataValidation`), lança erro fatal: `O valor 'X' não é permitido pela validação da planilha na coluna 'Y'. Gravação abortada.`.
+       - Toda a Fase 1 ocorre estritamente em memória: se qualquer célula falhar, nenhuma linha é gravada (**ZERO ESCRITA COMPROVADA**).
+     - **Fase 2 (Gravação Física Seletiva):**
+       - Varre apenas as colunas explicitamente permitidas para inserção manual (`colsPermitidasNomes`: ORD, DATA, HORA, QTD O, MIKE, NATUREZA, BOE, AIS, CIDADE, BAIRRO, DETIDOS, ARMA, TIPO, CALIBRE, MODELO, MUNIÇÃO, MACONHA DOLAR, MACONHA GRAMA, CRACK PEDRA, CRACK GRAMA, COCAINA PINO, COCAINA GRAMA, POLICIAL, QDT ARMAS, OCORRÊNCIA PIP, IMPUTADO?).
+       - Escreve os valores validados no Sheets via `setValues()`.
+     - **Fase 3 (Clonagem e Preservação de Fórmulas):**
+       - Clona as fórmulas modelo da linha 2 (Pelotão na coluna AB, Posto na coluna AC, Matrícula na coluna AD) para as linhas inseridas utilizando `copyTo(..., SpreadsheetApp.CopyPasteType.PASTE_FORMULA, false)`.
+   - **Retorno Operacional:** Retorna mensagem canônica estruturada: `Ocorrência ${identificador} salva com sucesso (${linhasParaInserir.length} registros computados)!`.
+   - **Tratamento de Exceções:** Qualquer erro captura e repassa via `throw new Error(...)`, sendo capturado pelo `withFailureHandler` no cliente para exibição clara ao operador.
