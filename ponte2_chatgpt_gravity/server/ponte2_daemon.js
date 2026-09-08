@@ -55,6 +55,7 @@ class Ponte2Daemon {
     this.running = false;
     this.server = null;
     this.watchdogInterval = null;
+    this.wakeWaiters = new Set();
 
     this.loadDedupe();
   }
@@ -105,6 +106,19 @@ class Ponte2Daemon {
     } catch (e) {}
   }
 
+  notifyWakeWaiters(callPacket) {
+    if (!this.wakeWaiters || this.wakeWaiters.size === 0) return;
+    log(`[WAKE_NOTIFY] Notificando ${this.wakeWaiters.size} wake waiter(s) sobre nova CALL: ${callPacket.call_id}`);
+    for (const waiter of this.wakeWaiters) {
+      clearTimeout(waiter.timer);
+      try {
+        waiter.res.writeHead(200, { 'Content-Type': 'application/json' });
+        waiter.res.end(JSON.stringify({ event: 'CALL_READY', call_id: callPacket.call_id }));
+      } catch (e) {}
+    }
+    this.wakeWaiters.clear();
+  }
+
   startHttpServer() {
     this.server = http.createServer((req, res) => {
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -135,6 +149,7 @@ class Ponte2Daemon {
           uncertain_results: Array.from(this.uncertainResults.keys()),
           calls_processed: this.callsProcessed,
           results_delivered: this.resultsDelivered,
+          wake_waiters_count: this.wakeWaiters ? this.wakeWaiters.size : 0,
           running: this.running
         }));
         return;
@@ -189,6 +204,8 @@ class Ponte2Daemon {
               fs.writeFileSync(CONFIG.lastCallFile, JSON.stringify(callPacket, null, 2), 'utf8');
             } catch (e) {}
 
+            this.notifyWakeWaiters(callPacket);
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ ok: true, queued: true, call_id: callId }));
           } catch (err) {
@@ -196,6 +213,35 @@ class Ponte2Daemon {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ ok: false, error: 'BAD_JSON' }));
           }
+        });
+        return;
+      }
+
+      // 2b. GET /wait_call -> Long-polling de WAKE reativo (exclusivo para campainha/sinalização, NÃO consome CALL)
+      if (req.method === 'GET' && url.pathname === '/wait_call') {
+        const timeoutMs = parseInt(url.searchParams.get('timeout') || '600000', 10);
+
+        // Se já há CALL pendente na fila, responde imediatamente sem esperar
+        if (this.callQueue.length > 0) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ event: 'CALL_READY', count: this.callQueue.length, call_id: this.callQueue[0].call_id }));
+          return;
+        }
+
+        const waiter = { res, timer: null };
+        waiter.timer = setTimeout(() => {
+          this.wakeWaiters.delete(waiter);
+          try {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ event: 'TIMEOUT_IDLE' }));
+          } catch (e) {}
+        }, timeoutMs);
+
+        this.wakeWaiters.add(waiter);
+
+        req.on('close', () => {
+          clearTimeout(waiter.timer);
+          this.wakeWaiters.delete(waiter);
         });
         return;
       }
