@@ -1,13 +1,6 @@
 /**
- * Syntheon Agentic Layer - Unified Worker Adapter
- * Card: #72 T-A01-INTEGRATION-004
- *
- * RESPONSABILIDADE:
- * 1. Interface unificada para execucao agêntica via Router Local (http://127.0.0.1:4000/v1).
- * 2. O worker depende EXCLUSIVAMENTE do alias logico (ex: syntheon-worker) e do endpoint do router.
- * 3. O worker NAO conhece Gemini, Groq, OpenRouter ou DeepSeek diretamente.
- * 4. Captura metadados de provedor, tier e fallback em um schema estruturado.
- * 5. Zero chamadas diretas ao Telegram ou a provedores de terceiros.
+ * Syntheon Agentic Layer - Unified Worker Adapter with Policy Metadata
+ * Card: #72 T-A01-INTEGRATION-004 / Card: #73 T-A01-POLICY-005
  */
 
 const crypto = require('crypto');
@@ -23,24 +16,33 @@ async function executeTask({
   modelAlias = null,
   timeoutMs = null,
   executionId = null,
-  mockRoutingHeader = null
+  mockRoutingHeader = null,
+  faultInjectionHeader = null,
+  idempotencyKey = null
 }) {
   const execId = executionId || `exec_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
   const targetModel = modelAlias || DEFAULT_MODEL_ALIAS;
   const timeout = timeoutMs || DEFAULT_TIMEOUT_MS;
   const baseUrl = DEFAULT_BASE_URL.replace(/\/+$/, '');
 
+  const promptContent = context ? `${instruction}\n\nContexto:\n${context}` : instruction;
+  const idempKey = idempotencyKey || `${taskId}:${execId}:${crypto.createHash('sha256').update(promptContent).digest('hex').substring(0, 16)}`;
+
   // Suporte a bypass diagnostico explicito
   if (process.env.SYNTHEON_ROUTER_BYPASS === 'true') {
     return {
       task_id: taskId,
       execution_id: execId,
+      idempotency_key: idempKey,
+      replay_detected: false,
       router_alias: targetModel,
       provider_used: 'DIAGNOSTIC_BYPASS',
       model_used: 'none',
       routing_tier: 'bypass',
       fallback_used: false,
       fallback_reason: null,
+      circuit_state: 'CLOSED',
+      attempts: [{ attempt: 1, action: 'bypass' }],
       status: 'BYPASS_EXECUTED',
       output: 'Execucao concluida em modo de bypass diagnostico.',
       latency_ms: 0,
@@ -48,15 +50,17 @@ async function executeTask({
     };
   }
 
-  const promptContent = context ? `${instruction}\n\nContexto:\n${context}` : instruction;
   const startTime = Date.now();
-
   const headers = {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'X-Syntheon-Idempotency-Key': idempKey
   };
 
   if (mockRoutingHeader) {
     headers['X-Syntheon-Mock-Routing'] = mockRoutingHeader;
+  }
+  if (faultInjectionHeader) {
+    headers['X-Syntheon-Fault-Injection'] = faultInjectionHeader;
   }
 
   const controller = new AbortController();
@@ -69,7 +73,8 @@ async function executeTask({
       signal: controller.signal,
       body: JSON.stringify({
         model: targetModel,
-        messages: [{ role: 'user', content: promptContent }]
+        messages: [{ role: 'user', content: promptContent }],
+        idempotency_key: idempKey
       })
     });
 
@@ -84,17 +89,21 @@ async function executeTask({
       const choice = bodyJson.choices && bodyJson.choices[0];
       const outputText = (choice && choice.message && choice.message.content) ? choice.message.content : '';
       const tier = bodyJson.routing_tier || 'primary';
-      const isFallback = tier !== 'primary' && tier !== 'mock_primary';
+      const isFallback = Boolean(bodyJson.fallback_used || (tier !== 'primary' && tier !== 'mock_primary'));
 
       return {
         task_id: taskId,
         execution_id: execId,
+        idempotency_key: idempKey,
+        replay_detected: Boolean(bodyJson.replay_detected),
         router_alias: targetModel,
         provider_used: bodyJson.provider_used || 'unknown',
         model_used: bodyJson.model || targetModel,
         routing_tier: tier,
         fallback_used: isFallback,
-        fallback_reason: isFallback ? (bodyJson.fallback_reason || 'primary_provider_failed') : null,
+        fallback_reason: bodyJson.fallback_reason || (isFallback ? 'primary_provider_failed' : null),
+        circuit_state: bodyJson.circuit_state || 'CLOSED',
+        attempts: bodyJson.attempts || [{ provider: bodyJson.provider_used, attempt: 1, action: 'success' }],
         status: 'COMPLETED',
         output: outputText,
         latency_ms: latency,
@@ -102,45 +111,26 @@ async function executeTask({
       };
     }
 
-    // 2. Falha controlada por ausencia de credencial (HTTP 401 NO_PROVIDER_CREDENTIAL)
-    if (res.status === 401 && bodyJson && bodyJson.error && bodyJson.error.type === 'NO_PROVIDER_CREDENTIAL') {
-      return {
-        task_id: taskId,
-        execution_id: execId,
-        router_alias: targetModel,
-        provider_used: 'none',
-        model_used: targetModel,
-        routing_tier: 'none',
-        fallback_used: false,
-        fallback_reason: null,
-        status: 'FAILED_NO_CREDENTIAL',
-        output: null,
-        latency_ms: latency,
-        error: {
-          type: 'NO_PROVIDER_CREDENTIAL',
-          message: bodyJson.error.message,
-          providers_checked: bodyJson.error.providers_checked
-        }
-      };
-    }
-
-    // 3. Outras falhas HTTP
+    // 2. Falha controlada estruturada (401 / 400 / 422)
     return {
       task_id: taskId,
       execution_id: execId,
+      idempotency_key: idempKey,
+      replay_detected: false,
       router_alias: targetModel,
-      provider_used: 'unknown',
+      provider_used: 'none',
       model_used: targetModel,
-      routing_tier: 'unknown',
+      routing_tier: 'none',
       fallback_used: false,
       fallback_reason: null,
-      status: 'FAILED_HTTP',
+      circuit_state: (bodyJson && bodyJson.circuit_state) ? bodyJson.circuit_state : 'CLOSED',
+      attempts: (bodyJson && bodyJson.attempts) ? bodyJson.attempts : [{ attempt: 1, action: 'error_response' }],
+      status: (res.status === 401 && bodyJson && bodyJson.error && bodyJson.error.type === 'NO_PROVIDER_CREDENTIAL')
+        ? 'FAILED_NO_CREDENTIAL'
+        : (bodyJson && bodyJson.error && bodyJson.error.type ? `FAILED_${bodyJson.error.type}` : 'FAILED_HTTP'),
       output: null,
       latency_ms: latency,
-      error: {
-        http_status: res.status,
-        message: bodyJson ? (bodyJson.error ? bodyJson.error.message : bodyText) : bodyText
-      }
+      error: bodyJson ? bodyJson.error : { http_status: res.status, message: bodyText }
     };
 
   } catch (err) {
@@ -151,12 +141,16 @@ async function executeTask({
     return {
       task_id: taskId,
       execution_id: execId,
+      idempotency_key: idempKey,
+      replay_detected: false,
       router_alias: targetModel,
       provider_used: 'none',
       model_used: targetModel,
       routing_tier: 'none',
       fallback_used: false,
       fallback_reason: null,
+      circuit_state: 'CLOSED',
+      attempts: [{ attempt: 1, action: 'network_exception' }],
       status: isTimeout ? 'FAILED_TIMEOUT' : 'FAILED_NETWORK',
       output: null,
       latency_ms: latency,
