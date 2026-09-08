@@ -523,6 +523,69 @@ eval(fullFormularioScript);
         gravarLinhasEntradaManual(sheetComFormula, [linhaComSobrescrita]);
     }, /Tentativa de sobrescrever a fórmula da coluna 'MATR[ÍI]CULA'/, 'Deve lançar erro bloqueante se tentar sobrescrever coluna com fórmula');
 
+    // [Test 11] Contrato Operacional de Armas Apreendidas (Card #62: T-C01-ARMAS-005)
+    console.log('  [Test 11] Contrato Operacional de Armas Apreendidas (Mapeamento L a P, multi-linhas e independência posicional)');
+    const payloadArmasMulti = {
+        origem: 'FORMULARIO',
+        data: '15/08/2026',
+        hora: '22:15',
+        natureza: 'PORTE ILEGAL DE ARMA DE FOGO',
+        policiais: [
+            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 2 }
+        ],
+        armas: [
+            { tipo: 'INDUSTRIAL', modelo: 'PISTOLA', calibre: '.40', municao: 16, quantidade: 1 },
+            { tipo: 'INDUSTRIAL', modelo: 'REVÓLVER', calibre: '.38', municao: 6, quantidade: 1 }
+        ]
+    };
+
+    const linhasArmas = EntradaManualMod.montarLinhasEntradaManual(payloadArmasMulti);
+    assert.strictEqual(linhasArmas.length, 2, 'Deve expandir para 2 linhas (max entre 1 policial e 2 armas)');
+
+    // Índices de armas: 11: ARMA (L), 12: TIPO (M), 13: CALIBRE (N), 14: MODELO (O), 15: MUNIÇÃO (P)
+    const idxL = 11; const idxM = 12; const idxN = 13; const idxO = 14; const idxP = 15;
+
+    // Linha 0: Policial 1 + Arma 1
+    assert.strictEqual(linhasArmas[0][idxL], 1, 'Linha 0 Coluna L (ARMA/Qtd) deve ser 1');
+    assert.strictEqual(linhasArmas[0][idxM], 'INDUSTRIAL', 'Linha 0 Coluna M (TIPO) deve ser INDUSTRIAL');
+    assert.strictEqual(linhasArmas[0][idxN], '.40', 'Linha 0 Coluna N (CALIBRE) deve ser .40');
+    assert.strictEqual(linhasArmas[0][idxO], 'PISTOLA', 'Linha 0 Coluna O (MODELO) deve ser PISTOLA');
+    assert.strictEqual(linhasArmas[0][idxP], 16, 'Linha 0 Coluna P (MUNIÇÃO) deve ser 16');
+    assert.strictEqual(linhasArmas[0][30], 'POLICIAL UM', 'Linha 0 deve conter o policial da ocorrência');
+
+    // Linha 1: Arma 2 + Policial vazio (independência posicional)
+    assert.strictEqual(linhasArmas[1][idxL], 1, 'Linha 1 Coluna L (ARMA/Qtd) deve ser 1');
+    assert.strictEqual(linhasArmas[1][idxM], 'INDUSTRIAL', 'Linha 1 Coluna M (TIPO) deve ser INDUSTRIAL');
+    assert.strictEqual(linhasArmas[1][idxN], '.38', 'Linha 1 Coluna N (CALIBRE) deve ser .38');
+    assert.strictEqual(linhasArmas[1][idxO], 'REVÓLVER', 'Linha 1 Coluna O (MODELO) deve ser REVÓLVER');
+    assert.strictEqual(linhasArmas[1][idxP], 6, 'Linha 1 Coluna P (MUNIÇÃO) deve ser 6');
+    assert.strictEqual(linhasArmas[1][30], '', 'Linha 1 Coluna AE (POLICIAL) deve ser vazia pois só havia 1 policial para 2 armas');
+
+    // Cenário inverso: 2 policiais e 1 arma
+    const payloadInverso = {
+        origem: 'FORMULARIO',
+        data: '15/08/2026',
+        hora: '22:15',
+        natureza: 'PORTE ILEGAL DE ARMA DE FOGO',
+        policiais: [
+            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 1 },
+            { pelotao: '2º PEL', posto: 'CB', matricula: '1002', nome: 'POLICIAL DOIS', qtd_armas: 0 }
+        ],
+        armas: [
+            { tipo: 'INDUSTRIAL', modelo: 'PISTOLA', calibre: '9mm', municao: 15, quantidade: 1 }
+        ]
+    };
+    const linhasInverso = EntradaManualMod.montarLinhasEntradaManual(payloadInverso);
+    assert.strictEqual(linhasInverso.length, 2, 'Deve gerar 2 linhas para 2 policiais e 1 arma');
+    assert.strictEqual(linhasInverso[0][idxL], 1, 'Linha 0 tem arma preenchida');
+    assert.strictEqual(linhasInverso[1][idxL], '', 'Linha 1 tem arma vazia (policial sem arma direta na linha)');
+    assert.strictEqual(linhasInverso[1][30], 'POLICIAL DOIS', 'Linha 1 preserva o segundo policial');
+
+    // Gravação física confirmada no mockSheet
+    let sheetArmas = mockSheet(CABECALHOS_ORIGINAIS, null, null, validationsEquipe);
+    gravarLinhasEntradaManual(sheetArmas, linhasArmas);
+    assert.ok(sheetArmas.rangesEscritos.length > 0, 'Deve persistir colunas de armas no Sheets');
+
     console.log('✅ OK - EntradaManual.js e Formulario.html');
 })().catch(err => {
     console.error("Falha no teste:", err);
