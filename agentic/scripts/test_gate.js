@@ -19,8 +19,17 @@ const GIANT_FILE_BYTES = 1024 * 1024; // 1MB
 
 const SECRET_RE = /(sk-[A-Za-z0-9]{16,}|AIza[0-9A-Za-z_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[baprs]-|-----BEGIN [A-Z ]*PRIVATE KEY-----|TOKEN\s*[:=]\s*["'][^"']{12,})/g;
 
+function tokenize(cmdLine) {
+  // Tokenizador com suporte a aspas duplas: preserva scripts "-e" com espacos.
+  const out = [];
+  const re = /([^\s"]+)|"([^"]*)"/g;
+  let m;
+  while ((m = re.exec(cmdLine)) !== null) out.push(m[1] !== undefined ? m[1] : m[2]);
+  return out;
+}
+
 function run(cwd, cmdLine, timeoutMs) {
-  const parts = cmdLine.split(/\s+/);
+  const parts = tokenize(cmdLine);
   const r = spawnSync(parts[0], parts.slice(1), { cwd, encoding: 'utf8', timeout: timeoutMs || 120000 });
   return { exit_code: r.status, stdout: String(r.stdout || ''), stderr: String(r.stderr || '') };
 }
