@@ -513,10 +513,15 @@ const server = http.createServer(async (req, res) => {
         const attempts = [];
         const messages = Array.isArray(payload.messages) ? payload.messages : [];
 
-        // Knobs de teste H01 (env explicito): provam a politica de fallback de forma
-        // deterministica SEM depender de indisponibilidade real de terceiros.
-        const forcePrimaryFail = process.env.SYNTHEON_H01_FORCE_PRIMARY_FAIL || null;
-        const mockFallbackSuccess = process.env.SYNTHEON_H01_MOCK_FALLBACK_SUCCESS === '1';
+        // Knobs de teste H01 (env OU header por request): provam a politica de fallback de
+        // forma deterministica SEM depender de indisponibilidade real de terceiros.
+        // Header vence env (permite matriz de cenarios sem reiniciar o router).
+        const h = req.headers;
+        const forcePrimaryFail = h['x-syntheon-h01-force-fail'] || process.env.SYNTHEON_H01_FORCE_PRIMARY_FAIL || null;
+        const mockFallbackSuccess = (h['x-syntheon-h01-mock-fallback'] === 'success' || h['x-syntheon-h01-mock-fallback'] === '1')
+          || process.env.SYNTHEON_H01_MOCK_FALLBACK_SUCCESS === '1';
+        const mockFallbackFail = (h['x-syntheon-h01-mock-fallback-fail'] === 'fail' || h['x-syntheon-h01-mock-fallback-fail'] === '1')
+          || process.env.SYNTHEON_H01_MOCK_FALLBACK_FAILURE === '1';
 
         if (!messages.length) {
           log(`[INVALID_REQUEST] Payload sem messages. ZERO fallback (erro de cliente).`);
@@ -579,6 +584,36 @@ const server = http.createServer(async (req, res) => {
           const isPrimary = idx === 0;
           const forcedFail = isPrimary && forcePrimaryFail ? forcePrimaryFail : null;
 
+          // Mocks H01 EXPLICITOS disparam ANTES da chamada real do fallback (mocked:true).
+          if (!isPrimary && mockFallbackFail) {
+            log(`[H01_TEST] Fallback ${provId} mockado como FALHA (mocked:true). Cadeia exaurida sem 3o provider.`);
+            attempts.push({ provider: provId, attempt: 1, error_class: 'MOCKED_FAILURE', action: 'terminate_exhausted' });
+            globalCircuitBreaker.recordFailure(provId, true);
+            globalObservability.recordFailure(provId, 'MOCKED_FAILURE', true, Date.now() - reqStartTime, executionId, taskId);
+            finalError = {
+              httpStatus: 502,
+              error: {
+                message: 'Cadeia ativa exaurida (limite de tentativas). Nenhum terceiro provider tentado (politica: 2 providers).',
+                type: 'ALL_PROVIDERS_EXHAUSTED',
+                providers_attempted: activeOrder,
+                third_provider_attempted: false,
+                attempts: attempts,
+                mocked: true,
+                mock_reason: 'SYNTHEON_H01_MOCK_FALLBACK_FAILURE=1'
+              }
+            };
+            break;
+          }
+          if (!isPrimary && mockFallbackSuccess) {
+            log(`[H01_TEST] Fallback ${provId} mockado explicitamente (mocked:true).`);
+            attempts.push({ provider: provId, attempt: 1, error_class: 'MOCKED_SUCCESS', action: 'respond_mocked' });
+            finalResult = buildSuccess(provId, provider, 'fallback_1', 'primary_failed_mock_fallback', '[H01 mocked fallback] resposta simulada explicita (mocked:true).', {
+              mocked: true,
+              mock_reason: 'SYNTHEON_H01_MOCK_FALLBACK_SUCCESS=1'
+            });
+            break;
+          }
+
           for (let attemptNum = 1; attemptNum <= 2; attemptNum++) {
             const failClass = forcedFail;
             let outcome;
@@ -639,17 +674,6 @@ const server = http.createServer(async (req, res) => {
           }
 
           if (finalResult || finalError) break;
-
-          // Fallback mockado EXPLICITO (knob H01): resposta declara mocked:true.
-          if (!isPrimary && mockFallbackSuccess) {
-            log(`[H01_TEST] Fallback ${provId} mockado explicitamente (mocked:true). Groq real segue 403 documentado em separado.`);
-            attempts.push({ provider: provId, attempt: 1, error_class: 'MOCKED_SUCCESS', action: 'respond_mocked' });
-            finalResult = buildSuccess(provId, provider, 'fallback_1', 'primary_failed_mock_fallback', '[H01 mocked fallback] resposta simulada explicita (mocked:true) - Groq real nao apto hoje (HTTP 403 documentado).', {
-              mocked: true,
-              mock_reason: 'SYNTHEON_H01_MOCK_FALLBACK_SUCCESS=1'
-            });
-            break;
-          }
         }
 
         if (finalResult) {
