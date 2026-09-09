@@ -23,6 +23,16 @@ function readJson(file, label) {
   }
 }
 
+// Aceita tanto o sensor puro (schema no topo) quanto o envelope do run_sensors
+// ({ local: {schema...}, git: {...} }): extrai o objeto do schema correspondente.
+function unwrapEnvelope(obj, key, schemaPrefix) {
+  if (obj && typeof obj === 'object' && obj[key] && typeof obj[key] === 'object' &&
+      typeof obj[key].schema === 'string' && obj[key].schema.startsWith(schemaPrefix)) {
+    return obj[key];
+  }
+  return obj;
+}
+
 function parseArgs(argv) {
   const args = {};
   for (let i = 2; i < argv.length; i++) {
@@ -47,8 +57,8 @@ function main() {
   const result = verify({
     claim: readJson(args.claim, 'claim'),
     testResult: readJson(args.test, 'test_result'),
-    local: readJson(args.local, 'local_evidence'),
-    git: readJson(args.git, 'git_evidence')
+    local: unwrapEnvelope(readJson(args.local, 'local_evidence'), 'local', 'syntheon.sensor.local'),
+    git: unwrapEnvelope(readJson(args.git, 'git_evidence'), 'git', 'syntheon.sensor.git')
   });
   process.stdout.write(JSON.stringify(result, null, 2) + '\n');
   process.exit(result.verdict === 'VERIFIED' ? 0 : 1);
