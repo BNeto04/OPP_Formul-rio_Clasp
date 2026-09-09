@@ -286,6 +286,18 @@ function specFixture(dir, overrides = {}) {
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 }
 
+// B11. secret apenas em linha REMOVIDA nao bloqueia (so o que entra importa)
+{
+  const dir = mkTmp('syn-verifier-spec-removed-');
+  try {
+    const fx = specFixture(dir);
+    const fakeSecret = 'sk-' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    fx.git.committed.patch = 'diff --git a/x b/x\n-const KEY = "' + fakeSecret + '";\n';
+    const v = verifyTask(fx);
+    assert(v.verdict === 'VERIFIED', 'secret apenas em linha removida nao bloqueia -> VERIFIED');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}
+
 console.log('\n================================================================');
 console.log('  RESULTADO: ' + passed + ' PASS / ' + failed + ' FAIL');
 console.log('================================================================');

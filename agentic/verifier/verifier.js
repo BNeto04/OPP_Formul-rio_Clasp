@@ -71,8 +71,14 @@ function verdictResult(verdict, present, checks, reasons) {
 function scanSecrets(patchText) {
   const found = [];
   if (!patchText) return found;
+  // Realismo: o risco e o que ENTRA no codigo. Scaneia apenas linhas adicionadas
+  // (prefixo +), ignorando cabecalhos de diff (+++) e linhas removidas (-).
+  const added = patchText.split('\n')
+    .filter((l) => l.startsWith('+') && !l.startsWith('+++'))
+    .map((l) => l.slice(1))
+    .join('\n');
   for (const pat of SECRET_PATTERNS) {
-    const matches = patchText.match(pat.re);
+    const matches = added.match(pat.re);
     if (matches && matches.length) {
       found.push({ pattern: pat.id, occurrences: matches.length });
     }
