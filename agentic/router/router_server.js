@@ -13,6 +13,7 @@ const {
   CONSTANTS
 } = require('./fallback_policy');
 const { globalObservability } = require('./observability');
+const dispatch = require('./dispatch');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'config', 'providers.json');
 const LOG_DIR = path.join(__dirname, '..', 'logs');
@@ -503,41 +504,177 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        // VERIFICAÇÃO REAL DE CREDENCIAIS
+        // DESPACHO REAL CONFIG-DRIVEN (Card #97 H01-006)
+        // Cadeia ativa: routing_policy primary -> fallback_1 (2 providers, sem terceiro).
         const config = loadConfig();
+        const policy = (config && config.routing_policy) || {};
+        const activeOrder = [policy.primary, policy.fallback_1].filter(Boolean);
         const providersState = getProviderCredentialsState(config);
-        const routeOrder = ['gemini', 'groq'];
-        let selectedProvider = null;
+        const attempts = [];
+        const messages = Array.isArray(payload.messages) ? payload.messages : [];
 
-        for (const provId of routeOrder) {
-          if (providersState[provId] && providersState[provId].credential_present) {
-            if (globalCircuitBreaker.canExecute(provId)) {
-              selectedProvider = config.providers[provId];
-              break;
-            }
-          }
-        }
+        // Knobs de teste H01 (env explicito): provam a politica de fallback de forma
+        // deterministica SEM depender de indisponibilidade real de terceiros.
+        const forcePrimaryFail = process.env.SYNTHEON_H01_FORCE_PRIMARY_FAIL || null;
+        const mockFallbackSuccess = process.env.SYNTHEON_H01_MOCK_FALLBACK_SUCCESS === '1';
 
-        if (!selectedProvider) {
-          log(`[NO_CREDENTIAL] Rejeicao segura: nenhum provedor ativo com credencial valida no ambiente. Zero chamadas de rede externas.`);
-          globalObservability.recordFailure('none', 'NO_PROVIDER_CREDENTIAL', false, Date.now() - reqStartTime, executionId, taskId);
-          res.writeHead(401, { 'Content-Type': 'application/json' });
+        if (!messages.length) {
+          log(`[INVALID_REQUEST] Payload sem messages. ZERO fallback (erro de cliente).`);
+          globalObservability.recordFailure('none', 'INVALID_REQUEST', false, Date.now() - reqStartTime, executionId, taskId);
+          res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             error: {
-              message: 'Nenhum provedor ativo configurado com credencial valida no ambiente. Configure GEMINI_API_KEY ou GROQ_API_KEY no arquivo .env local.',
-              type: 'NO_PROVIDER_CREDENTIAL',
-              code: 'no_credentials_available',
-              providers_checked: routeOrder
+              message: 'Payload invalido: campo messages obrigatorio e nao pode ser vazio.',
+              type: 'INVALID_REQUEST',
+              error_class: 'INVALID_REQUEST',
+              is_provider_failure: false,
+              allow_fallback: false
             }
           }));
           return;
         }
 
-        res.writeHead(501, { 'Content-Type': 'application/json' });
+        const ELIGIBLE_CLASSES = ['QUOTA_429', 'TIMEOUT', 'CONNECTION_ERROR', 'SERVER_5XX', 'MODEL_NOT_FOUND'];
+        const retryableClass = (c) => ELIGIBLE_CLASSES.includes(c);
+
+        function buildSuccess(providerId, provider, tier, reason, content, extra) {
+          return Object.assign({
+            id: 'cmpl-' + Date.now() + '-' + Math.random().toString(16).slice(2, 8),
+            object: 'chat.completion',
+            model: provider.default_model,
+            provider_used: providerId,
+            routing_tier: tier,
+            fallback_used: tier !== 'primary',
+            fallback_reason: reason,
+            attempts: attempts,
+            circuit_state: globalCircuitBreaker.getState(providerId),
+            choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }]
+          }, extra || {});
+        }
+
+        let finalResult = null;
+        let finalError = null;
+
+        for (let idx = 0; idx < activeOrder.length; idx++) {
+          const provId = activeOrder[idx];
+          const tier = idx === 0 ? 'primary' : 'fallback_1';
+          const provider = config.providers[provId];
+          if (!provider) {
+            log(`[ROUTER] Provider ${provId} ausente do providers.json.`);
+            continue;
+          }
+          const state = providersState[provId];
+          const hasCred = Boolean(state && state.credential_present);
+          if (!hasCred) {
+            attempts.push({ provider: provId, attempt: 1, error_class: 'NO_CREDENTIAL', action: 'skip' });
+            log(`[ROUTER] ${provId} sem credencial no ambiente (${tier}).`);
+            continue;
+          }
+          if (!globalCircuitBreaker.canExecute(provId)) {
+            attempts.push({ provider: provId, attempt: 1, error_class: 'CIRCUIT_OPEN', action: 'skip' });
+            log(`[ROUTER] ${provId} em CIRCUIT_OPEN (${tier}).`);
+            continue;
+          }
+
+          const isPrimary = idx === 0;
+          const forcedFail = isPrimary && forcePrimaryFail ? forcePrimaryFail : null;
+
+          for (let attemptNum = 1; attemptNum <= 2; attemptNum++) {
+            const failClass = forcedFail;
+            let outcome;
+            if (failClass) {
+              // Falha primaria INJETADA (knob de teste H01): prova fallback sem depender de terceiro.
+              log(`[H01_TEST] Falha primaria injetada no ${provId} (${failClass}). Nao mascarada: attempt registrado.`);
+              outcome = { ok: false, status: 0, data: { error: { message: 'Injected H01 primary failure: ' + failClass } }, injected: true, injectedClass: failClass };
+            } else {
+              outcome = await dispatch.complete({ provider, messages, timeoutMs: provider.timeout_ms });
+            }
+
+            if (outcome.ok) {
+              globalCircuitBreaker.recordSuccess(provId);
+              globalObservability.recordSuccess(provId, Date.now() - reqStartTime, tier !== 'primary', null, executionId, taskId);
+              const content = (outcome.data && outcome.data.choices && outcome.data.choices[0] && outcome.data.choices[0].message
+                ? String(outcome.data.choices[0].message.content || '').substring(0, 1000)
+                : '') || ('[H01 dispatch] ' + provId + ' respondeu sem conteudo textual.');
+              finalResult = buildSuccess(provId, provider, tier, tier === 'primary' ? null : 'primary_failed', content, {
+                provider_request_id: (outcome.data && outcome.data.id) || null,
+                usage: (outcome.data && outcome.data.usage) || null
+              });
+              break;
+            }
+
+            const rawMsg = (outcome.data && outcome.data.error && outcome.data.error.message) || 'provider_error';
+            const errInfo = classifyError({ message: rawMsg }, outcome.status);
+            // Falha injetada (knob H01 explicito): a classe declarada e autoritativa.
+            const errClass = outcome.injected && outcome.injectedClass
+              ? outcome.injectedClass
+              : ((errInfo && errInfo.error_class) || (outcome.status >= 500 ? 'SERVER_5XX' : 'PROVIDER_ERROR'));
+            attempts.push({ provider: provId, attempt: attemptNum, error_class: errClass, action: retryableClass(errClass) && attemptNum === 1 ? 'retry_' + provId : 'fallback_to_next' });
+            log(`[ROUTER] ${provId} falhou (attempt ${attemptNum}): ${errClass} (http ${outcome.status || 'network'}).`);
+            globalCircuitBreaker.recordFailure(provId, retryableClass(errClass));
+            globalObservability.recordFailure(provId, errClass, retryableClass(errClass), Date.now() - reqStartTime, executionId, taskId);
+
+            if (!retryableClass(errClass)) {
+              // Erro NAO elegivel (logico/config/auth): nunca vira fallback.
+              log(`[ROUTER] ${errClass} nao elegivel para fallback. Encerrando com erro de ${provId}.`);
+              finalError = {
+                httpStatus: errClass === 'AUTH_ERROR' ? 502 : (outcome.status || 502),
+                error: {
+                  message: 'Provider ' + provId + ' retornou erro nao elegivel para fallback: ' + errClass,
+                  type: 'NON_ELIGIBLE_PROVIDER_ERROR',
+                  provider: provId,
+                  error_class: errClass,
+                  is_provider_failure: true,
+                  allow_fallback: false,
+                  attempts: attempts
+                }
+              };
+              break;
+            }
+
+            if (attemptNum === 2) {
+              log(`[ROUTER] ${provId} exauriu retries (${errClass}). Movendo na cadeia.`);
+              globalObservability.recordFallback(provId, activeOrder[idx + 1] || null, errClass, executionId, taskId);
+            }
+          }
+
+          if (finalResult || finalError) break;
+
+          // Fallback mockado EXPLICITO (knob H01): resposta declara mocked:true.
+          if (!isPrimary && mockFallbackSuccess) {
+            log(`[H01_TEST] Fallback ${provId} mockado explicitamente (mocked:true). Groq real segue 403 documentado em separado.`);
+            attempts.push({ provider: provId, attempt: 1, error_class: 'MOCKED_SUCCESS', action: 'respond_mocked' });
+            finalResult = buildSuccess(provId, provider, 'fallback_1', 'primary_failed_mock_fallback', '[H01 mocked fallback] resposta simulada explicita (mocked:true) - Groq real nao apto hoje (HTTP 403 documentado).', {
+              mocked: true,
+              mock_reason: 'SYNTHEON_H01_MOCK_FALLBACK_SUCCESS=1'
+            });
+            break;
+          }
+        }
+
+        if (finalResult) {
+          if (idempotencyKey) globalIdempotencyStore.set(idempotencyKey, finalResult);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(finalResult));
+          return;
+        }
+
+        if (finalError) {
+          res.writeHead(finalError.httpStatus, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: finalError.error }));
+          return;
+        }
+
+        log(`[ALL_EXHAUSTED] Cadeia ativa exaurida (${activeOrder.join(', ')}). Sem 3o provider por politica.`);
+        globalObservability.recordFailure('none', 'ALL_PROVIDERS_EXHAUSTED', false, Date.now() - reqStartTime, executionId, taskId);
+        res.writeHead(502, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           error: {
-            message: `Provedor ${selectedProvider.name} possui credencial presente, mas o despacho real pertence ao Card #74/#75.`,
-            type: 'PENDING_DISPATCH_IMPLEMENTATION'
+            message: 'Cadeia ativa exaurida: ' + activeOrder.join(', ') + '. Nenhum terceiro provider tentado (politica H01: 2 providers).',
+            type: 'ALL_PROVIDERS_EXHAUSTED',
+            providers_attempted: activeOrder,
+            third_provider_attempted: false,
+            attempts: attempts
           }
         }));
       } catch (err) {
