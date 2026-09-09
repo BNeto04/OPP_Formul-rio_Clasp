@@ -56,7 +56,8 @@ async function complete({ provider, messages, timeoutMs }) {
   const body = {
     model: provider.default_model,
     messages,
-    max_tokens: 256,
+    // Orcamento minimo p/ modelos com reasoning: conteudo final so sai apos raciocinio.
+    max_tokens: 1024,
     temperature: 0
   };
   const res = await requestOnce({ baseUrl: provider.base_url, apiKey, body, timeoutMs });

@@ -51,7 +51,13 @@ function callRouter(messages) {
 }
 
 function extractOps(content) {
-  // Modelo responde com bloco JSON de operacoes. Extrai o primeiro objeto/array JSON.
+  if (!content) return null;
+  // 1) Bloco fenced ```json ... ``` (mais comum em modelos com reasoning).
+  const fence = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) {
+    try { return JSON.parse(fence[1].trim()); } catch (e) { /* tenta fallback abaixo */ }
+  }
+  // 2) Primeiro objeto JSON balanceado.
   const start = content.indexOf('{');
   if (start === -1) return null;
   let depth = 0;
