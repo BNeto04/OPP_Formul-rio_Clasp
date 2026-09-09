@@ -12,7 +12,7 @@
  */
 
 const fs = require('fs');
-const { verify } = require('./verifier');
+const { verify, verifyTask } = require('./verifier');
 
 function readJson(file, label) {
   try {
@@ -41,6 +41,7 @@ function parseArgs(argv) {
     else if (a === '--test') args.test = argv[++i];
     else if (a === '--local') args.local = argv[++i];
     else if (a === '--git') args.git = argv[++i];
+    else if (a === '--spec') args.spec = argv[++i];
   }
   return args;
 }
@@ -50,16 +51,19 @@ function main() {
   const required = ['claim', 'test', 'local', 'git'];
   const missing = required.filter((k) => !args[k]);
   if (missing.length) {
-    console.error('[VERIFIER] Uso: --claim <json> --test <json> --local <json> --git <json>');
+    console.error('[VERIFIER] Uso: --claim <json> --test <json> --local <json> --git <json> [--spec <json>]');
     console.error('[VERIFIER] Faltando: ' + missing.join(', '));
     process.exit(2);
   }
-  const result = verify({
-    claim: readJson(args.claim, 'claim'),
-    testResult: readJson(args.test, 'test_result'),
-    local: unwrapEnvelope(readJson(args.local, 'local_evidence'), 'local', 'syntheon.sensor.local'),
-    git: unwrapEnvelope(readJson(args.git, 'git_evidence'), 'git', 'syntheon.sensor.git')
-  });
+  const claim = readJson(args.claim, 'claim');
+  const testResult = readJson(args.test, 'test_result');
+  const local = unwrapEnvelope(readJson(args.local, 'local_evidence'), 'local', 'syntheon.sensor.local');
+  const git = unwrapEnvelope(readJson(args.git, 'git_evidence'), 'git', 'syntheon.sensor.git');
+  const spec = args.spec ? readJson(args.spec, 'spec') : null;
+
+  const result = spec
+    ? verifyTask({ spec, claim, testResult, local, git })
+    : verify({ claim, testResult, local, git });
   process.stdout.write(JSON.stringify(result, null, 2) + '\n');
   process.exit(result.verdict === 'VERIFIED' ? 0 : 1);
 }

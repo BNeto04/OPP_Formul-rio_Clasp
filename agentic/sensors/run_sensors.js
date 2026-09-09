@@ -23,6 +23,7 @@ function parseArgs(argv) {
     else if (a === '--since') args.since = argv[++i];
     else if (a === '--max') args.max = Number(argv[++i]);
     else if (a === '--hash') args.hash = true;
+    else if (a === '--base') args.base = argv[++i];
   }
   if (!['all', 'local', 'git'].includes(args.scope)) args.scope = 'all';
   return args;
@@ -58,7 +59,7 @@ function main() {
   }
 
   if (args.scope === 'all' || args.scope === 'git') {
-    output.git = gitSensor.observe(args.repo);
+    output.git = gitSensor.observe(args.repo, args.base ? { base: args.base } : {});
     if (output.git.errors && output.git.errors.length) {
       output.errors.push(...output.git.errors);
     }

@@ -49,10 +49,13 @@ function parseNumstat(text) {
 
 /**
  * Observa um repositorio git em repoRoot (ou sobe ate achar .git).
+ * options.base: sha de referencia (pre-task) -> adiciona committed.files_changed,
+ * committed.patch (diff base..HEAD) e working_tree (diff HEAD, mudancas nao commitadas).
  * Retorna objeto tipado; erros sao coletados em result.errors (nao lanca).
  */
 function observe(repoRoot, options = {}) {
   const start = path.resolve(repoRoot || '.');
+  const baseSha = options.base || null;
   const result = {
     schema: SCHEMA,
     sensor: 'git',
@@ -70,6 +73,8 @@ function observe(repoRoot, options = {}) {
     behind: null,
     status: { total: 0, staged: [], unstaged: [], untracked: [] },
     diff_vs_head: [],
+    committed: null,
+    working_tree: [],
     recent_commits: [],
     errors: []
   };
@@ -141,12 +146,33 @@ function observe(repoRoot, options = {}) {
     const diff = gitSafe(['diff', '--numstat', 'HEAD'], cwd);
     if (diff.ok && diff.out) result.diff_vs_head = parseNumstat(diff.out);
 
+    const wt = gitSafe(['diff', '--name-only', 'HEAD'], cwd);
+    if (wt.ok && wt.out) result.working_tree = wt.out.split('\n').filter(Boolean);
+
     const log = gitSafe(['log', '-10', '--format=%h%x09%s'], cwd);
     if (log.ok && log.out) {
       result.recent_commits = log.out.split('\n').filter(Boolean).map((l) => {
         const [sha_short, ...rest] = l.split('\t');
         return { sha_short, subject: rest.join('\t') };
       });
+    }
+  }
+
+  // Escopo commitado entre base (pre-task) e HEAD: prova material do que a task mudou.
+  if (baseSha) {
+    const baseValid = gitSafe(['rev-parse', '--verify', '--quiet', baseSha], cwd);
+    if (!baseValid.ok) {
+      result.errors.push('BASE_INVALIDA: ' + baseSha + ' nao e um commit valido no repositorio');
+    } else if (result.head_sha) {
+      const names = gitSafe(['diff', '--name-only', baseSha + '...HEAD'], cwd);
+      const patch = gitSafe(['diff', baseSha + '...HEAD'], cwd);
+      result.committed = {
+        base_sha: baseSha,
+        head_sha: result.head_sha,
+        files_changed: names.ok && names.out ? names.out.split('\n').filter(Boolean) : [],
+        patch: patch.ok ? patch.out.substring(0, 300000) : '',
+        patch_truncated: patch.ok ? patch.out.length > 300000 : false
+      };
     }
   }
 
