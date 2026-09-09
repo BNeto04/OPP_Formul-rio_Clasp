@@ -1,11 +1,11 @@
 /**
  * Syntheon Agentic Layer - Testes do Template de Card Executavel (Card #80)
- * Verifica que o template e os 2 cards ficticios sao parseaveis deterministicamente
- * (metadados 'CHAVE: valor' no topo + blocos '## CHAVE') e suficientes sem contexto externo.
+ * Usa o parser compartilhado agentic/contracts/card_parser.js (tambem usado pelo dispatcher #82).
  */
 
 const fs = require('fs');
 const path = require('path');
+const { parseCard, validateCard, REQUIRED_META, REQUIRED_SECTIONS } = require('../contracts/card_parser');
 
 let passed = 0;
 let failed = 0;
@@ -16,54 +16,6 @@ function assert(condition, message) {
 }
 
 const CONTRACTS = path.join(__dirname, '..', 'contracts');
-
-// Parser deterministico (mesma convencao que o dispatcher #82 usara)
-function parseCard(text) {
-  const meta = {};
-  const metaRe = /^-\s+(TASK_ID|PARENT|PRIORIDADE|BRANCH|OWNER_DECISION_REQUIRED|CLASP_REQUIRED_RULE|RESULT_SCHEMA):\s*(.+)$/gm;
-  let m;
-  while ((m = metaRe.exec(text)) !== null) {
-    if (!meta[m[1]]) meta[m[1]] = m[2].trim();
-  }
-  const sections = {};
-  const parts = text.split(/^##\s+(.+)$/m);
-  for (let i = 1; i < parts.length; i += 2) {
-    const title = parts[i].trim().toUpperCase();
-    const body = (parts[i + 1] || '').trim();
-    if (!sections[title]) sections[title] = body;
-  }
-  const listOf = (title) => {
-    const b = sections[title] || '';
-    return b.split('\n').filter((l) => /^-\s+/.test(l.trim())).map((l) => l.trim().replace(/^-\s+/, ''));
-  };
-  const firstLine = (title) => {
-    const b = sections[title] || '';
-    const line = b.split('\n').map((l) => l.trim()).find((l) => l.length > 0);
-    return line || '';
-  };
-  return {
-    task_id: meta.TASK_ID || '',
-    parent: meta.PARENT || '',
-    prioridade: meta.PRIORIDADE || '',
-    branch: meta.BRANCH || '',
-    owner_decision_required: meta.OWNER_DECISION_REQUIRED || '',
-    clasp_rule: meta.CLASP_REQUIRED_RULE || '',
-    result_schema: meta.RESULT_SCHEMA || '',
-    endereco: firstLine('ENDERECO_DOWN_PLANT'),
-    alvo: listOf('ARQUIVOS_ALVO'),
-    proibidos: listOf('ARQUIVOS_PROIBIDOS'),
-    objetivo: firstLine('OBJETIVO'),
-    contexto: firstLine('CONTEXTO_MINIMO'),
-    imports: listOf('CONTRATOS_IMPORTS'),
-    passos: (sections['PASSO_A_PASSO'] || '').split('\n').filter((l) => /^\s*\d+\./.test(l)).length,
-    criterios: (sections['CRITERIOS_DE_ACEITE'] || '').split('\n').filter((l) => /\[ \]/.test(l)).length,
-    testes: firstLine('TESTES_OBRIGATORIOS'),
-    efeitos: listOf('EFEITOS_COLATERAIS_PERMITIDOS')
-  };
-}
-
-const REQUIRED_META = ['TASK_ID', 'PARENT', 'PRIORIDADE', 'BRANCH', 'OWNER_DECISION_REQUIRED', 'CLASP_REQUIRED_RULE', 'RESULT_SCHEMA'];
-const REQUIRED_SECTIONS = ['ENDERECO_DOWN_PLANT', 'ARQUIVOS_ALVO', 'ARQUIVOS_PROIBIDOS', 'OBJETIVO', 'CONTEXTO_MINIMO', 'CONTRATOS_IMPORTS', 'PASSO_A_PASSO', 'CRITERIOS_DE_ACEITE', 'TESTES_OBRIGATORIOS', 'EFEITOS_COLATERAIS_PERMITIDOS'];
 
 console.log('================================================================');
 console.log('  TEST SUITE: TEMPLATE DE CARD EXECUTAVEL (Card #80)');
@@ -91,6 +43,8 @@ console.log('================================================================');
   assert(p.testes === 'node agentic/scripts/test_exemplo_a.js', 'A: TESTES_OBRIGATORIOS (comando unico em linha)');
   assert(p.criterios >= 1 && p.passos >= 1, 'A: criterios e passos contados');
   assert(p.efeitos.length === 1 && p.efeitos[0] === 'nenhum', 'A: efeitos colaterais permitidos declarados');
+  const v = validateCard(p);
+  assert(v.valid === true, 'A: validacao de schema OK');
 }
 
 // 3. Card ficticio B: multiplos arquivos + OWNER_DECISION
@@ -103,16 +57,15 @@ console.log('================================================================');
   assert(p.proibidos.includes('.git/'), 'B: .git/ proibido');
   assert(p.imports.length === 2, 'B: contratos/imports referenciados');
   assert(p.endereco === 'agentic/state/', 'B: ENDERECO_DOWN_PLANT parseado');
+  assert(validateCard(p).valid === true, 'B: validacao de schema OK');
 }
 
-// 4. Suficiencia: todos os campos obrigatorios preenchidos nos 2 cards ficticios
+// 4. Suficiencia: ambos os cards ficticios passam na validacao
 {
   for (const f of ['card_example_A.md', 'card_example_B.md']) {
     const p = parseCard(fs.readFileSync(path.join(CONTRACTS, 'examples', f), 'utf8'));
-    const ok = p.task_id && p.parent && p.branch && p.owner_decision_required && p.endereco &&
-      p.alvo.length > 0 && p.proibidos.length > 0 && p.objetivo && p.contexto && p.passos > 0 &&
-      p.criterios > 0 && p.testes && p.efeitos.length > 0;
-    assert(ok, f + ': card auto-suficiente (todos os campos obrigatorios preenchidos)');
+    const v = validateCard(p);
+    assert(v.valid, f + ': card auto-suficiente (validacao completa)');
   }
 }
 
