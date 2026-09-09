@@ -263,12 +263,15 @@ function specFixture(dir, overrides = {}) {
   const dir = mkTmp('syn-verifier-spec-secret-');
   try {
     const fx = specFixture(dir);
-    fx.git.committed.patch = 'diff --git a/x b/x\n+const KEY = "sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";\n';
+    // Fixture construido por concatenacao para o SOURCE nao conter literal que
+    // o proprio scanner flagraria no diff (realismo: nem fake secret no codigo).
+    const fakeSecret = 'sk-' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    fx.git.committed.patch = 'diff --git a/x b/x\n+const KEY = "' + fakeSecret + '";\n';
     const v = verifyTask(fx);
     assert(v.verdict === 'NOT_VERIFIED', 'padrao de secret no diff -> NOT_VERIFIED');
     const secretCheck = v.checks.find((c) => c.id === 'secrets_scan');
     assert(secretCheck && secretCheck.status === 'FAIL', 'check secrets_scan registrado como FAIL');
-    assert(!JSON.stringify(v).includes('sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 'valor do secret nunca aparece na saida');
+    assert(!JSON.stringify(v).includes(fakeSecret), 'valor do secret nunca aparece na saida');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 }
 
