@@ -103,6 +103,29 @@ test('variacoes de separador/caixa no nome do catalogo sao resolvidas', () => {
   assert.ok(aba.getName().toUpperCase().indexOf('PONTOS') !== -1);
 });
 
+// ---------- 4. Linha de cabecalho do catalogo (layout real com titulo antes da tabela) ----------
+test('layout real da planilha: cabecalho na 4a linha e localizado (indice 3)', () => {
+  const vals = [
+    [],
+    ['', ' '],
+    [],
+    ['', 'Nível', 'Ocorrência', 'SEM IMPUTADO'],
+    ['', '1', 'ARMAS DE FOGO (por unidade)'],
+    ['', '1.2', 'Apreensão de arma de fogo revólver', '9.000']
+  ];
+  assert.strictEqual(GuardiaoQualidade.localizarLinhaCabecalhoCatalogo(vals), 3);
+});
+
+test('cabecalho na primeira linha continua funcionando (indice 0)', () => {
+  const vals = [['Nível', 'INDICADOR PIP', 'SEM IMPUTADO'], ['1.2', 'Apreensão de arma de fogo revólver', '9.000']];
+  assert.strictEqual(GuardiaoQualidade.localizarLinhaCabecalhoCatalogo(vals), 0);
+});
+
+test('aba sem cabecalho de indicador retorna -1 (modo limitado explicito)', () => {
+  const vals = [['a'], ['b'], ['c']];
+  assert.strictEqual(GuardiaoQualidade.localizarLinhaCabecalhoCatalogo(vals), -1);
+});
+
 console.log(`\nRESULTADOS FINAIS: ${sucessos} PASS / ${falhas} FAIL`);
 if (falhas > 0) process.exit(1);
 }

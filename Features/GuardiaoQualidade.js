@@ -50,6 +50,31 @@ class GuardiaoQualidade {
     return candidatas[0].sheet;
   }
 
+  /**
+   * Localiza a LINHA de cabecalho do catalogo PIP (fix complementar G01 #117, 10/09/2026).
+   * A aba real do catalogo ("tabela de pontos PIP") tem linhas de titulo/espaco antes da
+   * tabela (o cabecalho "Nivel | Ocorrencia | SEM IMPUTADO" esta na 4a linha). Assumir a
+   * linha 1 fazia o catalogo sair como indisponivel (MODO_LIMITADO_CATALOGO_PIP) mesmo com
+   * a aba correta localizada. Varre as primeiras linhas e devolve o indice do cabecalho.
+   * @param {Array<Array>} vals matriz da aba
+   * @param {Array<string>} [aliases] aliases da coluna de indicador
+   * @returns {number} indice (0-based) da linha de cabecalho, ou -1 se nao encontrada
+   */
+  static localizarLinhaCabecalhoCatalogo(vals, aliases) {
+    const lista = Array.isArray(vals) ? vals : [];
+    const aliasesNorm = (aliases || ['INDICADOR PIP', 'INDICADOR', 'OCORRENCIA PIP', 'OCORRENCIA'])
+      .map(a => GuardiaoQualidade.normalizarNomeFlexivel(a));
+    const limite = Math.min(lista.length, 15);
+    for (let i = 0; i < limite; i++) {
+      const hs = (lista[i] || []).map(h => GuardiaoQualidade.normalizarNomeFlexivel(h));
+      for (const al of aliasesNorm) {
+        if (hs.indexOf(al) !== -1) return i;
+        if (hs.some(h => h && h.indexOf(al) !== -1)) return i;
+      }
+    }
+    return -1;
+  }
+
   static varrerAba(sheet, fontePeculioExterna = null) {
     const nomeAbaNorm = GuardiaoQualidade.normalizarNomeFlexivel(sheet.getName());
     if (nomeAbaNorm.includes('AUDITORIA') || nomeAbaNorm.includes('HISTORICO')) {
@@ -90,27 +115,35 @@ class GuardiaoQualidade {
           if (abaPIP) {
             const valsPIP = abaPIP.getDataRange().getValues();
             if (valsPIP && valsPIP.length > 0) {
-              const headersPIP = valsPIP[0].map(h => GuardiaoQualidade.normalizarNomeFlexivel(h));
               const aliasesColIndicador = ['INDICADOR PIP', 'INDICADOR', 'OCORRENCIA PIP', 'OCORRENCIA'];
 
-              let colIdx = -1;
-              for (const alias of aliasesColIndicador) {
-                const aliasNorm = GuardiaoQualidade.normalizarNomeFlexivel(alias);
-                colIdx = headersPIP.indexOf(aliasNorm);
-                if (colIdx !== -1) break;
-              }
-              if (colIdx === -1) {
+              // G01 #117 (fix complementar 10/09/2026): a aba real do catalogo tem titulo/espacos
+              // antes do cabecalho. Antes assumia-se valsPIP[0]; agora a linha de cabecalho e
+              // LOCALIZADA (localizarLinhaCabecalhoCatalogo) e os dados comecam logo apos ela.
+              const headerRowIdx = GuardiaoQualidade.localizarLinhaCabecalhoCatalogo(valsPIP, aliasesColIndicador);
+
+              if (headerRowIdx !== -1) {
+                const headersPIP = valsPIP[headerRowIdx].map(h => GuardiaoQualidade.normalizarNomeFlexivel(h));
+
+                let colIdx = -1;
                 for (const alias of aliasesColIndicador) {
                   const aliasNorm = GuardiaoQualidade.normalizarNomeFlexivel(alias);
-                  colIdx = headersPIP.findIndex(h => h.includes(aliasNorm));
+                  colIdx = headersPIP.indexOf(aliasNorm);
                   if (colIdx !== -1) break;
                 }
-              }
+                if (colIdx === -1) {
+                  for (const alias of aliasesColIndicador) {
+                    const aliasNorm = GuardiaoQualidade.normalizarNomeFlexivel(alias);
+                    colIdx = headersPIP.findIndex(h => h.includes(aliasNorm));
+                    if (colIdx !== -1) break;
+                  }
+                }
 
-              if (colIdx !== -1) {
-                const listaIndicadores = valsPIP.slice(1).map(r => String(r[colIdx] || '').trim()).filter(Boolean);
-                if (listaIndicadores.length > 0) {
-                  catalogoPIP = listaIndicadores;
+                if (colIdx !== -1) {
+                  const listaIndicadores = valsPIP.slice(headerRowIdx + 1).map(r => String(r[colIdx] || '').trim()).filter(Boolean);
+                  if (listaIndicadores.length > 0) {
+                    catalogoPIP = listaIndicadores;
+                  }
                 }
               }
             }
