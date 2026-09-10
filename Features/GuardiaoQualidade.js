@@ -164,7 +164,7 @@ class GuardiaoQualidade {
       const chave = RegrasQualidade.chaveTunel(data, mike, boe);
 
       if (temLinhaOperacional) {
-        RegrasQualidade.validarFormulasObrigatorias(formulas[i], notes[i], idx.calculadas).forEach(diag => {
+        RegrasQualidade.validarFormulasObrigatorias(formulas[i], notes[i], idx.calculadas, row).forEach(diag => {
           diag.linha = linha;
           diag.tunel = chave;
           alertasPorLinha[i - 1].push(diag);
@@ -176,10 +176,12 @@ class GuardiaoQualidade {
           alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
             severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.CRITICO : 'CRITICO',
             codigoRegra: 'OCORRENCIA_ORFA',
+            camada: 'SEMANTICA',
             linha,
             diagnostico: 'Ocorrencia orfa: linha com participacao/evento sem MIKE.',
             evidencia: `Policial: "${policial}", Matrícula: "${matricula}", Indicador: "${indicador}"`,
-            acaoRecomendada: 'Preencha o MIKE completo da ocorrência; a linha possui participação ou evento registrado.'
+            acaoRecomendada: 'Preencha o MIKE completo da ocorrência; a linha possui participação ou evento registrado.',
+            sugestaoCorrecao: 'Inserir o número do MIKE na coluna D.'
           }));
         }
         continue;
@@ -198,11 +200,13 @@ class GuardiaoQualidade {
         alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
           severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
           codigoRegra: 'MIKE_SUSPEITO',
+          camada: 'SINTATICA',
           linha,
           tunel: chave,
           diagnostico: `MIKE suspeito: ${mike}.`,
           evidencia: `MIKE lido: "${mike}"`,
-          acaoRecomendada: 'Confirme o MIKE: número formatado ou tamanho de dígitos fora do padrão.'
+          acaoRecomendada: 'Confirme o MIKE: número formatado ou tamanho de dígitos fora do padrão.',
+          sugestaoCorrecao: 'Verificar se o MIKE contém o número de ocorrência completo da PMPE.'
         }));
       }
 
@@ -215,11 +219,13 @@ class GuardiaoQualidade {
         alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
           severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
           codigoRegra: 'EVENTO_INCOMPLETO_AG',
+          camada: 'SEMANTICA',
           linha,
           tunel: chave,
           diagnostico: 'Evento incompleto: AG preenchido sem IMPUTADO?.',
           evidencia: `OCORRÊNCIA PIP (AG): "${indicador}" | IMPUTADO? (AH): vazio`,
-          acaoRecomendada: 'Revise AG/AH: o evento foi declared sem definir COM IMPUTADO ou SEM IMPUTADO em AH.'
+          acaoRecomendada: 'Revise AG/AH: o evento foi declared sem definir COM IMPUTADO ou SEM IMPUTADO em AH.',
+          sugestaoCorrecao: 'Selecionar "COM IMPUTADO" ou "SEM IMPUTADO" na coluna AH.'
         }));
       }
 
@@ -227,11 +233,13 @@ class GuardiaoQualidade {
         alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
           severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
           codigoRegra: 'IMPUTADO_SEM_EVENTO_AH',
+          camada: 'SEMANTICA',
           linha,
           tunel: chave,
           diagnostico: 'Imputado sem evento: AH preenchido sem OCORRENCIA PIP.',
           evidencia: `IMPUTADO? (AH): "${imputado}" | OCORRÊNCIA PIP (AG): vazio`,
-          acaoRecomendada: 'Preencha o indicador OCORRÊNCIA PIP em AG ou limpe o campo IMPUTADO? em AH.'
+          acaoRecomendada: 'Preencha o indicador OCORRÊNCIA PIP em AG ou limpe o campo IMPUTADO? em AH.',
+          sugestaoCorrecao: 'Preencher o indicador PIP em AG ou limpar AH.'
         }));
       }
 
@@ -239,11 +247,13 @@ class GuardiaoQualidade {
         alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
           severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
           codigoRegra: 'IMPUTADO_INVALIDO',
+          camada: 'SEMANTICA',
           linha,
           tunel: chave,
           diagnostico: `Valor de imputado invalido: ${imputado}.`,
           evidencia: `IMPUTADO? lido: "${imputado}"`,
-          acaoRecomendada: 'Selecione "COM IMPUTADO" ou "SEM IMPUTADO" na coluna AH.'
+          acaoRecomendada: 'Selecione "COM IMPUTADO" ou "SEM IMPUTADO" na coluna AH.',
+          sugestaoCorrecao: 'Corrigir para "COM IMPUTADO" ou "SEM IMPUTADO".'
         }));
       }
 
@@ -251,11 +261,13 @@ class GuardiaoQualidade {
         alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
           severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.OBSERVACAO : 'OBSERVACAO',
           codigoRegra: 'INDICADOR_DESCONHECIDO',
+          camada: 'SEMANTICA',
           linha,
           tunel: chave,
           diagnostico: `Indicador PIP não mapeado na tabela padrão: "${indicador}". Registrado como observação.`,
           evidencia: `Indicador: "${indicador}"`,
-          acaoRecomendada: 'Verifique se o indicador está correto ou se necessita inclusão na Tabela PIP.'
+          acaoRecomendada: 'Verifique se o indicador está correto ou se necessita inclusão na Tabela PIP.',
+          sugestaoCorrecao: 'Revisar se o título corresponde à Tabela PIP oficial.'
         }));
       }
 
@@ -263,11 +275,13 @@ class GuardiaoQualidade {
         alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
           severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
           codigoRegra: 'MATRICULA_AUSENTE',
+          camada: 'SEMANTICA',
           linha,
           tunel: chave,
           diagnostico: 'Matricula ausente: linha com policial sem matricula.',
           evidencia: `Policial: "${policial}" | Matrícula: vazia`,
-          acaoRecomendada: 'Preencha a matrícula funcional do policial para garantir o cômputo da produtividade.'
+          acaoRecomendada: 'Preencha a matrícula funcional do policial para garantir o cômputo da produtividade.',
+          sugestaoCorrecao: 'Inserir a matrícula funcional na coluna AD.'
         }));
       }
 
@@ -336,6 +350,31 @@ class GuardiaoQualidade {
       }
     });
 
+    // Detecção de túnel FRAGMENTADO (#114): mesmo MIKE com BOE/data únicos, porém >1 chave
+    let SaudeMod = typeof SaudeTuneis !== 'undefined' ? SaudeTuneis : null;
+    if (!SaudeMod && typeof require !== 'undefined') {
+      try { SaudeMod = require('../Core/SaudeTuneis').SaudeTuneis; } catch (e) {}
+    }
+    if (SaudeMod && typeof SaudeMod.detectarFragmentados === 'function') {
+      SaudeMod.detectarFragmentados(mikesMapa).forEach(frag => {
+        (frag.linhas || []).forEach(linhaFrag => {
+          if (linhaFrag >= 2 && linhaFrag - 2 < alertasPorLinha.length) {
+            const chaveFrag = String(frag.chaves && frag.chaves[0] || '');
+            alertasPorLinha[linhaFrag - 2].push(RegrasQualidade.criarDiagnostico({
+              severidade: SEVERIDADES_GUARDIAO.ALERTA,
+              codigoRegra: 'TUNEL_FRAGMENTADO',
+              camada: 'SINTATICA',
+              linha: linhaFrag,
+              tunel: chaveFrag,
+              diagnostico: `Túnel fragmentado: mesmo MIKE (${frag.mike}) aparece em ${frag.chaves.length} chaves distintas com BOE/data idênticos.`,
+              evidencia: `MIKE: ${frag.mike} | Chaves: ${frag.chaves.join(' | ')} | Linhas: ${frag.linhas.join(', ')}`,
+              acaoRecomendada: 'Unifique o padrão de data/chave do MIKE (ex.: datas como Date ou texto no MESMO formato) para consolidar o túnel.'
+            }));
+          }
+        });
+      });
+    }
+
     const saida = alertasPorLinha.map(diagnosticos => {
       const textos = RegrasQualidade.unicos(
         diagnosticos.map(d => typeof d === 'object' && d !== null ? (d.diagnostico || d.mensagem || '') : String(d))
@@ -353,11 +392,18 @@ class GuardiaoQualidade {
 
     RendererAuditoriaSaude.renderizarLog(sheet, todosDiagnosticos, tuneis, lastRow - 1);
 
+    // Quadro de saúde por túnel (#114) - aditivo, nunca substitui o retorno histórico
+    let quadroSaude = null;
+    if (SaudeMod && typeof SaudeMod.montarQuadroSaude === 'function') {
+      quadroSaude = SaudeMod.montarQuadroSaude(tuneis, mikesMapa, todosDiagnosticos);
+    }
+
     return {
       alertas: saida.filter(row => row[0]).length,
       linhas: lastRow - 1,
       tuneis: Object.keys(tuneis).length,
-      diagnosticos: todosDiagnosticos
+      diagnosticos: todosDiagnosticos,
+      saude: quadroSaude
     };
   }
 }
