@@ -54,3 +54,14 @@ As regras inventariadas na ARCA classificam-se em níveis estritos de autoridade
 ## 3. Fontes Externas Integradas sob Demanda
 - **Planilha do Pecúlio (QO/PECULIO):** ID acessado exclusivamente via `CONFIG_SYNTHEON.obterIdPeculio()`. Fornece a antiguidade N militar, dados de efetivo e desambiguação de homônimos.
 - **Aba "Tabela PIP":** Fornecida na própria planilha mensal do Batalhão contendo os indicadores de metas estatísticas.
+
+
+> **Fontes das regras adicionadas em #126 (G01):**
+
+| ID da Regra | Título | Tipo de Fonte | Nome/Localização | Autoridade | Status da Fonte |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **ARCA-MIKE-004** | Fragmentacao de Tunel por Chave Inconsistente | `RISCO_DOCUMENTADO` | ARCA_REGRAS_DOMINIO.md (risco de fragmentacao por formato de data) (Dominio/ARCA/ARCA_REGRAS_DOMINIO.md) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
+| **ARCA-EFETIVO-003** | Matricula sem Nome de Policial Vinculado | `CONTRATO_OPERACIONAL` | Implementacao no Guardiao (G01) (Features/GuardiaoQualidade.js (bloco POLICIAL_SEM_NOME)) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
+| **ARCA-MATRICULA-003** | Matricula em Multiplas Ocorrencias na Mesma Data | `CONTRATO_OPERACIONAL` | Implementacao no Guardiao (G01) (Core/CoberturaAuditoria.js:detectarMatriculaMultiplaNaMesmaData) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
+| **ARCA-AUDITORIA-001** | Classificacao de Saude por Tunel | `CONTRATO_OPERACIONAL` | Implementacao no Guardiao (G01) (Core/SaudeTuneis.js:classificarTunel) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
+| **ARCA-AUDITORIA-002** | Cobertura de Auditoria e Declaracao de NAO_AUDITADO | `CONTRATO_OPERACIONAL` | Implementacao no Guardiao (G01) (Core/CoberturaAuditoria.js:montarCobertura) | Interna | `INTERNAL_SOURCE_CONFIRMED` |

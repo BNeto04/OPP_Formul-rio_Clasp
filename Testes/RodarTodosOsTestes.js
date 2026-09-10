@@ -25,6 +25,8 @@ async function main() {
   console.log('');
   require('./TestArcaConsumidores');
   console.log('');
+  require('./TestArcaMapaCobertura');
+  console.log('');
   require('./TestSeletorMesesGuardiao');
   console.log('');
   require('./TestCatalogoPipGuardiao');

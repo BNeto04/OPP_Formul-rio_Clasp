@@ -11,14 +11,20 @@ A **ARCA** é o repositório canônico de todas as regras de domínio, política
 Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladores, motores, normalizadores, plugins e auditores (como o Guardião da Qualidade).
 
 ### Métricas de Consolidação
+> **Atualizado em 10/09/2026 pelos cards #125 (consumidores) e #126 (cobertura Guardiao<->ARCA).**
+> Os números abaixo refletem o catalogo reconciliado. As métricas originais de geração (04/09/2026)
+> varriam 200 de 1946 arquivos — a varredura exaustiva do domínio e o escopo do card #128.
 - **Arquivos Descobertos:** 1946
-- **Arquivos Escaneados:** 200
-- **Arquivos Excluídos:** 1746 (exclusivamente diretórios do sistema/git)
-- **Total de Regras de Negócio:** 28
-- **Total de Regras Técnicas/Formato:** 2 (mantidas segregadas)
-- **Regras com Fonte Canônica Confirmada:** 10
-- **Regras com Fonte Normativa Desconhecida (Heurísticas):** 2
-- **Regras Fora do Alcance do Guardião:** 8
+- **Arquivos Escaneados na geração original:** 200 (pendente varredura exaustiva — #128)
+- **Total de Regras de Negócio/Operacionais:** 32
+- **Total de Regras Técnicas:** 4
+- **Distribuição por tipo:** INTERNAL_OPERATIONAL_RULE=20, OFFICIAL_BUSINESS_RULE=9, TECHNICAL_RULE=4, HEURISTIC=2, CANONICAL_NORMATIVE_RULE=1
+- **Regras com Fonte Canônica Confirmada:** 11
+- **Regras com Fonte Interna Confirmada:** 23
+- **Regras com Fonte Desconhecida (Heurísticas):** 2
+- **Regras mapeadas no Guardiao:** 25
+- **Regras explicitamente NAO auditáveis pelo Guardiao:** 11
+- **Códigos de diagnóstico do Guardiao sem regra ARCA:** 0 (reconciliado em #126)
 
 ---
 
@@ -565,5 +571,79 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Riscos:** -
 - **Consumidores (reconciliado #125):** REAL: `Dominio/ResolverAIS.js`, `Dominio/TabelaTerritorialAIS.js`, `Entrada/EntradaManual.js`, `Entrada/Formulario.html` | INDIRETO: - | DECLARADO: `FormularioHtml`, `EntradaManual`, `GuardiaoQualidade`, `MotorAnaliticoV2` | PLANEJADO: -
 - **Observações:** SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126).
+
+---
+
+## 3.1 Regras adicionadas na reconciliacao de cobertura (#126 ARCA-FIX-003)
+
+> Regras registradas a partir de codigo e teste existentes (nenhuma heuristica promovida a oficial):
+
+### [ARCA-MIKE-004] Fragmentacao de Tunel por Chave Inconsistente
+- **Subdomínio:** `mike` | **Categoria:** `INTEGRIDADE_CHAVE`
+- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** O mesmo MIKE deve pertencer a UMA unica chave de tunel (DATA|MIKE|BOE). Quando representacoes de data divergentes (Date vs texto) dividem o MIKE em varias chaves, a ocorrencia fica fragmentada e a agregacao por tunel fica incorreta.
+- **Condição Lógica:** `MIKE com mesmas datas e BOE, porem presente em mais de uma chave de tunel.`
+- **Resultado Esperado:** Diagnostico ALERTA TUNEL_FRAGMENTADO com as chaves e linhas envolvidas.
+- **Evidência no Código:** `Core/SaudeTuneis.js:detectarFragmentados`, `Features/GuardiaoQualidade.js (bloco TUNEL_FRAGMENTADO)`
+- **Evidência em Testes:** `Testes/TestSaudeTuneis.js (detecta tunel fragmentado)`
+- **Auditabilidade no Guardiao:** `MAPEADO` — Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta. Codigos: `TUNEL_FRAGMENTADO`
+- **Consumidores (reconciliado #125):** REAL: `Core/SaudeTuneis.js`, `Features/GuardiaoQualidade.js` | INDIRETO: `Core/CoberturaAuditoria.js`, `Render/PainelSaude.js`, `Render/RendererAuditoriaSaude.js` | DECLARADO: - | PLANEJADO: -
+- **Observações:** Regra registrada na reconciliacao de cobertura (#126 ARCA-FIX-003) com base em codigo e teste existentes.
+
+---
+
+### [ARCA-EFETIVO-003] Matricula sem Nome de Policial Vinculado
+- **Subdomínio:** `efetivo` | **Categoria:** `EFETIVO`
+- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** Linha operacional com matricula preenchida e sem nome de policial compromete a rastreabilidade do efetivo; deve ser sinalizada como observacao, nunca como dado valido silencioso.
+- **Condição Lógica:** `Linha de tunel com matricula preenchida e coluna de policial vazia.`
+- **Resultado Esperado:** Diagnostico OBSERVACAO POLICIAL_SEM_NOME pedindo confirmacao do nome vinculado.
+- **Evidência no Código:** `Features/GuardiaoQualidade.js (bloco POLICIAL_SEM_NOME)`
+- **Evidência em Testes:** `Testes/TestGuardiao.js (regressao de cenarios operacionais)`
+- **Auditabilidade no Guardiao:** `MAPEADO` — Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta. Codigos: `POLICIAL_SEM_NOME`
+- **Consumidores (reconciliado #125):** REAL: `Features/GuardiaoQualidade.js` | INDIRETO: `Core/CoberturaAuditoria.js`, `Render/PainelSaude.js`, `Render/RendererAuditoriaSaude.js` | DECLARADO: - | PLANEJADO: -
+- **Observações:** Regra registrada na reconciliacao de cobertura (#126 ARCA-FIX-003) com base em codigo e teste existentes.
+
+---
+
+### [ARCA-MATRICULA-003] Matricula em Multiplas Ocorrencias na Mesma Data
+- **Subdomínio:** `matricula` | **Categoria:** `EFETIVO`
+- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** A mesma matricula vinculada a mais de um MIKE na mesma data exige confirmacao humana (participacao real em duas ocorrencias) ou indica erro de preenchimento.
+- **Condição Lógica:** `Mesma matricula presente em 2 ou mais MIKEs com a mesma data.`
+- **Resultado Esperado:** Diagnostico OBSERVACAO MATRICULA_MULTIPLAS_OCORRENCIAS_MESMA_DATA com os MIKEs envolvidos.
+- **Evidência no Código:** `Core/CoberturaAuditoria.js:detectarMatriculaMultiplaNaMesmaData`, `Features/GuardiaoQualidade.js (matriculasOcorrencias)`
+- **Evidência em Testes:** `Testes/TestCoberturaAuditoria.js (detecta matricula em 2 MIKEs na mesma data)`
+- **Auditabilidade no Guardiao:** `MAPEADO` — Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta. Codigos: `MATRICULA_MULTIPLAS_OCORRENCIAS_MESMA_DATA`
+- **Consumidores (reconciliado #125):** REAL: `Core/CoberturaAuditoria.js`, `Features/GuardiaoQualidade.js` | INDIRETO: `Render/PainelSaude.js`, `Render/RendererAuditoriaSaude.js` | DECLARADO: - | PLANEJADO: -
+- **Observações:** Regra registrada na reconciliacao de cobertura (#126 ARCA-FIX-003) com base em codigo e teste existentes.
+
+---
+
+### [ARCA-AUDITORIA-001] Classificacao de Saude por Tunel
+- **Subdomínio:** `auditoria` | **Categoria:** `SAUDE_AUDITORIA`
+- **Tipo de Regra:** `TECHNICAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** Cada tunel auditado recebe UM dos cinco estados: SAUDAVEL | ALERTA | CRITICO | INCOMPLETO | NAO_AUDITAVEL, por precedencia explicita, sem permitir verde quando houver lacuna de verificacao.
+- **Condição Lógica:** `Tunel com diagnosticos e/ou estrutura incompleta.`
+- **Resultado Esperado:** Contagem de tuneis saudaveis/alerta/critico/incompleto/nao auditavel por mes e por tunel.
+- **Evidência no Código:** `Core/SaudeTuneis.js:classificarTunel`, `Features/GuardiaoQualidade.js (retorno .saude)`
+- **Evidência em Testes:** `Testes/TestSaudeTuneis.js (18 testes de classificacao)`
+- **Auditabilidade no Guardiao:** `MAPEADO` — Regra tecnica do proprio auditor: nao gera diagnostico; descreve comportamento da varredura (classificacao de saude / cobertura) e por isso nao tem codigo associado. 
+- **Consumidores (reconciliado #125):** REAL: `Core/SaudeTuneis.js`, `Features/GuardiaoQualidade.js` | INDIRETO: `Core/CoberturaAuditoria.js`, `Render/PainelSaude.js`, `Render/RendererAuditoriaSaude.js` | DECLARADO: - | PLANEJADO: -
+- **Observações:** Regra registrada na reconciliacao de cobertura (#126 ARCA-FIX-003) com base em codigo e teste existentes.
+
+---
+
+### [ARCA-AUDITORIA-002] Cobertura de Auditoria e Declaracao de NAO_AUDITADO
+- **Subdomínio:** `auditoria` | **Categoria:** `COBERTURA`
+- **Tipo de Regra:** `TECHNICAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** O Guardiao deve declarar explicitamente o que NAO conseguiu verificar (catalogo PIP ausente, fonte de antiguidade indisponivel, metadados ARCA ausentes). Ausencia de evidencia nunca vira aprovacao.
+- **Condição Lógica:** `Varredura concluida com dependencia ausente ou diagnostico sem metadados ARCA.`
+- **Resultado Esperado:** Status COMPLETA|PARCIAL e lista de regras NAO_AUDITADAS com motivo.
+- **Evidência no Código:** `Core/CoberturaAuditoria.js:montarCobertura`, `Core/SaudeTuneis.js (classificacao NAO_AUDITAVEL)`
+- **Evidência em Testes:** `Testes/TestCoberturaAuditoria.js (10 testes; catalogo ausente -> PARCIAL)`
+- **Auditabilidade no Guardiao:** `MAPEADO` — Regra tecnica do proprio auditor: nao gera diagnostico; descreve comportamento da varredura (classificacao de saude / cobertura) e por isso nao tem codigo associado. 
+- **Consumidores (reconciliado #125):** REAL: `Core/CoberturaAuditoria.js`, `Features/GuardiaoQualidade.js` | INDIRETO: `Render/PainelSaude.js`, `Render/RendererAuditoriaSaude.js` | DECLARADO: - | PLANEJADO: -
+- **Observações:** Regra registrada na reconciliacao de cobertura (#126 ARCA-FIX-003) com base em codigo e teste existentes.
 
 ---

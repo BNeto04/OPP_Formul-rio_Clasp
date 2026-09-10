@@ -31,7 +31,7 @@ const md = fs.readFileSync(MD_PATH, 'utf8');
 const CHAVES = ['REAL_CODE_CONSUMER', 'INDIRECT_CONSUMER', 'DECLARED_CONSUMER', 'PLANNED_CONSUMER'];
 
 test('catalogo tem 31 regras e registro de metodo da reconciliacao', () => {
-  assert.strictEqual(regras.length, 31);
+  assert.strictEqual(regras.length, 36);
   assert.ok(arca.meta.consumidores_reconciliacao, 'meta.consumidores_reconciliacao ausente');
   assert.ok(String(arca.meta.consumidores_reconciliacao.card).includes('#125'));
 });
@@ -69,15 +69,23 @@ test('lista declarada original foi preservada (historico/proveniencia)', () => {
   assert.strictEqual(algumDeclarado, 31, 'toda regra deve preservar a lista declarada');
 });
 
-test('regras sem mapeamento na porta nao declaram consumidor indireto (gap explicito)', () => {
+test('gap explicito: NAO_AUDITAVEL nao declara consumidor indireto; MAPEADO com codigo flui pelo caminho', () => {
   const adaptador = fs.readFileSync(path.join(REPO, 'Dominio', 'ARCA', 'AdaptadorConsultaArca.js'), 'utf8');
   const idsMapeados = new Set((adaptador.match(/'ARCA-[A-Z0-9\-]+'/g) || []).map(s => s.replace(/'/g, '')));
-  const semMapa = regras.filter(r => !idsMapeados.has(r.rule_id));
-  assert.ok(semMapa.length >= 1, 'esperado ao menos 1 regra sem mapeamento');
-  semMapa.forEach(r => {
-    assert.deepStrictEqual(r.consumidores.INDIRECT_CONSUMER, [], `${r.rule_id}: indireto deveria ser vazio (sem porta)`);
-    assert.ok(r.consumidores.OBSERVACAO.includes('#126'), `${r.rule_id}: observacao deveria apontar pendencia #126`);
+  regras.forEach(r => {
+    const a = r.auditabilidade_guardiao;
+    if (a.status === 'NAO_AUDITAVEL') {
+      assert.deepStrictEqual(r.consumidores.INDIRECT_CONSUMER, [], `${r.rule_id}: NAO_AUDITAVEL nao deve ter indireto`);
+      assert.ok(a.motivo.length > 20, `${r.rule_id}: NAO_AUDITAVEL exige motivo`);
+    } else if (a.codigos.length > 0) {
+      assert.ok(idsMapeados.has(r.rule_id), `${r.rule_id}: MAPEADO com codigo deve estar na porta`);
+      assert.ok(r.consumidores.INDIRECT_CONSUMER.length > 0, `${r.rule_id}: MAPEADO com codigo deve ter propagacao`);
+    } else {
+      // regra tecnica do proprio auditor (ARCA-AUDITORIA-00x): descreve comportamento, sem codigo
+      assert.ok(r.rule_id.startsWith('ARCA-AUDITORIA-'), `${r.rule_id}: MAPEADO sem codigo so para regras tecnicas do auditor`);
+    }
   });
+  assert.ok(regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_AUDITAVEL').length >= 1);
 });
 
 test('integracao planejada do NormalizadorEfetivo registrada nas regras de efetivo/matricula/antiguidade', () => {
