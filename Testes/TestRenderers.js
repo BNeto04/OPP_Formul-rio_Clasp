@@ -152,7 +152,7 @@ test('RendererAuditoriaSaude: paleta oficial de severidades possui os 6 níveis 
 });
 
 // 2. Validação da Estilização Visual da Aba [AUDITORIA] Ocorrencias
-test('RendererAuditoriaSaude: estilização da aba [AUDITORIA] aplica congelamento na linha 5 e alinhamento à esquerda nas colunas 6-8', () => {
+test('RendererAuditoriaSaude: estilização da aba [AUDITORIA] aplica congelamento na linha 5 e alinhamento à esquerda nas colunas 7-9', () => {
   const headers = ['DATA', 'NÚMERO MIKE', 'BOE', 'MATRÍCULA', 'POLICIAL', 'ARMAS', 'OCORRÊNCIA PIP', 'IMPUTADO?', 'ALERTA INTEGRIDADE'];
   const mockSheet = criarMockSheetRenderer(headers, [['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE', 'COM IMPUTADO', '']]);
 
@@ -173,12 +173,12 @@ test('RendererAuditoriaSaude: estilização da aba [AUDITORIA] aplica congelamen
   assert.strictEqual(subLog.obterLinhasCongeladas(), 5);
 
   const alinhamentos = subLog.obterAlinhamentos();
-  const alignLeftCols6To8 = alinhamentos.find(a => a.row === 6 && a.col === 6 && a.align === 'left');
-  assert.ok(alignLeftCols6To8, 'As colunas 6 a 8 da tabela de auditoria devem ter alinhamento à esquerda (left)');
+  const alignLeftCols7To9 = alinhamentos.find(a => a.row === 6 && a.col === 7 && a.align === 'left');
+  assert.ok(alignLeftCols7To9, 'As colunas 7 a 9 da tabela de auditoria devem ter alinhamento à esquerda (left)');
 });
 
 // 3. Validação da Estilização Visual da Aba [HISTORICO] Auditoria Ocorrencias
-test('RendererAuditoriaSaude: estilização do [HISTORICO] aplica congelamento apenas na linha 1 e alinhamento à esquerda nas colunas 7-9', () => {
+test('RendererAuditoriaSaude: estilização do [HISTORICO] aplica congelamento apenas na linha 1 e alinhamento à esquerda nas colunas 8-10', () => {
   const headers = ['DATA', 'NÚMERO MIKE', 'BOE', 'MATRÍCULA', 'POLICIAL', 'ARMAS', 'OCORRÊNCIA PIP', 'IMPUTADO?', 'ALERTA INTEGRIDADE'];
   const mockSheet = criarMockSheetRenderer(headers, [['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE', 'COM IMPUTADO', '']]);
 
@@ -199,8 +199,8 @@ test('RendererAuditoriaSaude: estilização do [HISTORICO] aplica congelamento a
   assert.strictEqual(subHist.obterLinhasCongeladas(), 1);
 
   const alinhamentos = subHist.obterAlinhamentos();
-  const alignLeftCols7To9 = alinhamentos.find(a => a.col === 7 && a.align === 'left');
-  assert.ok(alignLeftCols7To9, 'As colunas 7 a 9 do histórico devem ter alinhamento à esquerda (left)');
+  const alignLeftCols8To10 = alinhamentos.find(a => a.col === 8 && a.align === 'left');
+  assert.ok(alignLeftCols8To10, 'As colunas 8 a 10 do histórico devem ter alinhamento à esquerda (left)');
 });
 
 // 4. Validação Isolada da Coluna AM (fundo #FFF3CD e fonte #856404)

@@ -28,6 +28,9 @@ class NormalizadorEfetivo {
     const saida = [];
     const log = [];
 
+    // Desambiguação automática por antiguidade N (1º NOME, 2º NOME., 3º NOME:)
+    NormalizadorEfetivo.desambiguarNomesGuerra(peculio, log);
+
     peculio.forEach(reg => {
       if (matriculasPeculio[reg.matricula]) {
         log.push(['PECULIO', reg.linhaOrigem, 'CRITICO', `Matricula duplicada no PECULIO: ${reg.matricula}.`]);
@@ -88,8 +91,10 @@ class NormalizadorEfetivo {
         subunidadeExistente: existente ? existente.subunidadeProdutividade : ''
       });
 
+      const antiguidadeN = parseInt(row[0] || row[1] || row[2], 10);
       registros.push({
         linhaOrigem: index + 12,
+        antiguidadeN: !isNaN(antiguidadeN) ? antiguidadeN : (index + 1),
         nomeGuerra,
         grad,
         matricula,
@@ -251,9 +256,70 @@ class NormalizadorEfetivo {
     });
   }
 
+  /**
+   * Desambigua policiais com o mesmo nome de guerra com base na antiguidade N.
+   * Regra militar:
+   * - 1º Mais antigo (menor N): Nome limpo (ex: 'SILVA')
+   * - 2º Intermediário / Mais recruta (sem intermediário): 'SILVA.' (adiciona ponto '.')
+   * - 3º Mais recruta (havendo intermediário): 'SILVA:' (adiciona dois pontos ':')
+   * @param {Array<Object>} registros
+   * @param {Array<Array>} log
+   * @returns {Array<Object>}
+   */
+  static desambiguarNomesGuerra(registros, log = []) {
+    if (!Array.isArray(registros)) return registros;
+
+    const grupos = {};
+    registros.forEach(reg => {
+      const nomeBase = String(reg.nomeGuerra || '').replace(/[.:]+$/g, '').trim().toUpperCase();
+      if (!nomeBase) return;
+      if (!grupos[nomeBase]) grupos[nomeBase] = [];
+      grupos[nomeBase].push(reg);
+    });
+
+    Object.keys(grupos).forEach(nomeBase => {
+      const grupo = grupos[nomeBase];
+      if (grupo.length > 1) {
+        // Ordena por antiguidadeN crescente (menor N = mais antigo)
+        grupo.sort((a, b) => {
+          const nA = (a.antiguidadeN !== undefined && a.antiguidadeN !== null && !isNaN(a.antiguidadeN)) ? Number(a.antiguidadeN) : Number(a.linhaOrigem || 0);
+          const nB = (b.antiguidadeN !== undefined && b.antiguidadeN !== null && !isNaN(b.antiguidadeN)) ? Number(b.antiguidadeN) : Number(b.linhaOrigem || 0);
+          return nA - nB;
+        });
+
+        grupo.forEach((reg, idx) => {
+          let sufixo = '';
+          if (idx === 1) {
+            sufixo = '.'; // 2º (ou único recruta se grupo de 2)
+          } else if (idx >= 2) {
+            sufixo = ':'; // 3º mais recruta (ou superior)
+          }
+
+          reg.nomeGuerra = nomeBase + sufixo;
+
+          if (idx > 0 && Array.isArray(log)) {
+            const rotulo = idx === 1 ? '2º (Mais recruta / Intermediário)' : `${idx + 1}º (Mais recruta)`;
+            log.push([
+              'DESAMBIGUACAO',
+              reg.linhaOrigem || '-',
+              'INFO',
+              `Homônimo detectado para '${nomeBase}': militar matrícula ${reg.matricula} (${rotulo}, N=${reg.antiguidadeN || reg.linhaOrigem}) normalizado para '${reg.nomeGuerra}'.`
+            ]);
+          }
+        });
+      }
+    });
+
+    return registros;
+  }
+
   static texto(valor) {
     return String(valor || '').trim();
   }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = NormalizadorEfetivo;
 }
 
 function normalizarEfetivo() {

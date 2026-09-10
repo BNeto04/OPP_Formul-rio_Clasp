@@ -58,16 +58,17 @@ const SyntheonUtils = {
       ? CONSTANTES_SYNTHEON.ALIASES[chaveAlias]
       : [chaveAlias];
     const opcoesNormalizadas = aliases.map(alias => this.normalizarTexto(alias));
+    const headersNormalizados = Array.isArray(headers) ? headers.map(h => this.normalizarTexto(h)) : [];
 
     // 1. Procura match exato
     for (const opcao of opcoesNormalizadas) {
-      const idx = headers.indexOf(opcao);
+      const idx = headersNormalizados.indexOf(opcao);
       if (idx !== -1) return idx;
     }
 
     // 2. Procura match por contenção (parcial)
     for (const opcao of opcoesNormalizadas) {
-      const idx = headers.findIndex(h => h.includes(opcao));
+      const idx = headersNormalizados.findIndex(h => h.includes(opcao));
       if (idx !== -1) return idx;
     }
 

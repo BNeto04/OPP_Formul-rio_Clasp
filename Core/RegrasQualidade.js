@@ -21,20 +21,46 @@ class RegrasQualidade {
     codigoRegra = 'REGRA_GERAL',
     linha = 0,
     tunel = '',
+    camada = 'SEMANTICA',
     diagnostico = '',
     evidencia = '',
     acaoRecomendada = '',
+    sugestaoCorrecao = '',
     condicaoExcecaoManual = false
   }) {
+    let arca = null;
+    let AdaptadorArcaMod = typeof AdaptadorConsultaArca !== 'undefined' ? AdaptadorConsultaArca : null;
+    if (!AdaptadorArcaMod && typeof require !== 'undefined') {
+      try {
+        AdaptadorArcaMod = require('../Dominio/ARCA/AdaptadorConsultaArca');
+      } catch (e) {}
+    }
+
+    if (AdaptadorArcaMod && typeof AdaptadorArcaMod.enriquecerDiagnostico === 'function') {
+      try {
+        arca = AdaptadorArcaMod.enriquecerDiagnostico(codigoRegra, {
+          evidencia,
+          acaoRecomendada: acaoRecomendada || sugestaoCorrecao
+        });
+      } catch (e) {
+        arca = Object.freeze({ status: 'ARCA_METADATA_UNAVAILABLE' });
+      }
+    } else {
+      arca = Object.freeze({ status: 'ARCA_RULE_NOT_MAPPED' });
+    }
+
     return {
       severidade,
       codigoRegra,
       linha,
       tunel,
+      camada,
       diagnostico,
       evidencia,
-      acaoRecomendada,
-      condicaoExcecaoManual: !!condicaoExcecaoManual
+      acaoRecomendada: acaoRecomendada || sugestaoCorrecao,
+      sugestaoCorrecao: sugestaoCorrecao || acaoRecomendada,
+      condicaoExcecaoManual: !!condicaoExcecaoManual,
+      arca
     };
   }
 
@@ -49,11 +75,13 @@ class RegrasQualidade {
         alertas.push(RegrasQualidade.criarDiagnostico({
           severidade: SEVERIDADES_GUARDIAO.ALERTA,
           codigoRegra: 'FATO_MACONHA_AUSENTE',
+          camada: 'SEMANTICA',
           linha: evento.linha,
           tunel: tunel.chave,
           diagnostico: 'Indicador de maconha sem fato correspondente no túnel.',
           evidencia: `Indicador: "${evento.indicador}" | Maconha no túnel: ${tunel.fatos.maconha}g`,
-          acaoRecomendada: 'Preencha a quantidade física de maconha ou revise o indicador OCORRÊNCIA PIP.'
+          acaoRecomendada: 'Preencha a quantidade física de maconha ou revise o indicador OCORRÊNCIA PIP.',
+          sugestaoCorrecao: 'Inserir a pesagem/unidades de maconha nas colunas Q/R ou alterar o indicador em AG.'
         }));
       }
 
@@ -61,11 +89,13 @@ class RegrasQualidade {
         alertas.push(RegrasQualidade.criarDiagnostico({
           severidade: SEVERIDADES_GUARDIAO.ALERTA,
           codigoRegra: 'FATO_CRACK_AUSENTE',
+          camada: 'SEMANTICA',
           linha: evento.linha,
           tunel: tunel.chave,
           diagnostico: 'Indicador de crack sem fato correspondente no túnel.',
           evidencia: `Indicador: "${evento.indicador}" | Crack no túnel: ${tunel.fatos.crack}g`,
-          acaoRecomendada: 'Preencha a quantidade física de crack ou revise o indicador OCORRÊNCIA PIP.'
+          acaoRecomendada: 'Preencha a quantidade física de crack ou revise o indicador OCORRÊNCIA PIP.',
+          sugestaoCorrecao: 'Preencher pedras/gramas de crack nas colunas S/T.'
         }));
       }
 
@@ -73,11 +103,13 @@ class RegrasQualidade {
         alertas.push(RegrasQualidade.criarDiagnostico({
           severidade: SEVERIDADES_GUARDIAO.ALERTA,
           codigoRegra: 'FATO_COCAINA_AUSENTE',
+          camada: 'SEMANTICA',
           linha: evento.linha,
           tunel: tunel.chave,
           diagnostico: 'Indicador de cocaína sem fato correspondente no túnel.',
           evidencia: `Indicador: "${evento.indicador}" | Cocaína no túnel: ${tunel.fatos.cocaina}g`,
-          acaoRecomendada: 'Preencha a quantidade física de cocaína ou revise o indicador OCORRÊNCIA PIP.'
+          acaoRecomendada: 'Preencha a quantidade física de cocaína ou revise o indicador OCORRÊNCIA PIP.',
+          sugestaoCorrecao: 'Preencher pinos/gramas de cocaína nas colunas U/V.'
         }));
       }
 
@@ -85,11 +117,13 @@ class RegrasQualidade {
         alertas.push(RegrasQualidade.criarDiagnostico({
           severidade: SEVERIDADES_GUARDIAO.ALERTA,
           codigoRegra: 'FATO_ARMA_AUSENTE',
+          camada: 'SEMANTICA',
           linha: evento.linha,
           tunel: tunel.chave,
           diagnostico: 'Indicador de arma de fogo sem fato correspondente no túnel.',
           evidencia: `Indicador: "${evento.indicador}" | Armas no túnel: ${tunel.fatos.armas}`,
-          acaoRecomendada: 'Preencha a quantidade física de armas apreendidas no túnel.'
+          acaoRecomendada: 'Preencha a quantidade física de armas apreendidas no túnel.',
+          sugestaoCorrecao: 'Informar o tipo e modelo da arma nas colunas K a N.'
         }));
       }
 
@@ -97,11 +131,13 @@ class RegrasQualidade {
         alertas.push(RegrasQualidade.criarDiagnostico({
           severidade: SEVERIDADES_GUARDIAO.ALERTA,
           codigoRegra: 'FATO_MUNICAO_AUSENTE',
+          camada: 'SEMANTICA',
           linha: evento.linha,
           tunel: tunel.chave,
           diagnostico: 'Indicador de munição sem fato correspondente no túnel.',
           evidencia: `Indicador: "${evento.indicador}" | Munição no túnel: ${tunel.fatos.municao}`,
-          acaoRecomendada: 'Preencha a quantidade de munições apreendidas ou revise o indicador.'
+          acaoRecomendada: 'Preencha a quantidade de munições apreendidas ou revise o indicador.',
+          sugestaoCorrecao: 'Inserir a contagem de munições na coluna O.'
         }));
       }
 
@@ -110,11 +146,13 @@ class RegrasQualidade {
           alertas.push(RegrasQualidade.criarDiagnostico({
             severidade: SEVERIDADES_GUARDIAO.OBSERVACAO,
             codigoRegra: 'FATO_NAO_AUDITAVEL_AUTOMATICAMENTE',
+            camada: 'SEMANTICA',
             linha: evento.linha,
             tunel: tunel.chave,
             diagnostico: 'Ocorrência com indicador de numerário sem valor físico registrado. Classificado como NÃO AUDITÁVEL AUTOMATICAMENTE.',
             evidencia: `Indicador: "${evento.indicador}" | Valor numérico lido: R$ 0,00`,
-            acaoRecomendada: 'Preservada decisão humana: revise os recibos e BOE para registrar o valor apreendido.'
+            acaoRecomendada: 'Preservada decisão humana: revise os recibos e BOE para registrar o valor apreendido.',
+            sugestaoCorrecao: 'Confirmar nos autos se houve apreensão de numerário e anotar justificativa.'
           }));
         }
       }
@@ -155,15 +193,54 @@ class RegrasQualidade {
             alertas.push(RegrasQualidade.criarDiagnostico({
               severidade: SEVERIDADES_GUARDIAO.ALERTA,
               codigoRegra: 'RATEIO_PONTOS_INCOERENTE',
+              camada: 'SEMANTICA',
               linha: lf.linha,
               tunel: tunel.chave,
               diagnostico: 'Rateio de PONTOS FICÇÃO incoerente ou zerado para policial no túnel.',
               evidencia: `Pontos Totais do túnel: ${totalPontosTunel} | Divisor PIP: ${DIVISOR_RATEIO_PIP} | Rateio lido na linha: ${lf.pontosFiccaoLido} | Rateio esperado: ${rateioEsperado.toFixed(2)}`,
-              acaoRecomendada: `Ajuste a pontuação da linha para ${rateioEsperado.toFixed(2)} pts (total de pontos da ocorrência dividido por ${DIVISOR_RATEIO_PIP}).`
+              acaoRecomendada: `Ajuste a pontuação da linha para ${rateioEsperado.toFixed(2)} pts (total de pontos da ocorrência dividido por ${DIVISOR_RATEIO_PIP}).`,
+              sugestaoCorrecao: `Copiar a fórmula de rateio (=PONTOS_TOTAIS/4) para a coluna AJ da linha ${lf.linha}.`
             }));
           }
         }
       });
+    }
+
+    // 3. Classificação Estrutural de Integridade do Túnel
+    const temPolicial = tunel.matriculas && tunel.matriculas.size > 0;
+    const temFatos = [tunel.fatos.armas, tunel.fatos.municao, tunel.fatos.maconha, tunel.fatos.crack, tunel.fatos.cocaina].some(v => v > 0);
+    const temEventos = tunel.eventos && tunel.eventos.length > 0;
+
+    if (!temPolicial && (temFatos || temEventos)) {
+      tunel.statusClassificacao = 'INVALIDO_SEM_EQUIPE';
+      alertas.push(RegrasQualidade.criarDiagnostico({
+        severidade: SEVERIDADES_GUARDIAO.CRITICO,
+        codigoRegra: 'TUNEL_SEM_EQUIPE',
+        camada: 'SEMANTICA',
+        linha: (tunel.linhasFatos && tunel.linhasFatos[0]) ? tunel.linhasFatos[0].linha : 2,
+        tunel: tunel.chave,
+        diagnostico: 'Túnel com fatos ou indicadores registrados, mas sem nenhum policial com matrícula vinculada.',
+        evidencia: `Fatos registrados sem efetivo no túnel "${tunel.chave}"`,
+        acaoRecomendada: 'Adicione pelo menos um policial com matrícula funcional participante da ocorrência.',
+        sugestaoCorrecao: 'Inserir a matrícula e nome do policial nas colunas AD/AE.'
+      }));
+    } else if (temPolicial && !temFatos && !temEventos) {
+      tunel.statusClassificacao = 'INVALIDO_SEM_FATOS';
+      alertas.push(RegrasQualidade.criarDiagnostico({
+        severidade: SEVERIDADES_GUARDIAO.ALERTA,
+        codigoRegra: 'TUNEL_SEM_FATOS',
+        camada: 'SEMANTICA',
+        linha: (tunel.linhasFatos && tunel.linhasFatos[0]) ? tunel.linhasFatos[0].linha : 2,
+        tunel: tunel.chave,
+        diagnostico: 'Túnel com policiais alocados, mas sem nenhum fato físico ou indicador PIP correspondente.',
+        evidencia: `Equipe presente (${tunel.matriculas.size} integrantes), mas nenhum fato em "${tunel.chave}"`,
+        acaoRecomendada: 'Preencha os dados de apreensão/indicador ou confirme se a ocorrência é de natureza sem apreensão.',
+        sugestaoCorrecao: 'Preencher a apreensão correspondente ou o indicador PIP em AG.'
+      }));
+    } else if (temPolicial && (temFatos || temEventos)) {
+      tunel.statusClassificacao = 'VALIDO';
+    } else {
+      tunel.statusClassificacao = 'VAZIO';
     }
 
     return alertas;
@@ -397,6 +474,9 @@ class RegrasQualidade {
 
   static localizarColunasCalculadas(headers) {
     const colunas = [
+      { nome: 'PELOTAO', aliases: ['PELOTAO', 'PELOTÃO'] },
+      { nome: 'GRAD', aliases: ['GRAD', 'GRADUACAO', 'GRADUAÇÃO', 'POSTO'] },
+      { nome: 'MATRICULA', aliases: ['MATRICULA (FÓRMULA)', 'MATRÍCULA (FÓRMULA)'] },
       { nome: 'TOTAL DE MACONHA', indicePadrao: 18, aliases: ['TOTAL DE MACONHA'] },
       { nome: 'DIVIDIDO MAC', indicePadrao: 19, aliases: ['DIVIDIDO MAC'] },
       { nome: 'TOTAL CRACK', indicePadrao: 22, aliases: ['TOTAL CRACK (GR)', 'TOTAL CRACK'] },
@@ -407,42 +487,69 @@ class RegrasQualidade {
       { nome: 'CHAVE OCORRENCIA', indicePadrao: 36, aliases: ['CHAVE OCORRENCIA', 'CHAVE'] }
     ];
 
-    return colunas.map(coluna => {
+    const resultado = [];
+    colunas.forEach(coluna => {
       const encontrado = RegrasQualidade.localizarPorAliases(headers, coluna.aliases);
-      return {
-        nome: coluna.nome,
-        indice: encontrado !== -1 ? encontrado : coluna.indicePadrao
-      };
+      if (encontrado !== -1) {
+        resultado.push({ nome: coluna.nome, indice: encontrado });
+      } else if (typeof coluna.indicePadrao === 'number' && coluna.indicePadrao < headers.length) {
+        resultado.push({ nome: coluna.nome, indice: coluna.indicePadrao });
+      }
     });
+    return resultado;
   }
 
-  static validarFormulasObrigatorias(formulaRow, noteRow, colunasCalculadas) {
+  static validarFormulasObrigatorias(formulaRow, noteRow, colunasCalculadas, valueRow = null) {
     const alertas = [];
+    const ERROS_PLANILHA = ['#NOME?', '#NAME?', '#REF!', '#VALOR!', '#VALUE!', '#N/D', '#N/A', '#DIV/0!', '#NULL!'];
+
     colunasCalculadas.forEach(coluna => {
       if (!formulaRow || coluna.indice < 0 || coluna.indice >= formulaRow.length) return;
-      const formula = formulaRow[coluna.indice];
+      const formula = String(formulaRow[coluna.indice] || '').trim();
+      const valor = valueRow ? String(valueRow[coluna.indice] || '').trim() : '';
       const nota = (noteRow && noteRow[coluna.indice]) ? String(noteRow[coluna.indice]).trim() : '';
 
+      // 1. Checagem de Erros Sintáticos e de Referência (#NOME?, #REF!, etc.)
+      const erroEncontrado = ERROS_PLANILHA.find(e => formula.toUpperCase().includes(e) || valor.toUpperCase().includes(e));
+      if (erroEncontrado) {
+        alertas.push(RegrasQualidade.criarDiagnostico({
+          severidade: SEVERIDADES_GUARDIAO.CRITICO,
+          codigoRegra: 'FORMULA_CORROMPIDA_ERRO_SINTAXE',
+          camada: 'SINTATICA',
+          linha: 0,
+          diagnostico: `Erro sintático ou de referência (${erroEncontrado}) detectado na fórmula da coluna ${coluna.nome}.`,
+          evidencia: `Coluna: ${coluna.nome} | Fórmula/Valor: "${formula || valor}"`,
+          acaoRecomendada: `Restaure a fórmula correta clonando da linha 2 (copyTo) ou corrigindo o nome da função/referência.`,
+          sugestaoCorrecao: `Copiar a fórmula padrão da célula modelo linha 2 para a coluna ${coluna.nome}.`
+        }));
+        return;
+      }
+
+      // 2. Checagem de Ausência de Fórmula em coluna calculada
       if (!formula) {
         if (nota.toUpperCase().startsWith('EXCECAO:')) {
           const motivo = nota.substring(8).trim();
           alertas.push(RegrasQualidade.criarDiagnostico({
             severidade: SEVERIDADES_GUARDIAO.EXCECAO_MANUAL,
             codigoRegra: 'EXCECAO_MANUAL_JUSTIFICADA',
+            camada: 'SINTATICA',
             linha: 0,
             diagnostico: `Ajuste manual em ${coluna.nome} justificado por nota: "${motivo}".`,
             evidencia: `Nota de Exceção: "${nota}"`,
             acaoRecomendada: 'Exceção manual justificada pelo operador. Nenhuma ação necessária.',
+            sugestaoCorrecao: 'Preservada decisão manual registrada em nota.',
             condicaoExcecaoManual: true
           }));
         } else {
           alertas.push(RegrasQualidade.criarDiagnostico({
             severidade: SEVERIDADES_GUARDIAO.ALERTA,
             codigoRegra: 'FORMULA_AUSENTE',
+            camada: 'SINTATICA',
             linha: 0,
             diagnostico: `Fórmula ausente em coluna calculada: ${coluna.nome}.`,
             evidencia: `Coluna: ${coluna.nome} (índice: ${coluna.indice}) sem fórmula e sem nota EXCECAO:`,
-            acaoRecomendada: `Restaure a fórmula de ${coluna.nome} a partir de uma linha válida ou registre uma nota iniciada por EXCECAO: explicando o motivo.`
+            acaoRecomendada: `Restaure a fórmula de ${coluna.nome} a partir de uma linha válida ou registre uma nota iniciada por EXCECAO: explicando o motivo.`,
+            sugestaoCorrecao: `Replicar fórmula da linha 2 para a coluna ${coluna.nome}.`
           }));
         }
       }

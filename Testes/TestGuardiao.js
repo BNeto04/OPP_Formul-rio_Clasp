@@ -35,7 +35,7 @@ function test(nome, fn) {
     console.log(`  ✅ [PASS] ${nome}`);
     sucessos++;
   } catch (err) {
-    console.error(`  ❌ [FAIL] ${nome}:`, err.message);
+    console.error(`  ❌ [FAIL] ${nome}:`, err.stack);
     process.exitCode = 1;
   }
 }
@@ -503,8 +503,8 @@ test('GuardiaoQualidade: aba existente sem cabeçalho válido de indicador (com 
   assert.strictEqual(diagModoLimitado.severidade, 'OBSERVACAO');
 });
 
-// 17. Auditoria com alertas popula resumo e tabela de 8 colunas em [AUDITORIA] Ocorrencias (TASK-M05.1-05)
-test('RendererAuditoriaSaude: auditoria com alertas popula a aba [AUDITORIA] Ocorrencias com resumo e tabela de 8 colunas', () => {
+// 17. Auditoria com alertas popula resumo e tabela de 9 colunas em [AUDITORIA] Ocorrencias (TASK-M05.1-05)
+test('RendererAuditoriaSaude: auditoria com alertas popula a aba [AUDITORIA] Ocorrencias com resumo e tabela de 9 colunas', () => {
   const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
   const dadosLinhas = [
     ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
@@ -518,10 +518,11 @@ test('RendererAuditoriaSaude: auditoria com alertas popula a aba [AUDITORIA] Oco
   const dadosLog = subAbaLog.obterDadosArmazenados();
   assert.ok(dadosLog.length >= 6);
 
-  assert.deepStrictEqual(dadosLog[4], ['ABA', 'TÚNEL', 'LINHA', 'SEVERIDADE', 'REGRA', 'DIAGNÓSTICO', 'EVIDÊNCIA', 'AÇÃO RECOMENDADA']);
+  assert.deepStrictEqual(dadosLog[4], ['ABA', 'TÚNEL', 'LINHA', 'CAMADA', 'SEVERIDADE', 'REGRA', 'DIAGNÓSTICO', 'EVIDÊNCIA', 'SUGESTÃO DE CORREÇÃO']);
   assert.strictEqual(dadosLog[5][0], 'JUL2026_TESTE');
-  assert.strictEqual(dadosLog[5][3], 'CRITICO');
-  assert.strictEqual(dadosLog[5][4], 'OCORRENCIA_ORFA');
+  assert.strictEqual(dadosLog[5][3], 'SEMANTICA');
+  assert.strictEqual(dadosLog[5][4], 'CRITICO');
+  assert.strictEqual(dadosLog[5][5], 'OCORRENCIA_ORFA');
 });
 
 // 18. Auditoria Aprovada (0 alertas -> exibe linha APROVADO) (TASK-M05.1-05)
@@ -551,8 +552,8 @@ test('RendererAuditoriaSaude: auditoria aprovada sem alertas exibe a linha APROV
   const dadosLog = subAbaLog.obterDadosArmazenados();
 
   assert.strictEqual(dadosLog[0][5], 'APROVADO');
-  assert.strictEqual(dadosLog[5][3], 'APROVADO');
-  assert.strictEqual(dadosLog[5][4], 'INTEGRIDADE_OK');
+  assert.strictEqual(dadosLog[5][4], 'APROVADO');
+  assert.strictEqual(dadosLog[5][5], 'INTEGRIDADE_OK');
 });
 
 // 19. Histórico Preservando Múltiplas Execuções Cumulativas (TASK-M05.1-05)
@@ -585,7 +586,7 @@ test('RendererAuditoriaSaude: aba [HISTORICO] Auditoria Ocorrencias preserva reg
   assert.ok(subAbaHist);
   const dadosHist = subAbaHist.obterDadosArmazenados();
 
-  assert.deepStrictEqual(dadosHist[0], ['DATA/HORA EXECUÇÃO', 'ABA', 'TÚNEL', 'LINHA', 'SEVERIDADE', 'REGRA', 'DIAGNÓSTICO', 'EVIDÊNCIA', 'AÇÃO RECOMENDADA']);
+  assert.deepStrictEqual(dadosHist[0], ['DATA/HORA EXECUÇÃO', 'ABA', 'TÚNEL', 'LINHA', 'CAMADA', 'SEVERIDADE', 'REGRA', 'DIAGNÓSTICO', 'EVIDÊNCIA', 'SUGESTÃO DE CORREÇÃO']);
   assert.strictEqual(dadosHist.length, 3);
   assert.strictEqual(dadosHist[1][1], 'JUL2026_TESTE');
   assert.strictEqual(dadosHist[2][1], 'JUL2026_TESTE');
@@ -717,7 +718,7 @@ test('GuardiaoQualidade: Homologação Final Offline End-to-End cobrindo 10 cen�
 });
 
 // 22. Estilização Executiva do Renderizador de Auditoria (TASK-M06.1-02)
-test('RendererAuditoriaSaude: valida paleta de severidades, congelamento de painéis (linha 5) e alinhamento à esquerda das colunas 6-8', () => {
+test('RendererAuditoriaSaude: valida paleta de severidades, congelamento de painéis (linha 5) e alinhamento à esquerda das colunas 7-9', () => {
   const paleta = RendererAuditoriaSaude.PALETA_SEVERIDADES;
   assert.strictEqual(paleta['CRITICO'].fundo, '#D9534F');
   assert.strictEqual(paleta['ALERTA'].fundo, '#F0AD4E');
@@ -735,19 +736,19 @@ test('RendererAuditoriaSaude: valida paleta de severidades, congelamento de pain
   const subLog = mockSheet.obterSubAba('[AUDITORIA] Ocorrencias');
   assert.ok(subLog);
   const dadosLog = subLog.obterDadosArmazenados();
-  assert.strictEqual(dadosLog[5][3], 'CRITICO');
+  assert.strictEqual(dadosLog[5][4], 'CRITICO');
 
   // Validação do congelamento de painéis (setFrozenRows(5))
   assert.strictEqual(subLog.obterLinhasCongeladas(), 5);
 
-  // Validação de alinhamento à esquerda (left) das colunas 6 a 8
+  // Validação de alinhamento à esquerda (left) das colunas 7 a 9
   const alinhamentos = subLog.obterAlinhamentos();
-  const alignLeftCols6To8 = alinhamentos.find(a => a.row === 6 && a.col === 6 && a.align === 'left');
-  assert.ok(alignLeftCols6To8, 'As colunas 6 a 8 na linha 6 devem ter alinhamento à esquerda (left)');
+  const alignLeftCols7To9 = alinhamentos.find(a => a.row === 6 && a.col === 7 && a.align === 'left');
+  assert.ok(alignLeftCols7To9, 'As colunas 7 a 9 na linha 6 devem ter alinhamento à esquerda (left)');
 });
 
 // 23. Estilização Executiva e Histórico Cumulativo em [HISTORICO] Auditoria Ocorrencias (TASK-M06.1-03)
-test('RendererAuditoriaSaude: valida histórico cumulativo, congelamento da linha 1, severidade na coluna 5 (cor e texto) e alinhamento à esquerda das colunas 7-9', () => {
+test('RendererAuditoriaSaude: valida histórico cumulativo, congelamento da linha 1, severidade na coluna 6 (cor e texto) e alinhamento à esquerda das colunas 8-10', () => {
   const abaPIPValores = [['INDICADOR PIP'], ['PORTE ILEGAL DE ARMA DE FOGO']];
   const dadosLinhas = [
     ['15/07/2026', '', '26E100', '113920-7', 'SD SILVA', 1, 'PORTE ILEGAL DE ARMA DE FOGO', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY', '']
@@ -765,24 +766,24 @@ test('RendererAuditoriaSaude: valida histórico cumulativo, congelamento da linh
   // 1. Confirma histórico estritamente cumulativo (cabeçalho + 2 execuções)
   const dadosHist = subHist.obterDadosArmazenados();
   assert.strictEqual(dadosHist.length, 3);
-  assert.strictEqual(dadosHist[1][4], 'CRITICO'); // Coluna 5 (SEVERIDADE) na execução 1
-  assert.strictEqual(dadosHist[2][4], 'CRITICO'); // Coluna 5 (SEVERIDADE) na execução 2
+  assert.strictEqual(dadosHist[1][5], 'CRITICO'); // Coluna 6 (SEVERIDADE) na execução 1
+  assert.strictEqual(dadosHist[2][5], 'CRITICO'); // Coluna 6 (SEVERIDADE) na execução 2
 
   // 2. Confirma congelamento apenas da linha 1
   assert.strictEqual(subHist.obterLinhasCongeladas(), 1);
 
-  // 3. Confirma a cor aplicada na célula de severidade na Coluna 5 (#D9534F para CRITICO) nas execuções existentes
+  // 3. Confirma a cor aplicada na célula de severidade na Coluna 6 (#D9534F para CRITICO) nas execuções existentes
   const coresBackground = subHist.obterCoresBackground();
-  const corCriticoLinha2Col5 = coresBackground.find(c => c.row === 2 && c.col === 5 && c.color === '#D9534F');
-  assert.ok(corCriticoLinha2Col5, 'A célula de severidade na Coluna 5 da linha 2 deve receber a cor de fundo #D9534F (CRITICO)');
+  const corCriticoLinha2Col6 = coresBackground.find(c => c.row === 2 && c.col === 6 && c.color === '#D9534F');
+  assert.ok(corCriticoLinha2Col6, 'A célula de severidade na Coluna 6 da linha 2 deve receber a cor de fundo #D9534F (CRITICO)');
 
-  const corCriticoLinha3Col5 = coresBackground.find(c => c.row === 3 && c.col === 5 && c.color === '#D9534F');
-  assert.ok(corCriticoLinha3Col5, 'A célula de severidade na Coluna 5 da linha 3 deve receber a cor de fundo #D9534F (CRITICO)');
+  const corCriticoLinha3Col6 = coresBackground.find(c => c.row === 3 && c.col === 6 && c.color === '#D9534F');
+  assert.ok(corCriticoLinha3Col6, 'A célula de severidade na Coluna 6 da linha 3 deve receber a cor de fundo #D9534F (CRITICO)');
 
-  // 4. Confirma alinhamento à esquerda (left) das colunas 7 a 9
+  // 4. Confirma alinhamento à esquerda (left) das colunas 8 a 10
   const alinhamentos = subHist.obterAlinhamentos();
-  const alignLeftCols7To9 = alinhamentos.find(a => a.col === 7 && a.align === 'left');
-  assert.ok(alignLeftCols7To9, 'As colunas 7 a 9 no Histórico devem ter alinhamento à esquerda (left)');
+  const alignLeftCols8To10 = alinhamentos.find(a => a.col === 8 && a.align === 'left');
+  assert.ok(alignLeftCols8To10, 'As colunas 8 a 10 no Histórico devem ter alinhamento à esquerda (left)');
 });
 
 // 24. Destaque Visual Discreto da Coluna AM nas Abas Mensais — Fundo e Cor da Fonte (TASK-M06.1-04)

@@ -7,3 +7,19 @@ scratch/**
 package.json
 package-lock.json
 check_all_syntax.js
+
+# Camadas de desenvolvimento/infra que NAO pertencem ao projeto Apps Script (G01 #117)
+agentic/**
+scripts/**
+VigiaPonte/**
+ponte1_telegram_chatgpt/**
+ponte2_chatgpt_gravity/**
+extension/**
+extension_outbound/**
+02_Comodos/**
+06_Inventario/**
+Dominio/ARCA/*.md
+*.log
+**/*.log
+**/state/**
+**/logs/**
