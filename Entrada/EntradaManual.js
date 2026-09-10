@@ -634,3 +634,38 @@ if (typeof module !== 'undefined' && module.exports) {
     resolverAISTerritorial: resolverAISTerritorial
   };
 }
+
+
+/**
+ * Porta canonica ARCA para o circuito do Formulario/OCR (card #138 OCR-ARCA-004).
+ *
+ * Entrega APENAS os metadados da regra canonica (rule_id, rotulo oficial e fronteira declarada).
+ * A ARCA NAO le o BO e NAO decide por regex: a leitura do documento e a casagem lexical continuam no parser
+ * do formulario (heuristica OCR). Fail-soft: qualquer indisponibilidade devolve `{ ok:false, motivo }` e o
+ * cliente segue com o rotulo local.
+ *
+ * @returns {{ok: boolean, rule_id: string, titulo_pip: (string|null), motivo?: string}}
+ */
+function obterMetadadosArcaVeiculo() {
+  const RULE_ID = 'ARCA-VEICULO-001';
+  try {
+    if (typeof AdaptadorConsultaArca === 'undefined' || !AdaptadorConsultaArca
+        || typeof AdaptadorConsultaArca.consultarPorRuleId !== 'function') {
+      return { ok: false, motivo: 'ARCA_METADATA_UNAVAILABLE', rule_id: RULE_ID, titulo_pip: null };
+    }
+    const regra = AdaptadorConsultaArca.consultarPorRuleId(RULE_ID);
+    if (!regra) return { ok: false, motivo: 'ARCA_RULE_NOT_FOUND', rule_id: RULE_ID, titulo_pip: null };
+    const parametros = regra.parametros || {};
+    return {
+      ok: true,
+      rule_id: regra.rule_id,
+      titulo_pip: parametros.titulo_pip || null,
+      campo_avaliado: parametros.campo_avaliado || null,
+      campo_proibido_para_inferencia: parametros.campo_proibido_para_inferencia || null,
+      fronteira: parametros.fronteira || null,
+      origem: 'AdaptadorConsultaArca.consultarPorRuleId'
+    };
+  } catch (e) {
+    return { ok: false, motivo: 'ARCA_METADATA_ERROR: ' + (e && e.message ? e.message : e), rule_id: RULE_ID, titulo_pip: null };
+  }
+}

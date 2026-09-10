@@ -199,6 +199,12 @@
       "fromNode": "n_p3",
       "toNode": "n6",
       "label": "navega: Comparativo/GXT"
+    },
+    {
+      "id": "e12",
+      "fromNode": "n1",
+      "toNode": "n_arca",
+      "label": "consulta canonica do titulo de veiculo (ARCA-VEICULO-001)"
     }
   ]
 }

@@ -55,7 +55,11 @@ const CATALOGO = [
 ];
 
 global.window = { opcoesFormulario: { ocorrenciasPip: CATALOGO } };
+// rotulo local e helper de rotulo canonico REAIS (extraidos do HTML): exercita tambem o fallback fail-soft
+global.ROTULO_VEICULO_LOCAL = 'Apreensão de veículo furtado ou roubado';
+const fonteTituloArca = extrairFuncao(html, 'tituloCanonicoVeiculoArca_');
 const conciliarTitulosPipOcr = new Function('return ' + fonteConcil)();
+global.tituloCanonicoVeiculoArca_ = new Function('return ' + fonteTituloArca)();
 
 const TITULO_VEICULO = 'Apreensão de veículo furtado ou roubado';
 

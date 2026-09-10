@@ -54,3 +54,6 @@
 
 
 > **Reconciliacao OCR/Veiculo 10/09/2026 (#137 OCR-ARCA-003):** catalogo com **41 regras**; 26 mapeadas no Guardiao e **15** explicitamente NAO auditaveis com motivo. Nova regra de dominio `ARCA-VEICULO-001` (subdominio `veiculo`): o titulo PIP de veiculo exige natureza que confirme recuperacao/apreensao/localizacao de veiculo roubado ou furtado. Fronteira explicita: a ARCA rege a CONDICAO de dominio; o parser do formulario continua responsavel por ler o BO e pela realizacao lexical (heuristica OCR) — nenhuma heuristica foi promovida a regra oficial, e GXT/Central Analitica permanecem fora do menu por decisao do proprietario.
+
+
+> **Integracao OCR/Veiculo 10/09/2026 (#138 OCR-ARCA-004):** `ARCA-VEICULO-001` passou a ter **consumidores reais** (`Entrada/Formulario.html` + `Entrada/EntradaManual.js`): o formulario consulta os metadados canonicos por rule_id (fail-soft) e a heuristica lexical segue no parser, agora cobrindo substantivo, adjetivo e participio e tolerando quebra de linha. A defesa anti-falso-positivo foi preservada.

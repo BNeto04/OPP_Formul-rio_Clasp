@@ -708,4 +708,4 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Entrada/Formulario.html:957-965`, `Entrada/Formulario.html:963`
 - **Evidência em Testes:** `Testes/TestOcrVeiculoRoubado.js`, `Testes/TestEntradaManualFormulario.js:749-761`, `Testes/TestArcaVeiculoOcr.js`
 - **Auditabilidade no Guardiao:** `NAO_AUDITAVEL` — consumidor e o formulario (cliente, `Entrada/Formulario.html`) e nao a planilha auditada; o Guardiao nao emite codigo de diagnostico para titulo PIP de veiculo.
-- **Consumidores (reconciliado #125 / #137):** REAL: - (porta definida no #137; codigo consumidor entra no #138) | INDIRETO: - | DECLARADO: - | PLANEJADO: `Entrada/Formulario.html`
+- **Consumidores (reconciliado #125 / #137 / #138):** REAL: `Entrada/Formulario.html`, `Entrada/EntradaManual.js` | INDIRETO: - | DECLARADO: - | PLANEJADO: -

@@ -92,13 +92,46 @@ test('porta canonica responde: consultarPorRuleId devolve a regra a partir do JS
   assert.strictEqual(viaPorta.rule_id, 'ARCA-VEICULO-001');
 });
 
-test('consumo honesto: formulario ainda NAO consome (REAL vazio) e integracao esta PLANEJADA (#138)', () => {
-  assert.deepStrictEqual(regra.consumidores.REAL_CODE_CONSUMER, [], 'REAL deve estar vazio ate o #138 integrar');
-  assert.deepStrictEqual(regra.consumidores.DECLARED_CONSUMER, [], 'regra NOVA nao tem lista declarada historica (#125 preservado: 31)');
-  assert.deepStrictEqual(regra.consumidores.PLANNED_CONSUMER, ['Entrada/Formulario.html'],
-    'planejado deve ser um caminho real do repositorio');
-  assert.ok(/consultarPorRuleId/.test(regra.consumidores.OBSERVACAO),
-    'a observacao deve registrar a porta canonica definida no #137');
+test('consumo REAL integrado no #138 (formulario + servidor), sem lista declarada inventada', () => {
+  assert.deepStrictEqual(regra.consumidores.REAL_CODE_CONSUMER.sort(),
+    ['Entrada/EntradaManual.js', 'Entrada/Formulario.html'].sort(), 'consumidores reais do #138');
+  assert.deepStrictEqual(regra.consumidores.PLANNED_CONSUMER, [], 'nada mais planejado: integracao concluida no #138');
+  assert.deepStrictEqual(regra.consumidores.DECLARED_CONSUMER, [], 'regra NOVA nao tem lista declarada historica (#125 preservado)');
+  assert.ok(/consultarPorRuleId/.test(regra.consumidores.OBSERVACAO), 'a observacao deve registrar a porta canonica');
+});
+
+test('porta do servidor (obterMetadadosArcaVeiculo) entrega metadados canonicos e e fail-soft', () => {
+  const fonte = fs.readFileSync(path.join(REPO, 'Entrada/EntradaManual.js'), 'utf8');
+  const trecho = fonte.slice(fonte.indexOf('function obterMetadadosArcaVeiculo()'));
+  assert.ok(trecho.length > 0, 'funcao obterMetadadosArcaVeiculo ausente do EntradaManual.js');
+  const Adaptador = require(path.join(REPO, 'Dominio/ARCA/AdaptadorConsultaArca.js'));
+  const original = global.AdaptadorConsultaArca;
+  try {
+    // caminho feliz: metadados reais vindos do JSON pela porta canonica
+    global.AdaptadorConsultaArca = Adaptador;
+    const fn = new Function(trecho.slice(0, trecho.indexOf('\n}') + 2) + '\nreturn obterMetadadosArcaVeiculo;')();
+    const meta = fn();
+    assert.strictEqual(meta.ok, true, 'porta deveria responder ok com o adaptador disponivel');
+    assert.strictEqual(meta.rule_id, 'ARCA-VEICULO-001');
+    assert.strictEqual(meta.titulo_pip, 'Apreensão de veículo furtado ou roubado',
+      'o rotulo canonico deve vir da regra ARCA, nao de constante local');
+    // fail-soft: sem o adaptador, devolve motivo e NAO lanca
+    delete global.AdaptadorConsultaArca;
+    const semArca = fn();
+    assert.strictEqual(semArca.ok, false);
+    assert.strictEqual(semArca.motivo, 'ARCA_METADATA_UNAVAILABLE');
+    assert.strictEqual(semArca.titulo_pip, null);
+  } finally {
+    if (original === undefined) delete global.AdaptadorConsultaArca; else global.AdaptadorConsultaArca = original;
+  }
+});
+
+test('o parser consome a porta canonica e mantem o fallback local no Formulario.html', () => {
+  const html = fs.readFileSync(path.join(REPO, 'Entrada/Formulario.html'), 'utf8');
+  assert.ok(html.indexOf('tituloCanonicoVeiculoArca_()') !== -1, 'o parser nao usa o rotulo canonico da ARCA');
+  assert.ok(html.indexOf('carregarMetadadosArcaVeiculo_') !== -1, 'falta o carregador de metadados da ARCA');
+  assert.ok(html.indexOf('ROTULO_VEICULO_LOCAL') !== -1, 'falta o rotulo local de fallback (fail-soft)');
+  assert.ok(html.indexOf('obterMetadadosArcaVeiculo') !== -1, 'o cliente nao chama a porta do servidor');
 });
 
 test('o catalogo NAO duplicou a heuristica: existe apenas uma regra de veiculo', () => {

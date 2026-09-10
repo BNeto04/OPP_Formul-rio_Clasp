@@ -46,18 +46,10 @@ test('toda regra tem consumidores estruturado nas 4 classes + OBSERVACAO', () =>
 });
 
 test('toda regra tem ao menos 1 consumidor REAL de codigo', () => {
-  // Excecao UNICA e documentada: regra cuja porta canonica foi definida mas cujo codigo consumidor
-  // entra em card posterior. O mapa tem tamanho maximo 1 - nao pode virar porta de entrada de regras orfas.
-  const INTEGRACAO_PENDENTE = { 'ARCA-VEICULO-001': '#138 (porta definida no #137)' };
-  assert.ok(Object.keys(INTEGRACAO_PENDENTE).length <= 1, 'excecoes de consumidor real nao podem crescer');
+  // Nenhuma excecao: toda regra do catalogo tem consumidor REAL de codigo. A excecao temporaria de
+  // ARCA-VEICULO-001 (#137) foi fechada no #138, quando o consumo passou a existir de fato.
   regras.forEach(r => {
-    const pendente = INTEGRACAO_PENDENTE[r.rule_id];
-    assert.ok(r.consumidores.REAL_CODE_CONSUMER.length >= 1 || pendente,
-      `${r.rule_id}: sem consumidor real e sem excecao documentada`);
-    if (pendente) {
-      assert.strictEqual(r.consumidores.REAL_CODE_CONSUMER.length, 0, `${r.rule_id}: excecao so vale sem consumidor real`);
-      assert.ok(r.consumidores.PLANNED_CONSUMER.length > 0, `${r.rule_id}: excecao exige consumidor planejado`);
-    }
+    assert.ok(r.consumidores.REAL_CODE_CONSUMER.length >= 1, `${r.rule_id}: sem consumidor real`);
   });
 });
 

@@ -184,6 +184,9 @@ class AdaptadorConsultaArca {
       is_official: isOfficial,
       expected_rule_summary: regra.descricao_humana || regra.resultado_esperado || '',
       condicao: regra.condicao || '',
+      // Parametros de dominio declarados na regra (card #138: `titulo_pip` de ARCA-VEICULO-001 e consumido
+      // pelo servidor do formulario via porta canonica). Campo aditivo: nao altera os campos existentes.
+      parametros: regra.parametros || {},
       excecoes: regra.excecoes || []
     });
   }

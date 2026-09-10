@@ -357,6 +357,7 @@
 
     // ── MOTOR OCR (Tesseract.js + PDF.js) ────────────────────────
     async function iniciarOCR(file) {
+        carregarMetadadosArcaVeiculo_(); // fail-soft: metadados da ARCA em paralelo com o OCR
       const ocrId = ++execucaoOcrId;
       limparDadosDocumentoAnterior();
       log('>> Arquivo recebido: ' + file.name);
@@ -867,6 +868,45 @@
       applyDetidosListener();
     }
 
+    // ------------------------------------------------------------------
+    // Porta canonica ARCA (card #138 OCR-ARCA-004).
+    // O servidor entrega os METADADOS da regra por rule_id; o parser continua lendo o BO e fazendo a
+    // casagem lexical. Fail-soft: sem resposta valida, usa o rotulo local (identico) e registra a ausencia.
+    // ------------------------------------------------------------------
+    const ROTULO_VEICULO_LOCAL = 'Apreensão de veículo furtado ou roubado';
+    window.metadadosArcaVeiculoOcr = window.metadadosArcaVeiculoOcr || { ok: false, motivo: 'NAO_CONSULTADO' };
+
+    function registrarOcr_(mensagem) {
+      try {
+        const terminal = document.getElementById('ocrTerminal');
+        if (terminal && typeof terminal.innerText === 'string') terminal.innerText += '\n' + mensagem;
+      } catch (e) { /* log e opcional, nunca bloqueia */ }
+    }
+
+    function tituloCanonicoVeiculoArca_() {
+      const m = window.metadadosArcaVeiculoOcr;
+      return (m && m.ok && m.titulo_pip) ? m.titulo_pip : ROTULO_VEICULO_LOCAL;
+    }
+
+    function carregarMetadadosArcaVeiculo_() {
+      try {
+        if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+        if (window.metadadosArcaVeiculoOcr && window.metadadosArcaVeiculoOcr.ok) return;
+        google.script.run
+          .withSuccessHandler(function (dados) {
+            window.metadadosArcaVeiculoOcr = dados || { ok: false, motivo: 'RESPOSTA_VAZIA' };
+            registrarOcr_(dados && dados.ok
+              ? '>> ARCA-VEICULO-001 carregada (' + dados.rule_id + ')'
+              : '>> ARCA-VEICULO-001 indisponivel (' + ((dados && dados.motivo) || 'sem resposta') + ') - rotulo local');
+          })
+          .withFailureHandler(function (erro) {
+            window.metadadosArcaVeiculoOcr = { ok: false, motivo: 'FALHA: ' + (erro && erro.message ? erro.message : erro) };
+            registrarOcr_('>> ARCA-VEICULO-001 indisponivel (fail-soft) - rotulo local');
+          })
+          .obterMetadadosArcaVeiculo();
+      } catch (e) { /* fail-soft: nunca bloqueia o preenchimento */ }
+    }
+
     function conciliarTitulosPipOcr(text, armasDetectadas, drogasDetectadas, natSelecionada) {
       const upper = (text || '').toUpperCase();
       const titulos = [];
@@ -957,10 +997,26 @@
       // 4. Veículos e mandados só podem virar PIP quando confirmados na natureza.
       // Palavras soltas no histórico do BO geram falsos positivos (ex.: "roubo" ou
       // "não foram encontrados mandados de prisão").
-      const naturezaPip = (natSelecionada || '').toUpperCase();
-      const naturezaVeiculoRecuperado = /(?:RECUPERA[CÇ][AÃ]O|APREENS[AÃ]O|LOCALIZA[CÇ][AÃ]O).*?(?:VE[IÍ]CULO|MOTO|CARRO).*?(?:ROUBAD[OA]|FURTAD[OA])|(?:VE[IÍ]CULO|MOTO|CARRO).*?(?:ROUBAD[OA]|FURTAD[OA]).*?(?:RECUPERA[CÇ][AÃ]O|APREENS[AÃ]O|LOCALIZA[CÇ][AÃ]O)/.test(naturezaPip);
+      //
+      // Correcao #138 (OCR-ARCA-004) — a CONDICAO de dominio e da regra canonica ARCA-VEICULO-001
+      // (recuperacao/apreensao/localizacao + veiculo + crime patrimonial NA MESMA natureza, nunca na
+      // narrativa). A ARCA rege a condicao; a casagem lexical abaixo e heuristica DESTE parser (o BO e
+      // lido aqui), agora cobrindo substantivo (ROUBO/FURTO), adjetivo (ROUBADO/FURTADO) e participio
+      // (RECUPERADO/APREENDIDO/LOCALIZADO), e tolerando quebra de linha no PDF.
+      const naturezaPip = String(natSelecionada || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase(); // sem acento, maiusculo
+      const TERMO_RECUPERACAO_VEICULO = /(RECUPERACAO|RECUPERAD[OA]S?|APREENSAO|APREENDID[OA]S?|LOCALIZACAO|LOCALIZAD[OA]S?)/;
+      const TERMO_VEICULO = /(VEICULO|MOTO|CARRO)/;
+      const TERMO_CRIME_VEICULO = /(ROUBAD[OA]S?|FURTAD[OA]S?|ROUBO|FURTO)/;
+      const recuperacaoPertoDoVeiculo = /(RECUPERACAO|RECUPERAD[OA]S?|APREENSAO|APREENDID[OA]S?|LOCALIZACAO|LOCALIZAD[OA]S?)[\s\S]{0,40}?(VEICULO|MOTO|CARRO)/
+        .test(naturezaPip)
+        || /(VEICULO|MOTO|CARRO)[\s\S]{0,40}?(RECUPERACAO|RECUPERAD[OA]S?|APREENSAO|APREENDID[OA]S?|LOCALIZACAO|LOCALIZAD[OA]S?)/.test(naturezaPip);
+      const naturezaVeiculoRecuperado = !!naturezaPip
+        && TERMO_RECUPERACAO_VEICULO.test(naturezaPip)
+        && TERMO_VEICULO.test(naturezaPip)
+        && TERMO_CRIME_VEICULO.test(naturezaPip)
+        && recuperacaoPertoDoVeiculo;
       if (naturezaVeiculoRecuperado) {
-        titulos.push(encontrarOpcaoValida('Apreensão de veículo furtado ou roubado'));
+        titulos.push(encontrarOpcaoValida(tituloCanonicoVeiculoArca_()));
       }
 
       // 5. Mandado de Prisão

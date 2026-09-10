@@ -2461,13 +2461,14 @@
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
       "consumidores": {
-        "REAL_CODE_CONSUMER": [],
+        "REAL_CODE_CONSUMER": [
+          "Entrada/Formulario.html",
+          "Entrada/EntradaManual.js"
+        ],
         "INDIRECT_CONSUMER": [],
         "DECLARED_CONSUMER": [],
-        "PLANNED_CONSUMER": [
-          "Entrada/Formulario.html"
-        ],
-        "OBSERVACAO": "Achado do #135: o Formulario/OCR NAO consumia a ARCA (nenhuma referencia em Entrada/). Porta canonica definida no #137 (AdaptadorConsultaArca.consultarPorRuleId, fail-soft) e integrada no #138: `Entrada/Formulario.html` passa a consultar por rule_id, mantendo no PARSER a leitura do BO e a realizacao lexical (heuristica OCR)."
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Integrado no #138: `Entrada/EntradaManual.js` expoe `obterMetadadosArcaVeiculo()` (porta `AdaptadorConsultaArca.consultarPorRuleId('ARCA-VEICULO-001')`, fail-soft) e `Entrada/Formulario.html` consome o rotulo canonico (`tituloCanonicoVeiculoArca_`, com fallback local). A ARCA entrega METADADOS; a leitura do BO e a casagem lexical permanecem no PARSER (heuristica OCR)."
       },
       "alcance": "GLOBAL_PROJETO",
       "riscos": [

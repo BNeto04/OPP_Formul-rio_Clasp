@@ -43,6 +43,8 @@ async function main() {
   console.log('');
   require('./TestArcaVeiculoOcr');
   console.log('');
+  require('./TestOcrVeiculoRoubado');
+  console.log('');
   require('./TestSeletorMesesGuardiao');
   console.log('');
   require('./TestCatalogoPipGuardiao');
