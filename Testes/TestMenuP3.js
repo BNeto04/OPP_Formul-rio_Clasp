@@ -12,7 +12,8 @@ if (typeof require === 'undefined') { /* Ignora no Apps Script */ } else {
  *  4. nenhum menu superior legado (Formulario/Armas/Drogas/Produtividade/Pip) e criado;
  *  5. construcao DEFENSIVA: derrubar uma funcao alvo omite apenas aquele item;
  *  6. os entrypoints criticos continuam alcancaveis (normalizarEfetivo, abrirSeletorMesesGuardiao,
- *     executarGuardiaoQualidade, PIP/CPM, comparativo) e o GXT/Central Analitica foram RECUPERADOS.
+ *     executarGuardiaoQualidade, PIP/CPM, comparativo) e as features ABANDONADAS (GXT, Central Analitica)
+ *     permanecem FORA do menu, com o codigo intacto no repositorio.
  */
 
 const assert = require('assert');
@@ -171,12 +172,18 @@ test('os 16 entrypoints originais continuam alcancaveis pelo P3', () => {
   });
 });
 
-test('GXT e Central Analitica foram RECUPERADOS (nao tinham menu antes)', () => {
+test('DECISAO CONGELADA: GXT e Central Analitica NAO aparecem no menu (features abandonadas)', () => {
   const r = executarOnOpen();
   const alvos = [];
   (function varrer(menu) { menu.itens.forEach(i => alvos.push(i.alvo)); menu.submenus.forEach(varrer); })(r.addToUi[0]);
-  ['abrirMenuGxtSelecaoLivre', 'gerarGxtAnual', 'rodarCentralAnaliticaAnual', 'abrirMenuCentralAnaliticaSelecaoLivre']
-    .forEach(a => assert.ok(alvos.indexOf(a) !== -1, 'nao recuperado: ' + a));
+  // Decisao do proprietario: GXT tera planilha propria; Central Analitica entra na migracao p/ banco de dados.
+  ['abrirMenuGxtSelecaoLivre', 'gerarGxtSelecaoLivre', 'gerarGxtAnual',
+   'rodarCentralAnaliticaAnual', 'abrirMenuCentralAnaliticaSelecaoLivre'].forEach(function (a) {
+    assert.strictEqual(alvos.indexOf(a), -1, 'feature abandonada nao pode voltar ao menu: ' + a);
+  });
+  // o codigo continua no repositorio: nao removemos funcionalidade, apenas nao expomos no menu
+  assert.strictEqual(typeof ctx.gerarGxtAnual, 'function', 'codigo do GXT deve permanecer');
+  assert.strictEqual(typeof ctx.rodarCentralAnaliticaAnual, 'function', 'codigo da Central deve permanecer');
 });
 
 test('PIP/CPM preserva os dois submenus com 3 itens cada (regra de negocio intacta)', () => {
