@@ -33,8 +33,8 @@ class RendererAuditoriaSaude {
     let histSheet = ss.getSheetByName(nomeHistorico);
     if (!histSheet) {
       histSheet = ss.insertSheet(nomeHistorico);
-      const headersHist = [['DATA/HORA EXECUÇÃO', 'ABA', 'TÚNEL', 'LINHA', 'SEVERIDADE', 'REGRA', 'DIAGNÓSTICO', 'EVIDÊNCIA', 'AÇÃO RECOMENDADA']];
-      histSheet.getRange(1, 1, 1, 9).setValues(headersHist);
+      const headersHist = [['DATA/HORA EXECUÇÃO', 'ABA', 'TÚNEL', 'LINHA', 'CAMADA', 'SEVERIDADE', 'REGRA', 'DIAGNÓSTICO', 'EVIDÊNCIA', 'SUGESTÃO DE CORREÇÃO']];
+      histSheet.getRange(1, 1, 1, 10).setValues(headersHist);
       if (typeof histSheet.setFontWeight === 'function') histSheet.setFontWeight('bold');
     }
 
@@ -58,13 +58,20 @@ class RendererAuditoriaSaude {
     const totalErros = criticos + alertas;
     const statusFinal = totalErros > 0 ? 'COM PENDÊNCIAS' : 'APROVADO';
 
-    // 1. Montagem dos Dados de [AUDITORIA] Ocorrencias
+    const tuneisArray = Object.values(tuneis || {});
+    const totalTuneis = tuneisArray.length;
+    const tuneisValidos = tuneisArray.filter(t => t.statusClassificacao === 'VALIDO').length;
+    const tuneisInvalidos = tuneisArray.filter(t => t.statusClassificacao && t.statusClassificacao.startsWith('INVALIDO')).length;
+    const diagsSintaticos = diags.filter(d => d.camada === 'SINTATICA').length;
+    const diagsSemanticos = diags.filter(d => d.camada === 'SEMANTICA').length;
+
+    // 1. Montagem dos Dados de [AUDITORIA] Ocorrencias (9 colunas com cards executivos)
     const dadosLog = [
-      ['RELATÓRIO DE AUDITORIA DE INTEGRIDADE', agora, 'Aba Auditada:', nomeAba, 'Status:', statusFinal, '', ''],
-      ['Túneis Analisados:', Object.keys(tuneis || {}).length, 'Linhas Analisadas:', totalLinhas || 0, 'Críticos:', criticos, 'Alertas:', alertas],
-      ['Observações:', observacoes, 'Exceções Manuais:', excecoes, '', '', '', ''],
-      ['', '', '', '', '', '', '', ''],
-      ['ABA', 'TÚNEL', 'LINHA', 'SEVERIDADE', 'REGRA', 'DIAGNÓSTICO', 'EVIDÊNCIA', 'AÇÃO RECOMENDADA']
+      ['RELATÓRIO DE AUDITORIA DE INTEGRIDADE (C05)', agora, 'Aba Auditada:', nomeAba, 'Status:', statusFinal, '', '', ''],
+      ['Túneis Analisados:', totalTuneis, 'Túneis Válidos:', tuneisValidos, 'Túneis Inválidos:', tuneisInvalidos, 'Linhas Analisadas:', totalLinhas || 0, ''],
+      ['Críticos:', criticos, 'Alertas:', alertas, 'Observações:', observacoes, 'Exceções:', excecoes, `Sintaxe: ${diagsSintaticos} | Semântica: ${diagsSemanticos}`],
+      ['', '', '', '', '', '', '', '', ''],
+      ['ABA', 'TÚNEL', 'LINHA', 'CAMADA', 'SEVERIDADE', 'REGRA', 'DIAGNÓSTICO', 'EVIDÊNCIA', 'SUGESTÃO DE CORREÇÃO']
     ];
 
     const registrosTabela = [];
@@ -75,11 +82,12 @@ class RendererAuditoriaSaude {
           nomeAba,
           d.tunel || '-',
           d.linha || '-',
+          d.camada || 'SEMANTICA',
           d.severidade || 'ALERTA',
           d.codigoRegra || 'REGRA_GERAL',
           d.diagnostico || '-',
           d.evidencia || '-',
-          d.acaoRecomendada || '-'
+          d.sugestaoCorrecao || d.acaoRecomendada || '-'
         ];
         dadosLog.push(lin);
         registrosTabela.push(lin);
@@ -89,6 +97,7 @@ class RendererAuditoriaSaude {
         nomeAba,
         '-',
         '-',
+        'ESTRUTURAL',
         'APROVADO',
         'INTEGRIDADE_OK',
         'Nenhuma inconsistência encontrada na aba. Ocorrências 100% íntegras.',
@@ -100,15 +109,15 @@ class RendererAuditoriaSaude {
     }
 
     logSheet.clear();
-    logSheet.getRange(1, 1, dadosLog.length, 8).setValues(dadosLog);
+    logSheet.getRange(1, 1, dadosLog.length, 9).setValues(dadosLog);
 
     // Estilização Executiva e Paleta de Severidades para [AUDITORIA] Ocorrencias
     RendererAuditoriaSaude.estilizarAbaAuditoria_(logSheet, dadosLog.length, statusFinal, registrosTabela);
 
-    // 2. Anexo sem sobrescrever na Aba [HISTORICO] Auditoria Ocorrencias
+    // 2. Anexo sem sobrescrever na Aba [HISTORICO] Auditoria Ocorrencias (10 colunas)
     const registrosHistorico = registrosTabela.map(r => [agora, ...r]);
     const proxLinhaHist = Math.max(histSheet.getLastRow() + 1, 2);
-    histSheet.getRange(proxLinhaHist, 1, registrosHistorico.length, 9).setValues(registrosHistorico);
+    histSheet.getRange(proxLinhaHist, 1, registrosHistorico.length, 10).setValues(registrosHistorico);
 
     // Estilização Executiva acumulativa de TODAS as linhas do [HISTORICO] Auditoria Ocorrencias
     RendererAuditoriaSaude.estilizarAbaHistorico_(histSheet, registrosHistorico, proxLinhaHist);
@@ -123,15 +132,15 @@ class RendererAuditoriaSaude {
       if (typeof logSheet.setHiddenGridlines === 'function') logSheet.setHiddenGridlines(false);
 
       // Linha 1: Título Principal
-      const rangeTitulo = logSheet.getRange(1, 1, 1, 8);
+      const rangeTitulo = logSheet.getRange(1, 1, 1, 9);
       if (typeof rangeTitulo.setBackground === 'function') rangeTitulo.setBackground('#1C3144').setFontColor('#FFFFFF').setFontWeight('bold');
 
       // Linhas 1-3: Cards de Resumo
-      const rangeResumo = logSheet.getRange(1, 1, 3, 8);
+      const rangeResumo = logSheet.getRange(1, 1, 3, 9);
       if (typeof rangeResumo.setFontFamily === 'function') rangeResumo.setFontFamily('Arial');
 
       // Linha 5: Cabeçalho da Tabela
-      const rangeCabecalho = logSheet.getRange(5, 1, 1, 8);
+      const rangeCabecalho = logSheet.getRange(5, 1, 1, 9);
       if (typeof rangeCabecalho.setBackground === 'function') {
         rangeCabecalho.setBackground('#2C4257')
           .setFontColor('#FFFFFF')
@@ -142,11 +151,11 @@ class RendererAuditoriaSaude {
       // Estilização das Linhas de Dados (Linha 6 em diante)
       registrosTabela.forEach((linData, idx) => {
         const linhaReal = 6 + idx;
-        const severidade = linData[3];
+        const severidade = linData[4]; // Coluna 5 é SEVERIDADE
         const estilo = RendererAuditoriaSaude.PALETA_SEVERIDADES[severidade] || RendererAuditoriaSaude.PALETA_SEVERIDADES['ALERTA'];
 
-        // Destacar a célula de SEVERIDADE (Coluna 4) e REGRA (Coluna 5)
-        const cellSeveridade = logSheet.getRange(linhaReal, 4);
+        // Destacar a célula de SEVERIDADE (Coluna 5) e REGRA (Coluna 6)
+        const cellSeveridade = logSheet.getRange(linhaReal, 5);
         if (typeof cellSeveridade.setBackground === 'function') {
           cellSeveridade.setBackground(estilo.fundo)
             .setFontColor(estilo.fonte)
@@ -154,30 +163,29 @@ class RendererAuditoriaSaude {
             .setHorizontalAlignment('center');
         }
 
-        const cellRegra = logSheet.getRange(linhaReal, 5);
+        const cellRegra = logSheet.getRange(linhaReal, 6);
         if (typeof cellRegra.setHorizontalAlignment === 'function') {
           cellRegra.setHorizontalAlignment('center').setFontWeight('bold');
         }
 
-        // Alinhamento central das colunas ABA, TÚNEL, LINHA (Colunas 1 a 3)
-        const rangeCentralizado = logSheet.getRange(linhaReal, 1, 1, 3);
+        // Alinhamento central das colunas ABA, TÚNEL, LINHA, CAMADA (Colunas 1 a 4)
+        const rangeCentralizado = logSheet.getRange(linhaReal, 1, 1, 4);
         if (typeof rangeCentralizado.setHorizontalAlignment === 'function') {
           rangeCentralizado.setHorizontalAlignment('center');
         }
 
-        // Alinhamento à esquerda explícito das colunas DIAGNÓSTICO, EVIDÊNCIA, AÇÃO RECOMENDADA (Colunas 6 a 8)
-        const rangeEsquerdaTextos = logSheet.getRange(linhaReal, 6, 1, 3);
+        // Alinhamento à esquerda explícito das colunas DIAGNÓSTICO, EVIDÊNCIA, SUGESTÃO DE CORREÇÃO (Colunas 7 a 9)
+        const rangeEsquerdaTextos = logSheet.getRange(linhaReal, 7, 1, 3);
         if (typeof rangeEsquerdaTextos.setHorizontalAlignment === 'function') {
           rangeEsquerdaTextos.setHorizontalAlignment('left');
         }
 
         // Zebrado suave no restante da linha
         if (idx % 2 === 1) {
-          const rangeZebrado = logSheet.getRange(linhaReal, 1, 1, 8);
+          const rangeZebrado = logSheet.getRange(linhaReal, 1, 1, 9);
           if (typeof rangeZebrado.setBackground === 'function') {
-            // Preserva a cor da célula de severidade já aplicada
-            const rangeEsquerda = logSheet.getRange(linhaReal, 1, 1, 3);
-            const rangeDireita = logSheet.getRange(linhaReal, 5, 1, 4);
+            const rangeEsquerda = logSheet.getRange(linhaReal, 1, 1, 4);
+            const rangeDireita = logSheet.getRange(linhaReal, 6, 1, 4);
             if (typeof rangeEsquerda.setBackground === 'function') rangeEsquerda.setBackground('#F8F9FA');
             if (typeof rangeDireita.setBackground === 'function') rangeDireita.setBackground('#F8F9FA');
           }
@@ -189,11 +197,12 @@ class RendererAuditoriaSaude {
         logSheet.setColumnWidth(1, 120); // ABA
         logSheet.setColumnWidth(2, 180); // TÚNEL
         logSheet.setColumnWidth(3, 70);  // LINHA
-        logSheet.setColumnWidth(4, 140); // SEVERIDADE
-        logSheet.setColumnWidth(5, 210); // REGRA
-        logSheet.setColumnWidth(6, 320); // DIAGNÓSTICO
-        logSheet.setColumnWidth(7, 320); // EVIDÊNCIA
-        logSheet.setColumnWidth(8, 320); // AÇÃO RECOMENDADA
+        logSheet.setColumnWidth(4, 110); // CAMADA
+        logSheet.setColumnWidth(5, 140); // SEVERIDADE
+        logSheet.setColumnWidth(6, 210); // REGRA
+        logSheet.setColumnWidth(7, 320); // DIAGNÓSTICO
+        logSheet.setColumnWidth(8, 320); // EVIDÊNCIA
+        logSheet.setColumnWidth(9, 340); // SUGESTÃO DE CORREÇÃO
       }
 
     } catch (e) {
@@ -209,8 +218,8 @@ class RendererAuditoriaSaude {
       if (typeof histSheet.setFrozenRows === 'function') histSheet.setFrozenRows(1);
       if (typeof histSheet.setHiddenGridlines === 'function') histSheet.setHiddenGridlines(false);
 
-      // Linha 1: Cabeçalho da Tabela de Histórico
-      const rangeCabecalho = histSheet.getRange(1, 1, 1, 9);
+      // Linha 1: Cabeçalho da Tabela de Histórico (10 colunas)
+      const rangeCabecalho = histSheet.getRange(1, 1, 1, 10);
       if (typeof rangeCabecalho.setBackground === 'function') {
         rangeCabecalho.setBackground('#2C4257')
           .setFontColor('#FFFFFF')
@@ -221,7 +230,7 @@ class RendererAuditoriaSaude {
       const ultLinha = typeof histSheet.getLastRow === 'function' ? histSheet.getLastRow() : 1;
       if (ultLinha >= 2) {
         let todosDadosHist = [];
-        const rangeDadosHist = histSheet.getRange(2, 1, ultLinha - 1, 9);
+        const rangeDadosHist = histSheet.getRange(2, 1, ultLinha - 1, 10);
         if (typeof rangeDadosHist.getValues === 'function') {
           todosDadosHist = rangeDadosHist.getValues();
         }
@@ -231,25 +240,25 @@ class RendererAuditoriaSaude {
           const linhaReal = 2 + i;
           let severidade = 'ALERTA';
 
-          if (todosDadosHist && todosDadosHist[i] && todosDadosHist[i][4]) {
-            severidade = todosDadosHist[i][4];
+          if (todosDadosHist && todosDadosHist[i] && todosDadosHist[i][5]) {
+            severidade = todosDadosHist[i][5];
           } else if (novosRegistros) {
             const idxNovo = linhaReal - proxLinhaHist;
             if (idxNovo >= 0 && novosRegistros[idxNovo]) {
-              severidade = novosRegistros[idxNovo][4];
+              severidade = novosRegistros[idxNovo][5];
             }
           }
 
           const estilo = RendererAuditoriaSaude.PALETA_SEVERIDADES[severidade] || RendererAuditoriaSaude.PALETA_SEVERIDADES['ALERTA'];
 
-          // Centralizar colunas 1 a 4 (DATA/HORA EXECUÇÃO, ABA, TÚNEL, LINHA)
-          const rangeCentralizadoEsquerda = histSheet.getRange(linhaReal, 1, 1, 4);
+          // Centralizar colunas 1 a 5 (DATA/HORA EXECUÇÃO, ABA, TÚNEL, LINHA, CAMADA)
+          const rangeCentralizadoEsquerda = histSheet.getRange(linhaReal, 1, 1, 5);
           if (typeof rangeCentralizadoEsquerda.setHorizontalAlignment === 'function') {
             rangeCentralizadoEsquerda.setHorizontalAlignment('center');
           }
 
-          // Destacar a célula de SEVERIDADE (Coluna 5)
-          const cellSeveridade = histSheet.getRange(linhaReal, 5);
+          // Destacar a célula de SEVERIDADE (Coluna 6)
+          const cellSeveridade = histSheet.getRange(linhaReal, 6);
           if (typeof cellSeveridade.setBackground === 'function') {
             cellSeveridade.setBackground(estilo.fundo)
               .setFontColor(estilo.fonte)
@@ -257,39 +266,40 @@ class RendererAuditoriaSaude {
               .setHorizontalAlignment('center');
           }
 
-          // Destacar a célula de REGRA (Coluna 6)
-          const cellRegra = histSheet.getRange(linhaReal, 6);
+          // Destacar a célula de REGRA (Coluna 7)
+          const cellRegra = histSheet.getRange(linhaReal, 7);
           if (typeof cellRegra.setHorizontalAlignment === 'function') {
             cellRegra.setHorizontalAlignment('center').setFontWeight('bold');
           }
 
-          // Alinhamento à esquerda explícito das colunas DIAGNÓSTICO, EVIDÊNCIA, AÇÃO RECOMENDADA (Colunas 7 a 9)
-          const rangeEsquerdaTextos = histSheet.getRange(linhaReal, 7, 1, 3);
+          // Alinhamento à esquerda explícito das colunas DIAGNÓSTICO, EVIDÊNCIA, SUGESTÃO DE CORREÇÃO (Colunas 8 a 10)
+          const rangeEsquerdaTextos = histSheet.getRange(linhaReal, 8, 1, 3);
           if (typeof rangeEsquerdaTextos.setHorizontalAlignment === 'function') {
             rangeEsquerdaTextos.setHorizontalAlignment('left');
           }
 
-          // Zebrado discreto nas linhas pares de dados (sem apagar a célula de severidade na Coluna 5)
+          // Zebrado discreto nas linhas pares de dados (sem apagar a célula de severidade na Coluna 6)
           if (linhaReal % 2 === 0) {
-            const rangeEsquerda = histSheet.getRange(linhaReal, 1, 1, 4);
-            const rangeDireita = histSheet.getRange(linhaReal, 6, 1, 4);
+            const rangeEsquerda = histSheet.getRange(linhaReal, 1, 1, 5);
+            const rangeDireita = histSheet.getRange(linhaReal, 7, 1, 4);
             if (typeof rangeEsquerda.setBackground === 'function') rangeEsquerda.setBackground('#F8F9FA');
             if (typeof rangeDireita.setBackground === 'function') rangeDireita.setBackground('#F8F9FA');
           }
         }
       }
 
-      // Larguras Fixas Recomendadas para Histórico
+      // Larguras Fixas Recomendadas para Histórico (10 colunas)
       if (typeof histSheet.setColumnWidth === 'function') {
         histSheet.setColumnWidth(1, 160); // DATA/HORA EXECUÇÃO
         histSheet.setColumnWidth(2, 120); // ABA
         histSheet.setColumnWidth(3, 180); // TÚNEL
         histSheet.setColumnWidth(4, 70);  // LINHA
-        histSheet.setColumnWidth(5, 140); // SEVERIDADE
-        histSheet.setColumnWidth(6, 210); // REGRA
-        histSheet.setColumnWidth(7, 320); // DIAGNÓSTICO
-        histSheet.setColumnWidth(8, 320); // EVIDÊNCIA
-        histSheet.setColumnWidth(9, 320); // AÇÃO RECOMENDADA
+        histSheet.setColumnWidth(5, 110); // CAMADA
+        histSheet.setColumnWidth(6, 140); // SEVERIDADE
+        histSheet.setColumnWidth(7, 210); // REGRA
+        histSheet.setColumnWidth(8, 320); // DIAGNÓSTICO
+        histSheet.setColumnWidth(9, 320); // EVIDÊNCIA
+        histSheet.setColumnWidth(10, 340); // SUGESTÃO DE CORREÇÃO
       }
 
     } catch (e) {
@@ -355,7 +365,15 @@ class RendererAuditoriaSaude {
 
     if (linhasDados <= 0) return;
 
-    sheet.getRange(2, coluna, linhasDados, 1)
+    // Limpa TODO o restante da coluna (nao apenas o trecho atual) para que
+    // reexecucoes idempotentes nao deixem alertas antigos orfaos abaixo (G01 #116-req9).
+    let totalLinhasDados = linhasDados;
+    if (typeof sheet.getLastRow === 'function') {
+      const ultima = sheet.getLastRow() - 1;
+      if (ultima > totalLinhasDados) totalLinhasDados = ultima;
+    }
+
+    sheet.getRange(2, coluna, totalLinhasDados, 1)
       .clearContent()
       .clearDataValidations();
   }

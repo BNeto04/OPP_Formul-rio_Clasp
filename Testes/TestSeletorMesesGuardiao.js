@@ -154,7 +154,7 @@ test('selecao cancelada/vazia retorna NAO_EXECUTADO sem chamar o motor', () => {
 });
 
 test('motor indisponivel lanca erro explicito (nunca verde silencioso)', () => {
-  assert.throws(() => SeletorMesesGuardiao.auditarMeses({ alvos: [{}], cancelado: false }, criarSS([]), null), /varrerAba/);
+  assert.throws(() => SeletorMesesGuardiao.auditarMeses({ alvos: [{}], cancelado: false }, criarSS([]), { semVarrer: true }), /varrerAba/);
 });
 
 // ---------- 5. Mensagem legivel ----------

@@ -125,6 +125,39 @@ class SeletorMesesGuardiao {
   }
 
   /**
+   * Monta o painel consolidado (por mes + global + drill-down) a partir do retorno de auditarMeses.
+   * #116: MES -> TUNEL/MIKE -> LINHAS -> DIAGNOSTICO, com NAO_AUDITADO explicito.
+   */
+  static montarPainel(consolidado) {
+    let Painel = typeof PainelSaude !== 'undefined' ? PainelSaude : null;
+    if (!Painel && typeof require !== 'undefined') {
+      try { Painel = require('../Render/PainelSaude').PainelSaude; } catch (e) {}
+    }
+    const resumosPorMes = [];
+    const drillDown = [];
+    Object.keys((consolidado && consolidado.porMes) || {}).forEach(nome => {
+      const item = consolidado.porMes[nome];
+      if (item.status !== 'OK' || !item.resultado) {
+        resumosPorMes.push({ mes: nome, erro: item.mensagem || 'FALHA_NA_ABA', coberturaStatus: 'NAO_AUDITADO', regrasNaoAuditadas: ['ABA_NAO_AUDITADA'], tuneisTotal: 0, saudaveis: 0, alertas: 0, criticos: 0, incompletos: 0, naoAuditaveis: 0, linhas: 0, ocorrenciasOrfas: 0, duplicados: 0, fragmentados: 0 });
+        return;
+      }
+      if (!Painel) return;
+      resumosPorMes.push(Painel.construirResumoMes(nome, item.resultado));
+      drillDown.push.apply(drillDown, Painel.construirDrillDown(nome, item.resultado));
+    });
+    if (!Painel) return { resumosPorMes, global: null, drillDown, prioritarios: [], texto: '' };
+    const global = Painel.construirResumoGlobal(resumosPorMes);
+    const prioritarios = Painel.listarTuneisPrioritarios(drillDown, 10);
+    return {
+      resumosPorMes,
+      global,
+      drillDown,
+      prioritarios,
+      texto: Painel.formatarPainelTexto(resumosPorMes, global)
+    };
+  }
+
+  /**
    * Executa a auditoria sobre as abas selecionadas usando o motor canonico varrerAba.
    * Falha em UMA aba NAO esconde o resultado das demais: cada aba vira entrada propria
    * com status OK ou ERRO explicito. Nunca produz verde sem auditar.
@@ -221,20 +254,28 @@ function abrirSeletorMesesGuardiao() {
   if (!selecao) return { status: 'CANCELADO', motivo: 'TENTATIVAS_ESGOTADAS' };
 
   const consolidado = SeletorMesesGuardiao.auditarMeses(selecao, ss);
+  const painel = SeletorMesesGuardiao.montarPainel(consolidado);
+
   const linhasResumo = Object.keys(consolidado.porMes).map(nome => {
     const p = consolidado.porMes[nome];
     return p.status === 'OK'
       ? `  ${nome}: tuneis ${p.resultado.tuneis} | linhas ${p.resultado.linhas} | linhas c/ alerta ${p.resultado.alertas}`
       : `  ${nome}: ERRO -> ${p.mensagem}`;
   });
+
+  const linhasPrioritarias = (painel.prioritarios || []).map(t =>
+    `  [${t.classificacao}] ${t.mes} | ${t.mike || t.tunel} | linhas ${t.linhas.join(', ') || '-'} | ${(t.diagnosticos[0] && t.diagnosticos[0].codigo) || t.motivo}`
+  );
+
   ui.alert(
     'Guardiao da Qualidade - Resultado',
     linhasResumo.join('\n') +
-    '\n\nTotal: ' + consolidado.resumo.total + ' mes(es) | OK: ' + consolidado.resumo.ok +
-    ' | com erro: ' + consolidado.resumo.comErro +
-    '\nAlertas: ' + consolidado.resumo.alertas + ' | Tuneis: ' + consolidado.resumo.tuneis +
-    ' | Diagnosticos: ' + consolidado.resumo.diagnosticos,
+    '\n\n' + (painel.texto || '') +
+    (linhasPrioritarias.length ? '\n\nTUNEIS PRIORITARIOS (drill-down):\n' + linhasPrioritarias.join('\n') : '') +
+    '\n\nDetalhe completo (codigo, severidade, ARCA, acao): aba [AUDITORIA] Ocorrencias.\nHistorico de execucoes: [HISTORICO] Auditoria Ocorrencias.',
     ui.ButtonSet.OK
   );
+
+  consolidado.painel = painel;
   return consolidado;
 }

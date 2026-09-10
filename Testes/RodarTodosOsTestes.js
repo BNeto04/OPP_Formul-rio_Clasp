@@ -21,6 +21,14 @@ async function main() {
   console.log('');
   require('./TestGuardiao');
   console.log('');
+  require('./TestSeletorMesesGuardiao');
+  console.log('');
+  require('./TestSaudeTuneis');
+  console.log('');
+  require('./TestCoberturaAuditoria');
+  console.log('');
+  require('./TestPainelSaude');
+  console.log('');
   require('./TestRenderers');
   console.log('');
   require('./TestRendererComparativo2026');
