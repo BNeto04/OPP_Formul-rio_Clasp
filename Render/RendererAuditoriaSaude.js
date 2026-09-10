@@ -115,12 +115,37 @@ class RendererAuditoriaSaude {
     RendererAuditoriaSaude.estilizarAbaAuditoria_(logSheet, dadosLog.length, statusFinal, registrosTabela);
 
     // 2. Anexo sem sobrescrever na Aba [HISTORICO] Auditoria Ocorrencias (10 colunas)
+    // G01 #117 (pedido do proprietario, 10/09/2026): separar cada auditoria com UMA LINHA EM
+    // BRANCO, para leitura rapida de onde termina uma execucao e comeca a seguinte.
     const registrosHistorico = registrosTabela.map(r => [agora, ...r]);
-    const proxLinhaHist = Math.max(histSheet.getLastRow() + 1, 2);
-    histSheet.getRange(proxLinhaHist, 1, registrosHistorico.length, 10).setValues(registrosHistorico);
+    const ultimaLinhaHist = typeof histSheet.getLastRow === 'function' ? histSheet.getLastRow() : 1;
+    const proxLinhaHist = RendererAuditoriaSaude.calcularLinhaAnexoHistorico(ultimaLinhaHist);
+
+    if (ultimaLinhaHist >= 2) {
+      try {
+        const linhaSeparadora = histSheet.getRange(ultimaLinhaHist + 1, 1, 1, 10);
+        if (typeof linhaSeparadora.clearContent === 'function') linhaSeparadora.clearContent();
+      } catch (e) { /* separador e cosmetico: falha aqui nao interrompe o anexo */ }
+    }
+
+    if (Array.isArray(registrosHistorico) && registrosHistorico.length > 0) {
+      histSheet.getRange(proxLinhaHist, 1, registrosHistorico.length, 10).setValues(registrosHistorico);
+    }
 
     // Estilização Executiva acumulativa de TODAS as linhas do [HISTORICO] Auditoria Ocorrencias
     RendererAuditoriaSaude.estilizarAbaHistorico_(histSheet, registrosHistorico, proxLinhaHist);
+  }
+
+  /**
+   * Calcula a proxima linha de anexo no [HISTORICO], reservando UMA LINHA EM BRANCO entre
+   * execucoes (G01 #117, pedido do proprietario 10/09/2026), para leitura rapida de onde
+   * termina uma auditoria e comeca a seguinte. 1 = somente cabecalho (primeira execucao).
+   * @param {number} ultimaLinha ultima linha usada na aba
+   * @returns {number} linha (1-based) onde o novo bloco comeca
+   */
+  static calcularLinhaAnexoHistorico(ultimaLinha) {
+    const ultima = Number(ultimaLinha) || 1;
+    return ultima >= 2 ? ultima + 2 : 2;
   }
 
   static estilizarAbaAuditoria_(logSheet, totalLinhasDoc, statusFinal, registrosTabela) {

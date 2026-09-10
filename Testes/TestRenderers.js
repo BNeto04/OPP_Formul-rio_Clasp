@@ -223,5 +223,21 @@ test('RendererAuditoriaSaude: aplicarDestaquesAlertasAM_ aplica fundo #FFF3CD e 
   assert.strictEqual(vazoes.length, 0, 'Nenhuma formatação de fundo deve ser aplicada às colunas A até AL (1 a 38)');
 });
 
+// 5. HISTORICO: UMA LINHA EM BRANCO separando auditorias (G01 #117, pedido do proprietario 10/09/2026)
+test('RendererAuditoriaSaude: 1a execucao comeca na linha 2 (sem linha em branco)', () => {
+  assert.strictEqual(RendererAuditoriaSaude.calcularLinhaAnexoHistorico(1), 2);
+});
+
+test('RendererAuditoriaSaude: nova auditoria pula UMA linha em branco (fim em N -> novo bloco em N+2)', () => {
+  assert.strictEqual(RendererAuditoriaSaude.calcularLinhaAnexoHistorico(2), 4);
+  assert.strictEqual(RendererAuditoriaSaude.calcularLinhaAnexoHistorico(10), 12);
+  assert.strictEqual(RendererAuditoriaSaude.calcularLinhaAnexoHistorico(305), 307);
+});
+
+test('RendererAuditoriaSaude: entrada invalida/ausente cai na primeira linha util (2)', () => {
+  assert.strictEqual(RendererAuditoriaSaude.calcularLinhaAnexoHistorico(0), 2);
+  assert.strictEqual(RendererAuditoriaSaude.calcularLinhaAnexoHistorico(undefined), 2);
+});
+
 console.log(`\n🎉 Testes do Renderizador concluídos: ${sucessos} testes passaram!`);
 }
