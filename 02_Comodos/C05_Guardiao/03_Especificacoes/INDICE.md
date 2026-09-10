@@ -145,3 +145,44 @@ Especificacao de seguranca para correcao controlada. Vale SOMENTE para o MOD-C05
 
 ### Criterio de conclusao da fase de normalizacao
 Ciclo auditado e provado no GS real: AUDITAR -> EXPLICAR -> PROPOR -> NORMALIZAR COM SEGURANCA -> REAUDITAR -> COMPROVAR SAUDE, com historico e rollback demonstraveis.
+
+---
+
+## NORMALIZADOR SEGURO — refinamento de contencao (G01 #112, decisao do proprietario 10/09/2026)
+
+O Lote B deixa de ser apenas "normalizador" e passa a ser o **NORMALIZADOR SEGURO** (MOD-C05-02_NORMALIZADOR_DE_ABA), com os mecanismos abaixo como REQUISITOS DE ARQUITETURA (nao melhorias opcionais).
+
+### Regra de formula (reforco principal)
+FORMULA = CONFIRM_FIX por padrao. Formula pode parecer obvia e ainda assim estar errada para o tunel especifico.
+Vira AUTO_FIX SOMENTE com evidencia inequivoca do padrao correto: fonte canonica + contexto compativel (mesmo tunel/coluna/mes) + reauditoria imediata.
+Evidencia factual que motivou a regra: jul.2026, linha 174 — "Formula ausente em coluna calculada: PONTOS TOTAIS" (detectado pelo MOD-C05-01).
+
+### Mecanismos obrigatorios de contencao
+| # | Mecanismo | Exigencia |
+| :--- | :--- | :--- |
+| M1 | Rollback de LOTE | Reverter TODAS as celulas de uma execucao (nao apenas celula a celula) + snapshot pre-execucao |
+| M2 | DRY-RUN | Obrigatorio antes de qualquer aplicacao: executa o plano sem escrever |
+| M3 | LOCK single-flight | Uma execucao por vez; protege contra concorrencia e edicao simultanea do operador (padrao da Ponte 2) |
+| M4 | Whitelist de colunas | Por classe de correcao; proibido tocar colunas-fonte (MIKE, BOE, matricula, origem do PIP) |
+| M5 | Delta antes/depois | Comparacao de defeitos ANTES x DEPOIS + rastreabilidade diagnostico -> plano -> mutacao -> reauditoria |
+| M6 | Kill-switch | Limite maximo de celulas mutadas por execucao |
+
+### Fluxo refinado
+`GUARDIAO -> DIAGNOSTICO -> CLASSIFICACAO -> DRY-RUN -> PLANO -> VALIDACAO DE ESCOPO -> LOCK -> APLICACAO -> LOG ANTES/DEPOIS -> REAUDITORIA -> COMPARACAO DE DELTA -> COMMIT OU ROLLBACK`
+
+### Criterio de sucesso (falha em qualquer condicao = ROLLBACK AUTOMATICO do lote)
+```
+ERRO_ALVO_RESOLVIDO = true
+NOVOS_ERROS_CRIADOS  = 0
+ESCOPO_MUTADO       <= LIMITE
+REAUDITORIA          = GREEN
+```
+
+### Lote B — divisao dos 5 cards (adotada)
+- G01-006: contrato de mutacao + classes AUTO_FIX | CONFIRM_FIX | MANUAL_ONLY + whitelist;
+- G01-007: dry-run + geracao deterministica do plano de correcao;
+- G01-008: executor com lock, limite de escopo, snapshot e rollback de lote;
+- G01-009: reauditoria automatica + comparacao de delta antes/depois + rastreabilidade diagnostico -> mutacao;
+- G01-010: E2E real no GS + testes + Git + CLASP + validacao live.
+
+Pai: #112. Depende de: #117.

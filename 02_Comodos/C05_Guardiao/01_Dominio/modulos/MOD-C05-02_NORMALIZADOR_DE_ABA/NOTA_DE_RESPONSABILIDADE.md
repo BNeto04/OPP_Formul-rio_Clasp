@@ -25,4 +25,10 @@ DIAGNOSTICO -> PLANO DE CORRECAO -> PREVIEW -> (APROVACAO quando CONFIRM_FIX) ->
 - MOD-C05-02 = corrige de forma controlada somente o que o plano autorizou e devolve o resultado para auditoria.
 
 ## Pendencia de implementacao
-Lote B da Sprint G01 (#112). O Lote A (#113-#117) entrega apenas a fase auditora (MOD-C05-01).
+Lote B da Sprint G01 (#112): **NORMALIZADOR SEGURO** (cards G01-006 a G01-010). O Lote A (#113-#117) entrega apenas a fase auditora (MOD-C05-01).
+
+## Refinamento de contencao (decisao do proprietario, 10/09/2026)
+- FORMULA = CONFIRM_FIX por padrao; AUTO_FIX somente com fonte canonica inequivoca + contexto compativel (mesmo tunel/coluna/mes) + reauditoria imediata.
+- Mecanismos obrigatorios (requisitos, nao opcionais): M1 rollback de lote + snapshot pre-execucao; M2 dry-run obrigatorio; M3 lock single-flight; M4 whitelist de colunas mutaveis (proibido tocar MIKE/BOE/matricula/origem do PIP); M5 comparacao de defeitos antes/depois + rastreabilidade diagnostico -> plano -> mutacao -> reauditoria; M6 kill-switch por limite maximo de celulas.
+- Fluxo canonico refinado: `GUARDIAO -> DIAGNOSTICO -> CLASSIFICACAO -> DRY-RUN -> PLANO -> VALIDACAO DE ESCOPO -> LOCK -> APLICACAO -> LOG ANTES/DEPOIS -> REAUDITORIA -> COMPARACAO DE DELTA -> COMMIT OU ROLLBACK`.
+- Criterio de sucesso (todos obrigatorios; falha em qualquer um = rollback automatico do lote): `ERRO_ALVO_RESOLVIDO=true`, `NOVOS_ERROS_CRIADOS=0`, `ESCOPO_MUTADO<=LIMITE`, `REAUDITORIA=GREEN`.

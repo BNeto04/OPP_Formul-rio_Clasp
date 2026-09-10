@@ -110,3 +110,20 @@ A Sprint C05 estÃƒÂ¡ **100% selada, verificada e aprovada offline** em confo
 8. Historico atualizado; itens MANUAL_ONLY permanecem sinalizados para tratativa humana.
 
 Nota: as etapas 4 a 8 pertencem ao Lote B (#112) e ainda nao estao implementadas; o Lote A entrega as etapas 1 a 3.
+
+---
+
+## Fluxo refinado do NORMALIZADOR SEGURO (Lote B — G01 #112)
+
+O Lote B e o **Normalizador Seguro**: os mecanismos de contencao sao requisitos de arquitetura.
+
+```
+GUARDIAO -> DIAGNOSTICO -> CLASSIFICACAO -> DRY-RUN -> PLANO -> VALIDACAO DE ESCOPO
+-> LOCK -> APLICACAO -> LOG ANTES/DEPOIS -> REAUDITORIA -> COMPARACAO DE DELTA
+-> COMMIT OU ROLLBACK
+```
+
+- Regra de formula: FORMULA = CONFIRM_FIX por padrao; AUTO_FIX somente com fonte canonica + contexto compativel (mesmo tunel/coluna/mes) + reauditoria imediata.
+- Mecanismos obrigatorios: rollback de lote, dry-run, lock single-flight, whitelist de colunas, comparacao de delta com rastreabilidade e kill-switch por limite maximo de celulas.
+- Criterio de sucesso (todos obrigatorios; falha em qualquer um = rollback automatico do lote): ERRO_ALVO_RESOLVIDO=true; NOVOS_ERROS_CRIADOS=0; ESCOPO_MUTADO<=LIMITE; REAUDITORIA=GREEN.
+- Cards: G01-006 (contrato de mutacao + whitelist), G01-007 (dry-run + plano deterministico), G01-008 (executor com lock/limite/snapshot/rollback de lote), G01-009 (reauditoria + delta + rastreabilidade), G01-010 (E2E GS + testes + Git + CLASP). Pai: #112; Depende de: #117.

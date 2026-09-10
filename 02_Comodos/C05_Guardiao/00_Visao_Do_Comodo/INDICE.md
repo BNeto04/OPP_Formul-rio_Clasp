@@ -143,5 +143,6 @@ C05_Guardiao
 
 ### Fases de entrega
 - Lote A (cards #113-#117): MOD-C05-01 vivo no GS (seletor, saude por tunel, cobertura anti-falso-verde, painel/drill-down, homologacao E2E da fase auditora). #117 NAO encerra a Sprint.
-- Lote B (a abrir): MOD-C05-02_NORMALIZADOR_DE_ABA (classificacao AUTO_FIX/CONFIRM_FIX/MANUAL_ONLY, motor de normalizacao, preview/rollback/log, reauditoria antes/depois, E2E final).
+- Lote B (a abrir): **MOD-C05-02_NORMALIZADOR_DE_ABA = NORMALIZADOR SEGURO** (cards G01-006 a G01-010). Mecanismos de contencao tratados como requisitos de arquitetura: regra de formula (FORMULA = CONFIRM_FIX por padrao), rollback de lote, dry-run obrigatorio, lock single-flight, whitelist de colunas mutaveis, delta antes/depois com rastreabilidade e kill-switch por limite de celulas.
+- Criterio de sucesso do Lote B (falha em qualquer item = rollback automatico do lote): ERRO_ALVO_RESOLVIDO=true; NOVOS_ERROS_CRIADOS=0; ESCOPO_MUTADO<=LIMITE; REAUDITORIA=GREEN.
 - A Sprint G01 (#112) so encerra quando o ciclo AUDITAR -> EXPLICAR -> PROPOR -> NORMALIZAR COM SEGURANCA -> REAUDITAR -> COMPROVAR SAUDE estiver provado no GS real.
