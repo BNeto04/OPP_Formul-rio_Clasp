@@ -119,3 +119,29 @@ Desacoplar o nÃƒÂºcleo de diagnÃƒÂ³stico e regras lÃƒÂ³gicas do Guar
 O nÃƒÂºcleo de regras diagnÃƒÂ³sticas do GuardiÃƒÂ£o (`Core/RegrasQualidade.js`) estÃƒÂ¡ **100% PURO** e pronto para suÃƒÂ­te de testes unitÃƒÂ¡rios offline no Node.js.
 
 
+
+---
+
+## Politica de Mutacao do MOD-C05-02_NORMALIZADOR_DE_ABA (G01 #112)
+
+Especificacao de seguranca para correcao controlada. Vale SOMENTE para o MOD-C05-02; o MOD-C05-01 permanece read-only sobre dados operacionais.
+
+### Classes de acao
+| Classe | Significado | Exige aprovacao humana |
+| :--- | :--- | :--- |
+| `AUTO_FIX` | Correcao deterministica, sustentada por fonte canonica inequivoca, reversivel e rastreavel | Nao (executa e registra) |
+| `CONFIRM_FIX` | Correcao tecnicamente provavel, mas com julgamento envolvido | Sim (preview + aprovacao explicita) |
+| `MANUAL_ONLY` | Dado operacional/ambiguo (ex.: valor de apreensao, decisao tatica) | Nunca e mutado automaticamente |
+
+### Garantias obrigatorias de cada normalizacao
+1. **Plano explicito:** nenhuma mutacao sem PLANO DE CORRECAO derivado de diagnostico do MOD-C05-01.
+2. **Preview obrigatorio:** mostrar celula/linha, valor atual e valor proposto antes de aplicar.
+3. **Log rastreavel:** registro antes/depois por celula, com identificacao da execucao.
+4. **Rollback por execucao:** toda mutacao precisa poder ser desfeita a partir do log da propria execucao.
+5. **Reauditoria imediata:** apos normalizar, o mesmo periodo volta ao MOD-C05-01 e a SAUDE FINAL e comparada com a SAUDE INICIAL.
+6. **Escopo confinado:** somente abas/linhas/colunas previstas no plano; colunas operacionais A:AL preservadas.
+7. **Sem promocao de heuristica:** UNKNOWN/heuristica nunca vira regra oficial por efeito de normalizacao.
+8. **Nao fabricar dado:** ausencia de fonte canonica impede AUTO_FIX; o caso vira CONFIRM_FIX ou MANUAL_ONLY.
+
+### Criterio de conclusao da fase de normalizacao
+Ciclo auditado e provado no GS real: AUDITAR -> EXPLICAR -> PROPOR -> NORMALIZAR COM SEGURANCA -> REAUDITAR -> COMPROVAR SAUDE, com historico e rollback demonstraveis.

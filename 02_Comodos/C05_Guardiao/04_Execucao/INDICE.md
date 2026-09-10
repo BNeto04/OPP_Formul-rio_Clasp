@@ -95,3 +95,18 @@ Implementar o GuardiÃƒÂ£o da Qualidade Operacional como uma camada passiva, 
 A Sprint C05 estÃƒÂ¡ **100% selada, verificada e aprovada offline** em conformidade com as diretrizes do ecossistema SynthÃƒÂ©on.
 
 
+
+---
+
+## Fluxo Operacional com Normalizacao (G01 - MOD-C05-02)
+
+1. `MENU -> Auditar Guardiao (seletor de meses)` e escolher UM, VARIOS ou TODOS os meses.
+2. O MOD-C05-01 audita cada aba mensal (mesmo motor canonico) e apresenta: saude por mes, saude por tunel/MIKE, diagnosticos com codigo/severidade/ARCA e cobertura (o que NAO foi possivel auditar).
+3. O painel gera a lista de TUNEIS PRIORITARIOS; detalhe completo em `[AUDITORIA] Ocorrencias`; execucao registrada em `[HISTORICO] Auditoria Ocorrencias`.
+4. A partir dos diagnosticos, montar o **PLANO DE CORRECAO** (MOD-C05-02): cada item classificado como AUTO_FIX, CONFIRM_FIX ou MANUAL_ONLY.
+5. PREVIEW do plano (celula atual -> proposta) e aplicacao somente do que a politica autoriza; CONFIRM_FIX exige aprovacao do operador.
+6. Toda aplicacao grava LOG (antes/depois) e mantem ROLLBACK da execucao.
+7. REAUDITORIA automatica do mesmo periodo e comparacao SAUDE INICIAL x SAUDE FINAL.
+8. Historico atualizado; itens MANUAL_ONLY permanecem sinalizados para tratativa humana.
+
+Nota: as etapas 4 a 8 pertencem ao Lote B (#112) e ainda nao estao implementadas; o Lote A entrega as etapas 1 a 3.

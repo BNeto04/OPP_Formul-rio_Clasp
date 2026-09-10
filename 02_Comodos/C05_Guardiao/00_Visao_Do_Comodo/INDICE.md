@@ -120,3 +120,28 @@ O cÃ´modo **C05 GuardiÃ£o da Qualidade Operacional** estÃ¡ **100% testado,
   para que Apps Script remoto == Git do produto.
 - Correcao de compatibilidade: campos de classe (`static x = ...`) nao sao aceitos pelo parser do Apps Script
   (AdaptadorConsultaArca inicializa propriedades apos a classe).
+
+---
+
+## G01 - Arquitetura do Comodo em DOIS MODULOS (Sprint #112)
+
+O comodo C05 deixa de ser um modulo unico e passa a ter duas responsabilidades separadas:
+
+```
+C05_Guardiao
+├── MOD-C05-01_GUARDIAO_DE_QUALIDADE  -> AUDITA: detecta, classifica, explica e mede cobertura (nao altera dados)
+└── MOD-C05-02_NORMALIZADOR_DE_ABA    -> CORRIGE de forma controlada (plano explicito) e DEVOLVE para reauditoria
+```
+
+### Fluxo alvo completo
+`MENU GS -> SELETOR MES/MESES -> ABA(S) -> TUNEIS -> GUARDIAO/ARCA -> DIAGNOSTICOS -> PLANO DE CORRECAO -> NORMALIZADOR -> REAUDITORIA -> SAUDE FINAL -> HISTORICO`
+
+### Politica de mutacao do MOD-C05-02
+- `AUTO_FIX`: correcao deterministica, reversivel/rastreavel e sustentada por fonte canonica inequivoca.
+- `CONFIRM_FIX`: correcao tecnicamente provavel, mas exige confirmacao do operador antes de mutar.
+- `MANUAL_ONLY`: dado operacional ou ambiguo; apenas sinalizado, nunca mutado automaticamente.
+
+### Fases de entrega
+- Lote A (cards #113-#117): MOD-C05-01 vivo no GS (seletor, saude por tunel, cobertura anti-falso-verde, painel/drill-down, homologacao E2E da fase auditora). #117 NAO encerra a Sprint.
+- Lote B (a abrir): MOD-C05-02_NORMALIZADOR_DE_ABA (classificacao AUTO_FIX/CONFIRM_FIX/MANUAL_ONLY, motor de normalizacao, preview/rollback/log, reauditoria antes/depois, E2E final).
+- A Sprint G01 (#112) so encerra quando o ciclo AUDITAR -> EXPLICAR -> PROPOR -> NORMALIZAR COM SEGURANCA -> REAUDITAR -> COMPROVAR SAUDE estiver provado no GS real.
