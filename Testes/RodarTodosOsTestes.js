@@ -33,6 +33,8 @@ async function main() {
   console.log('');
   require('./TestDryRunNormalizador');
   console.log('');
+  require('./TestExecutorNormalizador');
+  console.log('');
   require('./TestSeletorMesesGuardiao');
   console.log('');
   require('./TestCatalogoPipGuardiao');
