@@ -35,6 +35,8 @@ async function main() {
   console.log('');
   require('./TestExecutorNormalizador');
   console.log('');
+  require('./TestReauditoriaNormalizador');
+  console.log('');
   require('./TestSeletorMesesGuardiao');
   console.log('');
   require('./TestCatalogoPipGuardiao');
