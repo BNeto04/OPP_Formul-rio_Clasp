@@ -98,6 +98,15 @@
       "height": 100,
       "type": "text",
       "text": "C03 / MOD-C03-02 ARCA de Regras"
+    },
+    {
+      "id": "n_norm",
+      "x": 0,
+      "y": 300,
+      "width": 240,
+      "height": 100,
+      "type": "text",
+      "text": "C01 / MOD-C01-02 Normalizador de Efetivo"
     }
   ],
   "edges": [
@@ -149,6 +158,20 @@
       "fromSide": "bottom",
       "toNode": "n5",
       "toSide": "right"
+    },
+    {
+      "id": "e7",
+      "fromNode": "n_arca",
+      "fromSide": "bottom",
+      "toNode": "n_norm",
+      "toSide": "right"
+    },
+    {
+      "id": "e8",
+      "fromNode": "n_peculio",
+      "fromSide": "bottom",
+      "toNode": "n_norm",
+      "toSide": "top"
     }
   ]
 }

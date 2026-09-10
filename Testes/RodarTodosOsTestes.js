@@ -27,6 +27,8 @@ async function main() {
   console.log('');
   require('./TestArcaMapaCobertura');
   console.log('');
+  require('./TestArcaNormalizadorEfetivo');
+  console.log('');
   require('./TestSeletorMesesGuardiao');
   console.log('');
   require('./TestCatalogoPipGuardiao');

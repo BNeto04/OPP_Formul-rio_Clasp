@@ -51,3 +51,12 @@
 2. Migrar leitores legados (`Compilador_Armas.js` e `Compilador de Entorpecentes.js`) para consumirem a camada unificada do C02 Leitura.
 3. Parametrizar IDs de planilhas via mÃ³dulo de `Config`.
 
+
+
+---
+
+## Nota de endereçamento (#127, 10/09/2026)
+`Features/NormalizadorEfetivo.js` esta endereçado como modulo proprio no comodo C01:
+`02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/` (com submodulo SUB-C01-02-01_DEPENDENCIA_ARCA).
+As funcoes de LEITURA listadas neste indice (lerPeculio/lerEfetivoAtual) pertencem a esse modulo; a dependencia ARCA
+(ARCA-EFETIVO-001/002, ARCA-MATRICULA-001, ARCA-ANTIGUIDADE-001) esta registrada la.

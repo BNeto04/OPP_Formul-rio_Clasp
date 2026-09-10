@@ -88,14 +88,15 @@ test('gap explicito: NAO_AUDITAVEL nao declara consumidor indireto; MAPEADO com 
   assert.ok(regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_AUDITAVEL').length >= 1);
 });
 
-test('integracao planejada do NormalizadorEfetivo registrada nas regras de efetivo/matricula/antiguidade', () => {
+test('integracao do NormalizadorEfetivo e REAL nas regras de efetivo/matricula/antiguidade (#127)', () => {
   ['ARCA-EFETIVO-001', 'ARCA-EFETIVO-002', 'ARCA-MATRICULA-001', 'ARCA-ANTIGUIDADE-001'].forEach(rid => {
     const r = regras.find(x => x.rule_id === rid);
-    assert.ok(r.consumidores.PLANNED_CONSUMER.includes('Features/NormalizadorEfetivo.js'), `${rid}: planejado ausente`);
+    assert.ok(r.consumidores.REAL_CODE_CONSUMER.includes('Features/NormalizadorEfetivo.js'), `${rid}: consumidor real ausente`);
+    assert.deepStrictEqual(r.consumidores.PLANNED_CONSUMER, [], `${rid}: planejado deveria estar vazio apos #127`);
   });
 });
 
-test('MD traz a visao reconciliada em todas as 31 regras', () => {
+test('MD traz a visao reconciliada em todas as 36 regras', () => {
   const ids = regras.map(r => r.rule_id);
   const faltando = ids.filter(rid => {
     const i = md.indexOf(`[${rid}]`);

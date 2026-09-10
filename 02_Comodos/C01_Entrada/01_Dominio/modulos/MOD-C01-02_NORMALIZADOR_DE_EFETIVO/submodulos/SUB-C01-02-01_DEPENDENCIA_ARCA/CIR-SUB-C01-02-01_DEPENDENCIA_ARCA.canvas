@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    {
+      "id": "s1",
+      "x": 0,
+      "y": 0,
+      "width": 420,
+      "height": 120,
+      "type": "text",
+      "text": "### Dependencia ARCA\nConsultar metadados das regras de efetivo/matricula/antiguidade (read-only, fail-soft)."
+    }
+  ],
+  "edges": []
+}

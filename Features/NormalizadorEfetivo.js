@@ -10,12 +10,17 @@ class NormalizadorEfetivo {
 
     const sheetEfetivo = ss.getSheetByName(CONSTANTES_SYNTHEON.ABA_EFETIVO) || ss.insertSheet(CONSTANTES_SYNTHEON.ABA_EFETIVO);
     const existentes = NormalizadorEfetivo.lerEfetivoAtual(sheetEfetivo);
+
+    // G01 #127: metadados da ARCA que sustentam as decisoes deste modulo (consumo real, fail-soft)
+    const arcaMetadados = NormalizadorEfetivo.obterMetadadosArca();
+
     NormalizadorEfetivo.renderizarLog(ss, {
       status: 'INICIADO',
       peculio: 0,
       mantidos: 0,
       alertas: 0,
       linhas: existentes.registros.length,
+      arca: arcaMetadados,
       log: [['SISTEMA', '-', 'INICIADO', 'Sincronizacao iniciada; se falhar, o erro sera registrado nesta aba.']]
     });
 
@@ -58,6 +63,7 @@ class NormalizadorEfetivo {
       mantidos: log.filter(item => item[2] === 'MANTIDO').length,
       alertas: log.length,
       linhas: saida.length,
+      arca: arcaMetadados,
       log
     });
 
@@ -65,7 +71,8 @@ class NormalizadorEfetivo {
       peculio: peculio.length,
       mantidos: log.filter(item => item[2] === 'MANTIDO').length,
       alertas: log.length,
-      linhas: saida.length
+      linhas: saida.length,
+      arca: arcaMetadados
     };
   }
 
@@ -213,6 +220,39 @@ class NormalizadorEfetivo {
     return ss.getSheets().find(sheet => SyntheonUtils.normalizarTexto(sheet.getName()) === nomeNormalizado) || null;
   }
 
+  /**
+   * Regras ARCA aplicaveis ao Normalizador de Efetivo (G01 #127 - integracao factual).
+   * Nao duplica regra: apenas declara quais regras canonicas sustentam as decisoes deste modulo.
+   */
+  static regrasArcaAplicaveis() {
+    return ['ARCA-EFETIVO-001', 'ARCA-EFETIVO-002', 'ARCA-MATRICULA-001', 'ARCA-ANTIGUIDADE-001'];
+  }
+
+  /**
+   * Consome metadados da ARCA pela porta canonica (AdaptadorConsultaArca), fail-soft:
+   * se a ARCA nao estiver disponivel devolve disponivel=false e o modulo segue funcionando.
+   */
+  static obterMetadadosArca(ruleIds) {
+    const ids = ruleIds || NormalizadorEfetivo.regrasArcaAplicaveis();
+    let Adapt = typeof AdaptadorConsultaArca !== 'undefined' ? AdaptadorConsultaArca : null;
+    if (!Adapt && typeof require !== 'undefined') {
+      try { Adapt = require('../Dominio/ARCA/AdaptadorConsultaArca'); } catch (e) {}
+    }
+    if (!Adapt || typeof Adapt.consultarPorRuleId !== 'function') {
+      return { disponivel: false, motivo: 'ARCA_METADATA_UNAVAILABLE', regras: [] };
+    }
+    const regras = [];
+    ids.forEach(id => {
+      try {
+        const meta = Adapt.consultarPorRuleId(id);
+        if (meta && meta.status === 'MAPPED') {
+          regras.push({ rule_id: id, titulo: meta.titulo, tipo_regra: meta.tipo_regra, fonte_status: meta.fonte_status });
+        }
+      } catch (e) { /* fail-soft: ARCA nunca bloqueia a sincronizacao */ }
+    });
+    return { disponivel: regras.length > 0, regras };
+  }
+
   static renderizarLog(ss, resultado) {
     const nomeLog = '[AUDITORIA] Efetivo';
     let logSheet = ss.getSheetByName(nomeLog);
@@ -228,9 +268,18 @@ class NormalizadorEfetivo {
       ['Sincronizacao do EFETIVO pelo PECULIO', agora, resultado.status || (resultado.alertas ? 'COM OBSERVACOES' : 'APROVADO'), ''],
       ['Registros do PECULIO', resultado.peculio, 'Registros mantidos fora do PECULIO', resultado.mantidos],
       ['Linhas finais do EFETIVO', resultado.linhas, 'Observacoes', resultado.alertas],
-      ['', '', '', ''],
-      ['ORIGEM', 'LINHA', 'STATUS', 'DIAGNOSTICO']
+      ['', '', '', '']
     ];
+
+    // G01 #127: rastreabilidade da dependencia ARCA (regras canonicas que sustentam as decisoes)
+    if (resultado.arca) {
+      const ids = (resultado.arca.regras || []).map(r => r.rule_id).join(', ');
+      dados.push(['REGRAS ARCA', resultado.arca.disponivel ? 'DISPONIVEL' : 'INDISPONIVEL', 'Regras aplicadas',
+        ids || (resultado.arca.motivo || 'ARCA_METADATA_UNAVAILABLE')]);
+      dados.push(['', '', '', '']);
+    }
+
+    dados.push(['ORIGEM', 'LINHA', 'STATUS', 'DIAGNOSTICO']);
 
     if (resultado.log.length > 0) {
       resultado.log.forEach(item => dados.push(item));

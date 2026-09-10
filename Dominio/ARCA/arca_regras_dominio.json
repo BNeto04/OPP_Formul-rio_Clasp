@@ -36,6 +36,17 @@
       ],
       "regras_mapeadas": 25,
       "regras_nao_auditaveis": 11
+    },
+    "normalizador_integracao": {
+      "card": "#127 ARCA-FIX-004",
+      "data": "2026-09-10",
+      "metodo": "NormalizadorEfetivo.obterMetadadosArca() consome ARCA-EFETIVO-001/002, ARCA-MATRICULA-001 e ARCA-ANTIGUIDADE-001 pela porta canonica (AdaptadorConsultaArca.consultarPorRuleId), fail-soft, sem duplicar regra; os IDs aplicados sao registrados na aba [AUDITORIA] Efetivo.",
+      "regras": [
+        "ARCA-EFETIVO-001",
+        "ARCA-EFETIVO-002",
+        "ARCA-MATRICULA-001",
+        "ARCA-ANTIGUIDADE-001"
+      ]
     }
   },
   "regras": [
@@ -852,10 +863,8 @@
           "CompiladorProdutividade",
           "RendererCA"
         ],
-        "PLANNED_CONSUMER": [
-          "Features/NormalizadorEfetivo.js"
-        ],
-        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126). Integracao factual planejada no #127."
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Consumo real pelo NormalizadorEfetivo (obterMetadadosArca via AdaptadorConsultaArca) desde #127; o Guardiao nao audita esta regra diretamente (auditabilidade NAO_AUDITAVEL mantida com motivo)."
       },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Patentes inexistentes no mapa caírem em N/I.",
@@ -864,7 +873,7 @@
       "auditabilidade_guardiao": {
         "status": "NAO_AUDITAVEL",
         "codigos": [],
-        "motivo": "Normalizacao de graduacoes implementada em Core/Utils.js + Features/NormalizadorEfetivo.js; sem diagnostico no Guardiao. Integracao factual prevista no card #127."
+        "motivo": "Normalizacao de graduacoes implementada em Core/Utils.js + Features/NormalizadorEfetivo.js; sem diagnostico no Guardiao. Integracao com o NormalizadorEfetivo concluida no #127 (consumo de metadados via porta ARCA)."
       }
     },
     {
@@ -904,10 +913,8 @@
         "DECLARED_CONSUMER": [
           "NormalizadorEfetivo"
         ],
-        "PLANNED_CONSUMER": [
-          "Features/NormalizadorEfetivo.js"
-        ],
-        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126). Integracao factual planejada no #127."
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Consumo real pelo NormalizadorEfetivo (obterMetadadosArca via AdaptadorConsultaArca) desde #127; o Guardiao nao audita esta regra diretamente (auditabilidade NAO_AUDITAVEL mantida com motivo)."
       },
       "alcance": "MODULO_EFETIVO",
       "riscos": "Mudança de antiguidade no boletim geral alterar o prefixo do nome de guerra.",
@@ -916,7 +923,7 @@
       "auditabilidade_guardiao": {
         "status": "NAO_AUDITAVEL",
         "codigos": [],
-        "motivo": "Desambiguacao de nomes de guerra implementada em Features/NormalizadorEfetivo.js; sem diagnostico no Guardiao. Integracao prevista no #127."
+        "motivo": "Desambiguacao de nomes de guerra implementada em Features/NormalizadorEfetivo.js; sem diagnostico no Guardiao. Integracao com o NormalizadorEfetivo concluida no #127 (consumo de metadados via porta ARCA)."
       }
     },
     {
@@ -955,7 +962,8 @@
         "REAL_CODE_CONSUMER": [
           "Core/RegrasQualidade.js",
           "Core/Utils.js",
-          "Dominio/Policial.js"
+          "Dominio/Policial.js",
+          "Features/NormalizadorEfetivo.js"
         ],
         "INDIRECT_CONSUMER": [],
         "DECLARED_CONSUMER": [
@@ -964,10 +972,8 @@
           "CompiladorProdutividade",
           "GuardiaoQualidade"
         ],
-        "PLANNED_CONSUMER": [
-          "Features/NormalizadorEfetivo.js"
-        ],
-        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126). Integracao factual planejada no #127."
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Consumo real pelo NormalizadorEfetivo (obterMetadadosArca via AdaptadorConsultaArca) desde #127; o Guardiao nao audita esta regra diretamente (auditabilidade NAO_AUDITAVEL mantida com motivo)."
       },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Matrículas de outras forças que contenham letras.",
@@ -976,7 +982,7 @@
       "auditabilidade_guardiao": {
         "status": "NAO_AUDITAVEL",
         "codigos": [],
-        "motivo": "Higienizacao/validacao de formato de matricula implementada em Core/Utils.js e Dominio/Policial.js; o Guardiao cobre apenas ausencia (ARCA-MATRICULA-002). Integracao prevista no #127."
+        "motivo": "Higienizacao/validacao de formato de matricula implementada em Core/Utils.js e Dominio/Policial.js; o Guardiao cobre apenas ausencia (ARCA-MATRICULA-002). Integracao com o NormalizadorEfetivo concluida no #127 (consumo de metadados via porta ARCA)."
       }
     },
     {
@@ -1078,10 +1084,8 @@
           "CompiladorGxt",
           "NormalizadorEfetivo"
         ],
-        "PLANNED_CONSUMER": [
-          "Features/NormalizadorEfetivo.js"
-        ],
-        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126). Integracao factual planejada no #127."
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Consumo real pelo NormalizadorEfetivo (obterMetadadosArca via AdaptadorConsultaArca) desde #127; o Guardiao nao audita esta regra diretamente (auditabilidade NAO_AUDITAVEL mantida com motivo)."
       },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Confusão com conceitos civis onde número maior indica maior tempo.",
@@ -1090,7 +1094,7 @@
       "auditabilidade_guardiao": {
         "status": "NAO_AUDITAVEL",
         "codigos": [],
-        "motivo": "Precedencia por menor N implementada em Motor/PoliticaMeritoArmas.js; no Guardiao aparece apenas via merito de armas (ARCA-MERITO-001/002). Integracao prevista no #127."
+        "motivo": "Precedencia por menor N implementada em Motor/PoliticaMeritoArmas.js; no Guardiao aparece apenas via merito de armas (ARCA-MERITO-001/002). Integracao com o NormalizadorEfetivo concluida no #127 (consumo de metadados via porta ARCA)."
       }
     },
     {

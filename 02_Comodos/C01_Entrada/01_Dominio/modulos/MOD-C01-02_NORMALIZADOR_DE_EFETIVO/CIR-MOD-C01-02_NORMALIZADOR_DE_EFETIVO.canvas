@@ -1,0 +1,63 @@
+{
+  "nodes": [
+    {
+      "id": "norm-1",
+      "x": 380,
+      "y": 0,
+      "width": 420,
+      "height": 120,
+      "type": "text",
+      "text": "### NORMALIZADOR DE EFETIVO\nSincroniza EFETIVO a partir do PECULIO; normaliza graduacao, matricula, nome de guerra e subunidade."
+    },
+    {
+      "id": "norm-2",
+      "x": 0,
+      "y": 220,
+      "width": 320,
+      "height": 110,
+      "type": "text",
+      "text": "### Gatilho\nMenu Produtividade > Sincronizar efetivo pelo peculio (Entrada/Menu.js)"
+    },
+    {
+      "id": "norm-3",
+      "x": 760,
+      "y": 220,
+      "width": 380,
+      "height": 130,
+      "type": "text",
+      "text": "### Porta ARCA (dependencia)\nAdaptadorConsultaArca.consultarPorRuleId -> ARCA-EFETIVO-001/002, ARCA-MATRICULA-001, ARCA-ANTIGUIDADE-001"
+    },
+    {
+      "id": "norm-4",
+      "x": 380,
+      "y": 220,
+      "width": 340,
+      "height": 120,
+      "type": "text",
+      "text": "### Fontes de dados\nLeitura: PECULIO (externo) | Escrita: aba EFETIVO | Log: [AUDITORIA] Efetivo"
+    }
+  ],
+  "edges": [
+    {
+      "id": "n-e0",
+      "fromNode": "norm-2",
+      "fromSide": "right",
+      "toNode": "norm-1",
+      "toSide": "left"
+    },
+    {
+      "id": "n-e1",
+      "fromNode": "norm-3",
+      "fromSide": "left",
+      "toNode": "norm-1",
+      "toSide": "right"
+    },
+    {
+      "id": "n-e2",
+      "fromNode": "norm-4",
+      "fromSide": "top",
+      "toNode": "norm-1",
+      "toSide": "bottom"
+    }
+  ]
+}
