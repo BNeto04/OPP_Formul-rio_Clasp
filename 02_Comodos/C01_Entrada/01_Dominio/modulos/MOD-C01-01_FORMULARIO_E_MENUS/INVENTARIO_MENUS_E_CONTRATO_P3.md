@@ -31,15 +31,19 @@ Os builders `criarMenuArmas_` (Compilador_Armas.js) e `criarMenuDrogas_` (Compil
 | 15 | Selecao livre (Drogas) | `abrirMenuSelecaoLivreDrogas` | Drogas | P3 > Drogas | Compilador de Entorpecentes.js:84 | OK |
 | 16 | Anual (Drogas) | `iniciarModoAnualDrogas` | Drogas | P3 > Drogas | Compilador de Entorpecentes.js:69 | OK |
 
-### 2.1 Entrypoints que EXISTEM e hoje NÃO têm entrada em menu (recuperar no P3)
+### 2.1 Features ABANDONADAS por decisão do proprietário — **NÃO entram no P3**
+
+Ordem direta do proprietário (10/09/2026), registrada para não haver reincidência: estas features foram
+**abandonadas**, não são "entrypoint perdido" e **não voltam** ao menu. O código permanece no repositório
+(nada é removido); simplesmente não recebe item de navegação.
 
 | # | FUNCAO | ARQUIVO | MENU_ATUAL | MENU_P3_ALVO | OBSERVAÇÃO |
 |---|---|---|---|---|---|
-| 17 | `abrirMenuGxtSelecaoLivre` | Features/CompiladorGxt.js:567 | **nenhum** | P3 > Produtividade / Comparativo | GXT completo (seleção livre + anual) sem porta de entrada; diálogo `Entrada/DialogGxtSelecaoLivre.html` chama `gerarGxtSelecaoLivre` |
-| 18 | `gerarGxtAnual` | Features/CompiladorGxt.js:737 | **nenhum** | idem | idem |
-| 19 | `abrirMenuCentralAnaliticaSelecaoLivre` | Features/CentralAnalitica.js:41 | **nenhum** | P3 > Produtividade / Comparativo | Central Analítica sem porta de entrada |
-| 20 | `rodarCentralAnaliticaAnual` | Features/CentralAnalitica.js:25 | **nenhum** | idem | idem |
-| 21 | `abrirSeletorMesesGuardiaoPorTexto` | Entrada/SeletorMesesGuardiao.js:257 | **nenhum** | P3 > Guardião (variante) | Alternativa por texto ao seletor por botões; não exposta |
+| 17 | `abrirMenuGxtSelecaoLivre` | Features/CompiladorGxt.js:567 | nenhum | **NÃO ENTRA** | GXT terá **planilha própria** (fora deste produto) |
+| 18 | `gerarGxtAnual` | Features/CompiladorGxt.js:737 | nenhum | **NÃO ENTRA** | idem |
+| 19 | `abrirMenuCentralAnaliticaSelecaoLivre` | Features/CentralAnalitica.js:41 | nenhum | **NÃO ENTRA** | Central Analítica entra na **migração para banco de dados** |
+| 20 | `rodarCentralAnaliticaAnual` | Features/CentralAnalitica.js:25 | nenhum | **NÃO ENTRA** | idem |
+| 21 | `abrirSeletorMesesGuardiaoPorTexto` | Entrada/SeletorMesesGuardiao.js:257 | nenhum | não entra (variante interna) | alternativa por texto; o seletor por botões é o canônico |
 
 ### 2.2 Builders de menu mortos (não chamados por `onOpen`)
 
@@ -73,11 +77,8 @@ P3
 │   ├── Seleção livre                             -> abrirMenuSelecaoLivreDrogas
 │   └── Anual                                     -> iniciarModoAnualDrogas
 ├── Produtividade / Comparativo
-│   ├── Gerar produtividade / comparativo 2026    -> abrirMenuComparativo2026
-│   ├── GXT — seleção livre                       -> abrirMenuGxtSelecaoLivre      (RECUPERADO)
-│   ├── GXT — anual                               -> gerarGxtAnual                 (RECUPERADO)
-│   ├── Central Analítica — anual                 -> rodarCentralAnaliticaAnual    (RECUPERADO)
-│   └── Central Analítica — seleção livre         -> abrirMenuCentralAnaliticaSelecaoLivre (RECUPERADO)
+│   └── Gerar produtividade / comparativo 2026    -> abrirMenuComparativo2026
+│       (GXT e Central Analítica: features abandonadas - fora do menu por decisão do proprietário)
 ├── Guardião da Qualidade
 │   ├── Auditar (seletor de meses)                -> abrirSeletorMesesGuardiao
 │   ├── Auditar aba atual                         -> executarGuardiaoQualidade
@@ -101,7 +102,7 @@ P3
 
 1. **Nenhum entrypoint atual pode ser perdido** — os 16 itens da matriz §2 permanecem alcançáveis.
 2. **Nenhuma função alvo é renomeada** nesta fase (o menu referencia nomes existentes).
-3. **GXT e Central Analítica são recuperados** (hoje inalcançáveis pelo menu).
+3. **GXT e Central Analítica NÃO entram** — features abandonadas por decisão do proprietário (GXT terá planilha própria; Central Analítica entra na migração para banco de dados).
 4. **Normalizador Seguro não entra** enquanto não existir função real (#122) — nada de item apontando para função inexistente.
 5. Armas e Drogas deixam de ser menus superiores e viram submenus do P3.
 6. Grupo `Desenvolvimento` isola itens `[Dev]`.
