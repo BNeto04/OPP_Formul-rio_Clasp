@@ -115,11 +115,10 @@ function executarOnOpen() {
 
 test('existe UM unico menu superior e ele se chama P3', () => {
   const r = executarOnOpen();
-  const raizes = r.menusCriados.filter(m => !r.menusCriados.some(outro => outro.submenus.indexOf(m) !== -1));
+  // So o que chega a `addToUi` e exibido na planilha; submenus vazios criados e descartados pelo
+  // builder (construcao defensiva) nao contam como menu superior.
   assert.strictEqual(r.addToUi.length, 1, 'exatamente um menu deve chegar ao addToUi');
   assert.strictEqual(r.addToUi[0].nome, 'P3');
-  assert.strictEqual(raizes.length, 1, 'apenas uma raiz de menu');
-  assert.strictEqual(raizes[0].nome, 'P3');
 });
 
 test('nenhum menu superior legado e criado (Formulario/Produtividade/Pip + builders mortos)', () => {
@@ -141,11 +140,16 @@ test('nenhum menu superior legado e criado (Formulario/Produtividade/Pip + build
   });
 });
 
-test('submenus seguem a arvore canonica do #129 (8 grupos, na ordem)', () => {
+test('submenus seguem a arvore canonica do #129 (grupos na ordem; Desenvolvimento so se o harness existir)', () => {
   const r = executarOnOpen();
   const grupos = r.addToUi[0].submenus.map(s => s.nome);
-  assert.deepStrictEqual(grupos, ['Formulário', 'Armas', 'Drogas', 'Produtividade / Comparativo',
-    'Guardião da Qualidade', 'Efetivo', 'PIP / CPM', 'Desenvolvimento']);
+  const canonicos = ['Formulário', 'Armas', 'Drogas', 'Produtividade / Comparativo',
+    'Guardião da Qualidade', 'Efetivo', 'PIP / CPM'];
+  assert.deepStrictEqual(grupos.slice(0, 7), canonicos, 'os 7 grupos canonicos devem vir nesta ordem');
+  // `Desenvolvimento` e o unico grupo opcional: ele existe apenas se o arcabouco de homologacao estiver
+  // carregado (em producao ele NAO vai: `Homologacao/**` esta no .claspignore). Card #134.
+  assert.ok(grupos.length === 7 || (grupos.length === 8 && grupos[7] === 'Desenvolvimento'),
+    'composicao inesperada de grupos: ' + grupos.join(' | '));
 });
 
 // ---------- 2. alvos vivos ----------
@@ -160,16 +164,27 @@ test('todo item do menu aponta para funcao existente (nenhum alvo morto)', () =>
   assert.deepStrictEqual(mortos, [], 'itens apontando para funcao inexistente: ' + mortos.join('; '));
 });
 
-test('os 16 entrypoints originais continuam alcancaveis pelo P3', () => {
+test('os 15 entrypoints ENVIADOS continuam alcancaveis pelo P3', () => {
   const r = executarOnOpen();
   const alvos = [];
   (function varrer(menu) { menu.itens.forEach(i => alvos.push(i.alvo)); menu.submenus.forEach(varrer); })(r.addToUi[0]);
   ['abrirFormularioEntrada', 'abrirMenuSelecaoLivre', 'iniciarModoAnual', 'abrirMenuSelecaoLivreDrogas',
    'iniciarModoAnualDrogas', 'abrirMenuComparativo2026', 'abrirSeletorMesesGuardiao', 'executarGuardiaoQualidade',
-   'normalizarEfetivo', 'rodarTesteDeHomologacao', 'abrirMenuPipMensal', 'abrirMenuPipLivre', 'gerarPipAnual',
+   'normalizarEfetivo', 'abrirMenuPipMensal', 'abrirMenuPipLivre', 'gerarPipAnual',
    'abrirMenuCPMMensal', 'abrirMenuCPMLivre', 'gerarCPMAnual'].forEach(a => {
     assert.ok(alvos.indexOf(a) !== -1, 'entrypoint perdido no P3: ' + a);
   });
+});
+
+test('[Dev] Homologacao: item omitido quando o harness nao esta carregado (declarado, card #134)', () => {
+  const r = executarOnOpen();
+  const alvos = [];
+  (function varrer(menu) { menu.itens.forEach(i => alvos.push(i.alvo)); menu.submenus.forEach(varrer); })(r.addToUi[0]);
+  const harnessCarregado = typeof ctx.rodarTesteDeHomologacao === 'function';
+  const noMenu = alvos.indexOf('rodarTesteDeHomologacao') !== -1;
+  // Regra: o item aparece SOMENTE se a funcao alvo existir (construcao defensiva do #130).
+  assert.strictEqual(noMenu, harnessCarregado,
+    'item [Dev] deveria acompanhar a existencia da funcao (carregado=' + harnessCarregado + ', noMenu=' + noMenu + ')');
 });
 
 test('DECISAO CONGELADA: GXT e Central Analitica NAO aparecem no menu (features abandonadas)', () => {
@@ -198,7 +213,8 @@ test('PIP/CPM preserva os dois submenus com 3 itens cada (regra de negocio intac
 test('itens de desenvolvimento ficam isolados no grupo Desenvolvimento', () => {
   const r = executarOnOpen();
   const dev = r.addToUi[0].submenus.find(s => s.nome === 'Desenvolvimento');
-  assert.ok(dev.itens.every(i => i.rotulo.indexOf('[Dev]') === 0), 'item de dev fora do padrao [Dev]');
+  if (!dev) { assert.notStrictEqual(typeof ctx.rodarTesteDeHomologacao, 'function', 'grupo ausente embora a funcao alvo exista'); }
+  else assert.ok(dev.itens.every(i => i.rotulo.indexOf('[Dev]') === 0), 'item de dev fora do padrao [Dev]');
   const outros = r.addToUi[0].submenus.filter(s => s.nome !== 'Desenvolvimento');
   const vazamento = [];
   (function varrer(menu) { menu.itens.forEach(i => { if (i.rotulo.indexOf('[Dev]') === 0) vazamento.push(menu.nome); }); menu.submenus.forEach(varrer); })({ nome: 'raiz', itens: [], submenus: outros });

@@ -8,18 +8,8 @@
  */
 
 
-// IMPORTANTE:
-// Para exibir este menu junto dos demais, adicione a linha abaixo dentro do seu onOpen() principal:
-// criarMenuCPM_();
-
-function criarMenuCPM_() {
-  SpreadsheetApp.getUi()
-    .createMenu('⭐ CPM')
-    .addItem('▶ Gerar Mensal', 'abrirMenuCPMMensal')
-    .addItem('📅 Seleção Livre', 'abrirMenuCPMLivre')
-    .addItem('📊 Anual', 'gerarCPMAnual')
-    .addToUi();
-}
+// [card #134] `criarMenuCPM_()` REMOVIDO: builder de menu morto (zero chamadores; a unica mencao era um
+// comentario). Os itens do CPM continuam iguais dentro de `P3 > PIP / CPM > CPM | Mes civil`.
 
 // ============================================================================
 // CONFIGURAÇÕES

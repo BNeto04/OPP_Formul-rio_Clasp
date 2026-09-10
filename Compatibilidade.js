@@ -1,87 +1,57 @@
 /**
  * ARQUIVO: Entradas/Compatibilidade.js
- * DESCRIÇÃO: Este arquivo funciona como a API Pública do SYNTHÉON no Google Apps Script.
- * As assinaturas de função aqui contidas são chamadas diretamente pelos Menus da Planilha
- * e NUNCA devem ser alteradas ou removidas sem um plano de obsolescência claro.
- * O objetivo é garantir a "Regra de Ouro #5 - Compatibilidade Operacional", permitindo 
- * trocar o motor interno (API Interna) sem quebrar o usuário.
+ * DESCRICAO: Manifesto da API publica do SYNTHEON no Google Apps Script.
+ *
+ * REGRA DE OURO #5 (compatibilidade operacional): os NOMES chamados pelos menus da planilha NAO mudam.
+ * O que este arquivo NAO pode mais fazer e REDEFINIR um simbolo que ja existe em outro arquivo: no
+ * Apps Script a ultima definicao carregada vence, entao passar a resolucao a depender da ordem de carga
+ * e uma ambiguidade de comportamento. Eliminado no card #134 (COMPAT-FIX-001).
+ *
+ * IMPORTANTE: as definicoes removidas daqui NAO eram as implementacoes reais - ou eram stubs vazios
+ * (`abrirMenuSelecaoLivre`, `iniciarModoAnual`) ou duplicatas de delegacao
+ * (`compilarProdutividadeRapida`/`Avancada`) ou uma versao QUEBRADA por depender de modulos que nao
+ * sao enviados ao Apps Script (`rodarTesteDeHomologacao`). Os nomes continuam globais e chamáveis.
+ *
+ * Implementacao canonica UNICA de cada simbolo publico:
+ *   abrirFormularioEntrada                       -> Entrada/Menu.js
+ *   abrirMenuSelecaoLivre                        -> Compilador_Armas.js        (implementacao real)
+ *   iniciarModoAnual                             -> Compilador_Armas.js        (implementacao real)
+ *   abrirMenuSelecaoLivreDrogas                  -> Compilador de Entorpecentes.js
+ *   iniciarModoAnualDrogas                       -> Compilador de Entorpecentes.js
+ *   abrirMenuComparativo2026                     -> Features/CompiladorProdutividade.js
+ *   compilarProdutividadeRapida                  -> Features/CompiladorProdutividade.js
+ *   compilarProdutividadeAvancada                -> Features/CompiladorProdutividade.js
+ *   abrirSeletorMesesGuardiao                    -> Entrada/SeletorMesesGuardiao.js
+ *   executarGuardiaoQualidade                    -> Features/GuardiaoQualidade.js
+ *   normalizarEfetivo                            -> Features/NormalizadorEfetivo.js
+ *   abrirMenuPipMensal / abrirMenuPipLivre / gerarPipAnual -> Compilador PIP.js
+ *   abrirMenuCPMMensal / abrirMenuCPMLivre / gerarCPMAnual -> CPM - Compilador de Pontuacao Mensal.js
+ *   rodarTesteDeHomologacao                      -> Homologacao/RodarTesteDeHomologacao.js
+ *                                                   (NAO enviado ao Apps Script: `Homologacao/**` esta no .claspignore)
+ *
+ * Consequencia declarada de `rodarTesteDeHomologacao`: como o arcabouco de homologacao nao e enviado,
+ * a versao que rodava em producao era a que existia aqui - e ela quebrava no clique, porque instancia
+ * `HomologationEngine`/`HomologationSheetsDriver` e usa `testOcorrencias`/`testArmas`/`testDrogas`/
+ * `testPontuacao`, todos ausentes do conjunto enviado. O item `[Dev]` do menu P3 e omitido
+ * automaticamente em producao (construcao defensiva do #130); no repositorio a funcao existe e e a unica.
+ *
+ * Guarda automatica: `Testes/TestSemRedefinicaoGlobal.js` falha se qualquer simbolo do produto voltar a
+ * ter duas definicoes no conjunto enviado ao Apps Script.
  */
 
 // ---------------------------------------------------------
-// COMPILADOR PIP (Legado / V1)
+// Simbolos mantidos por compatibilidade (unicos: nenhuma outra definicao no produto)
+// Candidatos a obsolescencia: remover exige confirmar que nenhum acionador (trigger) externo aponta
+// para eles - nao ha como provar isso por codigo, por isso seguem aqui com zero chamadores.
 // ---------------------------------------------------------
 function compilarPIP() {
-  // Atualmente aponta para o motor legado. No futuro, apontará para o V2
-  // return CompiladorPIP.executar();
+  // Facade legada sem implementacao. O PIP real entra por `abrirMenuPipMensal` (Compilador PIP.js).
 }
 
 function compilarCPM() {
-  // return CompiladorCPM.executar();
+  // Facade legada sem implementacao. O CPM real entra por `abrirMenuCPMMensal` (CPM - Compilador de Pontuacao Mensal.js).
 }
 
-// ---------------------------------------------------------
-// COMPILADOR ARMAS E ENTORPECENTES (Legado / V1)
-// ---------------------------------------------------------
-function abrirMenuSelecaoLivre() {
-  // Já definido em MenuSelecaoLivre.js, mas listamos aqui a intenção
-  // return iniciarProcessoSelecaoLivre();
-}
-
-function iniciarModoAnual() {
-  // Já definido em outras features
-  // return carregarModoAnual();
-}
-
-// ---------------------------------------------------------
-// COMPILADOR DE PRODUTIVIDADE (V1 Atual)
-// ---------------------------------------------------------
-function compilarProdutividadeRapida() {
-  // Chama a orquestração atual. Pode conviver com uma versão Beta no futuro.
-  return iniciarCompiladorProdutividade(false);
-}
-
-function compilarProdutividadeAvancada() {
-  return iniciarCompiladorProdutividade(true);
-}
-
-// ---------------------------------------------------------
-// FUTURA IMPLEMENTAÇÃO DA V2 (Exemplo de Coexistência Beta)
-// ---------------------------------------------------------
 function compilarProdutividadeBetaV2() {
-  // Quando a Fase 4 estiver concluída, este método chamará:
-  // const modelo = new ModeloProdutividade(TemaPMPE);
-  // const dados = MotorAnaliticoV2.processar(Adaptador2026.ler());
-  // return GoogleSheetsDriver.imprimir(Renderer.renderizar(dados, modelo));
-}
-
-// ---------------------------------------------------------
-// FASE 5: TESTES DE HOMOLOGAÇÃO (Validação Operacional)
-// ---------------------------------------------------------
-function rodarTesteDeHomologacao() {
-  const planilha = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = planilha.getSheetByName("JAN2026");
-  
-  if (!sheet) {
-    Logger.log("[ERRO] Aba JAN2026 não encontrada para teste.");
-    return;
-  }
-
-  // 1. Instanciar o Driver Desejado (Pode ser ConsoleDriver, JsonDriver, ou SheetsDriver)
-  const driverVisual = new HomologationSheetsDriver(); 
-  
-  // 2. Instanciar a Engine
-  const engine = new HomologationEngine(driverVisual);
-  
-  // 3. Registrar a Suíte de Testes Isolados
-  engine.registrarTeste(testOcorrencias);
-  engine.registrarTeste(testArmas);
-  engine.registrarTeste(testDrogas);
-  engine.registrarTeste(testPontuacao);
-  
-  // 4. Executar passando o dataset real
-  // Mock de mapa efetivo (como nos scripts anteriores)
-  const mapaEfetivo = {}; 
-  const metadado2026 = CatalogoEstruturas[FonteDados.OPP_2026];
-  
-  engine.executar(sheet, metadado2026, mapaEfetivo);
+  // Reservado para a coexistencia V1 x V2 (Fase 4). Sem implementacao ate la.
 }

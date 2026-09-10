@@ -39,6 +39,8 @@ async function main() {
   console.log('');
   require('./TestMenuP3');
   console.log('');
+  require('./TestSemRedefinicaoGlobal');
+  console.log('');
   require('./TestSeletorMesesGuardiao');
   console.log('');
   require('./TestCatalogoPipGuardiao');

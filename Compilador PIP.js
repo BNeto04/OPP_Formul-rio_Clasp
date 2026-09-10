@@ -7,14 +7,8 @@
  * - Aba EFETIVO: Coluna C = Nome completo, D = Graduação, E = Matrícula.
  */
 
-function criarMenuPip_() {
-  SpreadsheetApp.getUi()
-    .createMenu('🏆 PIP')
-    .addItem('▶ Gerar Mensal', 'abrirMenuPipMensal')
-    .addItem('📅 Seleção Livre', 'abrirMenuPipLivre')
-    .addItem('📊 Anual', 'gerarPipAnual')
-    .addToUi();
-}
+// [card #134] `criarMenuPip_()` REMOVIDO: builder de menu morto (zero chamadores; o onOpen unico agora e
+// o P3 em Entrada/Menu.js). Os itens do PIP continuam iguais dentro de `P3 > PIP / CPM > PIP | Ciclo 29-28`.
 
 // ============================================================================
 // CONFIGURAÇÕES
