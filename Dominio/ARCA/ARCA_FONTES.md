@@ -65,3 +65,13 @@ As regras inventariadas na ARCA classificam-se em níveis estritos de autoridade
 | **ARCA-MATRICULA-003** | Matricula em Multiplas Ocorrencias na Mesma Data | `CONTRATO_OPERACIONAL` | Implementacao no Guardiao (G01) (Core/CoberturaAuditoria.js:detectarMatriculaMultiplaNaMesmaData) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
 | **ARCA-AUDITORIA-001** | Classificacao de Saude por Tunel | `CONTRATO_OPERACIONAL` | Implementacao no Guardiao (G01) (Core/SaudeTuneis.js:classificarTunel) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
 | **ARCA-AUDITORIA-002** | Cobertura de Auditoria e Declaracao de NAO_AUDITADO | `CONTRATO_OPERACIONAL` | Implementacao no Guardiao (G01) (Core/CoberturaAuditoria.js:montarCobertura) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
+
+
+> **Fontes das regras adicionadas pela varredura exaustiva (#128):**
+
+| ID da Regra | Título | Tipo de Fonte | Nome/Localização | Autoridade | Status da Fonte |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **ARCA-OCORRENCIA-005** | Validacao de Construcao da Ocorrencia (Aggregate Root) | `CONTRATO_ARQUITETURAL` | Codigo de dominio Syntheon (Dominio/OcorrenciaFactory.js:criar) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
+| **ARCA-METRICAS-001** | Consolidacao Analitica por Orquestracao de Plugins | `CONTRATO_ARQUITETURAL` | Codigo de dominio Syntheon (Motor/MotorAnaliticoV2.js:processarProdutividadePolicial) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
+| **ARCA-GXT-001** | Diagnostico Deterministico de Tuneis do GXT | `CONTRATO_ARQUITETURAL` | Codigo de dominio Syntheon (Motor/DiagnosticoDeterministicoGxt.js:diagnosticarMes) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
+| **ARCA-TECNICA-005** | Porta Canonica de Consulta da ARCA | `CONTRATO_ARQUITETURAL` | Codigo de dominio Syntheon (Dominio/ARCA/AdaptadorConsultaArca.js:enriquecerDiagnostico) | Interna | `INTERNAL_SOURCE_CONFIRMED` |

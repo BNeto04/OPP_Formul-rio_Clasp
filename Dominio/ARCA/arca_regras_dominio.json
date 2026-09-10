@@ -5,16 +5,17 @@
     "gerado_em": "2026-09-04T03:17:16.476Z",
     "versao": "1.0.0",
     "estatisticas": {
-      "files_discovered_total": 1946,
-      "files_scanned_total": 200,
-      "files_excluded_total": 1746,
+      "files_discovered_total": 3413,
+      "files_scanned_total": 127,
+      "files_excluded_total": 3286,
       "business_rules_total": 29,
       "technical_rules_total": 2,
       "rules_with_canonical_source_total": 11,
       "rules_with_unknown_source_total": 2,
       "hardcoded_rules_total": 27,
       "conflicting_rules_total": 0,
-      "rules_not_used_by_guardian_total": 8
+      "rules_not_used_by_guardian_total": 8,
+      "arquivos_dominio_com_regra_arca": 32
     },
     "consumidores_reconciliacao": {
       "metodo": "classificacao factual: REAL_CODE_CONSUMER = implementa e/ou recebe metadados ARCA via Core/RegrasQualidade (hub); INDIRECT_CONSUMER = recebe por propagacao (cobertura/painel/renderer); DECLARED_CONSUMER = lista original preservada (sem lastro de codigo); PLANNED_CONSUMER = integracao prevista em card corretivo.",
@@ -34,8 +35,19 @@
         "ARCA-AUDITORIA-001",
         "ARCA-AUDITORIA-002"
       ],
-      "regras_mapeadas": 25,
-      "regras_nao_auditaveis": 11
+      "regras_mapeadas": 26,
+      "regras_nao_auditaveis": 14,
+      "regras_adicionadas_total": [
+        "ARCA-MIKE-004",
+        "ARCA-EFETIVO-003",
+        "ARCA-MATRICULA-003",
+        "ARCA-AUDITORIA-001",
+        "ARCA-AUDITORIA-002",
+        "ARCA-OCORRENCIA-005",
+        "ARCA-METRICAS-001",
+        "ARCA-GXT-001",
+        "ARCA-TECNICA-005"
+      ]
     },
     "normalizador_integracao": {
       "card": "#127 ARCA-FIX-004",
@@ -46,6 +58,42 @@
         "ARCA-EFETIVO-002",
         "ARCA-MATRICULA-001",
         "ARCA-ANTIGUIDADE-001"
+      ]
+    },
+    "varredura_exaustiva": {
+      "card": "#128 ARCA-FIX-005",
+      "data": "2026-09-10",
+      "metodo": "varredura recursiva do repositorio (scripts/varredura_dominio.js) sobre o universo de dominio JS; exclusoes registradas por motivo.",
+      "universo": {
+        "arquivos_totais_repo": 3413,
+        "arquivos_varridos_dominio_js": 127,
+        "arquivos_excluidos": 3286,
+        "excluidos_por_motivo": {
+          "controle de versao": 2943,
+          "infraestrutura das pontes": 117,
+          "documentacao Down Plant": 95,
+          "camada de desenvolvimento agentic": 63,
+          "nao-JS de dominio (catalogos/estado/docs)": 31,
+          "saida de homologacao": 12,
+          "extensoes de navegador (infra)": 10,
+          "ferramentas de desenvolvimento": 9,
+          "nao-JS raiz": 2,
+          "canvas/planta": 2,
+          "documentacao": 2
+        }
+      },
+      "lacunas_detectadas": 6,
+      "lacunas_resolvidas": 6,
+      "lacunas_aceitas": 0,
+      "regras_adicionadas": [
+        "ARCA-OCORRENCIA-005",
+        "ARCA-METRICAS-001",
+        "ARCA-GXT-001",
+        "ARCA-TECNICA-005"
+      ],
+      "citacoes_adicionadas": [
+        "Entrada/SeletorMesesGuardiao.js",
+        "Render/RendererAuditoriaSaude.js"
       ]
     }
   },
@@ -2051,6 +2099,7 @@
       ],
       "evidencia_codigo": [
         "Core/SaudeTuneis.js:classificarTunel",
+        "Entrada/SeletorMesesGuardiao.js:auditarMeses",
         "Features/GuardiaoQualidade.js (retorno .saude)"
       ],
       "evidencia_testes": [
@@ -2107,7 +2156,9 @@
       ],
       "evidencia_codigo": [
         "Core/CoberturaAuditoria.js:montarCobertura",
-        "Core/SaudeTuneis.js (classificacao NAO_AUDITAVEL)"
+        "Core/SaudeTuneis.js (classificacao NAO_AUDITAVEL)",
+        "Entrada/SeletorMesesGuardiao.js:montarPainel",
+        "Render/RendererAuditoriaSaude.js:renderizarLog"
       ],
       "evidencia_testes": [
         "Testes/TestCoberturaAuditoria.js (10 testes; catalogo ausente -> PARCIAL)"
@@ -2142,6 +2193,220 @@
         "status": "MAPEADO",
         "codigos": [],
         "motivo": "Regra tecnica do proprio auditor: nao gera diagnostico; descreve comportamento da varredura (classificacao de saude / cobertura) e por isso nao tem codigo associado."
+      }
+    },
+    {
+      "rule_id": "ARCA-OCORRENCIA-005",
+      "titulo": "Validacao de Construcao da Ocorrencia (Aggregate Root)",
+      "descricao_humana": "A ocorrencia so existe como agregado valido quando construida pela fabrica com chave (MIKE+BOE) valida; entradas nulas ou chave invalida devem falhar explicitamente, nunca gerar registro silencioso.",
+      "categoria": "CRIACAO_AGREGADO",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Codigo de dominio Syntheon",
+          "localizacao": "Dominio/OcorrenciaFactory.js:criar",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Dominio/OcorrenciaFactory.js:criar",
+        "Dominio/OcorrenciaFactory.js:validar",
+        "Dominio/ValueObjects/ChaveOcorrencia.js"
+      ],
+      "evidencia_testes": [
+        "Testes/TestDominio.js"
+      ],
+      "condicao": "Chamada de criacao de ocorrencia com dados nulos ou chave incompleta.",
+      "resultado_esperado": "Excecao de validacao de dominio (ErroValidacaoDominio) em vez de objeto invalido.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Dominio/OcorrenciaFactory.js",
+          "Dominio/ValueObjects/ChaveOcorrencia.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Varredura exaustiva #128: consumidores derivados da evidencia de codigo; sem propagacao pelo Guardiao."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": [
+        "Regra estrutural do dominio; mudanca exige revisao de testes."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Registrada na varredura exaustiva (#128 ARCA-FIX-005).",
+      "auditabilidade_guardiao": {
+        "status": "NAO_AUDITAVEL",
+        "codigos": [],
+        "motivo": "Validacao de construcao do agregado (fabrica); nao gera diagnostico de planilha no Guardiao."
+      }
+    },
+    {
+      "rule_id": "ARCA-METRICAS-001",
+      "titulo": "Consolidacao Analitica por Orquestracao de Plugins",
+      "descricao_humana": "A produtividade por policial e consolidada por um orquestrador que dispara o ciclo de vida dos plugins de metrica (inicializar -> processar -> finalizar) e agrega o registro analitico, sem regra matematica duplicada no motor.",
+      "categoria": "CONSOLIDACAO_METRICAS",
+      "subdominio": "metricas",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Codigo de dominio Syntheon",
+          "localizacao": "Motor/MotorAnaliticoV2.js:processarProdutividadePolicial",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Motor/MotorAnaliticoV2.js:processarProdutividadePolicial",
+        "Plugins/Metricas/PluginPontuacao.js",
+        "Plugins/Metricas/PluginOcorrencias.js"
+      ],
+      "evidencia_testes": [
+        "Testes/TestMotorAnaliticoRegressao.js",
+        "Testes/TestPlugins.js"
+      ],
+      "condicao": "Fatos canonicos disponiveis e plugins registrados.",
+      "resultado_esperado": "Registro analitico consolidado (pontos PIP/CPM, ocorrencias, fatos) por policial.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Motor/MotorAnaliticoV2.js",
+          "Plugins/Metricas/PluginOcorrencias.js",
+          "Plugins/Metricas/PluginPontuacao.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Varredura exaustiva #128: consumidores derivados da evidencia de codigo; sem propagacao pelo Guardiao."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": [
+        "Regra estrutural do dominio; mudanca exige revisao de testes."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Registrada na varredura exaustiva (#128 ARCA-FIX-005).",
+      "auditabilidade_guardiao": {
+        "status": "NAO_AUDITAVEL",
+        "codigos": [],
+        "motivo": "Consolidacao analitica de produtividade ocorre no motor/plugins; o Guardiao nao audita o calculo (audita os insumos e rateios)."
+      }
+    },
+    {
+      "rule_id": "ARCA-GXT-001",
+      "titulo": "Diagnostico Deterministico de Tuneis do GXT",
+      "descricao_humana": "O diagnostico do relatorio GXT converte linhas fisicas em registro canonico (sem fallback para QDT ARMAS) e aplica a politica de merito por armas, mantendo duas colecoes separadas: fatos fisicos (exibicao/reconciliacao) e ocorrencias normalizadas.",
+      "categoria": "DIAGNOSTICO_RELATORIO",
+      "subdominio": "gxt",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Codigo de dominio Syntheon",
+          "localizacao": "Motor/DiagnosticoDeterministicoGxt.js:diagnosticarMes",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Motor/DiagnosticoDeterministicoGxt.js:diagnosticarMes",
+        "Motor/DiagnosticoDeterministicoGxt.js:montarMatrizDiagnostico",
+        "Leitura/Adaptador2026.js:extrairFatos"
+      ],
+      "evidencia_testes": [
+        "Testes/TestRelatorioGxt.js"
+      ],
+      "condicao": "Execucao do diagnostico determinista sobre um mes.",
+      "resultado_esperado": "Matriz de diagnostico por tunel com fatos e ocorrencias normalizadas rastreaveis.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Leitura/Adaptador2026.js",
+          "Motor/DiagnosticoDeterministicoGxt.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Varredura exaustiva #128: consumidores derivados da evidencia de codigo; sem propagacao pelo Guardiao."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": [
+        "Regra estrutural do dominio; mudanca exige revisao de testes."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Registrada na varredura exaustiva (#128 ARCA-FIX-005).",
+      "auditabilidade_guardiao": {
+        "status": "NAO_AUDITAVEL",
+        "codigos": [],
+        "motivo": "Diagnostico de relatorio GXT (saida), nao regra de auditoria de planilha."
+      }
+    },
+    {
+      "rule_id": "ARCA-TECNICA-005",
+      "titulo": "Porta Canonica de Consulta da ARCA",
+      "descricao_humana": "Toda consulta a ARCA passa por uma unica porta read-only (AdaptadorConsultaArca): enriquecerDiagnostico(codigoRegra) para diagnosticos e consultarPorRuleId(rule_id) para consumidores diretos; codigo sem mapeamento devolve ARCA_RULE_NOT_MAPPED e o consumidor deve reportar LACUNA_ARCA.",
+      "categoria": "INTERFACE_CATALOGO",
+      "subdominio": "auditoria",
+      "tipo_regra": "TECHNICAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Codigo de dominio Syntheon",
+          "localizacao": "Dominio/ARCA/AdaptadorConsultaArca.js:enriquecerDiagnostico",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Dominio/ARCA/AdaptadorConsultaArca.js:enriquecerDiagnostico",
+        "Dominio/ARCA/AdaptadorConsultaArca.js:consultarPorRuleId",
+        "Dominio/ARCA/AdaptadorConsultaArca.js:carregarArca"
+      ],
+      "evidencia_testes": [
+        "Testes/TestIntegracaoArca.js",
+        "Testes/TestArcaMapaCobertura.js"
+      ],
+      "condicao": "Qualquer consumidor (Guardiao, NormalizadorEfetivo, cobertura) consultando a ARCA.",
+      "resultado_esperado": "Metadados de regra (rule_id, tipo, fonte, excecoes) ou status explicito de ausencia.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Dominio/ARCA/AdaptadorConsultaArca.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Varredura exaustiva #128: consumidores derivados da evidencia de codigo; sem propagacao pelo Guardiao."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": [
+        "Regra estrutural do dominio; mudanca exige revisao de testes."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Registrada na varredura exaustiva (#128 ARCA-FIX-005).",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [],
+        "motivo": "Regra tecnica da porta de consulta do proprio catalogo (nao gera diagnostico)."
       }
     }
   ]

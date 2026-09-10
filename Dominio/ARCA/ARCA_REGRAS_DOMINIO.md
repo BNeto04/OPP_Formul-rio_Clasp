@@ -11,20 +11,14 @@ A **ARCA** é o repositório canônico de todas as regras de domínio, política
 Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladores, motores, normalizadores, plugins e auditores (como o Guardião da Qualidade).
 
 ### Métricas de Consolidação
-> **Atualizado em 10/09/2026 pelos cards #125 (consumidores) e #126 (cobertura Guardiao<->ARCA).**
-> Os números abaixo refletem o catalogo reconciliado. As métricas originais de geração (04/09/2026)
-> varriam 200 de 1946 arquivos — a varredura exaustiva do domínio e o escopo do card #128.
-- **Arquivos Descobertos:** 1946
-- **Arquivos Escaneados na geração original:** 200 (pendente varredura exaustiva — #128)
-- **Total de Regras de Negócio/Operacionais:** 32
-- **Total de Regras Técnicas:** 4
-- **Distribuição por tipo:** INTERNAL_OPERATIONAL_RULE=20, OFFICIAL_BUSINESS_RULE=9, TECHNICAL_RULE=4, HEURISTIC=2, CANONICAL_NORMATIVE_RULE=1
-- **Regras com Fonte Canônica Confirmada:** 11
-- **Regras com Fonte Interna Confirmada:** 23
-- **Regras com Fonte Desconhecida (Heurísticas):** 2
-- **Regras mapeadas no Guardiao:** 25
-- **Regras explicitamente NAO auditáveis pelo Guardiao:** 11
-- **Códigos de diagnóstico do Guardiao sem regra ARCA:** 0 (reconciliado em #126)
+> **Atualizado em 10/09/2026 pelos cards #125 (consumidores), #126 (cobertura) e #128 (varredura exaustiva).**
+- **Arquivos no repositório:** 3413 | **Universo de domínio JS varrido:** **127** | **Excluídos:** 3286 (motivos registrados em `meta.varredura_exaustiva`)
+- **Total de Regras:** 40 (negócio/operacionais: 35 | técnicas: 5)
+- **Distribuição por tipo:** INTERNAL_OPERATIONAL_RULE=23, OFFICIAL_BUSINESS_RULE=9, TECHNICAL_RULE=5, HEURISTIC=2, CANONICAL_NORMATIVE_RULE=1
+- **Fontes:** canônicas confirmadas=11 | internas confirmadas=27 | desconhecidas=2 | conflitos=0
+- **Regras mapeadas no Guardiao:** 26 | **NAO auditáveis com motivo:** 14
+- **Códigos de diagnóstico do Guardiao sem regra ARCA:** 0
+- **Lacunas da varredura exaustiva:** 6 detectadas / 6 resolvidas / 0 aceitas
 
 ---
 
@@ -571,6 +565,60 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Riscos:** -
 - **Consumidores (reconciliado #125):** REAL: `Dominio/ResolverAIS.js`, `Dominio/TabelaTerritorialAIS.js`, `Entrada/EntradaManual.js`, `Entrada/Formulario.html` | INDIRETO: - | DECLARADO: `FormularioHtml`, `EntradaManual`, `GuardiaoQualidade`, `MotorAnaliticoV2` | PLANEJADO: -
 - **Observações:** SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126).
+
+---
+
+## 3.2 Regras adicionadas na varredura exaustiva (#128 ARCA-FIX-005)
+
+### [ARCA-OCORRENCIA-005] Validacao de Construcao da Ocorrencia (Aggregate Root)
+- **Subdomínio:** `ocorrencia` | **Categoria:** `CRIACAO_AGREGADO`
+- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** A ocorrencia so existe como agregado valido quando construida pela fabrica com chave (MIKE+BOE) valida; entradas nulas ou chave invalida devem falhar explicitamente, nunca gerar registro silencioso.
+- **Condição Lógica:** `Chamada de criacao de ocorrencia com dados nulos ou chave incompleta.`
+- **Resultado Esperado:** Excecao de validacao de dominio (ErroValidacaoDominio) em vez de objeto invalido.
+- **Evidência no Código:** `Dominio/OcorrenciaFactory.js:criar`, `Dominio/OcorrenciaFactory.js:validar`, `Dominio/ValueObjects/ChaveOcorrencia.js`
+- **Evidência em Testes:** `Testes/TestDominio.js`
+- **Auditabilidade no Guardiao:** `NAO_AUDITAVEL` — Validacao de construcao do agregado (fabrica); nao gera diagnostico de planilha no Guardiao.
+- **Consumidores (reconciliado #125):** REAL: `Dominio/OcorrenciaFactory.js`, `Dominio/ValueObjects/ChaveOcorrencia.js` | INDIRETO: - | DECLARADO: - | PLANEJADO: -
+
+---
+
+### [ARCA-METRICAS-001] Consolidacao Analitica por Orquestracao de Plugins
+- **Subdomínio:** `metricas` | **Categoria:** `CONSOLIDACAO_METRICAS`
+- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** A produtividade por policial e consolidada por um orquestrador que dispara o ciclo de vida dos plugins de metrica (inicializar -> processar -> finalizar) e agrega o registro analitico, sem regra matematica duplicada no motor.
+- **Condição Lógica:** `Fatos canonicos disponiveis e plugins registrados.`
+- **Resultado Esperado:** Registro analitico consolidado (pontos PIP/CPM, ocorrencias, fatos) por policial.
+- **Evidência no Código:** `Motor/MotorAnaliticoV2.js:processarProdutividadePolicial`, `Plugins/Metricas/PluginPontuacao.js`, `Plugins/Metricas/PluginOcorrencias.js`
+- **Evidência em Testes:** `Testes/TestMotorAnaliticoRegressao.js`, `Testes/TestPlugins.js`
+- **Auditabilidade no Guardiao:** `NAO_AUDITAVEL` — Consolidacao analitica de produtividade ocorre no motor/plugins; o Guardiao nao audita o calculo (audita os insumos e rateios).
+- **Consumidores (reconciliado #125):** REAL: `Motor/MotorAnaliticoV2.js`, `Plugins/Metricas/PluginOcorrencias.js`, `Plugins/Metricas/PluginPontuacao.js` | INDIRETO: - | DECLARADO: - | PLANEJADO: -
+
+---
+
+### [ARCA-GXT-001] Diagnostico Deterministico de Tuneis do GXT
+- **Subdomínio:** `gxt` | **Categoria:** `DIAGNOSTICO_RELATORIO`
+- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** O diagnostico do relatorio GXT converte linhas fisicas em registro canonico (sem fallback para QDT ARMAS) e aplica a politica de merito por armas, mantendo duas colecoes separadas: fatos fisicos (exibicao/reconciliacao) e ocorrencias normalizadas.
+- **Condição Lógica:** `Execucao do diagnostico determinista sobre um mes.`
+- **Resultado Esperado:** Matriz de diagnostico por tunel com fatos e ocorrencias normalizadas rastreaveis.
+- **Evidência no Código:** `Motor/DiagnosticoDeterministicoGxt.js:diagnosticarMes`, `Motor/DiagnosticoDeterministicoGxt.js:montarMatrizDiagnostico`, `Leitura/Adaptador2026.js:extrairFatos`
+- **Evidência em Testes:** `Testes/TestRelatorioGxt.js`
+- **Auditabilidade no Guardiao:** `NAO_AUDITAVEL` — Diagnostico de relatorio GXT (saida), nao regra de auditoria de planilha.
+- **Consumidores (reconciliado #125):** REAL: `Leitura/Adaptador2026.js`, `Motor/DiagnosticoDeterministicoGxt.js` | INDIRETO: - | DECLARADO: - | PLANEJADO: -
+
+---
+
+### [ARCA-TECNICA-005] Porta Canonica de Consulta da ARCA
+- **Subdomínio:** `auditoria` | **Categoria:** `INTERFACE_CATALOGO`
+- **Tipo de Regra:** `TECHNICAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** Toda consulta a ARCA passa por uma unica porta read-only (AdaptadorConsultaArca): enriquecerDiagnostico(codigoRegra) para diagnosticos e consultarPorRuleId(rule_id) para consumidores diretos; codigo sem mapeamento devolve ARCA_RULE_NOT_MAPPED e o consumidor deve reportar LACUNA_ARCA.
+- **Condição Lógica:** `Qualquer consumidor (Guardiao, NormalizadorEfetivo, cobertura) consultando a ARCA.`
+- **Resultado Esperado:** Metadados de regra (rule_id, tipo, fonte, excecoes) ou status explicito de ausencia.
+- **Evidência no Código:** `Dominio/ARCA/AdaptadorConsultaArca.js:enriquecerDiagnostico`, `Dominio/ARCA/AdaptadorConsultaArca.js:consultarPorRuleId`, `Dominio/ARCA/AdaptadorConsultaArca.js:carregarArca`
+- **Evidência em Testes:** `Testes/TestIntegracaoArca.js`, `Testes/TestArcaMapaCobertura.js`
+- **Auditabilidade no Guardiao:** `MAPEADO` — Regra tecnica da porta de consulta do proprio catalogo (nao gera diagnostico).
+- **Consumidores (reconciliado #125):** REAL: `Dominio/ARCA/AdaptadorConsultaArca.js` | INDIRETO: - | DECLARADO: - | PLANEJADO: -
 
 ---
 

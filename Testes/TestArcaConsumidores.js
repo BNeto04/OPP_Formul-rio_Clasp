@@ -31,7 +31,7 @@ const md = fs.readFileSync(MD_PATH, 'utf8');
 const CHAVES = ['REAL_CODE_CONSUMER', 'INDIRECT_CONSUMER', 'DECLARED_CONSUMER', 'PLANNED_CONSUMER'];
 
 test('catalogo tem 31 regras e registro de metodo da reconciliacao', () => {
-  assert.strictEqual(regras.length, 36);
+  assert.strictEqual(regras.length, 40);
   assert.ok(arca.meta.consumidores_reconciliacao, 'meta.consumidores_reconciliacao ausente');
   assert.ok(String(arca.meta.consumidores_reconciliacao.card).includes('#125'));
 });
@@ -82,7 +82,7 @@ test('gap explicito: NAO_AUDITAVEL nao declara consumidor indireto; MAPEADO com 
       assert.ok(r.consumidores.INDIRECT_CONSUMER.length > 0, `${r.rule_id}: MAPEADO com codigo deve ter propagacao`);
     } else {
       // regra tecnica do proprio auditor (ARCA-AUDITORIA-00x): descreve comportamento, sem codigo
-      assert.ok(r.rule_id.startsWith('ARCA-AUDITORIA-'), `${r.rule_id}: MAPEADO sem codigo so para regras tecnicas do auditor`);
+      assert.ok(r.rule_id.startsWith('ARCA-AUDITORIA-') || r.rule_id === 'ARCA-TECNICA-005', `${r.rule_id}: MAPEADO sem codigo so para regras tecnicas do catalogo/auditor`);
     }
   });
   assert.ok(regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_AUDITAVEL').length >= 1);
@@ -96,7 +96,7 @@ test('integracao do NormalizadorEfetivo e REAL nas regras de efetivo/matricula/a
   });
 });
 
-test('MD traz a visao reconciliada em todas as 36 regras', () => {
+test('MD traz a visao reconciliada em todas as 40 regras', () => {
   const ids = regras.map(r => r.rule_id);
   const faltando = ids.filter(rid => {
     const i = md.indexOf(`[${rid}]`);

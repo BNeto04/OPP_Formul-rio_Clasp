@@ -89,17 +89,17 @@ test('toda regra declara auditabilidade explicita (MAPEADO | NAO_AUDITAVEL com m
 test('contagens de cobertura conferem com o meta do catalogo', () => {
   const mapeadas = regras.filter(r => r.auditabilidade_guardiao.status === 'MAPEADO').length;
   const naoAud = regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_AUDITAVEL').length;
-  assert.strictEqual(regras.length, 36, 'total de regras deveria ser 36');
+  assert.strictEqual(regras.length, 40, 'total de regras deveria ser 40');
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_mapeadas, mapeadas);
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_nao_auditaveis, naoAud);
-  assert.strictEqual(mapeadas + naoAud, 36);
-  assert.strictEqual(mapeadas, 25);
-  assert.strictEqual(naoAud, 11);
+  assert.strictEqual(mapeadas + naoAud, 40);
+  assert.strictEqual(mapeadas, 26);
+  assert.strictEqual(naoAud, 14);
 });
 
 test('nenhuma heuristica foi promovida a regra oficial na reconciliacao', () => {
-  const adicionadas = arca.meta.cobertura_reconciliacao.regras_adicionadas;
-  assert.ok(adicionadas.length === 5, 'esperado 5 regras adicionadas');
+  const adicionadas = arca.meta.cobertura_reconciliacao.regras_adicionadas_total || arca.meta.cobertura_reconciliacao.regras_adicionadas;
+  assert.ok(adicionadas.length === 9, 'esperado 9 regras adicionadas (#126: 5 + #128: 4)');
   adicionadas.forEach(rid => {
     const r = regras.find(x => x.rule_id === rid);
     assert.ok(['INTERNAL_OPERATIONAL_RULE', 'TECHNICAL_RULE'].includes(r.tipo_regra), `${rid}: tipo ${r.tipo_regra} nao permitido`);
@@ -125,6 +125,34 @@ test('docs refletem fontes: ARCA_FONTES lista as regras adicionadas', () => {
   arca.meta.cobertura_reconciliacao.regras_adicionadas.forEach(rid => {
     assert.ok(fnt.includes(rid), `${rid} ausente em ARCA_FONTES.md`);
   });
+});
+
+test('varredura exaustiva (#128): metadados e reconciliacao comprovados', () => {
+  const v = arca.meta.varredura_exaustiva;
+  assert.ok(v, 'meta.varredura_exaustiva ausente');
+  assert.strictEqual(v.universo.arquivos_totais_repo, 3413);
+  assert.strictEqual(v.universo.arquivos_varridos_dominio_js, 127);
+  assert.strictEqual(v.lacunas_detectadas, 6);
+  assert.strictEqual(v.lacunas_resolvidas, 6);
+  assert.strictEqual(v.lacunas_aceitas, 0);
+  assert.strictEqual(v.regras_adicionadas.length, 4);
+  // os arquivos que eram lacuna passaram a constar em evidencia_codigo de alguma regra
+  const arquivosCitados = new Set();
+  regras.forEach(r => (r.evidencia_codigo || []).forEach(e => arquivosCitados.add(String(e).split(':')[0].trim())));
+  ['Dominio/OcorrenciaFactory.js', 'Motor/MotorAnaliticoV2.js', 'Motor/DiagnosticoDeterministicoGxt.js', 'Dominio/ARCA/AdaptadorConsultaArca.js'].forEach(f => {
+    assert.ok(arquivosCitados.has(f), `${f} continua sem regra ARCA`);
+  });
+});
+
+test('nenhuma regra orfa: toda regra tem evidencia de codigo existente no repositorio', () => {
+  const orfas = [];
+  regras.forEach(r => {
+    (r.evidencia_codigo || []).forEach(e => {
+      const arquivo = String(e).split(':')[0].replace(/\(.*\)\s*$/, '').trim();
+      if (arquivo && !fs.existsSync(path.join(REPO, arquivo))) orfas.push(`${r.rule_id} -> ${arquivo}`);
+    });
+  });
+  assert.deepStrictEqual(orfas, [], 'evidencias apontando para arquivos inexistentes: ' + orfas.join('; '));
 });
 
 console.log(`\nRESULTADOS FINAIS: ${sucessos} PASS / ${falhas} FAIL`);
