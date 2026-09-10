@@ -65,9 +65,9 @@ class AdaptadorConsultaArca {
 
   /**
    * Instância singleton cacheada em memória (somente leitura).
+   * Obs.: campos de classe (`static x = ...`) nao sao suportados pelo parser do
+   * Apps Script - os valores sao inicializados apos a definicao da classe.
    */
-  static _cacheArca = null;
-  static _caminhoCustomizado = null;
 
   /**
    * Permite configurar um caminho customizado ou mock injetável (ex: para testes de fail-soft).
@@ -249,3 +249,7 @@ class AdaptadorConsultaArca {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = AdaptadorConsultaArca;
 }
+
+// Inicializacao pos-classe (compativel com o parser do Apps Script, que rejeita campos de classe)
+AdaptadorConsultaArca._cacheArca = null;
+AdaptadorConsultaArca._caminhoCustomizado = null;

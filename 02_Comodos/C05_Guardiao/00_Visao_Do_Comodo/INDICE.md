@@ -82,3 +82,41 @@ Quando a homologaÃ§Ã£o em ambiente Google Sheets for autorizada, siga este p
 
 O cÃ´modo **C05 GuardiÃ£o da Qualidade Operacional** estÃ¡ **100% testado, alinhado e homologado em ambiente offline** com **64/64 testes automatizados aprovados**.
 
+
+---
+
+## G01 - Guardiao vivo no Google Sheets (Sprint #112, cards #113-#117)
+
+### Seletor de meses (menu Produtividade)
+- Item de menu `Auditar Guardiao (seletor de meses)` -> lista SOMENTE abas mensais validas
+  (JUL2026 / JULHO 2026 / 2026-07 / 202607); auxiliares (AUDITORIA/HISTORICO/Tabela PIP/aux/teste) excluidas.
+- Selecao: UM mes, VARIOS (nome, numero da lista ou virgula) ou TODOS; CANCELAR nao produz efeito.
+- Cada aba usa o MESMO motor canonico `GuardiaoQualidade.varrerAba`; falha em uma aba aparece como ERRO
+  e nao esconde as demais. Sem aba mensal valida -> NAO_AUDITAVEL explicito.
+- Item `Auditar aba atual` preserva o comportamento historico.
+
+### Saude por tunel (#114) - `Core/SaudeTuneis.js`
+- Classificacao: SAUDAVEL | ALERTA | CRITICO | INCOMPLETO | NAO_AUDITAVEL (precedencia: CRITICO >
+  incompleto estrutural > ALERTA/EXCECAO MANUAL > NAO_AUDITAVEL por observacao > SAUDAVEL).
+- Deteccoes: tunel orfao (linha com conteudo sem MIKE), duplicado (mesmo MIKE com BOE/data divergentes),
+  fragmentado (mesmo MIKE, BOE/data unicos, porem >1 chave - ex. formato de data Date vs String -> `TUNEL_FRAGMENTADO`).
+- Contagens por mes/global e linhas envolvidas por tunel.
+
+### Prevencao de erros silenciosos / cobertura (#115) - `Core/CoberturaAuditoria.js`
+- O Guardiao informa o que NAO conseguiu verificar: catalogo PIP ausente, fonte de antiguidade indisponivel,
+  diagnosticos sem mapeamento ARCA (`LACUNA_ARCA`). Status COMPLETA | PARCIAL.
+- Novos codigos: `POLICIAL_SEM_NOME` (OBSERVACAO) e `MATRICULA_MULTIPLAS_OCORRENCIAS_MESMA_DATA` (OBSERVACAO,
+  confirmacao humana). Ausencia de evidencia nunca vira verde (`NAO_AUDITADO` explicito).
+
+### Painel e drill-down (#116) - `Render/PainelSaude.js`
+- Resumo por mes e global; hierarquia MES -> TUNEL/MIKE -> LINHAS -> DIAGNOSTICO com codigo, severidade,
+  explicacao humana, evidencia, acao e metadados ARCA.
+- Reexecucao idempotente: coluna AM limpa todo o restante antes de reescrever (sem alerta orfao).
+  Nenhuma coluna operacional A:AL e alterada; ARCA permanece read-only.
+
+### Homologacao GS (#117)
+- `CLASP_REQUIRED=true`; push executado SOMENTE apos suite integral verde e Git alinhado.
+- `.claspignore` isola camadas de desenvolvimento (agentic/, scripts/, VigiaPonte/, pontes, extensoes, Testes/)
+  para que Apps Script remoto == Git do produto.
+- Correcao de compatibilidade: campos de classe (`static x = ...`) nao sao aceitos pelo parser do Apps Script
+  (AdaptadorConsultaArca inicializa propriedades apos a classe).
