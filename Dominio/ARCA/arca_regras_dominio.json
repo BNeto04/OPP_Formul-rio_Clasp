@@ -15,6 +15,13 @@
       "hardcoded_rules_total": 27,
       "conflicting_rules_total": 0,
       "rules_not_used_by_guardian_total": 8
+    },
+    "consumidores_reconciliacao": {
+      "metodo": "classificacao factual: REAL_CODE_CONSUMER = implementa e/ou recebe metadados ARCA via Core/RegrasQualidade (hub); INDIRECT_CONSUMER = recebe por propagacao (cobertura/painel/renderer); DECLARED_CONSUMER = lista original preservada (sem lastro de codigo); PLANNED_CONSUMER = integracao prevista em card corretivo.",
+      "base_evidencia": "evidencia_codigo de cada regra + mapeamento da porta AdaptadorConsultaArca + leitura de codigo (auditoria #123)",
+      "data": "2026-09-10",
+      "card": "#125 ARCA-FIX-002",
+      "regras_reconciliadas": 31
     }
   },
   "regras": [
@@ -52,12 +59,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade",
-        "CompiladorGxt",
-        "MotorAnaliticoV2",
-        "PoliticaMeritoArmas"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js",
+          "Motor/PoliticaMeritoArmas.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade",
+          "CompiladorGxt",
+          "MotorAnaliticoV2",
+          "PoliticaMeritoArmas"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+      },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Inconsistência de formato de data (Date vs String) pode fragmentar túneis.",
       "status_cobertura": "COBERTO",
@@ -94,9 +111,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Perda de rastreabilidade do fato operacional junto ao CIODS.",
       "status_cobertura": "COBERTO",
@@ -131,9 +161,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Apreensões ficarem sem destinatário de produtividade.",
       "status_cobertura": "COBERTO",
@@ -170,9 +213,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Falso alarme em ocorrências de apoio ou patrulhamento sem flagrante.",
       "status_cobertura": "COBERTO",
@@ -209,9 +265,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Janela hardcoded 2020-2030 expirará em 2031.",
       "status_cobertura": "COBERTO",
@@ -246,9 +315,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Ocorrências que ultrapassam a meia-noite podem acionar falso alarme se não unificadas.",
       "status_cobertura": "COBERTO",
@@ -277,9 +359,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "MEDIA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "MIKEs curtos de anos anteriores a 2020 podem gerar falso alarme.",
       "status_cobertura": "COBERTO",
@@ -316,9 +411,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Casos legítimos de desdobramento em flagrantes múltiplos.",
       "status_cobertura": "COBERTO",
@@ -362,11 +470,24 @@
       "hardcoded": false,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade",
-        "PluginPontuacao",
-        "CompiladorProdutividade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade",
+          "PluginPontuacao",
+          "CompiladorProdutividade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Operadores desacostumados tentarem ratear dividindo pelo número real de militares.",
       "status_cobertura": "COBERTO",
@@ -402,10 +523,18 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "PluginPontuacao",
-        "CompiladorProdutividade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Plugins/Metricas/PluginPontuacao.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "PluginPontuacao",
+          "CompiladorProdutividade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+      },
       "alcance": "MODULO_METRICAS",
       "riscos": "Nenhum identificado; comportamento determinístico.",
       "status_cobertura": "COBERTO",
@@ -452,9 +581,22 @@
       "hardcoded": false,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Variações ortográficas em novos tipos de ocorrência criados sem atualizar a aba PIP.",
       "status_cobertura": "COBERTO",
@@ -490,9 +632,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Distorção nas estatísticas criminais se a imputação for omitida.",
       "status_cobertura": "COBERTO",
@@ -527,10 +682,18 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "PluginPrisoes",
-        "CompiladorProdutividade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Plugins/Metricas/PluginPrisoes.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "PluginPrisoes",
+          "CompiladorProdutividade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+      },
       "alcance": "MODULO_METRICAS",
       "riscos": "Preenchimento textual em vez de contagem numérica.",
       "status_cobertura": "COBERTO",
@@ -576,11 +739,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "NormalizadorEfetivo",
-        "CompiladorProdutividade",
-        "RendererCA"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/Utils.js",
+          "Features/NormalizadorEfetivo.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "NormalizadorEfetivo",
+          "CompiladorProdutividade",
+          "RendererCA"
+        ],
+        "PLANNED_CONSUMER": [
+          "Features/NormalizadorEfetivo.js"
+        ],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126). Integracao factual planejada no #127."
+      },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Patentes inexistentes no mapa caírem em N/I.",
       "status_cobertura": "COBERTO",
@@ -615,9 +789,19 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "NormalizadorEfetivo"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Features/NormalizadorEfetivo.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "NormalizadorEfetivo"
+        ],
+        "PLANNED_CONSUMER": [
+          "Features/NormalizadorEfetivo.js"
+        ],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126). Integracao factual planejada no #127."
+      },
       "alcance": "MODULO_EFETIVO",
       "riscos": "Mudança de antiguidade no boletim geral alterar o prefixo do nome de guerra.",
       "status_cobertura": "COBERTO",
@@ -655,12 +839,24 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "Policial",
-        "NormalizadorEfetivo",
-        "CompiladorProdutividade",
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Core/Utils.js",
+          "Dominio/Policial.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "Policial",
+          "NormalizadorEfetivo",
+          "CompiladorProdutividade",
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [
+          "Features/NormalizadorEfetivo.js"
+        ],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126). Integracao factual planejada no #127."
+      },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Matrículas de outras forças que contenham letras.",
       "status_cobertura": "COBERTO",
@@ -695,9 +891,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Policial atuar na ocorrência e não pontuar na produtividade.",
       "status_cobertura": "COBERTO",
@@ -734,11 +943,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "PoliticaMeritoArmas",
-        "CompiladorGxt",
-        "NormalizadorEfetivo"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Features/NormalizadorEfetivo.js",
+          "Motor/PoliticaMeritoArmas.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "PoliticaMeritoArmas",
+          "CompiladorGxt",
+          "NormalizadorEfetivo"
+        ],
+        "PLANNED_CONSUMER": [
+          "Features/NormalizadorEfetivo.js"
+        ],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126). Integracao factual planejada no #127."
+      },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Confusão com conceitos civis onde número maior indica maior tempo.",
       "status_cobertura": "COBERTO",
@@ -777,11 +997,26 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "PoliticaMeritoArmas",
-        "CompiladorGxt",
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/CompiladorGxt.js",
+          "Features/GuardiaoQualidade.js",
+          "Motor/PoliticaMeritoArmas.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "PoliticaMeritoArmas",
+          "CompiladorGxt",
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Falta do cadastro de N no Pecúlio bloqueia a atribuição.",
       "status_cobertura": "COBERTO",
@@ -817,10 +1052,24 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade",
-        "PoliticaMeritoArmas"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js",
+          "Motor/PoliticaMeritoArmas.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade",
+          "PoliticaMeritoArmas"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Líder não ser computado até retificação cadastral.",
       "status_cobertura": "COBERTO",
@@ -861,10 +1110,23 @@
       "hardcoded": false,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade",
-        "CompiladorGxt"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade",
+          "CompiladorGxt"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Falta de permissão de acesso à planilha externa gera modo limitado.",
       "status_cobertura": "COBERTO",
@@ -901,11 +1163,20 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "CompiladorGxt",
-        "PoliticaMeritoArmas",
-        "PluginArmas"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Features/CompiladorGxt.js",
+          "Motor/PoliticaMeritoArmas.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "CompiladorGxt",
+          "PoliticaMeritoArmas",
+          "PluginArmas"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+      },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Se um operador preencher apenas QDT ARMAS, a arma não entra na soma oficial.",
       "status_cobertura": "COBERTO",
@@ -941,10 +1212,19 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "PoliticaMeritoArmas",
-        "CompiladorGxt"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Features/CompiladorGxt.js",
+          "Motor/PoliticaMeritoArmas.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "PoliticaMeritoArmas",
+          "CompiladorGxt"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+      },
       "alcance": "MODULO_ARMAS",
       "riscos": "Erro de grafia (ex: \"arma caseira\" sem o termo artesanal).",
       "status_cobertura": "COBERTO",
@@ -979,9 +1259,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Tentativa de porte sem apreensão efetiva da arma.",
       "status_cobertura": "COBERTO",
@@ -1016,9 +1309,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Nenhum identificado.",
       "status_cobertura": "COBERTO",
@@ -1046,9 +1352,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "MEDIA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Indicadores genéricos (ex: \"TRÁFICO DE DROGAS\") sem especificar a substância não são capturados.",
       "status_cobertura": "COBERTO",
@@ -1084,10 +1403,18 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "PluginEntorpecentes",
-        "CompiladorProdutividade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Plugins/Metricas/PluginEntorpecentes.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "PluginEntorpecentes",
+          "CompiladorProdutividade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+      },
       "alcance": "MODULO_METRICAS",
       "riscos": "Soma de unidades de medida heterogêneas se houver comprimidos/unidades misturadas com gramas.",
       "status_cobertura": "COBERTO",
@@ -1124,9 +1451,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Nenhum; previne arbitrariedade automatizada.",
       "status_cobertura": "COBERTO",
@@ -1161,9 +1501,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Corrupção de totais e rateios em cascata.",
       "status_cobertura": "COBERTO",
@@ -1200,9 +1553,22 @@
       "hardcoded": true,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "GuardiaoQualidade"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
       "alcance": "MODULO_AUDITORIA",
       "riscos": "Uso abusivo de exceções para burlar regras de rateio.",
       "status_cobertura": "COBERTO",
@@ -1257,12 +1623,23 @@
       "hardcoded": false,
       "vigencia": "VIGENTE_PERMANENTE",
       "confianca": "ALTA",
-      "consumidores": [
-        "FormularioHtml",
-        "EntradaManual",
-        "GuardiaoQualidade",
-        "MotorAnaliticoV2"
-      ],
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Dominio/ResolverAIS.js",
+          "Dominio/TabelaTerritorialAIS.js",
+          "Entrada/EntradaManual.js",
+          "Entrada/Formulario.html"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "FormularioHtml",
+          "EntradaManual",
+          "GuardiaoQualidade",
+          "MotorAnaliticoV2"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+      },
       "impacto_se_violada": "Inconsistência estatística na apuração por AIS e atribuição indevida de competência territorial.",
       "auditavel_automaticamente": true
     }

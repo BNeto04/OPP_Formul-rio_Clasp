@@ -21,6 +21,10 @@ async function main() {
   console.log('');
   require('./TestGuardiao');
   console.log('');
+  require('./TestIntegracaoArca');
+  console.log('');
+  require('./TestArcaConsumidores');
+  console.log('');
   require('./TestSeletorMesesGuardiao');
   console.log('');
   require('./TestCatalogoPipGuardiao');

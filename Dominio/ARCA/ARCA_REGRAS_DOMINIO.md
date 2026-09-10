@@ -66,6 +66,9 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 
 ---
 
+
+> **Nota (#125 ARCA-FIX-002):** a coluna `Consumidores` das tabelas acima e a **visao DECLARADA historica** (preservada). A visao reconciliada por regra (REAL_CODE_CONSUMER / INDIRECT_CONSUMER / DECLARED_CONSUMER / PLANNED_CONSUMER) esta registrada em cada regra na secao 3 e no `arca_regras_dominio.json` (campo `consumidores`).
+
 ## 3. Especificação Detalhada de Regras por Subdomínio
 
 
@@ -79,7 +82,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:624`, `Features/GuardiaoQualidade.js:164`, `Motor/PoliticaMeritoArmas.js:31`
 - **Evidência em Testes:** `Testes/TestGuardiao.js:12-15`, `Testes/TestMeritoEquipeArmas.js`
 - **Exceções Admitidas:** Quando BOE não estiver preenchido, o túnel é composto por DATA|MIKE|.
-- **Consumidores do Sistema:** GuardiaoQualidade, CompiladorGxt, MotorAnaliticoV2, PoliticaMeritoArmas
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js, Motor/PoliticaMeritoArmas.js | INDIRETO: - | DECLARADO: GuardiaoQualidade, CompiladorGxt, MotorAnaliticoV2, PoliticaMeritoArmas | PLANEJADO: -
 - **Riscos Identificados:** Inconsistência de formato de data (Date vs String) pode fragmentar túneis.
 - **Observações Operacionais:** Pilar estrutural para prevenir contagem duplicada de apreensões.
 
@@ -95,7 +98,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Features/GuardiaoQualidade.js:174-187`
 - **Evidência em Testes:** `Testes/TestGuardiao.js:linha 33 (ocorrência órfã)`
 - **Exceções Admitidas:** Linhas de plantão tranquilo onde apenas a DATA está preenchida.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Perda de rastreabilidade do fato operacional junto ao CIODS.
 - **Observações Operacionais:** Garante que nenhuma apreensão fique sem vínculo com despacho oficial.
 
@@ -111,7 +114,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:192-204`
 - **Evidência em Testes:** `Testes/TestGuardiao.js (Homologação E2E cenário sem equipe)`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Apreensões ficarem sem destinatário de produtividade.
 - **Observações Operacionais:** Exige pelo menos um policial com matrícula cadastrada.
 
@@ -127,7 +130,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:205-217`
 - **Evidência em Testes:** `Testes/TestGuardiao.js (Homologação E2E)`
 - **Exceções Admitidas:** Plantões tranquilos devidamente justificados.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Falso alarme em ocorrências de apoio ou patrulhamento sem flagrante.
 - **Observações Operacionais:** Permite ao operador confirmar a natureza preventiva do serviço.
 
@@ -143,7 +146,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:356-396`
 - **Evidência em Testes:** `Testes/TestGuardiao.js (validarDataMike / divergência temporal)`
 - **Exceções Admitidas:** MIKEs históricos fora da faixa 2020-2030 são ignorados.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Janela hardcoded 2020-2030 expirará em 2031.
 - **Observações Operacionais:** Detecta erro material de digitação ou reutilização de MIKE.
 
@@ -159,7 +162,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:415-427`
 - **Evidência em Testes:** `Testes/TestGuardiao.js (mesmo MIKE com datas diferentes)`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Ocorrências que ultrapassam a meia-noite podem acionar falso alarme se não unificadas.
 - **Observações Operacionais:** Previne reaproveitamento indevido de protocolo.
 
@@ -175,7 +178,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:637-640`, `Features/GuardiaoQualidade.js:199-211`
 - **Evidência em Testes:** `Testes/TestGuardiao.js (MIKE suspeito)`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** MIKEs curtos de anos anteriores a 2020 podem gerar falso alarme.
 - **Observações Operacionais:** Heurística adotada para capturar digitação incompleta durante o plantão.
 
@@ -191,7 +194,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:401-413`
 - **Evidência em Testes:** `Testes/TestGuardiao.js (mesmo MIKE com BOEs diferentes)`
 - **Exceções Admitidas:** Desmembramento formal de inquérito na delegacia (justificado em relatório).
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Casos legítimos de desdobramento em flagrantes múltiplos.
 - **Observações Operacionais:** Preserva a integridade relacional entre o despacho militar e o inquérito civil.
 
@@ -207,7 +210,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/Constantes.js:10`, `Core/RegrasQualidade.js:139-185`
 - **Evidência em Testes:** `Testes/TestGuardiao.js:12-15 (rateio com 4, 5 e 10 policiais)`
 - **Exceções Admitidas:** Ajuste manual com nota iniciada por EXCECAO: na célula.
-- **Consumidores do Sistema:** GuardiaoQualidade, PluginPontuacao, CompiladorProdutividade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade, PluginPontuacao, CompiladorProdutividade | PLANEJADO: -
 - **Riscos Identificados:** Operadores desacostumados tentarem ratear dividindo pelo número real de militares.
 - **Observações Operacionais:** Regra de ouro da portaria de pontuação do PIP.
 
@@ -223,7 +226,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Plugins/Metricas/PluginPontuacao.js:32`
 - **Evidência em Testes:** `Testes/TestPlugins.js`, `Testes/TestRelatoriosPipCpm.js`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** PluginPontuacao, CompiladorProdutividade
+- **Consumidores (reconciliado #125):** REAL: Plugins/Metricas/PluginPontuacao.js | INDIRETO: - | DECLARADO: PluginPontuacao, CompiladorProdutividade | PLANEJADO: -
 - **Riscos Identificados:** Nenhum identificado; comportamento determinístico.
 - **Observações Operacionais:** Garante que o policial receba exatamente sua quota daquela ocorrência.
 
@@ -239,7 +242,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Features/GuardiaoQualidade.js:37-96`, `Core/RegrasQualidade.js:436-451`
 - **Evidência em Testes:** `Testes/TestGuardiao.js:16-18`
 - **Exceções Admitidas:** Quando a aba Tabela PIP não existir, opera em modo tolerante para não travar auditoria.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Variações ortográficas em novos tipos de ocorrência criados sem atualizar a aba PIP.
 - **Observações Operacionais:** Design desacoplado: o catálogo não fica engessado no código.
 
@@ -255,7 +258,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:642-645`, `Features/GuardiaoQualidade.js:218-259`
 - **Evidência em Testes:** `Testes/TestGuardiao.js:8-9`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Distorção nas estatísticas criminais se a imputação for omitida.
 - **Observações Operacionais:** Campo indispensável para apuração de prisões em flagrante.
 
@@ -271,7 +274,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Plugins/Metricas/PluginPrisoes.js:15-18`
 - **Evidência em Testes:** `Testes/TestPlugins.js`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** PluginPrisoes, CompiladorProdutividade
+- **Consumidores (reconciliado #125):** REAL: Plugins/Metricas/PluginPrisoes.js | INDIRETO: - | DECLARADO: PluginPrisoes, CompiladorProdutividade | PLANEJADO: -
 - **Riscos Identificados:** Preenchimento textual em vez de contagem numérica.
 - **Observações Operacionais:** Espelha o desfecho formal do inquérito na delegacia de plantão.
 
@@ -287,7 +290,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/Constantes.js:55-74`, `Core/Utils.js:normalizarGraduacao`, `Features/NormalizadorEfetivo.js:83`
 - **Evidência em Testes:** `Testes/TestNormalizadorEfetivo.js`, `Testes/TestDominio.js`
 - **Exceções Admitidas:** Valores desconhecidos são preservados como N/I ou string limpa original.
-- **Consumidores do Sistema:** NormalizadorEfetivo, CompiladorProdutividade, RendererCA
+- **Consumidores (reconciliado #125):** REAL: Core/Utils.js, Features/NormalizadorEfetivo.js | INDIRETO: - | DECLARADO: NormalizadorEfetivo, CompiladorProdutividade, RendererCA | PLANEJADO: Features/NormalizadorEfetivo.js
 - **Riscos Identificados:** Patentes inexistentes no mapa caírem em N/I.
 - **Observações Operacionais:** Base para ordenamento hierárquico em relatórios.
 
@@ -303,7 +306,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Features/NormalizadorEfetivo.js:140-190 (desambiguarNomesGuerra)`
 - **Evidência em Testes:** `Testes/TestNormalizadorEfetivo.js:test 5 (desambiguação)`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** NormalizadorEfetivo
+- **Consumidores (reconciliado #125):** REAL: Features/NormalizadorEfetivo.js | INDIRETO: - | DECLARADO: NormalizadorEfetivo | PLANEJADO: Features/NormalizadorEfetivo.js
 - **Riscos Identificados:** Mudança de antiguidade no boletim geral alterar o prefixo do nome de guerra.
 - **Observações Operacionais:** Evita homônimos em escalas de serviço e relatórios estatísticos.
 
@@ -319,7 +322,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Dominio/Policial.js:13`, `Core/Utils.js:limparMatricula`, `Core/RegrasQualidade.js:557`
 - **Evidência em Testes:** `Testes/TestDominio.js`, `Testes/TestNormalizadorEfetivo.js`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** Policial, NormalizadorEfetivo, CompiladorProdutividade, GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Core/Utils.js, Dominio/Policial.js | INDIRETO: - | DECLARADO: Policial, NormalizadorEfetivo, CompiladorProdutividade, GuardiaoQualidade | PLANEJADO: Features/NormalizadorEfetivo.js
 - **Riscos Identificados:** Matrículas de outras forças que contenham letras.
 - **Observações Operacionais:** Chave primária para joins entre ocorrências, pecúlio e produtividade.
 
@@ -335,7 +338,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Features/GuardiaoQualidade.js:274-286`
 - **Evidência em Testes:** `Testes/TestGuardiao.js (matrícula ausente)`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Policial atuar na ocorrência e não pontuar na produtividade.
 - **Observações Operacionais:** Garante que todo militar participante seja pontuado.
 
@@ -351,7 +354,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Motor/PoliticaMeritoArmas.js:140-160`, `Features/NormalizadorEfetivo.js:94-97`
 - **Evidência em Testes:** `Testes/TestMeritoEquipeArmas.js`, `Testes/TestGuardiao.js:28-37`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** PoliticaMeritoArmas, CompiladorGxt, NormalizadorEfetivo
+- **Consumidores (reconciliado #125):** REAL: Features/NormalizadorEfetivo.js, Motor/PoliticaMeritoArmas.js | INDIRETO: - | DECLARADO: PoliticaMeritoArmas, CompiladorGxt, NormalizadorEfetivo | PLANEJADO: Features/NormalizadorEfetivo.js
 - **Riscos Identificados:** Confusão com conceitos civis onde número maior indica maior tempo.
 - **Observações Operacionais:** Base de todos os critérios de desempate e liderança de equipe.
 
@@ -367,7 +370,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Motor/PoliticaMeritoArmas.js:140-185`, `Features/CompiladorGxt.js:1-10`
 - **Evidência em Testes:** `Testes/TestMeritoEquipeArmas.js`, `Testes/TestGuardiao.js:34`
 - **Exceções Admitidas:** Túneis sem armas apreendidas não participam da política.
-- **Consumidores do Sistema:** PoliticaMeritoArmas, CompiladorGxt, GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/CompiladorGxt.js, Features/GuardiaoQualidade.js, Motor/PoliticaMeritoArmas.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: PoliticaMeritoArmas, CompiladorGxt, GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Falta do cadastro de N no Pecúlio bloqueia a atribuição.
 - **Observações Operacionais:** O líder responde pelo mérito da apreensão da equipe.
 
@@ -383,7 +386,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:336-351`, `Motor/PoliticaMeritoArmas.js:165-175`
 - **Evidência em Testes:** `Testes/TestGuardiao.js:30 (empate no menor N)`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** GuardiaoQualidade, PoliticaMeritoArmas
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js, Motor/PoliticaMeritoArmas.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade, PoliticaMeritoArmas | PLANEJADO: -
 - **Riscos Identificados:** Líder não ser computado até retificação cadastral.
 - **Observações Operacionais:** Resguarda a integridade do mérito militar sem favoritismo algorítmico.
 
@@ -399,7 +402,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Features/GuardiaoQualidade.js:318`, `Testes/TestGuardiao.js:37`
 - **Evidência em Testes:** `Testes/TestGuardiao.js:36-37`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** GuardiaoQualidade, CompiladorGxt
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade, CompiladorGxt | PLANEJADO: -
 - **Riscos Identificados:** Falta de permissão de acesso à planilha externa gera modo limitado.
 - **Observações Operacionais:** Blindagem de governança e separação de responsabilidades.
 
@@ -415,7 +418,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Features/CompiladorGxt.js:4-8`, `Motor/PoliticaMeritoArmas.js:4-6`
 - **Evidência em Testes:** `Testes/TestRelatorioArmas.js`, `Testes/TestRelatorioGxt.js`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** CompiladorGxt, PoliticaMeritoArmas, PluginArmas
+- **Consumidores (reconciliado #125):** REAL: Features/CompiladorGxt.js, Motor/PoliticaMeritoArmas.js | INDIRETO: - | DECLARADO: CompiladorGxt, PoliticaMeritoArmas, PluginArmas | PLANEJADO: -
 - **Riscos Identificados:** Se um operador preencher apenas QDT ARMAS, a arma não entra na soma oficial.
 - **Observações Operacionais:** Resolução consolidada para sanar antigas divergências em fechamentos mensais.
 
@@ -431,7 +434,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Motor/PoliticaMeritoArmas.js:50-52`, `Features/CompiladorGxt.js:6`
 - **Evidência em Testes:** `Testes/TestMeritoEquipeArmas.js`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** PoliticaMeritoArmas, CompiladorGxt
+- **Consumidores (reconciliado #125):** REAL: Features/CompiladorGxt.js, Motor/PoliticaMeritoArmas.js | INDIRETO: - | DECLARADO: PoliticaMeritoArmas, CompiladorGxt | PLANEJADO: -
 - **Riscos Identificados:** Erro de grafia (ex: "arma caseira" sem o termo artesanal).
 - **Observações Operacionais:** Atende às tabelas de diferenciação balística da corporação.
 
@@ -447,7 +450,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:94-106`
 - **Evidência em Testes:** `Testes/TestGuardiao.js (Homologação E2E)`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Tentativa de porte sem apreensão efetiva da arma.
 - **Observações Operacionais:** Exige coerência entre o texto e a quantidade física apreendida.
 
@@ -463,7 +466,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:108-120`
 - **Evidência em Testes:** `Testes/TestGuardiao.js (Homologação E2E)`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Nenhum identificado.
 - **Observações Operacionais:** Previne lançamento de indicadores de munição sem comprovação na carga.
 
@@ -479,7 +482,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:52-92`
 - **Evidência em Testes:** `Testes/TestGuardiao.js (Homologação E2E)`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Indicadores genéricos (ex: "TRÁFICO DE DROGAS") sem especificar a substância não são capturados.
 - **Observações Operacionais:** Heurística desenvolvida internamente com base no padrão dos relatórios.
 
@@ -495,7 +498,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Plugins/Metricas/PluginEntorpecentes.js:27`
 - **Evidência em Testes:** `Testes/TestPlugins.js`, `Testes/TestRelatorioDrogas.js`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** PluginEntorpecentes, CompiladorProdutividade
+- **Consumidores (reconciliado #125):** REAL: Plugins/Metricas/PluginEntorpecentes.js | INDIRETO: - | DECLARADO: PluginEntorpecentes, CompiladorProdutividade | PLANEJADO: -
 - **Riscos Identificados:** Soma de unidades de medida heterogêneas se houver comprimidos/unidades misturadas com gramas.
 - **Observações Operacionais:** Expressa o volume total apreendido pelo militar no período.
 
@@ -511,7 +514,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:122-136`
 - **Evidência em Testes:** `Testes/TestGuardiao.js:11 (numerário sem valor em reais)`
 - **Exceções Admitidas:** Nenhum bloqueio ou alerta impeditivo gerado.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Nenhum; previne arbitrariedade automatizada.
 - **Observações Operacionais:** Garante que o auditor humano decida sobre valores retidos para perícia.
 
@@ -527,7 +530,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:482-504`
 - **Evidência em Testes:** `Testes/TestGuardiao.js (Homologação E2E)`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Corrupção de totais e rateios em cascata.
 - **Observações Operacionais:** Regra estritamente técnica de higienização de planilha.
 
@@ -543,7 +546,24 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/RegrasQualidade.js:508-521`
 - **Evidência em Testes:** `Testes/TestGuardiao.js:10 (célula sem fórmula com nota EXCECAO:)`
 - **Exceções Admitidas:** Se não houver nota, gera ALERTA FORMULA_AUSENTE.
-- **Consumidores do Sistema:** GuardiaoQualidade
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Uso abusivo de exceções para burlar regras de rateio.
 - **Observações Operacionais:** Mecanismo canônico de intervenção e justificativa humana.
 
+### [ARCA-TERRITORIO-001] Determinação Territorial Canônica de AIS por Município e Bairro
+- **Subdomínio:** `territorio` | **Categoria:** `TERRITORIALIDADE`
+- **Tipo de Regra:** `CANONICAL_NORMATIVE_RULE` | **Status de Fonte:** `CANONICAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** A determinação da Área Integrada de Segurança (AIS) em Pernambuco é estritamente canônica baseada nas 26 AIS instituídas por lei e portarias da SDS. Municípios 100% mono-AIS determinam a AIS diretamente sem ambiguidade. Municípios multi-AIS (ex: Recife) exigem o bairro para desambiguação entre AIS 1 a 5. Se os dados forem insuficientes ou não possuírem correlação inequívoca, o sistema não inventa AIS e sinaliza necessidade de conferência humana.
+- **Condição Lógica:** `Preenchimento ou extração de Município e/ou Bairro no formulário ou ocorrência.`
+- **Resultado Esperado:** Atribuição automática e segura da AIS correspondente ou sinalização de pendência de conferência quando inconclusivo.
+- **Fontes Declaradas:** `{'tipo': 'PORTARIA_ESTADUAL', 'nome': 'Portaria SDS nº 1197 de 11/06/2010 (DOE 15/06/2010)', 'localizacao': 'Dominio/TabelaTerritorialAIS.js', 'autoridade': 'Oficial'}`, `{'tipo': 'LEI_ESTADUAL', 'nome': 'Lei Estadual nº 14.320/2011 (alterada pela Lei nº 14.890/2012)', 'localizacao': 'ALEPE Legis - Anexo Único', 'autoridade': 'Oficial'}`, `{'tipo': 'PORTARIA_ESTADUAL', 'nome': 'Portaria SDS nº 129/2008 e Decreto Estadual nº 26.868/2004', 'localizacao': 'Normas de Compatibilização Territorial de Segurança Pública', 'autoridade': 'Oficial'}`
+- **Evidência no Código:** `Dominio/TabelaTerritorialAIS.js`, `Dominio/ResolverAIS.js`, `Entrada/EntradaManual.js:578-620`, `Entrada/Formulario.html:1320-1550`
+- **Evidência em Testes:** `Testes/TestFormularioAis.js`, `Testes/TestIntegracaoArca.js`
+- **Exceções Admitidas:** `Se o operador editar manualmente o campo AIS no formulário, a vontade humana tem precedência soberana sobre o automatismo.`
+- **Parâmetros:** `TABELA_TERRITORIAL_AIS`
+- **Confiança:** `ALTA` | **Alcance:** `None`
+- **Riscos:** -
+- **Consumidores (reconciliado #125):** REAL: `Dominio/ResolverAIS.js`, `Dominio/TabelaTerritorialAIS.js`, `Entrada/EntradaManual.js`, `Entrada/Formulario.html` | INDIRETO: - | DECLARADO: `FormularioHtml`, `EntradaManual`, `GuardiaoQualidade`, `MotorAnaliticoV2` | PLANEJADO: -
+- **Observações:** SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126).
+
+---
