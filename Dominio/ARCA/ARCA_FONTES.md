@@ -75,3 +75,9 @@ As regras inventariadas na ARCA classificam-se em níveis estritos de autoridade
 | **ARCA-METRICAS-001** | Consolidacao Analitica por Orquestracao de Plugins | `CONTRATO_ARQUITETURAL` | Codigo de dominio Syntheon (Motor/MotorAnaliticoV2.js:processarProdutividadePolicial) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
 | **ARCA-GXT-001** | Diagnostico Deterministico de Tuneis do GXT | `CONTRATO_ARQUITETURAL` | Codigo de dominio Syntheon (Motor/DiagnosticoDeterministicoGxt.js:diagnosticarMes) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
 | **ARCA-TECNICA-005** | Porta Canonica de Consulta da ARCA | `CONTRATO_ARQUITETURAL` | Codigo de dominio Syntheon (Dominio/ARCA/AdaptadorConsultaArca.js:enriquecerDiagnostico) | Interna | `INTERNAL_SOURCE_CONFIRMED` |
+
+> **Fontes da regra adicionada pela reconciliacao OCR/Veiculo (#137):**
+
+| ID da Regra | Título | Tipo de Fonte | Nome/Localização | Autoridade | Status da Fonte |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **ARCA-VEICULO-001** | Autorizacao Canonica do Titulo PIP de Veiculo (Recuperacao de Veiculo Roubado/Furtado) | `DOCUMENTACAO_INTERNA` + `CATALOGO_OFICIAL` | Regra de veiculo do Formulario/OCR documentada em `SUB-C01-01-01_OCR_E_CONFERENCIA/AUDITORIA_OCR_ARCA.md` (card #135) + rotulo oficial da Tabela PIP consumido em `Entrada/Formulario.html:963` | Media / Alta | `INTERNAL_SOURCE_CONFIRMED` |

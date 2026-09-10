@@ -89,17 +89,17 @@ test('toda regra declara auditabilidade explicita (MAPEADO | NAO_AUDITAVEL com m
 test('contagens de cobertura conferem com o meta do catalogo', () => {
   const mapeadas = regras.filter(r => r.auditabilidade_guardiao.status === 'MAPEADO').length;
   const naoAud = regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_AUDITAVEL').length;
-  assert.strictEqual(regras.length, 40, 'total de regras deveria ser 40');
+  assert.strictEqual(regras.length, 41, 'total de regras deveria ser 41 (40 + ARCA-VEICULO-001 do #137)');
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_mapeadas, mapeadas);
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_nao_auditaveis, naoAud);
-  assert.strictEqual(mapeadas + naoAud, 40);
+  assert.strictEqual(mapeadas + naoAud, 41);
   assert.strictEqual(mapeadas, 26);
-  assert.strictEqual(naoAud, 14);
+  assert.strictEqual(naoAud, 15, 'ARCA-VEICULO-001 (#137) entra como NAO_AUDITAVEL com motivo');
 });
 
 test('nenhuma heuristica foi promovida a regra oficial na reconciliacao', () => {
   const adicionadas = arca.meta.cobertura_reconciliacao.regras_adicionadas_total || arca.meta.cobertura_reconciliacao.regras_adicionadas;
-  assert.ok(adicionadas.length === 9, 'esperado 9 regras adicionadas (#126: 5 + #128: 4)');
+  assert.ok(adicionadas.length === 10, 'esperado 10 regras adicionadas (#126: 5 + #128: 4 + #137: 1)');
   adicionadas.forEach(rid => {
     const r = regras.find(x => x.rule_id === rid);
     assert.ok(['INTERNAL_OPERATIONAL_RULE', 'TECHNICAL_RULE'].includes(r.tipo_regra), `${rid}: tipo ${r.tipo_regra} nao permitido`);

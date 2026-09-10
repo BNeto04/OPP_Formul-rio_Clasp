@@ -33,10 +33,11 @@
         "ARCA-EFETIVO-003",
         "ARCA-MATRICULA-003",
         "ARCA-AUDITORIA-001",
-        "ARCA-AUDITORIA-002"
+        "ARCA-AUDITORIA-002",
+        "ARCA-VEICULO-001"
       ],
       "regras_mapeadas": 26,
-      "regras_nao_auditaveis": 14,
+      "regras_nao_auditaveis": 15,
       "regras_adicionadas_total": [
         "ARCA-MIKE-004",
         "ARCA-EFETIVO-003",
@@ -46,8 +47,10 @@
         "ARCA-OCORRENCIA-005",
         "ARCA-METRICAS-001",
         "ARCA-GXT-001",
-        "ARCA-TECNICA-005"
-      ]
+        "ARCA-TECNICA-005",
+        "ARCA-VEICULO-001"
+      ],
+      "card_137": "#137 OCR-ARCA-003: reconciliacao de veiculo (ARCA-VEICULO-001) - regra de dominio; heuristica lexical permanece no parser."
     },
     "normalizador_integracao": {
       "card": "#127 ARCA-FIX-004",
@@ -2407,6 +2410,75 @@
         "status": "MAPEADO",
         "codigos": [],
         "motivo": "Regra tecnica da porta de consulta do proprio catalogo (nao gera diagnostico)."
+      }
+    },
+    {
+      "rule_id": "ARCA-VEICULO-001",
+      "titulo": "Autorizacao Canonica do Titulo PIP de Veiculo (Recuperacao de Veiculo Roubado/Furtado)",
+      "descricao_humana": "O titulo PIP 'Apreensao de veiculo furtado ou roubado' so e autorizado quando a NATUREZA da ocorrencia declarar recuperacao/apreensao/localizacao de veiculo roubado ou furtado na MESMA declaracao. Mencao a roubo/furto na narrativa/historico do BO, ou natureza sem termo de recuperacao, NAO autoriza o titulo. O OCR sugere; a conferencia humana decide.",
+      "categoria": "PIP",
+      "subdominio": "veiculo",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DOCUMENTACAO_INTERNA",
+          "nome": "Regra de veiculo do Formulario/OCR (documentada)",
+          "localizacao": "02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/submodulos/SUB-C01-01-01_OCR_E_CONFERENCIA/AUDITORIA_OCR_ARCA.md (card #135)",
+          "autoridade": "Media"
+        },
+        {
+          "tipo": "CATALOGO_OFICIAL",
+          "nome": "Tabela PIP - rotulo 'Apreensao de veiculo furtado ou roubado'",
+          "localizacao": "Entrada/Formulario.html:963",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Entrada/Formulario.html:957-965",
+        "Entrada/Formulario.html:963"
+      ],
+      "evidencia_testes": [
+        "Testes/TestOcrVeiculoRoubado.js",
+        "Testes/TestEntradaManualFormulario.js:749-761",
+        "Testes/TestArcaVeiculoOcr.js"
+      ],
+      "condicao": "A natureza normalizada (campo NATUREZA DA OCORRENCIA) contem, na MESMA string: (1) termo de recuperacao [RECUPERACAO | APREENSAO | LOCALIZACAO]; (2) termo de veiculo [VEICULO | MOTO | CARRO]; (3) termo de crime patrimonial contra veiculo, admitidas a forma substantiva [ROUBO | FURTO] e a adjetiva [ROUBADO/ROUBADA | FURTADO/FURTADA].",
+      "resultado_esperado": "Titulo 'Apreensao de veiculo furtado ou roubado' sugerido uma unica vez, sujeito a conferencia humana antes da gravacao.",
+      "excecoes": [
+        "Natureza sem termo de recuperacao (ex. 'ROUBO DE VEICULO', 'FURTO DE VEICULO') NAO autoriza titulo, ainda que a narrativa descreva roubo.",
+        "Mencao solta a 'vitima de roubo' na narrativa/historico NAO autoriza titulo.",
+        "O titulo sugerido permanece removivel/editavel pelo operador na conferencia.",
+        "A realizacao lexical (variantes de escrita, quebra de linha no PDF) e detalhe de implementacao do PARSER (heuristica OCR) e NAO regra de dominio."
+      ],
+      "parametros": {
+        "titulo_pip": "Apreensão de veículo furtado ou roubado",
+        "campo_avaliado": "natureza",
+        "campo_proibido_para_inferencia": "narrativa_historico_do_bo",
+        "fronteira": "ARCA rege a condicao de dominio; o parser le o BO e realiza a casagem lexical"
+      },
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [
+          "Entrada/Formulario.html"
+        ],
+        "OBSERVACAO": "Achado do #135: o Formulario/OCR NAO consumia a ARCA (nenhuma referencia em Entrada/). Porta canonica definida no #137 (AdaptadorConsultaArca.consultarPorRuleId, fail-soft) e integrada no #138: `Entrada/Formulario.html` passa a consultar por rule_id, mantendo no PARSER a leitura do BO e a realizacao lexical (heuristica OCR)."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": [
+        "Se a ARCA passar a reivindicar a realizacao lexical, a heuristica de OCR vira regra oficial - o que este catalogo proibe."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Reconciliacao do lote OCR-ARCA (#135-#139). Origem: defeito real reproduzido (#136) - nenhum titulo gerado para naturezas com substantivo (ROUBO/FURTO) e para natureza quebrada em duas linhas. NAO promove heuristica de OCR a regra oficial e NAO reintroduz GXT/Central Analitica.",
+      "auditabilidade_guardiao": {
+        "status": "NAO_AUDITAVEL",
+        "codigos": [],
+        "motivo": "Consumidor e o formulario (cliente, Entrada/Formulario.html) e nao a planilha auditada; o Guardiao nao emite codigo de diagnostico para titulo PIP de veiculo."
       }
     }
   ]

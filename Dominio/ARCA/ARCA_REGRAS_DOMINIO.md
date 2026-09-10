@@ -695,3 +695,17 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Observações:** Regra registrada na reconciliacao de cobertura (#126 ARCA-FIX-003) com base em codigo e teste existentes.
 
 ---
+
+---
+
+### [ARCA-VEICULO-001] Autorizacao Canonica do Titulo PIP de Veiculo (Recuperacao de Veiculo Roubado/Furtado)
+- **Subdomínio:** `veiculo` | **Categoria:** `PIP`
+- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** O titulo PIP "Apreensao de veiculo furtado ou roubado" so e autorizado quando a NATUREZA da ocorrencia declarar recuperacao/apreensao/localizacao de veiculo roubado ou furtado na MESMA declaracao. Mencao a roubo/furto na narrativa/historico do BO, ou natureza sem termo de recuperacao, NAO autoriza o titulo. O OCR sugere; a conferencia humana decide.
+- **Condição Lógica:** `A natureza normalizada (campo NATUREZA DA OCORRENCIA) contem, na MESMA string: (1) termo de recuperacao [RECUPERACAO | APREENSAO | LOCALIZACAO]; (2) termo de veiculo [VEICULO | MOTO | CARRO]; (3) termo de crime patrimonial contra veiculo, admitidas a forma substantiva [ROUBO | FURTO] e a adjetiva [ROUBADO/ROUBADA | FURTADO/FURTADA].`
+- **Resultado Esperado:** Titulo "Apreensao de veiculo furtado ou roubado" sugerido uma unica vez, sujeito a conferencia humana antes da gravacao.
+- **Exceções:** natureza sem termo de recuperacao (ex. `ROUBO DE VEICULO`) NAO autoriza; mencao solta a "vitima de roubo" na narrativa NAO autoriza; o titulo permanece removivel/editavel pelo operador; **a realizacao lexical e do PARSER (heuristica OCR), nao da ARCA**.
+- **Evidência no Código:** `Entrada/Formulario.html:957-965`, `Entrada/Formulario.html:963`
+- **Evidência em Testes:** `Testes/TestOcrVeiculoRoubado.js`, `Testes/TestEntradaManualFormulario.js:749-761`, `Testes/TestArcaVeiculoOcr.js`
+- **Auditabilidade no Guardiao:** `NAO_AUDITAVEL` — consumidor e o formulario (cliente, `Entrada/Formulario.html`) e nao a planilha auditada; o Guardiao nao emite codigo de diagnostico para titulo PIP de veiculo.
+- **Consumidores (reconciliado #125 / #137):** REAL: - (porta definida no #137; codigo consumidor entra no #138) | INDIRETO: - | DECLARADO: - | PLANEJADO: `Entrada/Formulario.html`

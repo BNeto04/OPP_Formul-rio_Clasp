@@ -31,7 +31,7 @@ const md = fs.readFileSync(MD_PATH, 'utf8');
 const CHAVES = ['REAL_CODE_CONSUMER', 'INDIRECT_CONSUMER', 'DECLARED_CONSUMER', 'PLANNED_CONSUMER'];
 
 test('catalogo tem 31 regras e registro de metodo da reconciliacao', () => {
-  assert.strictEqual(regras.length, 40);
+  assert.strictEqual(regras.length, 41, '41 regras: 40 do lote ARCA + ARCA-VEICULO-001 (#137)');
   assert.ok(arca.meta.consumidores_reconciliacao, 'meta.consumidores_reconciliacao ausente');
   assert.ok(String(arca.meta.consumidores_reconciliacao.card).includes('#125'));
 });
@@ -46,8 +46,18 @@ test('toda regra tem consumidores estruturado nas 4 classes + OBSERVACAO', () =>
 });
 
 test('toda regra tem ao menos 1 consumidor REAL de codigo', () => {
+  // Excecao UNICA e documentada: regra cuja porta canonica foi definida mas cujo codigo consumidor
+  // entra em card posterior. O mapa tem tamanho maximo 1 - nao pode virar porta de entrada de regras orfas.
+  const INTEGRACAO_PENDENTE = { 'ARCA-VEICULO-001': '#138 (porta definida no #137)' };
+  assert.ok(Object.keys(INTEGRACAO_PENDENTE).length <= 1, 'excecoes de consumidor real nao podem crescer');
   regras.forEach(r => {
-    assert.ok(r.consumidores.REAL_CODE_CONSUMER.length >= 1, `${r.rule_id}: sem consumidor real`);
+    const pendente = INTEGRACAO_PENDENTE[r.rule_id];
+    assert.ok(r.consumidores.REAL_CODE_CONSUMER.length >= 1 || pendente,
+      `${r.rule_id}: sem consumidor real e sem excecao documentada`);
+    if (pendente) {
+      assert.strictEqual(r.consumidores.REAL_CODE_CONSUMER.length, 0, `${r.rule_id}: excecao so vale sem consumidor real`);
+      assert.ok(r.consumidores.PLANNED_CONSUMER.length > 0, `${r.rule_id}: excecao exige consumidor planejado`);
+    }
   });
 });
 
