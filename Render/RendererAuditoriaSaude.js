@@ -263,6 +263,13 @@ class RendererAuditoriaSaude {
         // Estilização de TODAS as linhas de dados do histórico (existentes + recém-anexadas)
         for (let i = 0; i < ultLinha - 1; i++) {
           const linhaReal = 2 + i;
+
+          // G01 #117: linha em branco que separa execucoes nao deve ser pintada (permanece vazia)
+          const linhaBruta = (todosDadosHist && todosDadosHist[i]) ? todosDadosHist[i] : [];
+          const linhaTemDados = Array.isArray(linhaBruta) &&
+            linhaBruta.some(v => String(v === undefined || v === null ? '' : v).trim() !== '');
+          if (!linhaTemDados) continue;
+
           let severidade = 'ALERTA';
 
           if (todosDadosHist && todosDadosHist[i] && todosDadosHist[i][5]) {

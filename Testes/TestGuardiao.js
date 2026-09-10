@@ -587,9 +587,12 @@ test('RendererAuditoriaSaude: aba [HISTORICO] Auditoria Ocorrencias preserva reg
   const dadosHist = subAbaHist.obterDadosArmazenados();
 
   assert.deepStrictEqual(dadosHist[0], ['DATA/HORA EXECUÇÃO', 'ABA', 'TÚNEL', 'LINHA', 'CAMADA', 'SEVERIDADE', 'REGRA', 'DIAGNÓSTICO', 'EVIDÊNCIA', 'SUGESTÃO DE CORREÇÃO']);
-  assert.strictEqual(dadosHist.length, 3);
+  // G01 #117: cada auditoria e separada por UMA linha em branco -> cabecalho + exec1 + branco + exec2
+  assert.strictEqual(dadosHist.length, 4);
   assert.strictEqual(dadosHist[1][1], 'JUL2026_TESTE');
-  assert.strictEqual(dadosHist[2][1], 'JUL2026_TESTE');
+  const linhaSeparadora = dadosHist[2] || [];
+  assert.ok(!linhaSeparadora.some(v => String(v === undefined || v === null ? '' : v).trim() !== ''), 'a linha 3 deve ser a separadora em branco');
+  assert.strictEqual(dadosHist[3][1], 'JUL2026_TESTE');
 });
 
 // 20. Bloqueio de Execução sobre Abas de Relatório/Histórico (TASK-M05.1-05)
@@ -763,11 +766,13 @@ test('RendererAuditoriaSaude: valida histórico cumulativo, congelamento da linh
   const subHist = mockSheet.obterSubAba('[HISTORICO] Auditoria Ocorrencias');
   assert.ok(subHist);
 
-  // 1. Confirma histórico estritamente cumulativo (cabeçalho + 2 execuções)
+  // 1. Confirma histórico estritamente cumulativo (cabeçalho + exec1 + linha em branco separadora + exec2)
   const dadosHist = subHist.obterDadosArmazenados();
-  assert.strictEqual(dadosHist.length, 3);
-  assert.strictEqual(dadosHist[1][5], 'CRITICO'); // Coluna 6 (SEVERIDADE) na execução 1
-  assert.strictEqual(dadosHist[2][5], 'CRITICO'); // Coluna 6 (SEVERIDADE) na execução 2
+  assert.strictEqual(dadosHist.length, 4);
+  assert.strictEqual(dadosHist[1][5], 'CRITICO'); // Coluna 6 (SEVERIDADE) na execução 1 (linha 2)
+  const separadora = dadosHist[2] || [];
+  assert.ok(!separadora.some(v => String(v === undefined || v === null ? '' : v).trim() !== ''), 'linha 3 = separadora em branco (G01 #117)');
+  assert.strictEqual(dadosHist[3][5], 'CRITICO'); // Coluna 6 (SEVERIDADE) na execução 2 (linha 4)
 
   // 2. Confirma congelamento apenas da linha 1
   assert.strictEqual(subHist.obterLinhasCongeladas(), 1);
@@ -777,8 +782,8 @@ test('RendererAuditoriaSaude: valida histórico cumulativo, congelamento da linh
   const corCriticoLinha2Col6 = coresBackground.find(c => c.row === 2 && c.col === 6 && c.color === '#D9534F');
   assert.ok(corCriticoLinha2Col6, 'A célula de severidade na Coluna 6 da linha 2 deve receber a cor de fundo #D9534F (CRITICO)');
 
-  const corCriticoLinha3Col6 = coresBackground.find(c => c.row === 3 && c.col === 6 && c.color === '#D9534F');
-  assert.ok(corCriticoLinha3Col6, 'A célula de severidade na Coluna 6 da linha 3 deve receber a cor de fundo #D9534F (CRITICO)');
+  const corCriticoLinha4Col6 = coresBackground.find(c => c.row === 4 && c.col === 6 && c.color === '#D9534F');
+  assert.ok(corCriticoLinha4Col6, 'A célula de severidade na Coluna 6 da linha 4 (execução 2) deve receber a cor de fundo #D9534F (CRITICO)');
 
   // 4. Confirma alinhamento à esquerda (left) das colunas 8 a 10
   const alinhamentos = subHist.obterAlinhamentos();
