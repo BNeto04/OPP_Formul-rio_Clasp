@@ -23,6 +23,8 @@ const CONFIG = {
   dedupeFile: path.join(__dirname, 'ponte1_dedupe.json'),
   deliveryHistoryFile: path.join(__dirname, 'ponte1_delivery_history.json'),
   outboxFile: path.join(__dirname, 'ponte1_outbox.json'),
+  relayConfigFile: path.join(__dirname, '..', 'config', 'hermes_relay.json'),
+  silenceLimitMs: 240000,
   logFile: path.join(__dirname, 'ponte1.log')
 };
 
@@ -54,6 +56,26 @@ function getAuthorizedChatId() {
   return 6857459665;
 }
 
+// RELAY PARA O CHAT DO HERMES (10/09/2026): a resposta do ChatGPT passa a aparecer tambem
+// no chat do bot do Hermes, onde o proprietario realmente conversa. O token e lido do .env
+// do Hermes em tempo de execucao e NUNCA e escrito em log.
+function getRelayConfig() {
+  try {
+    if (!fs.existsSync(CONFIG.relayConfigFile)) return null;
+    const cfg = JSON.parse(fs.readFileSync(CONFIG.relayConfigFile, 'utf8'));
+    if (!cfg || !cfg.enabled) return null;
+    let token = null;
+    if (cfg.token_file && fs.existsSync(cfg.token_file)) {
+      const linha = fs.readFileSync(cfg.token_file, 'utf8').split(/\r?\n/).find(l => l.trim().startsWith((cfg.env_key || 'TELEGRAM_BOT_TOKEN') + '='));
+      if (linha) token = linha.split('=').slice(1).join('=').trim().replace(/^["']|["']$/g, '');
+    }
+    if (!token || !cfg.chat_id) return null;
+    return { token, chatId: cfg.chat_id, prefixo: cfg.prefixo || '[GPT] ' };
+  } catch (e) {
+    return null;
+  }
+}
+
 class Ponte1Daemon {
   constructor() {
     this.token = getBotToken();
@@ -70,6 +92,13 @@ class Ponte1Daemon {
     this.currentOffset = this.loadOffset();
     this.loadDedupe();
     this.outbox = this.loadOutbox();
+    // Alarme de silencio: pacotes entregues ao ChatGPT que ainda nao voltaram
+    this.aguardandoResposta = new Map();
+    // Relay para o chat do Hermes (opcional, fail-soft)
+    const relay = getRelayConfig();
+    this.relayClient = relay ? new TelegramClient(relay.token) : null;
+    this.relayChatId = relay ? relay.chatId : null;
+    this.relayPrefixo = relay ? relay.prefixo : '';
   }
 
   loadDedupe() {
@@ -170,6 +199,8 @@ class Ponte1Daemon {
           this.outbox = this.outbox.filter(x => x.reply_key !== item.reply_key);
           this.saveOutbox();
           log(`[OUTBOX_FLUSH_OK] Resposta de reply_to=${item.reply_to_message_id} entregue no Telegram: msg_id=${tgRes.result.message_id} (apos ${item.tentativas} falha(s)).`);
+          this.aguardandoResposta.delete(String(item.reply_to_message_id));
+          await this.relayar(item.payload);
         } else {
           item.tentativas++;
           item.ultimo_erro = JSON.stringify(tgRes).substring(0, 200);
@@ -182,6 +213,50 @@ class Ponte1Daemon {
         this.saveOutbox();
         break;
       }
+    }
+  }
+
+  // RELAY E ALARME DE SILENCIO (10/09/2026)
+  async relayar(texto) {
+    if (!this.relayClient || !this.relayChatId) return false;
+    try {
+      const res = await this.relayClient.sendMessage(this.relayChatId, this.relayPrefixo + texto);
+      if (res && res.ok) {
+        log(`[RELAY_HERMES_OK] Resposta replicada no chat do Hermes (msg_id=${res.result.message_id}).`);
+        return true;
+      }
+      log(`[RELAY_HERMES_FALHA] ${JSON.stringify(res).substring(0, 160)}`);
+      return false;
+    } catch (err) {
+      log(`[RELAY_HERMES_FALHA] ${err.message}`);
+      return false;
+    }
+  }
+
+  marcarAguardandoResposta(packetId) {
+    const m = String(packetId || '').match(/(\d+)\s*$/);
+    if (!m) return;
+    const msgId = m[1];
+    if (!this.aguardandoResposta.has(msgId)) {
+      this.aguardandoResposta.set(msgId, { packet_id: packetId, em: Date.now(), alertado: false });
+    }
+  }
+
+  async verificarSilencio() {
+    if (this.aguardandoResposta.size === 0) return;
+    for (const [msgId, info] of [...this.aguardandoResposta]) {
+      if (info.alertado) continue;
+      if (Date.now() - info.em < CONFIG.silenceLimitMs) continue;
+      info.alertado = true;
+      const minutos = Math.round((Date.now() - info.em) / 60000);
+      const aviso = `[SEM_RESPOSTA] O pacote ${info.packet_id} foi entregue ao ChatGPT ha ~${minutos} min e nenhuma resposta voltou. Causa tipica: o ChatGPT respondeu FORA do envelope [CHATGPT_REPLY_V1] ou a aba do ChatGPT esta fechada/travada.`;
+      log(`[SILENCE_ALERT] ${info.packet_id} sem resposta ha ${minutos} min.`);
+      try {
+        if (this.client) await this.client.sendMessage(this.authorizedChatId, aviso);
+      } catch (err) {
+        log(`[SILENCE_ALERT_FALHA] ${err.message}`);
+      }
+      await this.relayar(aviso);
     }
   }
 
@@ -286,6 +361,8 @@ PAYLOAD: sua resposta
           in_flight: this.inFlightPacket ? this.inFlightPacket.packet_id : null,
           uncertain_packets_count: this.uncertainPackets.size,
           outbox_pending: this.outbox.length,
+          aguardando_resposta: this.aguardandoResposta.size,
+          relay_hermes_ativo: !!this.relayClient,
           uncertain_packets: Array.from(this.uncertainPackets.keys()),
           delivered_count: this.deliveredCount,
           running: this.running
@@ -338,6 +415,7 @@ PAYLOAD: sua resposta
               log(`[CARRIER_ACK_CONFIRMED] Pacote ${data.packet_id} confirmado entregue no ChatGPT.`);
               this.inFlightPacket = null;
               this.deliveredCount++;
+              this.marcarAguardandoResposta(data.packet_id);
             } else if (this.uncertainPackets.has(data.packet_id)) {
               log(`[RECONCILE_ACK] Pacote ${data.packet_id} reconciliado de SEND_UNCERTAIN para DELIVERED.`);
               this.uncertainPackets.delete(data.packet_id);
@@ -382,6 +460,8 @@ PAYLOAD: sua resposta
                   this.recordDelivery(replyKey, outMsgId);
                   entregue = true;
                   log(`[TELEGRAM_SEND_SUCCESS] Resposta entregue no Telegram: msg_id=${outMsgId}, reply_to=${replyToMsgId}`);
+                  this.aguardandoResposta.delete(String(replyToMsgId));
+                  await this.relayar(rawPayload);
                 } else {
                   log(`Falha no envio ao Telegram: ${JSON.stringify(tgRes)}`);
                   this.enfileirarOutbox(replyKey, replyToMsgId, rawPayload, JSON.stringify(tgRes).substring(0, 200));
@@ -427,7 +507,8 @@ PAYLOAD: sua resposta
     this.startHttpServer();
     this.startTelegramPolling();
     // Watchdog periódico: marca como SEND_UNCERTAIN se expirar (> 15s) sem ACK, sem requeue automático
-    setInterval(() => {
+    setInterval(async () => {
+      await this.verificarSilencio();
       if (this.inFlightPacket && this.inFlightPacket._dispatchedAt && (Date.now() - this.inFlightPacket._dispatchedAt > 15000)) {
         log(`[SEND_UNCERTAIN_WATCHDOG] Pacote ${this.inFlightPacket.packet_id} retido por mais de 15s sem ACK. Marcado como SEND_UNCERTAIN sem requeue.`);
         this.uncertainPackets.set(this.inFlightPacket.packet_id, {

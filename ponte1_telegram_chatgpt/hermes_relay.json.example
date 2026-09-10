@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "descricao": "EXEMPLO. Copie para ponte1_telegram_chatgpt/config/hermes_relay.json (a pasta config/ e ignorada pelo Git) para replicar as respostas da Ponte 1 no chat do bot do Hermes. O token NAO fica aqui: e lido do .env do Hermes em tempo de execucao e nunca vai para log.",
+  "chat_id": 0,
+  "token_file": "C:/Users/<usuario>/AppData/Local/hermes/.env",
+  "env_key": "TELEGRAM_BOT_TOKEN",
+  "prefixo": "[GPT] "
+}

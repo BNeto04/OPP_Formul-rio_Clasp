@@ -213,6 +213,12 @@
       }
     }
 
+    fallbackEstado = {
+      msgId: String(msgId),
+      assistentesBase: document.querySelectorAll('div[data-message-author-role="assistant"], div.agent-turn').length,
+      textoAnterior: ''
+    };
+
     return { success: true };
   }
 
@@ -339,6 +345,12 @@
     }
   });
 
+  // FALLBACK DE CAPTURA (10/09/2026): se o ChatGPT responder FORA do envelope
+  // [CHATGPT_REPLY_V1], a ultima mensagem do assistente e despachada mesmo assim.
+  // Guarda: so captura se surgiu mensagem NOVA depois da injecao e se o texto ficou
+  // estavel entre dois scans (evita capturar resposta ainda em streaming).
+  let fallbackEstado = { msgId: null, assistentesBase: 0, textoAnterior: '' };
+
   // Outbound: Monitora respostas do ChatGPT no DOM
   function scanAssistantReplies() {
     const containers = document.querySelectorAll('div[data-message-author-role="assistant"], div.agent-turn');
@@ -366,6 +378,38 @@
               reply_to_message_id: replyToId,
               payload: cleanPayload
             });
+            fallbackEstado = { msgId: null, assistentesBase: 0, textoAnterior: '' };
+          }
+        }
+      }
+    }
+
+    // FALLBACK: ChatGPT respondeu sem o envelope -> usa a ultima mensagem do assistente,
+    // desde que seja NOVA (posterior a injecao) e esteja estavel entre dois scans.
+    if (fallbackEstado.msgId) {
+      const lista = document.querySelectorAll('div[data-message-author-role="assistant"], div.agent-turn');
+      if (lista.length > fallbackEstado.assistentesBase) {
+        const ultimo = lista[lista.length - 1];
+        const texto = ((ultimo.innerText || ultimo.textContent || '') + '').trim().substring(0, 4000);
+        const ehEnvelope = texto.includes('[CHATGPT_REPLY_V1]');
+        const ehEco = texto.includes('[TELEGRAM de ') || texto.includes('REPLY_TO_MESSAGE_ID:');
+        if (texto && !ehEnvelope && !ehEco) {
+          if (texto === fallbackEstado.textoAnterior) {
+            const replyKey = `REPLY_${fallbackEstado.msgId}_${texto.substring(0, 30)}`;
+            const msgIdFallback = fallbackEstado.msgId;
+            fallbackEstado = { msgId: null, assistentesBase: 0, textoAnterior: '' };
+            if (!seenReplies.has(replyKey)) {
+              seenReplies.add(replyKey);
+              console.log('[Ponte1-Content] Resposta capturada por FALLBACK (sem envelope). Despachando:', msgIdFallback);
+              chrome.runtime.sendMessage({
+                type: 'PONTE1_REPLY_DETECTED',
+                reply_to_message_id: msgIdFallback,
+                payload: texto,
+                sem_envelope: true
+              });
+            }
+          } else {
+            fallbackEstado.textoAnterior = texto;
           }
         }
       }

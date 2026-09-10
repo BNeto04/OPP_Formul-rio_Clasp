@@ -82,6 +82,34 @@ function check(nome, cond, extra) {
   const hist = JSON.parse(fs.readFileSync(path.join(SANDBOX, 'server', 'ponte1_delivery_history.json'), 'utf8'));
   check('B7 outbox: entrega do reenvio registrada no historico de entregas', !!(hist[replyKey] && hist[replyKey].telegram_message_id === 987654));
 
+  // ---------- C) alarme de silencio ----------
+  const daemonC = new Ponte1Daemon();
+  const avisos = [];
+  daemonC.client = { sendMessage: async (chatId, texto) => { avisos.push(texto); return { ok: true, result: { message_id: 111 } }; } };
+  daemonC.authorizedChatId = 123;
+  daemonC.relayClient = null; // relay desligado neste caso
+  daemonC.marcarAguardandoResposta('PONTE1_MSG_555');
+  check('C1 alarme: pacote entregue ao ChatGPT entra na espera de resposta', daemonC.aguardandoResposta.size === 1 && daemonC.aguardandoResposta.has('555'));
+  await daemonC.verificarSilencio();
+  check('C2 alarme: nada e disparado antes do limite', avisos.length === 0);
+  daemonC.aguardandoResposta.get('555').em = Date.now() - 300000; // 5 min atras
+  await daemonC.verificarSilencio();
+  check('C3 alarme: apos o limite o proprietario e avisado', avisos.length === 1 && avisos[0].includes('[SEM_RESPOSTA]') && avisos[0].includes('PONTE1_MSG_555'), JSON.stringify(avisos).substring(0, 120));
+  await daemonC.verificarSilencio();
+  check('C4 alarme: nao repete o mesmo aviso', avisos.length === 1);
+
+  // ---------- D) relay para o chat do Hermes (fail-soft) ----------
+  const daemonD = new Ponte1Daemon();
+  const relayados = [];
+  daemonD.relayClient = { sendMessage: async (chatId, texto) => { relayados.push({ chatId, texto }); return { ok: true, result: { message_id: 222 } }; } };
+  daemonD.relayChatId = 999;
+  daemonD.relayPrefixo = '[GPT] ';
+  check('D1 relay: replicou a resposta no chat do Hermes', await daemonD.relayar('resposta do GPT') === true && relayados.length === 1 && relayados[0].texto === '[GPT] resposta do GPT', JSON.stringify(relayados));
+  daemonD.relayClient = { sendMessage: async () => { throw new Error('TIMEOUT'); } };
+  check('D2 relay: falha do relay nao levanta excecao (fail-soft)', await daemonD.relayar('x') === false);
+  daemonD.relayClient = null;
+  check('D3 relay: desligado devolve false sem erro', await daemonD.relayar('x') === false);
+
   fs.rmSync(SANDBOX, { recursive: true, force: true });
   console.log(`\nRESULTADOS FINAIS: ${passou} PASS / ${falhou} FAIL`);
   process.exit(falhou ? 1 : 0);
