@@ -135,6 +135,7 @@ class GuardiaoQualidade {
     const alertasPorLinha = Array.from({ length: lastRow - 1 }, () => []);
     const tuneis = {};
     const mikesMapa = {};
+    const matriculasOcorrencias = {};
 
     if (modoLimitadoPIP && alertasPorLinha.length > 0) {
       alertasPorLinha[0].push(RegrasQualidade.criarDiagnostico({
@@ -195,6 +196,14 @@ class GuardiaoQualidade {
       const dataFormatada = chave.split('|')[0];
       if (dataFormatada) mikesMapa[mike].datas.add(dataFormatada);
       mikesMapa[mike].linhas.push({ linha, boe, dataTexto: dataFormatada, chave });
+
+      // Mapa matricula -> ocorrencias (para deteccao de vinculo multiplo na mesma data - #115)
+      if (matricula) {
+        if (!matriculasOcorrencias[matricula]) {
+          matriculasOcorrencias[matricula] = { linhas: [] };
+        }
+        matriculasOcorrencias[matricula].linhas.push({ linha, data: dataFormatada, mike });
+      }
 
       if (RegrasQualidade.mikeSuspeito(mike)) {
         alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
@@ -282,6 +291,17 @@ class GuardiaoQualidade {
           evidencia: `Policial: "${policial}" | Matrícula: vazia`,
           acaoRecomendada: 'Preencha a matrícula funcional do policial para garantir o cômputo da produtividade.',
           sugestaoCorrecao: 'Inserir a matrícula funcional na coluna AD.'
+        }));
+      } else if (matricula && !policial) {
+        alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
+          severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.OBSERVACAO : 'OBSERVACAO',
+          codigoRegra: 'POLICIAL_SEM_NOME',
+          camada: 'SEMANTICA',
+          linha,
+          tunel: chave,
+          diagnostico: 'Matricula preenchida sem nome de policial na linha.',
+          evidencia: `Matrícula: "${matricula}" | Policial: vazio`,
+          acaoRecomendada: 'Confirme o nome do policial vinculado à matrícula para rastreabilidade do efetivo.'
         }));
       }
 
@@ -375,6 +395,19 @@ class GuardiaoQualidade {
       });
     }
 
+    // Policial vinculado a 2+ MIKEs na MESMA data exige confirmacao humana (#115)
+    let CoberturaMod = typeof CoberturaAuditoria !== 'undefined' ? CoberturaAuditoria : null;
+    if (!CoberturaMod && typeof require !== 'undefined') {
+      try { CoberturaMod = require('../Core/CoberturaAuditoria').CoberturaAuditoria; } catch (e) {}
+    }
+    if (CoberturaMod && typeof CoberturaMod.detectarMatriculaMultiplaNaMesmaData === 'function') {
+      CoberturaMod.detectarMatriculaMultiplaNaMesmaData(matriculasOcorrencias, RegrasQualidade.criarDiagnostico.bind(RegrasQualidade)).forEach(diagMat => {
+        if (diagMat.linha >= 2 && diagMat.linha - 2 < alertasPorLinha.length) {
+          alertasPorLinha[diagMat.linha - 2].push(diagMat);
+        }
+      });
+    }
+
     const saida = alertasPorLinha.map(diagnosticos => {
       const textos = RegrasQualidade.unicos(
         diagnosticos.map(d => typeof d === 'object' && d !== null ? (d.diagnostico || d.mensagem || '') : String(d))
@@ -398,12 +431,23 @@ class GuardiaoQualidade {
       quadroSaude = SaudeMod.montarQuadroSaude(tuneis, mikesMapa, todosDiagnosticos);
     }
 
+    // Cobertura de auditoria (#115): o que NAO pôde ser verificado -> nunca falso verde
+    let cobertura = null;
+    if (CoberturaMod && typeof CoberturaMod.montarCobertura === 'function') {
+      cobertura = CoberturaMod.montarCobertura({
+        catalogoPIP,
+        resPeculio,
+        diagnosticos: todosDiagnosticos
+      });
+    }
+
     return {
       alertas: saida.filter(row => row[0]).length,
       linhas: lastRow - 1,
       tuneis: Object.keys(tuneis).length,
       diagnosticos: todosDiagnosticos,
-      saude: quadroSaude
+      saude: quadroSaude,
+      cobertura
     };
   }
 }
