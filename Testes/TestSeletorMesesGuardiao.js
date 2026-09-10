@@ -178,6 +178,57 @@ test('variacoes com separador real (jul.2026, JUL-2026, jul_2026) sao aceitas', 
   }
 });
 
+// ---------- 7. Seletor em BOTOES (dialogo HTML - decisao do proprietario 10/09/2026) ----------
+test('prepararOpcoes gera valor canonico + rotulo amigavel para o dialogo', () => {
+  const validas = SeletorMesesGuardiao.listarAbasMensais(criarSS(['JUL2026', 'SET2026']));
+  const opcoes = SeletorMesesGuardiao.prepararOpcoes(validas);
+  assert.strictEqual(opcoes.length, 2);
+  assert.strictEqual(opcoes[0].valor, 'JUL2026');
+  assert.ok(opcoes[0].rotulo.includes('07/2026') && opcoes[0].rotulo.includes('JUL2026'));
+  assert.ok(opcoes[1].rotulo.includes('09/2026'));
+});
+
+test('selecao vinda do dialogo (array de nomes) resolve para alvos validos', () => {
+  const validas = SeletorMesesGuardiao.listarAbasMensais(criarSS(['JUN2026', 'JUL2026', 'AGO2026']));
+  const s = SeletorMesesGuardiao.resolverSelecaoDialogo(['JUL2026', 'AGO2026'], validas);
+  assert.strictEqual(s.modo, 'LISTA');
+  assert.deepStrictEqual(s.alvos.map(a => a.nome), ['JUL2026', 'AGO2026']);
+  assert.deepStrictEqual(s.invalidos, []);
+});
+
+test('dialogo com array vazio nao audita nada (sem falso verde)', () => {
+  const validas = SeletorMesesGuardiao.listarAbasMensais(criarSS(['JUL2026']));
+  const s = SeletorMesesGuardiao.resolverSelecaoDialogo([], validas);
+  assert.strictEqual(s.alvos.length, 0);
+  assert.strictEqual(s.cancelado, false);
+});
+
+test('dialogo cancelado (null) retorna cancelado sem alvos', () => {
+  const s = SeletorMesesGuardiao.resolverSelecaoDialogo(null, []);
+  assert.strictEqual(s.cancelado, true);
+  assert.strictEqual(s.alvos.length, 0);
+});
+
+test('nome invalido vindo do dialogo vai para invalidos', () => {
+  const validas = SeletorMesesGuardiao.listarAbasMensais(criarSS(['JUL2026']));
+  const s = SeletorMesesGuardiao.resolverSelecaoDialogo(['JUL2026', 'FEV2099'], validas);
+  assert.deepStrictEqual(s.alvos.map(a => a.nome), ['JUL2026']);
+  assert.deepStrictEqual(s.invalidos, ['FEV2099']);
+});
+
+test('formatarResultado resume meses OK e ERRO sem esconder falha', () => {
+  const consolidado = {
+    porMes: {
+      JUL2026: { status: 'OK', resultado: { tuneis: 33, linhas: 1208, alertas: 3 } },
+      AGO2026: { status: 'ERRO', mensagem: 'ABA_INDISPONIVEL' }
+    }
+  };
+  const texto = SeletorMesesGuardiao.formatarResultado(consolidado, { texto: '', prioritarios: [] });
+  assert.ok(texto.includes('JUL2026') && texto.includes('33') && texto.includes('1208'));
+  assert.ok(texto.includes('AGO2026') && texto.includes('ERRO') && texto.includes('ABA_INDISPONIVEL'));
+  assert.ok(texto.includes('[AUDITORIA] Ocorrencias'));
+});
+
 console.log(`\nRESULTADOS FINAIS: ${sucessos} PASS / ${falhas} FAIL`);
 if (falhas > 0) process.exit(1);
 }

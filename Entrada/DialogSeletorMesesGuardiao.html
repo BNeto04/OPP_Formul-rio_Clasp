@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <base target="_top">
+    <style>
+      body { font-family: Arial, sans-serif; padding: 18px; color: #111827; }
+      h3 { margin: 0 0 6px; font-size: 17px; }
+      p { margin: 0 0 12px; color: #4b5563; font-size: 13px; line-height: 1.35; }
+      .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; max-height: 300px; overflow-y: auto; }
+      .mes { display: flex; align-items: center; gap: 7px; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; cursor: pointer; font-size: 13px; }
+      .mes:hover { background: #f3f4f6; }
+      .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+      button { border: 0; border-radius: 6px; padding: 8px 12px; font-weight: 700; cursor: pointer; }
+      .secondary { background: #e5e7eb; color: #111827; }
+      .primary { background: #073763; color: white; }
+      .vazio { color: #b91c1c; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <h3>Guardiao da Qualidade - Seletor de meses</h3>
+    <p>Marque um, varios ou todos os meses auditaveis. Abas auxiliares (AUDITORIA/HISTORICO/PIP etc.) nao aparecem aqui.</p>
+    <div class="grid" id="grid"></div>
+    <div class="actions">
+      <button class="secondary" onclick="marcarTodos()">Todos</button>
+      <button class="secondary" onclick="limpar()">Limpar</button>
+      <button class="secondary" onclick="google.script.host.close()">Cancelar</button>
+      <button class="primary" id="btnAuditar" onclick="auditar()">Auditar selecionados</button>
+    </div>
+    <script>
+      var ABAS = <?!= abasJson ?>;
+      var grid = document.getElementById('grid');
+
+      if (!ABAS || !ABAS.length) {
+        var aviso = document.createElement('div');
+        aviso.className = 'vazio';
+        aviso.textContent = 'NAO_AUDITAVEL: nenhuma aba mensal valida encontrada.';
+        grid.appendChild(aviso);
+      }
+
+      (ABAS || []).forEach(function (aba) {
+        var label = document.createElement('label');
+        label.className = 'mes';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.name = 'mes';
+        cb.value = aba.valor;
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(' ' + aba.rotulo));
+        grid.appendChild(label);
+      });
+
+      function marcados() {
+        return Array.from(document.querySelectorAll('input[name="mes"]:checked')).map(function (cb) { return cb.value; });
+      }
+      function marcarTodos() {
+        document.querySelectorAll('input[name="mes"]').forEach(function (cb) { cb.checked = true; });
+      }
+      function limpar() {
+        document.querySelectorAll('input[name="mes"]').forEach(function (cb) { cb.checked = false; });
+      }
+      function ocupado(v) {
+        document.querySelectorAll('button').forEach(function (b) { b.disabled = v; });
+      }
+      function auditar() {
+        var sel = marcados();
+        if (!sel.length) {
+          alert('Selecione pelo menos um mes.');
+          return;
+        }
+        ocupado(true);
+        google.script.run
+          .withSuccessHandler(function () { google.script.host.close(); })
+          .withFailureHandler(function (err) {
+            ocupado(false);
+            alert('Erro ao auditar: ' + (err && err.message ? err.message : err));
+          })
+          .executarSelecaoGuardiao(sel);
+      }
+    </script>
+  </body>
+</html>

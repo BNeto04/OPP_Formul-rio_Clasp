@@ -124,6 +124,44 @@ class SeletorMesesGuardiao {
     return validas.map((v, i) => `${i + 1}. ${v.nome} (${String(v.mes).padStart(2, '0')}/${v.ano})`).join('\n');
   }
 
+  /** Opcoes do dialogo em botoes: valor canonico (nome da aba) + rotulo amigavel. */
+  static prepararOpcoes(validas) {
+    return (validas || []).map(v => ({
+      valor: v.nome,
+      rotulo: String(v.mes).padStart(2, '0') + '/' + v.ano + ' - ' + v.nome
+    }));
+  }
+
+  /** Traduz a selecao vinda do dialogo em botoes (array de nomes) para o contrato de parseSelecao. */
+  static resolverSelecaoDialogo(selecionados, validas) {
+    if (selecionados === null || selecionados === undefined) {
+      return { modo: null, alvos: [], invalidos: [], cancelado: true };
+    }
+    const lista = Array.isArray(selecionados) ? selecionados.slice() : String(selecionados).split(',');
+    const limpos = lista.map(s => String(s).trim()).filter(Boolean);
+    if (!limpos.length) return { modo: null, alvos: [], invalidos: [], cancelado: false };
+    return SeletorMesesGuardiao.parseSelecao(limpos.join(','), validas);
+  }
+
+  /** Texto do resultado apresentado ao operador (resumo por mes + painel + tuneis prioritarios). */
+  static formatarResultado(consolidado, painel) {
+    const linhasResumo = Object.keys((consolidado && consolidado.porMes) || {}).map(nome => {
+      const p = consolidado.porMes[nome];
+      return p.status === 'OK'
+        ? '  ' + nome + ': tuneis ' + p.resultado.tuneis + ' | linhas ' + p.resultado.linhas + ' | linhas c/ alerta ' + p.resultado.alertas
+        : '  ' + nome + ': ERRO -> ' + p.mensagem;
+    });
+    const linhasPrioritarias = ((painel && painel.prioritarios) || []).map(t =>
+      '  [' + t.classificacao + '] ' + t.mes + ' | ' + (t.mike || t.tunel) + ' | linhas ' +
+      (((t.linhas && t.linhas.join(', ')) || '-')) + ' | ' +
+      (((t.diagnosticos && t.diagnosticos[0] && t.diagnosticos[0].codigo) || t.motivo) || '-')
+    );
+    return linhasResumo.join('\n') +
+      '\n\n' + ((painel && painel.texto) || '') +
+      (linhasPrioritarias.length ? '\n\nTUNEIS PRIORITARIOS (drill-down):\n' + linhasPrioritarias.join('\n') : '') +
+      '\n\nDetalhe completo (codigo, severidade, ARCA, acao): aba [AUDITORIA] Ocorrencias.\nHistorico de execucoes: [HISTORICO] Auditoria Ocorrencias.';
+  }
+
   /**
    * Monta o painel consolidado (por mes + global + drill-down) a partir do retorno de auditarMeses.
    * #116: MES -> TUNEL/MIKE -> LINHAS -> DIAGNOSTICO, com NAO_AUDITADO explicito.
@@ -216,7 +254,7 @@ if (typeof module !== 'undefined' && module.exports) {
  * Fluxo de UI (Apps Script): descobrir abas validas -> prompt 1/N/TODOS -> auditar -> consolidar.
  * Cancelar em qualquer ponto retorna sem efeito colateral. Sem abas validas => NAO_AUDITAVEL.
  */
-function abrirSeletorMesesGuardiao() {
+function abrirSeletorMesesGuardiaoPorTexto() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const ui = SpreadsheetApp.getUi();
 
@@ -277,5 +315,63 @@ function abrirSeletorMesesGuardiao() {
   );
 
   consolidado.painel = painel;
+  return consolidado;
+}
+
+/**
+ * SELETOR DE MESES EM BOTOES (dialogo HTML) - decisao do proprietario (10/09/2026).
+ *
+ * Substitui o prompt de digitacao por um dialogo com checkboxes dos meses reais da planilha,
+ * no mesmo padrao do seletor de meses de arma (DialogGxtSelecaoLivre): botoes Todos / Limpar /
+ * Cancelar / Auditar. Abas auxiliares continuam fora da lista (mesma fonte do MOD-C05-01).
+ * Cancelar nao produz efeito; sem abas validas => NAO_AUDITAVEL.
+ */
+function abrirSeletorMesesGuardiao() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const validas = SeletorMesesGuardiao.listarAbasMensais(ss);
+
+  if (!validas.length) {
+    ui.alert('Guardiao da Qualidade',
+      'NAO_AUDITAVEL: nenhuma aba mensal valida encontrada.\n' +
+      'Abas auxiliares (AUDITORIA/HISTORICO/PIP etc.) sao ignoradas.\n' +
+      'Nomes validos: ex. JUL2026, 2026-07.',
+      ui.ButtonSet.OK);
+    return { status: 'NAO_AUDITAVEL', motivo: 'NENHUMA_ABA_MENSAL' };
+  }
+
+  const template = HtmlService.createTemplateFromFile('Entrada/DialogSeletorMesesGuardiao');
+  template.abasJson = JSON.stringify(SeletorMesesGuardiao.prepararOpcoes(validas));
+  const altura = Math.min(560, 220 + validas.length * 12);
+  ui.showModalDialog(template.evaluate().setWidth(430).setHeight(altura),
+    'Guardiao - Seletor de meses (botoes)');
+  return { status: 'DIALOGO_ABERTO', abas: validas.length };
+}
+
+/**
+ * Callback do dialogo de botoes: audita as abas marcadas e apresenta o resultado ao operador.
+ * @param {Array<string>} selecionados nomes das abas mensais marcadas
+ */
+function executarSelecaoGuardiao(selecionados) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const validas = SeletorMesesGuardiao.listarAbasMensais(ss);
+  const selecao = SeletorMesesGuardiao.resolverSelecaoDialogo(selecionados, validas);
+
+  if (!selecao.alvos.length) {
+    ui.alert('Guardiao - Selecao vazia',
+      'Nenhuma aba mensal valida foi marcada. Nada foi auditado.',
+      ui.ButtonSet.OK);
+    return { status: 'SEM_SELECAO', invalidos: selecao.invalidos };
+  }
+
+  const consolidado = SeletorMesesGuardiao.auditarMeses(selecao, ss);
+  const painel = SeletorMesesGuardiao.montarPainel(consolidado);
+  ui.alert('Guardiao da Qualidade - Resultado',
+    SeletorMesesGuardiao.formatarResultado(consolidado, painel),
+    ui.ButtonSet.OK);
+
+  consolidado.painel = painel;
+  consolidado.selecao = { modo: selecao.modo, alvos: selecao.alvos.map(a => a.nome), invalidos: selecao.invalidos };
   return consolidado;
 }
