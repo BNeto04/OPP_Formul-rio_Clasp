@@ -16,6 +16,40 @@ class GuardiaoQualidade {
     return norm.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
+  /**
+   * Resolve a aba canonica do catalogo PIP (fix do achado de homologacao G01 #117).
+   * O alias solto 'PIP' apontava para a PRIMEIRA aba contendo 'PIP' (ex.: PIP_SELECAO_LIVRE),
+   * lendo o catalogo errado. Aqui exige-se 'TABELA' + 'PIP' no nome, com prioridade para os
+   * nomes canonicos, descartando copias/backups/rascunhos. Sem candidata inequivoca retorna
+   * null -> o chamador segue para o modo limitado explicito (nunca catalogo silenciosamente errado).
+   * @param {object} parent planilha (Spreadsheet)
+   * @returns {object|null} aba do catalogo ou null
+   */
+  static localizarAbaCatalogoPIP(parent) {
+    if (!parent || typeof parent.getSheets !== 'function') return null;
+    const norm = n => GuardiaoQualidade.normalizarNomeFlexivel(n);
+    const CANONICOS = ['TABELA DE PONTOS PIP', 'TABELA PIP', 'TABELA DE INDICADORES'];
+    const DESCARTE = ['COPIA', 'CÓPIA', 'BKP', 'BACKUP', 'RASCUNHO', 'MODELO', 'EXEMPLO', 'TESTE', 'GABARITO'];
+
+    const candidatas = parent.getSheets()
+      .map(sheet => ({ sheet, nome: norm(sheet.getName()) }))
+      .filter(c => (c.nome.indexOf('TABELA') !== -1 && c.nome.indexOf('PIP') !== -1) || CANONICOS.indexOf(c.nome) !== -1)
+      .filter(c => !DESCARTE.some(d => c.nome.indexOf(d) !== -1));
+
+    if (!candidatas.length) return null;
+
+    candidatas.sort((a, b) => {
+      const ia = CANONICOS.indexOf(a.nome);
+      const ib = CANONICOS.indexOf(b.nome);
+      const rankA = ia === -1 ? 99 : ia;
+      const rankB = ib === -1 ? 99 : ib;
+      if (rankA !== rankB) return rankA - rankB;
+      return a.nome.length - b.nome.length;
+    });
+
+    return candidatas[0].sheet;
+  }
+
   static varrerAba(sheet, fontePeculioExterna = null) {
     const nomeAbaNorm = GuardiaoQualidade.normalizarNomeFlexivel(sheet.getName());
     if (nomeAbaNorm.includes('AUDITORIA') || nomeAbaNorm.includes('HISTORICO')) {
@@ -38,19 +72,16 @@ class GuardiaoQualidade {
       try {
         const parent = sheet.getParent();
         if (parent) {
-          const aliasesAbaPIP = ['TABELA PIP', 'PIP', 'TABELA DE INDICADORES'];
-          let abaPIP = null;
-
-          if (typeof parent.getSheets === 'function') {
-            const todasAbas = parent.getSheets();
-            abaPIP = todasAbas.find(s => {
-              const nomeNorm = GuardiaoQualidade.normalizarNomeFlexivel(s.getName());
-              return aliasesAbaPIP.some(alias => nomeNorm === alias || nomeNorm.includes(alias));
-            });
-          }
+          // G01 #117 (achado de homologacao 10/09/2026): o alias solto 'PIP' casava com a
+          // PRIMEIRA aba contendo 'PIP' (ex.: PIP_SELECAO_LIVRE / PIP_JUL_2026.v5) e o catalogo
+          // era lido da aba errada -> indicadores validos viravam INDICADOR_DESCONHECIDO e a
+          // cobertura saia PARCIAL por falso motivo. A resolucao agora exige 'TABELA' + 'PIP',
+          // prioriza os nomes canonicos e descarta copias/backups; sem match inequivoco => null
+          // (modo limitado explicito, nunca catalogo silenciosamente errado).
+          let abaPIP = GuardiaoQualidade.localizarAbaCatalogoPIP(parent);
 
           if (!abaPIP && typeof parent.getSheetByName === 'function') {
-            for (const alias of aliasesAbaPIP) {
+            for (const alias of ['TABELA DE PONTOS PIP', 'TABELA PIP', 'TABELA DE INDICADORES']) {
               abaPIP = parent.getSheetByName(alias);
               if (abaPIP) break;
             }

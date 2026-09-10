@@ -23,6 +23,8 @@ async function main() {
   console.log('');
   require('./TestSeletorMesesGuardiao');
   console.log('');
+  require('./TestCatalogoPipGuardiao');
+  console.log('');
   require('./TestSaudeTuneis');
   console.log('');
   require('./TestCoberturaAuditoria');
