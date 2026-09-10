@@ -107,6 +107,15 @@
       "height": 100,
       "type": "text",
       "text": "C01 / MOD-C01-02 Normalizador de Efetivo"
+    },
+    {
+      "id": "n_p3",
+      "type": "text",
+      "x": -300,
+      "y": 0,
+      "width": 220,
+      "height": 100,
+      "text": "C01 / MOD-C01-01\nP3 - porta unica de navegacao\n(`Entrada/Menu.js`)"
     }
   ],
   "edges": [
@@ -172,6 +181,24 @@
       "fromSide": "bottom",
       "toNode": "n_norm",
       "toSide": "top"
+    },
+    {
+      "id": "e9",
+      "fromNode": "n_p3",
+      "toNode": "n1",
+      "label": "fachada do produto"
+    },
+    {
+      "id": "e10",
+      "fromNode": "n_p3",
+      "toNode": "n5",
+      "label": "navega: Guardiao"
+    },
+    {
+      "id": "e11",
+      "fromNode": "n_p3",
+      "toNode": "n6",
+      "label": "navega: Comparativo/GXT"
     }
   ]
 }

@@ -1,4 +1,253 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "p3",
+      "type": "text",
+      "text": "# P3\nPorta unica de navegacao (`onOpen`)\n`Entrada/Menu.js`\nUM menu superior; grupos = submenus; item sem funcao alvo e OMITIDO.",
+      "x": 520,
+      "y": 0,
+      "width": 320,
+      "height": 130,
+      "color": "4"
+    },
+    {
+      "id": "g_form",
+      "type": "text",
+      "text": "## Formulario\nNova ocorrencia (formulario)\n-> `abrirFormularioEntrada`",
+      "x": 20,
+      "y": 220,
+      "width": 250,
+      "height": 100
+    },
+    {
+      "id": "g_armas",
+      "type": "text",
+      "text": "## Armas\nSelecao livre | Anual\n-> `abrirMenuSelecaoLivre` | `iniciarModoAnual`",
+      "x": 290,
+      "y": 220,
+      "width": 250,
+      "height": 110
+    },
+    {
+      "id": "g_drogas",
+      "type": "text",
+      "text": "## Drogas\nSelecao livre | Anual\n-> `abrirMenuSelecaoLivreDrogas` | `iniciarModoAnualDrogas`",
+      "x": 560,
+      "y": 220,
+      "width": 260,
+      "height": 110
+    },
+    {
+      "id": "g_prod",
+      "type": "text",
+      "text": "## Produtividade / Comparativo\nComparativo 2026 | GXT livre | GXT anual | Central Analitica\n(4 itens; GXT e Central RECUPERADOS no #130)",
+      "x": 840,
+      "y": 220,
+      "width": 300,
+      "height": 130,
+      "color": "5"
+    },
+    {
+      "id": "g_guard",
+      "type": "text",
+      "text": "## Guardiao da Qualidade\nAuditar (seletor de meses) | Auditar aba atual\n-> `abrirSeletorMesesGuardiao` | `executarGuardiaoQualidade`",
+      "x": 20,
+      "y": 400,
+      "width": 300,
+      "height": 120,
+      "color": "6"
+    },
+    {
+      "id": "g_efet",
+      "type": "text",
+      "text": "## Efetivo\nSincronizar efetivo pelo peculio\n-> `normalizarEfetivo`",
+      "x": 340,
+      "y": 400,
+      "width": 250,
+      "height": 100
+    },
+    {
+      "id": "g_pipcpm",
+      "type": "text",
+      "text": "## PIP / CPM\n`PIP | Ciclo 29-28` e `CPM | Mes civil`\n(mensal | selecao livre | anual) = 6 itens",
+      "x": 610,
+      "y": 400,
+      "width": 300,
+      "height": 120,
+      "color": "5"
+    },
+    {
+      "id": "g_dev",
+      "type": "text",
+      "text": "## Desenvolvimento\n[Dev] Teste de homologacao V1 x V2\n-> `rodarTesteDeHomologacao`",
+      "x": 930,
+      "y": 400,
+      "width": 280,
+      "height": 110,
+      "color": "3"
+    },
+    {
+      "id": "m_c01",
+      "type": "text",
+      "text": "C01 / MOD-C01-01\nFormulario + menus\n(`abrirFormularioEntrada`)",
+      "x": 20,
+      "y": 580,
+      "width": 250,
+      "height": 90
+    },
+    {
+      "id": "m_c01b",
+      "type": "text",
+      "text": "C01 / MOD-C01-02\nNormalizador de Efetivo\n(consome ARCA via SUB-C01-02-01)",
+      "x": 340,
+      "y": 580,
+      "width": 270,
+      "height": 100
+    },
+    {
+      "id": "m_c05",
+      "type": "text",
+      "text": "C05 / MOD-C05-01\nGuardiao de Qualidade\n(auditor passivo)",
+      "x": 640,
+      "y": 580,
+      "width": 260,
+      "height": 90
+    },
+    {
+      "id": "m_c02",
+      "type": "text",
+      "text": "C02 / Leitura\n`Compilador PIP.js` (+ consumo no C04 Motor)",
+      "x": 20,
+      "y": 700,
+      "width": 280,
+      "height": 100
+    },
+    {
+      "id": "m_c06",
+      "type": "text",
+      "text": "C06 / Relatorios\n`CompiladorProdutividade.js`, `CompiladorGxt.js`, `Compilador_Armas.js`",
+      "x": 340,
+      "y": 700,
+      "width": 300,
+      "height": 110
+    },
+    {
+      "id": "m_c04",
+      "type": "text",
+      "text": "C04 / Motor\n`Features/CentralAnalitica.js`",
+      "x": 680,
+      "y": 700,
+      "width": 260,
+      "height": 90
+    },
+    {
+      "id": "n_dev",
+      "type": "text",
+      "text": "C08 / Homologacao\n`Homologacao/RodarTesteDeHomologacao.js` (fora do push)",
+      "x": 980,
+      "y": 700,
+      "width": 290,
+      "height": 100
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "fromNode": "p3",
+      "toNode": "g_form",
+      "label": "submenu"
+    },
+    {
+      "id": "e2",
+      "fromNode": "p3",
+      "toNode": "g_armas"
+    },
+    {
+      "id": "e3",
+      "fromNode": "p3",
+      "toNode": "g_drogas"
+    },
+    {
+      "id": "e4",
+      "fromNode": "p3",
+      "toNode": "g_prod",
+      "label": "submenu"
+    },
+    {
+      "id": "e5",
+      "fromNode": "p3",
+      "toNode": "g_guard"
+    },
+    {
+      "id": "e6",
+      "fromNode": "p3",
+      "toNode": "g_efet"
+    },
+    {
+      "id": "e7",
+      "fromNode": "p3",
+      "toNode": "g_pipcpm"
+    },
+    {
+      "id": "e8",
+      "fromNode": "p3",
+      "toNode": "g_dev",
+      "label": "isolado [Dev]"
+    },
+    {
+      "id": "e9",
+      "fromNode": "g_form",
+      "toNode": "m_c01"
+    },
+    {
+      "id": "e10",
+      "fromNode": "g_armas",
+      "toNode": "m_c06",
+      "label": "menu realocado p/ C01"
+    },
+    {
+      "id": "e11",
+      "fromNode": "g_drogas",
+      "toNode": "m_c02"
+    },
+    {
+      "id": "e12",
+      "fromNode": "g_prod",
+      "toNode": "m_c06",
+      "label": "comparativo+GXT"
+    },
+    {
+      "id": "e13",
+      "fromNode": "g_prod",
+      "toNode": "m_c04",
+      "label": "Central Analitica"
+    },
+    {
+      "id": "e14",
+      "fromNode": "g_guard",
+      "toNode": "m_c05"
+    },
+    {
+      "id": "e15",
+      "fromNode": "g_efet",
+      "toNode": "m_c01b"
+    },
+    {
+      "id": "e16",
+      "fromNode": "g_pipcpm",
+      "toNode": "m_c02",
+      "label": "PIP"
+    },
+    {
+      "id": "e17",
+      "fromNode": "g_pipcpm",
+      "toNode": "m_c06",
+      "label": "CPM"
+    },
+    {
+      "id": "e18",
+      "fromNode": "g_dev",
+      "toNode": "n_dev"
+    }
+  ]
 }

@@ -42,6 +42,7 @@ Essas responsabilidades pertencem a outros cÃ´modos.
 - `Entrada/EntradaManual.js`: HIGIENIZADO (modularizado em funÃ§Ãµes pequenas de resoluÃ§Ã£o, validaÃ§Ã£o anti-duplicidade, montagem de matriz e gravaÃ§Ã£o em chunks)
 - `Entrada/DialogComparativo2026.html`: OPERACIONAL (renderizaÃ§Ã£o de HTML `<?!=` corrigida)
 - `Compilador_Armas.js`: menu realocado para C01 via `criarMenuArmas_`
+- `Entrada/Menu.js`: PORTA UNICA DE NAVEGACAO `P3` (card #130) - 8 grupos, itens `[Dev]` isolados, GXT e Central Analitica recuperados; os menus superiores antigos (Formulario/Armas/Drogas/Produtividade/Pip) nao sao mais criados. Contrato: `MOD-C01-01/INVENTARIO_MENUS_E_CONTRATO_P3.md`; circuito: `CIR-MOD-C01-01_FORMULARIO_E_MENUS.canvas`.
 
 ## DÃ­vidas Internas
 
