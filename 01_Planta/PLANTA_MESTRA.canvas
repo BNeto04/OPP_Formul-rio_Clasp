@@ -89,6 +89,15 @@
       "y": 300,
       "width": 200,
       "height": 100
+    },
+    {
+      "id": "n_arca",
+      "x": 780,
+      "y": 0,
+      "width": 220,
+      "height": 100,
+      "type": "text",
+      "text": "C03 / MOD-C03-02 ARCA de Regras"
     }
   ],
   "edges": [
@@ -125,6 +134,20 @@
       "fromNode": "n_peculio",
       "fromSide": "left",
       "toNode": "n6",
+      "toSide": "right"
+    },
+    {
+      "id": "e5",
+      "fromNode": "n3",
+      "fromSide": "right",
+      "toNode": "n_arca",
+      "toSide": "left"
+    },
+    {
+      "id": "e6",
+      "fromNode": "n_arca",
+      "fromSide": "bottom",
+      "toNode": "n5",
       "toSide": "right"
     }
   ]

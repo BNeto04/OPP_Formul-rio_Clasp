@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    {
+      "id": "n1",
+      "x": 0,
+      "y": 0,
+      "width": 420,
+      "height": 140,
+      "type": "text",
+      "text": "### Adaptador / Porta de Consulta\nPORTA DE SAIDA read-only da ARCA: enriquecerDiagnostico(codigoRegra, contexto) devolve metadados (rule_id, fonte, tipo, excecoes, human_action). Mapeia 26 codigos -> 20 das 31 regr"
+    }
+  ],
+  "edges": []
+}

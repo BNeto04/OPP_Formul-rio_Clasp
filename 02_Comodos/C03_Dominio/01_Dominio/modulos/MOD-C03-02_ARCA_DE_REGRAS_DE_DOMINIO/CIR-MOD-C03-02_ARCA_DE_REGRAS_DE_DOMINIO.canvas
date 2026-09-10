@@ -1,0 +1,95 @@
+{
+  "nodes": [
+    {
+      "id": "arca-1",
+      "x": 400,
+      "y": 0,
+      "width": 420,
+      "height": 120,
+      "type": "text",
+      "text": "### MOD-C03-02 ARCA de Regras de Dominio\nCatalogo canonico read-only. 31 regras: 9 OFFICIAL_BUSINESS, 17 INTERNAL_OPERATIONAL, 1 CANONICAL_NORMATIVE, 2 HEURISTIC, 2 TECHNICAL."
+    },
+    {
+      "id": "arca-2",
+      "x": 0,
+      "y": 200,
+      "width": 320,
+      "height": 110,
+      "type": "text",
+      "text": "### SUB-C03-02-01 CATALOGO DE REGRAS\narca_regras_dominio.json + ARCA_REGRAS_DOMINIO.md"
+    },
+    {
+      "id": "arca-3",
+      "x": 360,
+      "y": 200,
+      "width": 320,
+      "height": 110,
+      "type": "text",
+      "text": "### SUB-C03-02-02 FONTES E PROVENIENCIA\nARCA_FONTES.md\n11 canonicas | 18 internas | 2 desconhecidas"
+    },
+    {
+      "id": "arca-4",
+      "x": 720,
+      "y": 200,
+      "width": 320,
+      "height": 110,
+      "type": "text",
+      "text": "### SUB-C03-02-03 COBERTURA E LACUNAS\nARCA_COBERTURA.md\n15 COBERTO | 2 NAO_COBERTO | 1 NAO_AUTOMATIZAVEL"
+    },
+    {
+      "id": "arca-5",
+      "x": 360,
+      "y": 380,
+      "width": 320,
+      "height": 110,
+      "type": "text",
+      "text": "### SUB-C03-02-04 ADAPTADOR / PORTA DE CONSULTA\nAdaptadorConsultaArca.js\nenriquecerDiagnostico(codigoRegra) | 26 codigos -> 20 de 31 regras"
+    },
+    {
+      "id": "arca-6",
+      "x": 720,
+      "y": 380,
+      "width": 340,
+      "height": 110,
+      "type": "text",
+      "text": "### Consumidores FACTUAIS (auditoria #123)\nCore/RegrasQualidade (hub) -> Core/CoberturaAuditoria + Render/PainelSaude -> C05 Guardiao (indireto)"
+    }
+  ],
+  "edges": [
+    {
+      "id": "a-e0",
+      "fromNode": "arca-1",
+      "fromSide": "bottom",
+      "toNode": "arca-2",
+      "toSide": "top"
+    },
+    {
+      "id": "a-e1",
+      "fromNode": "arca-1",
+      "fromSide": "bottom",
+      "toNode": "arca-3",
+      "toSide": "top"
+    },
+    {
+      "id": "a-e2",
+      "fromNode": "arca-1",
+      "fromSide": "bottom",
+      "toNode": "arca-4",
+      "toSide": "top"
+    },
+    {
+      "id": "a-e3",
+      "fromNode": "arca-5",
+      "fromSide": "top",
+      "toNode": "arca-1",
+      "toSide": "bottom"
+    },
+    {
+      "id": "a-e4",
+      "fromNode": "arca-5",
+      "fromSide": "right",
+      "toNode": "arca-6",
+      "toSide": "left"
+    }
+  ]
+}

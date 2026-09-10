@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    {
+      "id": "n1",
+      "x": 0,
+      "y": 0,
+      "width": 420,
+      "height": 140,
+      "type": "text",
+      "text": "### Fontes e Proveniencia\nRegistra autoridade e proveniencia de cada regra: fontes oficiais normativas, internas operacionais, heuristicas derivadas e desconhecidas. Distribuicao atual: 11 CANONICAL_SOURCE_"
+    }
+  ],
+  "edges": []
+}

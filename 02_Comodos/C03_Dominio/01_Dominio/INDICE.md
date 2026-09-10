@@ -38,3 +38,18 @@ Foi verificado que o modelo de DomÃ­nio preserva 100% das propriedades brutas 
 - **RelatÃ³rio Completo de Pureza:** Ver 02_Comodos/C03_DOMINIO_PUREZA.md.
 
 
+
+
+---
+
+## MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO (G01 / ARCA-FIX-001, 10/09/2026)
+
+Endereco canonico materializado no Down Plant (antes: ARCA orfa na planta - achado da auditoria #123).
+
+- Modulo: `01_Dominio/modulos/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/`
+- Circuito: `CIR-MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO.canvas`
+- Submodulos: SUB-C03-02-01_CATALOGO_DE_REGRAS | SUB-C03-02-02_FONTES_E_PROVENIENCIA | SUB-C03-02-03_COBERTURA_E_LACUNAS | SUB-C03-02-04_ADAPTADOR_PORTA_DE_CONSULTA
+- Artefatos fisicos endereçados: Dominio/ARCA/{arca_regras_dominio.json, ARCA_REGRAS_DOMINIO.md, ARCA_FONTES.md, ARCA_COBERTURA.md, AdaptadorConsultaArca.js}
+- Porta de saida: AdaptadorConsultaArca.enriquecerDiagnostico(codigoRegra) -> Core/RegrasQualidade (hub) -> C05 Guardiao (indireto)
+- Integracao na Planta Mestra: node `n_arca` + arestas e5 (C03 -> ARCA) e e6 (ARCA -> C05)
+- Pendencias declaradas: #125 (consumidores declarados x reais), #126 (cobertura 11 regras + lacunas G01), #127 (NormalizadorEfetivo), #128 (varredura exaustiva)

@@ -1,0 +1,79 @@
+{
+  "nodes": [
+    {
+      "id": "c03-1",
+      "x": 400,
+      "y": 0,
+      "width": 360,
+      "height": 100,
+      "type": "text",
+      "text": "### C03 Dominio\nCamada de dominio: modelos, regras canonicas e ARCA."
+    },
+    {
+      "id": "c03-2",
+      "x": 0,
+      "y": 200,
+      "width": 360,
+      "height": 110,
+      "type": "text",
+      "text": "### MOD-C03-01 MODELO DE OCORRENCIA\nRepresentacao canonica da ocorrencia/tunel (DATA|MIKE|BOE)."
+    },
+    {
+      "id": "c03-3",
+      "x": 0,
+      "y": 360,
+      "width": 360,
+      "height": 130,
+      "type": "text",
+      "text": "### MOD-C03-02 ARCA DE REGRAS DE DOMINIO\nCatalogo canonico read-only (31 regras) + porta de consulta. Submodulos: CATALOGO, FONTES, COBERTURA, ADAPTADOR/PORTA."
+    },
+    {
+      "id": "c03-4",
+      "x": 800,
+      "y": 360,
+      "width": 380,
+      "height": 130,
+      "type": "text",
+      "text": "### PORTA ARCA -> C05 GUARDIAO\nAdaptadorConsultaArca.enriquecerDiagnostico(codigoRegra)\nCore/RegrasQualidade (hub) -> Guardiao (indireto)"
+    },
+    {
+      "id": "c03-5",
+      "x": 800,
+      "y": 200,
+      "width": 380,
+      "height": 110,
+      "type": "text",
+      "text": "### Consumidores externos\nCore/CoberturaAuditoria (LACUNA_ARCA) | Render/PainelSaude (drill-down)"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c03-e0",
+      "fromNode": "c03-1",
+      "fromSide": "bottom",
+      "toNode": "c03-2",
+      "toSide": "top"
+    },
+    {
+      "id": "c03-e1",
+      "fromNode": "c03-1",
+      "fromSide": "bottom",
+      "toNode": "c03-3",
+      "toSide": "top"
+    },
+    {
+      "id": "c03-e2",
+      "fromNode": "c03-3",
+      "fromSide": "right",
+      "toNode": "c03-4",
+      "toSide": "left"
+    },
+    {
+      "id": "c03-e3",
+      "fromNode": "c03-4",
+      "fromSide": "top",
+      "toNode": "c03-5",
+      "toSide": "bottom"
+    }
+  ]
+}

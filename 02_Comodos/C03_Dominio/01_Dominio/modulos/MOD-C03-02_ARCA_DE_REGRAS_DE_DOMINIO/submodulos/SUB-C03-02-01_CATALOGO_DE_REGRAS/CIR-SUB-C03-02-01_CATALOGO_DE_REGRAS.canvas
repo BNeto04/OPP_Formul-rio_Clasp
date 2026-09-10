@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    {
+      "id": "n1",
+      "x": 0,
+      "y": 0,
+      "width": 420,
+      "height": 140,
+      "type": "text",
+      "text": "### Catalogo de Regras\nMantem o catalogo canonico legivel por maquina (JSON) e humano (MD). 31 regras com 22 campos por regra: rule_id, titulo, descricao_humana, categoria, subdominio, tipo_regra, fonte_"
+    }
+  ],
+  "edges": []
+}
