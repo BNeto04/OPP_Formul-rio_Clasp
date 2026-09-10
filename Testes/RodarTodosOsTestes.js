@@ -29,6 +29,8 @@ async function main() {
   console.log('');
   require('./TestArcaNormalizadorEfetivo');
   console.log('');
+  require('./TestContratoMutacaoSegura');
+  console.log('');
   require('./TestSeletorMesesGuardiao');
   console.log('');
   require('./TestCatalogoPipGuardiao');

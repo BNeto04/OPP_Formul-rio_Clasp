@@ -32,3 +32,6 @@ Lote B da Sprint G01 (#112): **NORMALIZADOR SEGURO** (cards G01-006 a G01-010). 
 - Mecanismos obrigatorios (requisitos, nao opcionais): M1 rollback de lote + snapshot pre-execucao; M2 dry-run obrigatorio; M3 lock single-flight; M4 whitelist de colunas mutaveis (proibido tocar MIKE/BOE/matricula/origem do PIP); M5 comparacao de defeitos antes/depois + rastreabilidade diagnostico -> plano -> mutacao -> reauditoria; M6 kill-switch por limite maximo de celulas.
 - Fluxo canonico refinado: `GUARDIAO -> DIAGNOSTICO -> CLASSIFICACAO -> DRY-RUN -> PLANO -> VALIDACAO DE ESCOPO -> LOCK -> APLICACAO -> LOG ANTES/DEPOIS -> REAUDITORIA -> COMPARACAO DE DELTA -> COMMIT OU ROLLBACK`.
 - Criterio de sucesso (todos obrigatorios; falha em qualquer um = rollback automatico do lote): `ERRO_ALVO_RESOLVIDO=true`, `NOVOS_ERROS_CRIADOS=0`, `ESCOPO_MUTADO<=LIMITE`, `REAUDITORIA=GREEN`.
+
+## Contrato de mutacao segura (card #118)
+O contrato tipado que governa este modulo esta em `CONTRATO_MUTACAO_SEGURA.md` (nesta pasta), implementado em `Core/ContratoMutacaoSegura.js` e provado por `Testes/TestContratoMutacaoSegura.js` (18/18 PASS). Execucao real: cards G01-007 a G01-010.
