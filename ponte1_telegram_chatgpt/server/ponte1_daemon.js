@@ -22,6 +22,7 @@ const CONFIG = {
   offsetFile: path.join(__dirname, 'ponte1_offset.json'),
   dedupeFile: path.join(__dirname, 'ponte1_dedupe.json'),
   deliveryHistoryFile: path.join(__dirname, 'ponte1_delivery_history.json'),
+  outboxFile: path.join(__dirname, 'ponte1_outbox.json'),
   logFile: path.join(__dirname, 'ponte1.log')
 };
 
@@ -68,6 +69,7 @@ class Ponte1Daemon {
     this.running = false;
     this.currentOffset = this.loadOffset();
     this.loadDedupe();
+    this.outbox = this.loadOutbox();
   }
 
   loadDedupe() {
@@ -123,6 +125,66 @@ class Ponte1Daemon {
     } catch (e) {}
   }
 
+  // CAIXA DE SAIDA (10/09/2026): resposta do ChatGPT que nao conseguiu chegar ao Telegram
+  // nao e mais perdida - fica persistida aqui e e reenviada nos ciclos seguintes.
+  loadOutbox() {
+    try {
+      if (fs.existsSync(CONFIG.outboxFile)) {
+        const data = JSON.parse(fs.readFileSync(CONFIG.outboxFile, 'utf8'));
+        if (Array.isArray(data.pendentes)) return data.pendentes;
+      }
+    } catch (e) {}
+    return [];
+  }
+
+  saveOutbox() {
+    try {
+      fs.writeFileSync(CONFIG.outboxFile, JSON.stringify({ pendentes: this.outbox, updated_at: new Date().toISOString() }, null, 2), 'utf8');
+    } catch (e) {}
+  }
+
+  enfileirarOutbox(replyKey, replyToMsgId, payload, erro) {
+    if (this.outbox.length >= 50) {
+      const descartado = this.outbox.shift();
+      log(`[OUTBOX_LIMITE] Caixa de saida cheia (50); descartando o mais antigo: ${descartado.reply_key}`);
+    }
+    this.outbox.push({
+      reply_key: replyKey,
+      reply_to_message_id: replyToMsgId,
+      payload: payload,
+      tentativas: 0,
+      ultimo_erro: erro || null,
+      enfileirado_em: new Date().toISOString()
+    });
+    this.saveOutbox();
+    log(`[OUTBOX_QUEUED] Resposta de reply_to=${replyToMsgId} retida para reenvio (erro: ${erro || 'desconhecido'}). Pendentes: ${this.outbox.length}.`);
+  }
+
+  async flushOutbox() {
+    if (!this.client || this.outbox.length === 0) return;
+    for (const item of [...this.outbox]) {
+      try {
+        const tgRes = await this.client.sendMessage(this.authorizedChatId, item.payload, item.reply_to_message_id);
+        if (tgRes && tgRes.ok) {
+          this.recordDelivery(item.reply_key, tgRes.result.message_id);
+          this.outbox = this.outbox.filter(x => x.reply_key !== item.reply_key);
+          this.saveOutbox();
+          log(`[OUTBOX_FLUSH_OK] Resposta de reply_to=${item.reply_to_message_id} entregue no Telegram: msg_id=${tgRes.result.message_id} (apos ${item.tentativas} falha(s)).`);
+        } else {
+          item.tentativas++;
+          item.ultimo_erro = JSON.stringify(tgRes).substring(0, 200);
+          this.saveOutbox();
+          break;
+        }
+      } catch (err) {
+        item.tentativas++;
+        item.ultimo_erro = String((err && err.message) || err);
+        this.saveOutbox();
+        break;
+      }
+    }
+  }
+
   // 1. Poller Contínuo do Telegram
   async startTelegramPolling() {
     if (!this.client) {
@@ -134,6 +196,9 @@ class Ponte1Daemon {
 
     while (this.running) {
       try {
+        // Reenvia o que ficou preso na caixa de saida (falhas transitorias anteriores)
+        await this.flushOutbox();
+
         const res = await this.client.getUpdates(this.currentOffset, 5);
         if (res && res.ok && Array.isArray(res.result)) {
           for (const update of res.result) {
@@ -220,6 +285,7 @@ PAYLOAD: sua resposta
           queue_length: this.packetQueue.length,
           in_flight: this.inFlightPacket ? this.inFlightPacket.packet_id : null,
           uncertain_packets_count: this.uncertainPackets.size,
+          outbox_pending: this.outbox.length,
           uncertain_packets: Array.from(this.uncertainPackets.keys()),
           delivered_count: this.deliveredCount,
           running: this.running
@@ -306,20 +372,28 @@ PAYLOAD: sua resposta
             }
             this.seenReplyIds.add(replyKey);
 
-            // Envia ao Telegram
+            // Envia ao Telegram (com caixa de saida: falha transitoria nao perde mais a resposta)
+            let entregue = false;
             if (this.client) {
-              const tgRes = await this.client.sendMessage(this.authorizedChatId, rawPayload, replyToMsgId);
-              if (tgRes && tgRes.ok) {
-                const outMsgId = tgRes.result.message_id;
-                this.recordDelivery(replyKey, outMsgId);
-                log(`[TELEGRAM_SEND_SUCCESS] Resposta entregue no Telegram: msg_id=${outMsgId}, reply_to=${replyToMsgId}`);
-              } else {
-                log(`Falha no envio ao Telegram: ${JSON.stringify(tgRes)}`);
+              try {
+                const tgRes = await this.client.sendMessage(this.authorizedChatId, rawPayload, replyToMsgId);
+                if (tgRes && tgRes.ok) {
+                  const outMsgId = tgRes.result.message_id;
+                  this.recordDelivery(replyKey, outMsgId);
+                  entregue = true;
+                  log(`[TELEGRAM_SEND_SUCCESS] Resposta entregue no Telegram: msg_id=${outMsgId}, reply_to=${replyToMsgId}`);
+                } else {
+                  log(`Falha no envio ao Telegram: ${JSON.stringify(tgRes)}`);
+                  this.enfileirarOutbox(replyKey, replyToMsgId, rawPayload, JSON.stringify(tgRes).substring(0, 200));
+                }
+              } catch (err) {
+                log(`Falha transitoria no envio ao Telegram (retida na caixa de saida): ${err.message}`);
+                this.enfileirarOutbox(replyKey, replyToMsgId, rawPayload, err.message);
               }
             }
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: true, delivered_to_telegram: true }));
+            res.end(JSON.stringify({ ok: true, delivered_to_telegram: entregue, queued_for_retry: !entregue }));
           } catch (err) {
             log(`Erro ao processar /reply: ${err.message}`);
             res.writeHead(500, { 'Content-Type': 'application/json' });
