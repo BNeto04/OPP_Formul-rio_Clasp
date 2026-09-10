@@ -31,11 +31,10 @@ function arvoreMenuP3_() {
       { rotulo: 'Anual', alvo: 'iniciarModoAnualDrogas' }
     ]},
     { grupo: 'Produtividade / Comparativo', itens: [
-      { rotulo: 'Gerar produtividade / comparativo 2026', alvo: 'abrirMenuComparativo2026' },
-      { rotulo: 'GXT — seleção livre', alvo: 'abrirMenuGxtSelecaoLivre' },
-      { rotulo: 'GXT — anual', alvo: 'gerarGxtAnual' },
-      { rotulo: 'Central Analítica — anual', alvo: 'rodarCentralAnaliticaAnual' },
-      { rotulo: 'Central Analítica — seleção livre', alvo: 'abrirMenuCentralAnaliticaSelecaoLivre' }
+      { rotulo: 'Gerar produtividade / comparativo 2026', alvo: 'abrirMenuComparativo2026' }
+      // GXT e Central Analítica NAO entram no menu: features ABANDONADAS por decisao do proprietario
+      // (GXT tera planilha propria; Central Analítica entra na migracao para banco de dados).
+      // O codigo permanece no repositorio - nao expomos, nao removemos.
     ]},
     { grupo: 'Guardião da Qualidade', itens: [
       { rotulo: 'Auditar (seletor de meses)', alvo: 'abrirSeletorMesesGuardiao' },
