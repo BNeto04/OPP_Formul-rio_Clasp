@@ -40,7 +40,7 @@
     {
       "id": "g_prod",
       "type": "text",
-      "text": "## Produtividade / Comparativo\nComparativo 2026 | GXT livre | GXT anual | Central Analitica\n(4 itens; GXT e Central RECUPERADOS no #130)",
+      "text": "## Produtividade / Comparativo\nComparativo 2026\n-> `abrirMenuComparativo2026`\n(GXT e Central Analitica: abandonadas - fora do menu)",
       "x": 840,
       "y": 220,
       "width": 300,
@@ -125,20 +125,11 @@
     {
       "id": "m_c06",
       "type": "text",
-      "text": "C06 / Relatorios\n`CompiladorProdutividade.js`, `CompiladorGxt.js`, `Compilador_Armas.js`",
+      "text": "C06 / Relatorios\n`CompiladorProdutividade.js`,\n`Compilador_Armas.js` (menu realocado p/ C01)",
       "x": 340,
       "y": 700,
       "width": 300,
       "height": 110
-    },
-    {
-      "id": "m_c04",
-      "type": "text",
-      "text": "C04 / Motor\n`Features/CentralAnalitica.js`",
-      "x": 680,
-      "y": 700,
-      "width": 260,
-      "height": 90
     },
     {
       "id": "n_dev",
@@ -214,13 +205,7 @@
       "id": "e12",
       "fromNode": "g_prod",
       "toNode": "m_c06",
-      "label": "comparativo+GXT"
-    },
-    {
-      "id": "e13",
-      "fromNode": "g_prod",
-      "toNode": "m_c04",
-      "label": "Central Analitica"
+      "label": "comparativo 2026"
     },
     {
       "id": "e14",

@@ -22,7 +22,7 @@ Invariantes da porta:
 - item cuja funcao alvo nao existe e OMITIDO com log (`[MENU_P3] item omitido`) - menu nao quebra;
 - itens `[Dev]` ficam isolados no grupo Desenvolvimento;
 - **Normalizador Seguro nao tem item ativo** enquanto nao existir funcao real de execucao (#122);
-- GXT e Central Analitica passaram a ter entrada de menu (antes nao tinham nenhuma).
+- GXT e Central Analitica **nao entram no menu**: features abandonadas por decisao do proprietario (GXT tera planilha propria; Central Analitica entra na migracao para banco de dados). O codigo permanece no repositorio, sem item de navegacao.
 
 Evidencia: `Testes/TestMenuP3.js` (12 PASS) carrega o produto real num sandbox `vm` com `SpreadsheetApp` falso e valida a arvore, os alvos vivos e a construcao defensiva.
 Rollback: `git revert` do commit do #130 (`Entrada/Menu.js`) restaura os menus superiores anteriores.
