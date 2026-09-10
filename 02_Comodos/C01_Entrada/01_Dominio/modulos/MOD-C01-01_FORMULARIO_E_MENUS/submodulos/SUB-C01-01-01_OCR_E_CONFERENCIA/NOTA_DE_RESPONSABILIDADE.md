@@ -405,3 +405,6 @@ DOCUMENTO OU MANUAL -> OCR/PREFILL -> CONFERÊNCIA HUMANA -> DADOS DO FATO -> EQ
    - As diferenças em arquivos locais incluem arquivos preexistentes sujos fora do escopo da Sprint (`Core/RegrasQualidade.js`, `Core/Utils.js`, `Features/NormalizadorEfetivo.js`).
    - Para garantir o cumprimento estrito da regra de não misturar arquivos de escopo alheio, a publicação remota via `clasp push` permanece não acionada (`CLASP_REQUIRED = NÃO`).
 
+
+## Governanca ARCA sobre OCR/formulario (card #135)
+A fotografia factual do circuito `BO/OCR -> Formulario -> payload -> Sheets`, a matriz `REGRA | LOCAL_ATUAL | ARCA_RULE_ID | CONSUMO_REAL | TIPO | LACUNA | IMPACTO` e a fronteira recomendada estao em `AUDITORIA_OCR_ARCA.md` (nesta pasta). Achado central: **o Formulario/OCR nao consome a ARCA hoje** e a regra de veiculo recuperado e heuristica hardcoded (`Entrada/Formulario.html:957-965`), sem regra correspondente nas 40 regras da ARCA.
