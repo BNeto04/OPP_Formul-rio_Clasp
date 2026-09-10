@@ -164,6 +164,20 @@ test('mensagem legivel lista abas e numeracao', () => {
   assert.ok(msg.includes('JUL2026') && msg.includes('AGO2026') && msg.includes('1.'));
 });
 
+// ---------- 6. Nomes REAIS da planilha viva (evidencia live G01 #117, 10/09/2026) ----------
+test('nomes reais da planilha: seleciona exatamente os 9 meses auditaveis', () => {
+  const nomesReais = ['SET2026', 'AGO2026', 'CA_JUL2026_JUL2026', '_BACKUP_JUN2026', '_BKP_20260710_JAN2026', '_BKP_20260710_FEV2026', '_BKP_20260710_MAR2026', '_BKP_20260710_ABR2026', '_BKP_20260710_MAI2026', '_BKP_20260710_JUN2026', '_BACKUP_MAI2026', '_BACKUP_ABR2026', '_BACKUP_MAR2026', '_BACKUP_FEV2026', '_BACKUP_JAN2026', 'JUL2026', 'PIP_SELECAO_LIVRE', 'PIP_JUL_2026.v5', 'PRODUTIVIDADE_GERAL', 'LOG_COMPARATIVO_2026', 'LOG_PRODUTIVIDADE', 'PIP_JUL_2026.v3', 'PIP_JUL_2026.v2', 'COMP_ARMAS_2026.v1', '[DEBUG] Homologação', 'ListaV1_PM', 'ListaV2_PM', 'COMP_ARMAS_JUL2026_JUL2026.v1', 'PIP_JUL_2026', 'COMP_ARMAS_JUL2026_JUL2026', 'COMP_ARMAS_2026', 'LOG_DROGAS_LIVRE', 'JUN2026', '[AUDITORIA] Ocorrencias', 'LOG_DROGAS_ANUAL', 'LOG_CPM', 'PIP_JUN_2026.v5', 'MAI2026', 'ABR2026', 'MAR2026', 'FEV2026', 'JAN2026', 'PIP_FINAL-AGO2026', 'COMPARATIVO_2026', 'LOOKER_PIP_PREVIA.', 'Modelo_2026', 'Posição Geografica', 'EFETIVO', '[AUDITORIA] Efetivo', 'LOG_PIP', 'LOG_ANUAL', 'LOG_LIVRE', 'tabela de pontos PIP', 'Cópia de tabela de pontos PIP'];
+  const abas = SeletorMesesGuardiao.listarAbasMensais(criarSS(nomesReais)).map(a => a.nome);
+  assert.deepStrictEqual(abas, ['JAN2026', 'FEV2026', 'MAR2026', 'ABR2026', 'MAI2026', 'JUN2026', 'JUL2026', 'AGO2026', 'SET2026']);
+});
+
+test('variacoes com separador real (jul.2026, JUL-2026, jul_2026) sao aceitas', () => {
+  for (const n of ['jul.2026', 'JUL-2026', 'jul_2026', 'JUL.2026']) {
+    const p = SeletorMesesGuardiao.nomeMensalValido(n);
+    assert.ok(p && p.mes === 7 && p.ano === 2026, `falhou para ${n}`);
+  }
+});
+
 console.log(`\nRESULTADOS FINAIS: ${sucessos} PASS / ${falhas} FAIL`);
 if (falhas > 0) process.exit(1);
 }

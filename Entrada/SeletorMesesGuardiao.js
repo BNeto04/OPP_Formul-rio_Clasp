@@ -43,8 +43,8 @@ class SeletorMesesGuardiao {
     let ano = null;
     let mes = null;
 
-    // 1) ABREV + ano: JUL2026, JUL 2026, JULHO 2026, JUL/2026
-    const mAbv = norm.match(/^(JANEIRO|FEVEREIRO|MARCO|ABRIL|MAIO|JUNHO|JULHO|AGOSTO|SETEMBRO|OUTUBRO|NOVEMBRO|DEZEMBRO|JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[ /]?((?:19|20)\d{2})$/);
+    // 1) ABREV + ano: JUL2026, JUL 2026, JULHO 2026, JUL/2026, jul.2026, JUL-2026
+    const mAbv = norm.match(/^(JANEIRO|FEVEREIRO|MARCO|ABRIL|MAIO|JUNHO|JULHO|AGOSTO|SETEMBRO|OUTUBRO|NOVEMBRO|DEZEMBRO|JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[ .\-_/]?((?:19|20)\d{2})$/);
     if (mAbv) {
       mes = SeletorMesesGuardiao.mesParaNumero(mAbv[1]);
       ano = parseInt(mAbv[2], 10);
