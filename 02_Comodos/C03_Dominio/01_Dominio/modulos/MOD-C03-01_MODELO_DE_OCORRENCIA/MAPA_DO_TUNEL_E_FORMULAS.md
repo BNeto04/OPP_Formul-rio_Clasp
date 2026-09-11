@@ -94,7 +94,7 @@ Fonte do `AI`: `'tabela de pontos PIP'!C4:G100` — **coluna 4 = SEM IMPUTADO, c
 | ID | Risco | Evidência | Severidade |
 |---|---|---|---|
 | **R1** | **Ranges inconsistentes entre fórmulas irmãs**: maconha vai até `$S$2012`, cocaína até `$Z$2014`, e `PONTOS FICÇÃO` só até `$AI$1209`/`$AK$1209` | fórmulas das colunas T, AA e AJ | **ALTA** — uma linha além do limite perde a derivada em silêncio (ex.: linha 1300 pontua mas não gera ficção) |
-| **R2** | `Total CRACK (gr) = V + (U/4)` e `TOTAL DE COCAINA = (X+Y) + (V + U/4)` → o total de **cocaína inclui o crack**, e a pedra de crack é **dividida por 4** | colunas W e Z | **ALTA (domínio)** — pode ser regra de conversão legítima (pedra ≈ ¼) ou erro de fórmula; **exige confirmação do proprietário antes de qualquer correção** |
+| **R2** | ~~`Total CRACK (gr) = V + (U/4)` e `TOTAL DE COCAINA = (X+Y) + (V + U/4)`~~ | colunas W e Z | **RESOLVIDO (11/09/2026) — regra de domínio confirmada, não é defeito.** O proprietário determinou as medidas canônicas (pedra de crack = 0,25 g; papelote/big de maconha = 3 g; pino/ziplock de cocaína = 1 g) e que **o crack entra no somatório geral da cocaína nos escalões superiores** por ser derivado direto dela, ainda que a unidade separe as duas contabilidades. Registrado em `ARCA-CONVERSAO-001` + `Core/Constantes.js:CONVERSOES_DROGAS` (#144). |
 | **R3** | `Dividido` depende da **primeira linha do MIKE** (ver §3) | coluna T/AA | **MÉDIA** — restrição de entrada, hoje silenciosa |
 | **R4** | Catálogo PIP com **pares duplicados** `SEM/COM IMPUTADO` (colunas 2–3 e 4–5 de `C:G`); a fórmula usa as colunas 4/5 | `tabela de pontos PIP` + fórmula de AI | **MÉDIA** — risco de divergência entre os dois pares |
 | **R5** | `AJ` e `AK` retornam **vazio** quando `AK` (chave) está vazio → se `DATA`/`MIKE` faltar numa linha filha, a linha perde a ficção | fórmulas de AK/AJ | **MÉDIA** — vetor de "túnel fragmentado" |
@@ -104,9 +104,24 @@ Fonte do `AI`: `'tabela de pontos PIP'!C4:G100` — **coluna 4 = SEM IMPUTADO, c
 
 ---
 
+## 4.1 Conversões canônicas das formas de apreensão (RESOLVIDO — 11/09/2026)
+
+Determinação literal do proprietário, registrada em `ARCA-CONVERSAO-001` e em `Core/Constantes.js` (`CONVERSOES_DROGAS`):
+
+| Forma de apreensão | Equivalente | Onde aparece na fórmula |
+|---|---|---|
+| 1 **pedra de crack** | **0,25 g** | `Total CRACK (gr) = CRACK GRAMA + CRACK PEDRA/4` |
+| 1 **papelote / big de maconha** | **3 g** | `TOTAL DE MACONHA = MACONHA DOLAR*3 + MACONHA GRAMA` |
+| 1 **pino / ziplock de cocaína** | **1 g** | `TOTAL DE COCAINA = (COCAINA PINO+GRAMA) + (CRACK GRAMA + CRACK PEDRA/4)` |
+
+**Regra de escalão superior:** a unidade separa **cocaína × crack** para fins de contabilidade próprios, mas **o crack
+entra no somatório geral da cocaína nos escalões superiores** (derivado direto). Por isso `Z` inclui o crack — é
+intencional. O dono descreveu a lógica geral: o túnel registra **as várias formas de apreensão** e a planilha
+**converte em totais**.
+
 ## 5. Lacunas declaradas (o que não é provável só de fora)
 
-1. **R2** — a intenção de `(U/4)` e da soma do crack no total de cocaína só o proprietário/Planner pode confirmar (não corrigir por conveniência).
+1. ~~R2~~ **resolvido** (§4.1): a conversão e a inclusão do crack no total de cocaína são regra de domínio confirmada.
 2. O comportamento da fórmula quando o operador lança a quantidade numa linha não-inicial do túnel (R3) não foi observado em produção — é dedução da semântica de `MATCH`, não um caso real medido.
 3. Ranges (`2012`/`2014`/`1209`) podem refletir o tamanho histórico da aba em datas diferentes — não há evidência documental da intenção.
 
