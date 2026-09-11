@@ -91,6 +91,8 @@ async function main() {
   console.log('');
   require('./TestPadroesFormularioQtdODetidos');
   console.log('');
+  require('./TestOrdemAntiguidadeEquipe');
+  console.log('');
   require('./TestVigiaPonte');
   console.log('');
   require('./TestVigiaBootRecovery');

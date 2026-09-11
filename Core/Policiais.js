@@ -89,3 +89,65 @@ const SyntheonPoliciais = {
       });
   }
 };
+
+/**
+ * Ordem canonica (copia identica do servidor de antiguidade por posto/graduacao (mais ANTIGO primeiro) - regra do proprietario, 11/09/2026.
+ * Empate de graduacao e resolvido por MATRICULA: a mais antiga (menor numero) vem primeiro.
+ * A MESMA logica existe no cliente (Entrada/Formulario.html) e nao pode divergir dela.
+ */
+var ORDEM_POSTOS_ANTIGUIDADE_ = [
+  [/^(CEL|CORONEL)/, 1],
+  [/^(TENCEL|TENENTECORONEL)/, 2],
+  [/^(MAJ|MAJOR)/, 3],
+  [/^(CAP|CAPITAO)/, 4],
+  [/^(1TEN|1TENENTE|TEN|TENENTE)/, 5],
+  [/^(2TEN|2TENENTE)/, 6],
+  [/^(ASP|ASPIRANTE)/, 7],
+  [/^(SUBTEN|SUBTENENTE)/, 8],
+  [/^(1SGT|1SARGENTO|SARGENTO1)/, 9],
+  [/^(2SGT|2SARGENTO|SARGENTO2)/, 10],
+  [/^(3SGT|3SARGENTO|SARGENTO3)/, 11],
+  [/^(CB|CABO)/, 12],
+  [/^(SD|SOLDADO)/, 13]
+];
+
+/** Normaliza a graduacao para comparacao (sem acento, pontuacao e espaco). */
+function normalizarGraduacaoAntiguidade_(grad) {
+  return String(grad === undefined || grad === null ? '' : grad)
+    .replace(/[ºª°]/g, '')   // "1º TEN" / "3ºSGT" nao podem virar "1OTEN" / "3OSGT"
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/** Indice de antiguidade do posto (1 = mais antigo). Graduacao desconhecida vai para o fim. */
+function indiceAntiguidadePosto_(grad) {
+  const g = normalizarGraduacaoAntiguidade_(grad);
+  for (let i = 0; i < ORDEM_POSTOS_ANTIGUIDADE_.length; i++) {
+    if (ORDEM_POSTOS_ANTIGUIDADE_[i][0].test(g)) return ORDEM_POSTOS_ANTIGUIDADE_[i][1];
+  }
+  return 99;
+}
+
+/** Matricula como numero (desempate de antiguidade). */
+function matriculaNumerica_(mat) {
+  const n = parseInt(String(mat === undefined || mat === null ? '' : mat).replace(/\D/g, ''), 10);
+  return isNaN(n) ? Number.MAX_SAFE_INTEGER : n;
+}
+
+/**
+ * Ordena a equipe na ordem correta de antiguidade: primeiro a PATENTE (mais antigo primeiro) e, em caso
+ * de empate de graduacao, a MATRICULA mais antiga (menor) primeiro. Ordenacao estavel.
+ */
+function ordenarEquipePorAntiguidade_(lista) {
+  return (Array.isArray(lista) ? lista.slice() : []).map(function (p, i) { return { p: p, i: i }; })
+    .sort(function (a, b) {
+      const dg = indiceAntiguidadePosto_(a.p && (a.p.posto || a.p.graduacao)) - indiceAntiguidadePosto_(b.p && (b.p.posto || b.p.graduacao));
+      if (dg !== 0) return dg;
+      const dm = matriculaNumerica_(a.p && a.p.matricula) - matriculaNumerica_(b.p && b.p.matricula);
+      if (dm !== 0) return dm;
+      return a.i - b.i;
+    })
+    .map(function (x) { return x.p; });
+}
+
+// FIM-ORDEM-ANTIGUIDADE

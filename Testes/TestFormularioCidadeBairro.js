@@ -58,8 +58,16 @@ function extrairFonte(nome) {
   }
   return '';
 }
+// Bloco canonico de ordem de antiguidade (#antiguidade) + helpers de OCR consumidos pelo miolo.
+const blocoOrdemAntiguidade = (function () {
+  const i = scriptMatch[1].indexOf('var ORDEM_POSTOS_ANTIGUIDADE_ = [');
+  const f = scriptMatch[1].indexOf('// FIM-ORDEM-ANTIGUIDADE', i);
+  return (i !== -1 && f !== -1) ? scriptMatch[1].slice(i, f) : '';
+})();
 const helperEndereco = ['extrairEnderecoOcr_', 'extrairDrogasOcr_', 'detidosPendentesOcr_']
-  .map(extrairFonte).join('\n');
+  .map(extrairFonte).join('\n')
+  + '\n' + blocoOrdemAntiguidade
+  + '\n' + ['ordenarMatriculasPorAntiguidade_'].map(extrairFonte).join('\n');
 
 const testableParser = new Function('document', 'text', `
   let execucaoOcrId = 1;

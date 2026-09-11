@@ -155,7 +155,8 @@ function verificarDuplicidadeOcorrencia(aba, boe, mike) {
  * @returns {Array<Array>}
  */
 function montarLinhasEntradaManual(payload) {
-  const policiais = payload.policiais || [];
+  // Ordem de antiguidade (patente e, no empate, matricula mais antiga) - chega pronta na planilha.
+  const policiais = ordenarEquipePorAntiguidade_(payload.policiais || []);
   const armas = payload.armas || [];
   const drogas = payload.drogas || [];
   const ocorrenciasPip = (payload.ocorrenciasPip && payload.ocorrenciasPip.length > 0)
