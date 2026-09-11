@@ -153,6 +153,12 @@ test('espingarda (calibre .28) gera municao de classe calibre .12, nao revolver/
   assert.ok(t.indexOf('Apreensão de arma longa (12 industrial)') !== -1, 'arma longa deve ser 12 industrial');
 });
 
+test('"Quantidade de Munições: NÃO INFORMADA" nao gera indicador de municao', () => {
+  const arma = [{ tipo: 'ARMA DE FOGO', modelo: 'FUZIL', calibre: '308', municao: 0, quantidade: 1 }];
+  const t = conciliarTitulosPipOcr('OBJETO 3 Categoria do Objeto: FUZIL Calibre:308 Quantidade de Munições:NÃO INFORMADA', arma, [], '');
+  assert.strictEqual(municao(t).length, 0, 'municao NAO INFORMADA nao pode gerar indicador: ' + JSON.stringify(municao(t)));
+});
+
 console.log(`\nTestes de munição (PIP): ${sucessos} PASS / ${falhas} FAIL`);
 if (falhas > 0) process.exitCode = 1;
 

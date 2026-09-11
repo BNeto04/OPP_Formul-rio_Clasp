@@ -599,7 +599,7 @@
       const drogasDetectadas = [];
       const textoDrogas = String(text).toUpperCase();
       const padroesDrogas = [
-        /(MACONHA|CRACK|COCA[ÍI]NA)[\s\S]{0,120}?QUANTIDADE:\s*(\d+(?:[.,]\d+)?)/g,
+        /(MACONHA|CRACK|COCA[ÍI]NA)[\s\S]{0,120}?UNIDADE DE MEDIDA:\s*([A-ZÂÁÉÍÓÚÇÃÕ]+)\s*QUANTIDADE:\s*(\d+(?:[.,]\d+)?)/g,
         /(MACONHA|CRACK|COCA[ÍI]NA)\s*,\s*(\d+(?:[.,]\d+)?)\s*UNIDADE/g,
         /(\d+(?:[.,]\d+)?)\s*(G|KG|GRAMAS?|QUILOS?)\s*(?:DE\s*)?(MACONHA|CRACK|COCA[ÍI]NA)/g,
         /(\d+)\s*(ZIPLOCKS?|PAPELOTES?|PEDRAS?|INV[ÓO]LUCROS?|UNIDADES?|ENVOLT[ÓO]RIOS?|POR[ÇC][ÕO]ES)\s*(?:DE\s*)?(MACONHA|CRACK|COCA[ÍI]NA)/g,
@@ -612,12 +612,7 @@
         while ((m = regex.exec(textoDrogas)) !== null) {
           let tipoRaw, valStr, undRaw;
           if (index === 0) {
-            tipoRaw = m[1]; valStr = m[2];
-            // O padrao 1 nao captura a unidade: olha a palavra imediatamente apos o numero.
-            const depois = textoDrogas.slice(regex.lastIndex, regex.lastIndex + 24);
-            if (/^\s*(KG|QUILOS?)\b/.test(depois)) undRaw = 'QUILOGRAMAS';
-            else if (/^\s*(G|GRAMAS?)\b/.test(depois)) undRaw = 'GRAMAS';
-            else undRaw = 'UNIDADES';
+            tipoRaw = m[1]; undRaw = m[2]; valStr = m[3];
           } else if (index === 1) {
             tipoRaw = m[1]; valStr = m[2]; undRaw = 'UNIDADES';
           } else if (index === 2) {
@@ -633,8 +628,9 @@
 
           const qtd = parseFloat(String(valStr).replace(',', '.'));
           let unidadeNorm = 'GRAMAS';
-          if (undRaw.includes('K') || undRaw.includes('Q')) unidadeNorm = 'QUILOGRAMAS';
-          else if (undRaw === 'UNIDADES') unidadeNorm = 'UNIDADES';
+          const undUp = String(undRaw).toUpperCase();
+          if (undUp.includes('KG') || undUp.includes('QUILO')) unidadeNorm = 'QUILOGRAMAS';
+          else if (undUp.includes('UNIDADE') || undUp.includes('PEDRA') || undUp.includes('PINO') || undUp.includes('DOLAR') || undUp.includes('DÓLAR')) unidadeNorm = 'UNIDADES';
 
           // Card #144: deduplicacao por SUBSTANCIA + UNIDADE. Antes era so por substancia, guardando a
           // maior quantidade: uma entrada em GRAMAS era engolida quando havia outra maior em UNIDADES
@@ -768,7 +764,6 @@
         else if (u.includes('PISTOLA')) modelo = 'PISTOLA';
         else if (u.includes('ESPINGARDA')) modelo = 'ESPINGARDA';
         else if (u.includes('FUZIL')) modelo = 'FUZIL';
-        else if (u.includes('ARMA DE FOGO')) modelo = 'REVÓLVER'; // Fallback
         
         if (modelo) {
           const tipo = (u.includes('CASEIRA')||u.includes('ARTESANAL')) ? 'FABRICAÇÃO CASEIRA' : 'INDUSTRIAL';
@@ -1091,7 +1086,8 @@
       //      de revolver .32 era classificada como calibre .12 (30 pts em vez de 15).
       // Agora: deteccao sem acento/plural e calibre lido do PROPRIO objeto da arma.
       const upperSemAcento = String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-      const mencionaMunicao = /(MUNICAO|MUNICOES|CARTUCHO|CARTUCHOS)/.test(upperSemAcento);
+      const mencionaMunicao = /(MUNICAO|MUNICOES|CARTUCHO|CARTUCHOS)/.test(upperSemAcento)
+        && !/(?:MUNICAO|MUNICOES)\s*:\s*NAO\s*INFORMADA/.test(upperSemAcento);
 
       function normalizarAlvo(v) {
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
