@@ -17,6 +17,11 @@ global.SpreadsheetApp = {
 
 global.Logger = { log: console.log };
 
+// Carrega Core/Policiais.js (ordenarEquipePorAntiguidade_) — no Apps Script o escopo é global;
+// no Node a dependência precisa ser exposta para montarLinhasEntradaManual (via require/global).
+const policiaisCode = fs.readFileSync(path.join(__dirname, '../Core/Policiais.js'), 'utf8');
+eval(policiaisCode + '\n;if(typeof ordenarEquipePorAntiguidade_ !== "undefined") global.ordenarEquipePorAntiguidade_ = ordenarEquipePorAntiguidade_;');
+
 const entradaManualCode = fs.readFileSync(path.join(__dirname, '../Entrada/EntradaManual.js'), 'utf8');
 eval(entradaManualCode + '\nif(typeof gravarLinhasEntradaManual !== "undefined") global.gravarLinhasEntradaManual = gravarLinhasEntradaManual; if(typeof obterOpcoesValidacao !== "undefined") global.obterOpcoesValidacao = obterOpcoesValidacao; if(typeof localizarAbaMensalTratada !== "undefined") global.localizarAbaMensalTratada = localizarAbaMensalTratada; if(typeof processarEntradaManual !== "undefined") global.processarEntradaManual = processarEntradaManual; if(typeof verificarDuplicidadeOcorrencia !== "undefined") global.verificarDuplicidadeOcorrencia = verificarDuplicidadeOcorrencia; if(typeof resolverNomeAbaMensal !== "undefined") global.resolverNomeAbaMensal = resolverNomeAbaMensal;'); 
 const gravarLinhasEntradaManual = global.gravarLinhasEntradaManual;
@@ -143,9 +148,11 @@ let sheetFormulasIncompletas = mockSheet(CABECALHOS_ORIGINAIS, null, (r, c, nr, 
         }).slice(c - 1, c - 1 + nc);
     });
 }, defaultValidations);
-assert.throws(() => {
-    gravarLinhasEntradaManual(sheetFormulasIncompletas, [linhaInserirFake, linhaInserirFake]);
-}, /Faltam linhas preparadas/, "Deveria abortar pois a segunda linha não tem fórmula");
+{
+    const avisos = [];
+    gravarLinhasEntradaManual(sheetFormulasIncompletas, [linhaInserirFake, linhaInserirFake], { avisos });
+    assert(avisos.some(a => a.indexOf('FALTAM_FORMULAS') === 0), "Deveria AVISAR (não bloquear) que a segunda linha não tem fórmula");
+}
 
 console.log('  [Test 3] Linha manual já preenchida');
 let sheetLinhaPreenchida = mockSheet(CABECALHOS_ORIGINAIS, (r, c, nr, nc) => {
@@ -156,9 +163,11 @@ let sheetLinhaPreenchida = mockSheet(CABECALHOS_ORIGINAIS, (r, c, nr, nc) => {
     });
 }, null, defaultValidations);
 sheetLinhaPreenchida.linhaManualPreenchida = true; // Força começar na linha 4 (linha 2 + 2 de respiro)
-assert.throws(() => {
-    gravarLinhasEntradaManual(sheetLinhaPreenchida, [linhaInserirFake]);
-}, /não está vazia na coluna/, "Deveria abortar se a linha manual tiver dados residuais");
+{
+    const avisos = [];
+    gravarLinhasEntradaManual(sheetLinhaPreenchida, [linhaInserirFake], { avisos });
+    assert(avisos.some(a => a.indexOf('CELULA_NAO_VAZIA') === 0), "Deveria AVISAR (não bloquear) sobre dados residuais na linha");
+}
 
 console.log('  [Test 4] Validação de campo controlado via linha de referência (row 2)');
 let sheetValidacaoNaLinha2 = mockSheet(CABECALHOS_ORIGINAIS, null, null, (r, c, nr, nc) => {
@@ -167,9 +176,11 @@ let sheetValidacaoNaLinha2 = mockSheet(CABECALHOS_ORIGINAIS, null, null, (r, c, 
         return null;
     })).map(rowVals => rowVals.slice(c - 1, c - 1 + nc));
 });
-assert.throws(() => {
-    gravarLinhasEntradaManual(sheetValidacaoNaLinha2, [linhaInserirFake]);
-}, /não é permitido pela validação/, "Deveria validar contra a regra da linha de referência");
+{
+    const avisos = [];
+    gravarLinhasEntradaManual(sheetValidacaoNaLinha2, [linhaInserirFake], { avisos });
+    assert(avisos.some(a => a.indexOf('VALOR_FORA_LISTA') === 0), "Deveria AVISAR (não bloquear) contra a regra da linha de referência");
+}
 
 console.log('  [Test 5] Valor fora da lista');
 let sheetValorInvalido = mockSheet(CABECALHOS_ORIGINAIS, null, null, (r, c, nr, nc) => {
@@ -178,9 +189,11 @@ let sheetValorInvalido = mockSheet(CABECALHOS_ORIGINAIS, null, null, (r, c, nr, 
         return null;
     })).map(rowVals => rowVals.slice(c - 1, c - 1 + nc));
 });
-assert.throws(() => {
-    gravarLinhasEntradaManual(sheetValorInvalido, [linhaInserirFake]);
-}, /não é permitido pela validação/, "Deveria abortar");
+{
+    const avisos = [];
+    gravarLinhasEntradaManual(sheetValorInvalido, [linhaInserirFake], { avisos });
+    assert(avisos.some(a => a.indexOf('VALOR_FORA_LISTA') === 0), "Deveria AVISAR (não bloquear) valor fora da lista");
+}
 
 console.log('  [Test 6] Extração de valores com cabeçalho curto NATUREZA');
 let sheetNaturezaCurta = mockSheet(CABECALHOS_ORIGINAIS.map(h => h === 'NATUREZA DA OCORRÊNCIA' ? 'NATUREZA' : h), null, null, (row, col, nr, nc) => {
@@ -227,9 +240,8 @@ global.SpreadsheetApp.openById = function() {
 const originalConsoleError = console.error;
 try {
     console.error = () => {};
-    assert.throws(() => {
-        processarEntradaManual({ data: '12/08/2026' });
-    }, /Aba mensal esperada \(AGO2026\) não encontrada\. Abas examinadas: \[LIXO\]/, "Deveria abortar e informar o erro técnico com abas examinadas");
+    const msgAba = processarEntradaManual({ data: '12/08/2026' });
+    assert(msgAba.indexOf('ABA_MENSAL') !== -1 && msgAba.indexOf('não encontrada') !== -1, "Deveria AVISAR (não lançar) o erro técnico da aba mensal com abas examinadas");
 } finally {
     console.error = originalConsoleError;
 }
@@ -550,9 +562,11 @@ eval(fullFormularioScript);
         const fomColsMat = ["TOTAL DE MACONHA", "DIVIDIDO MAC", "TOTAL CRACK (GR)", "TOTAL DE COCAINA", "DIVIDIDO COC", "PONTOS TOTAIS", "PONTOS FICÇÃO (1/4)", "CHAVE OCORRÊNCIA", "MATRÍCULA"];
         return Array(nr).fill(0).map(() => CABECALHOS_ORIGINAIS.map(h => (fomColsMat.includes(h.toUpperCase()) ? '=1' : '')).slice(c - 1, c - 1 + nc));
     }, validationsEquipe);
-    assert.throws(() => {
-        gravarLinhasEntradaManual(sheetComFormula, [linhaComSobrescrita]);
-    }, /Tentativa de sobrescrever a fórmula da coluna 'MATR[ÍI]CULA'/, 'Deve lançar erro bloqueante se tentar sobrescrever coluna com fórmula');
+    {
+        const avisos = [];
+        gravarLinhasEntradaManual(sheetComFormula, [linhaComSobrescrita], { avisos });
+        assert(avisos.some(a => a.indexOf('SOBRESCRITA_FORMULA') === 0), 'Deve AVISAR (não bloquear) ao tentar sobrescrever coluna com fórmula');
+    }
 
     // [Test 11] Contrato Operacional de Armas Apreendidas (Card #62: T-C01-ARMAS-005)
     console.log('  [Test 11] Contrato Operacional de Armas Apreendidas (Mapeamento L a P, multi-linhas e independência posicional)');
@@ -562,7 +576,7 @@ eval(fullFormularioScript);
         hora: '22:15',
         natureza: 'PORTE ILEGAL DE ARMA DE FOGO',
         policiais: [
-            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 2 }
+            { pelotao: '1º PEL', posto: '3º SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 2 }
         ],
         armas: [
             { tipo: 'INDUSTRIAL', modelo: 'PISTOLA', calibre: '.40', municao: 16, quantidade: 1 },
@@ -599,7 +613,7 @@ eval(fullFormularioScript);
         hora: '22:15',
         natureza: 'PORTE ILEGAL DE ARMA DE FOGO',
         policiais: [
-            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 1 },
+            { pelotao: '1º PEL', posto: '3º SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 1 },
             { pelotao: '2º PEL', posto: 'CB', matricula: '1002', nome: 'POLICIAL DOIS', qtd_armas: 0 }
         ],
         armas: [
@@ -625,7 +639,7 @@ eval(fullFormularioScript);
         hora: '10:30',
         natureza: 'TRÁFICO DE ENTORPECENTES',
         policiais: [
-            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 0 },
+            { pelotao: '1º PEL', posto: '3º SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 0 },
             { pelotao: '1º PEL', posto: 'CB', matricula: '1002', nome: 'POLICIAL DOIS', qtd_armas: 0 }
         ],
         drogas: [
@@ -675,7 +689,7 @@ eval(fullFormularioScript);
         hora: '10:30',
         natureza: 'AVERIGUAÇÃO',
         policiais: [
-            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 0 }
+            { pelotao: '1º PEL', posto: '3º SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 0 }
         ],
         drogas: []
     };
@@ -699,12 +713,14 @@ eval(fullFormularioScript);
     assert.ok(sheetDrogas.rangesEscritos.length > 0, 'Deve persistir colunas literais de drogas no Sheets');
 
     // Tentativa de sobrescrever fórmula derivada deve lançar erro bloqueante
-    assert.throws(() => {
+    {
+        const avisos = [];
         let sheetComFormulaDroga = mockSheet(CABECALHOS_ORIGINAIS, null, null, validationsDrogas);
         let linhaInvalida = CABECALHOS_ORIGINAIS.map(() => '');
         linhaInvalida[idxS] = 100; // Tentando gravar no TOTAL DE MACONHA
-        gravarLinhasEntradaManual(sheetComFormulaDroga, [linhaInvalida]);
-    }, /Tentativa de sobrescrever a fórmula da coluna 'TOTAL DE MACONHA'/, 'Deve lançar erro bloqueante ao tentar sobrescrever fórmula de drogas');
+        gravarLinhasEntradaManual(sheetComFormulaDroga, [linhaInvalida], { avisos });
+        assert(avisos.some(a => a.indexOf('SOBRESCRITA_FORMULA') === 0), 'Deve AVISAR (não bloquear) ao tentar sobrescrever fórmula de drogas');
+    }
 
     // [Test 13] Contrato Operacional de Ocorrências PIP e Imputado (Card #64: T-C01-PIP-007)
     console.log('  [Test 13] Contrato Operacional de Ocorrências PIP e Imputado (Mapeamento AG/AH, expansão multi-linhas, precedência de imputado e conciliação OCR)');
@@ -773,7 +789,7 @@ eval(fullFormularioScript);
         imputado: 'COM IMPUTADO', // Valor explícito do operador
         detidos: '1',
         policiais: [
-            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 0 }
+            { pelotao: '1º PEL', posto: '3º SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 0 }
         ],
         ocorrenciasPip: [
             'Apreensão de cocaína por grama (invólucro)',
@@ -840,7 +856,7 @@ eval(fullFormularioScript);
         natureza: 'PATRULHAMENTO DE ROTINA',
         imputado: 'SEM IMPUTADO',
         policiais: [
-            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM' },
+            { pelotao: '1º PEL', posto: '3º SGT', matricula: '1001', nome: 'POLICIAL UM' },
             { pelotao: '1º PEL', posto: 'CB', matricula: '1002', nome: 'POLICIAL DOIS' }
         ],
         ocorrenciasPip: []
@@ -909,7 +925,7 @@ eval(fullFormularioScript);
         detidos: '1',
         imputado: 'COM IMPUTADO',
         policiais: [
-            { pelotao: '1º PEL', posto: 'SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 1 },
+            { pelotao: '1º PEL', posto: '3º SGT', matricula: '1001', nome: 'POLICIAL UM', qtd_armas: 1 },
             { pelotao: '1º PEL', posto: 'CB', matricula: '1002', nome: 'POLICIAL DOIS', qtd_armas: 0 }
         ],
         armas: [
@@ -926,8 +942,8 @@ eval(fullFormularioScript);
     };
 
     const resSucesso = processarEntradaManual(payloadCompleto);
-    assert.ok(resSucesso.includes('salva com sucesso'), 'Deve retornar mensagem canônica de sucesso');
-    assert.ok(resSucesso.includes('2 registros computados'), 'Deve computar 2 registros (max entre policiais, armas e PIP)');
+    assert.ok(resSucesso.includes('salva'), 'Deve retornar mensagem de sucesso (nunca lança)');
+    assert.ok(resSucesso.includes('2 registros'), 'Deve computar 2 registros (max entre policiais, armas e PIP)');
     assert.ok(sheetPersistencia.rangesEscritos.length > 0, 'Deve registrar escrita física no Sheets');
 
     // 14.2: Bloqueio por Duplicidade de BOE com ZERO ESCRITA
@@ -940,10 +956,11 @@ eval(fullFormularioScript);
     };
     global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsBoeDup;
 
-    assert.throws(() => {
-        processarEntradaManual(payloadCompleto);
-    }, /BLOQUEADO: A ocorrência com BOE 2026\/000123 já consta cadastrada nesta planilha/, 'Deve bloquear duplicidade de BOE');
-    assert.strictEqual(sheetBoeDup.rangesEscritos.length, 0, 'Zero escrita comprovada quando BOE for duplicado');
+    // 14.2: Duplicidade de BOE vira AVISO (grava mesmo assim; o Guardião tria depois)
+    const msgBoeDup = processarEntradaManual(payloadCompleto);
+    assert.ok(msgBoeDup.indexOf('DUPLICIDADE') !== -1, 'Deve avisar duplicidade de BOE');
+    assert.ok(msgBoeDup.indexOf('salva') !== -1, 'Deve gravar mesmo com BOE duplicado (operador insiste e passa)');
+    assert.ok(sheetBoeDup.rangesEscritos.length > 0, 'Escrita deve ocorrer mesmo com BOE duplicado');
 
     // 14.3: Bloqueio por Duplicidade de MIKE com ZERO ESCRITA
     let sheetMikeDup = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
@@ -955,10 +972,11 @@ eval(fullFormularioScript);
     };
     global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsMikeDup;
 
-    assert.throws(() => {
-        processarEntradaManual(payloadCompleto);
-    }, /BLOQUEADO: A ocorrência com MIKE M123456 já consta cadastrada nesta planilha/, 'Deve bloquear duplicidade de MIKE');
-    assert.strictEqual(sheetMikeDup.rangesEscritos.length, 0, 'Zero escrita comprovada quando MIKE for duplicado');
+    // 14.3: Duplicidade de MIKE vira AVISO (grava mesmo assim)
+    const msgMikeDup = processarEntradaManual(payloadCompleto);
+    assert.ok(msgMikeDup.indexOf('DUPLICIDADE') !== -1, 'Deve avisar duplicidade de MIKE');
+    assert.ok(msgMikeDup.indexOf('salva') !== -1, 'Deve gravar mesmo com MIKE duplicado (operador insiste e passa)');
+    assert.ok(sheetMikeDup.rangesEscritos.length > 0, 'Escrita deve ocorrer mesmo com MIKE duplicado');
 
     // 14.4: Bloqueio por Aba Mensal Ausente com ZERO ESCRITA
     let sheetAgo2026 = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
@@ -970,9 +988,8 @@ eval(fullFormularioScript);
     global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsMesInexistente;
 
     const payloadMesInexistente = { ...payloadCompleto, data: '18/12/2099' };
-    assert.throws(() => {
-        processarEntradaManual(payloadMesInexistente);
-    }, /Aba mensal esperada \(DEZ2099\) não encontrada/, 'Deve bloquear se a aba mensal não existir');
+    const msgMes = processarEntradaManual(payloadMesInexistente);
+    assert.ok(msgMes.indexOf('ABA_MENSAL') !== -1, 'Deve avisar (não lançar) se a aba mensal não existir');
 
     // 14.5: Bloqueio por Falha de Validação na Fase 1 com ZERO ESCRITA
     let sheetValFalha = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
@@ -984,10 +1001,9 @@ eval(fullFormularioScript);
     global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsValFalha;
 
     const payloadInvalido = { ...payloadCompleto, natureza: 'NATUREZA_FORA_DA_LISTA_TOTALMENTE_INVALIDA' };
-    assert.throws(() => {
-        processarEntradaManual(payloadInvalido);
-    }, /não é permitido pela validação da planilha/, 'Fase 1 deve barrar valor fora da validação');
-    assert.strictEqual(sheetValFalha.rangesEscritos.length, 0, 'Zero escrita comprovada quando validação da Fase 1 falhar');
+    const msgInvalido = processarEntradaManual(payloadInvalido);
+    assert.ok(msgInvalido.indexOf('VALOR_FORA_LISTA') !== -1, 'Fase 1 deve AVISAR (não bloquear) valor fora da validação');
+    assert.ok(sheetValFalha.rangesEscritos.length > 0, 'Escrita deve ocorrer mesmo com valor fora da validação (operador arruma depois)');
 
     // 14.6: Fluxo Manual Sem OCR
     let sheetManualPuro = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
@@ -1016,7 +1032,7 @@ eval(fullFormularioScript);
         ocorrenciasPip: []
     };
     const resManual = processarEntradaManual(payloadManualSemOcr);
-    assert.ok(resManual.includes('salva com sucesso'), 'Fluxo manual puro deve salvar com sucesso');
+    assert.ok(resManual.includes('salva'), 'Fluxo manual puro deve salvar com sucesso (nunca lança)');
     assert.ok(sheetManualPuro.rangesEscritos.length > 0, 'Fluxo manual deve registrar escrita no Sheets');
 
     // 14.7: Validações no Client-Side (salvarDados em Formulario.html)
@@ -1071,8 +1087,8 @@ eval(fullFormularioScript);
     };
 
     const resE2E = processarEntradaManual(payloadE2ECompleto);
-    assert.ok(resE2E.includes('salva com sucesso'), 'Cenário E2E completo deve ser salvo com sucesso');
-    assert.ok(resE2E.includes('2 registros computados'), 'Cenário E2E completo deve expandir para 2 registros');
+    assert.ok(resE2E.includes('salva'), 'Cenário E2E completo deve ser salvo com sucesso (nunca lança)');
+    assert.ok(resE2E.includes('2 registros'), 'Cenário E2E completo deve expandir para 2 registros');
     assert.ok(sheetE2E.rangesEscritos.length > 0, 'Cenário E2E deve realizar gravação física no Sheets');
 
     // 15.2: Fluxo Manual Completo sem OCR
@@ -1103,7 +1119,7 @@ eval(fullFormularioScript);
         ocorrenciasPip: []
     };
     const resManual100 = processarEntradaManual(payloadManual100);
-    assert.ok(resManual100.includes('salva com sucesso'), 'Fluxo 100% manual sem OCR deve persistir perfeitamente');
+    assert.ok(resManual100.includes('salva'), 'Fluxo 100% manual sem OCR deve persistir perfeitamente (nunca lança)');
 
     // 15.3: Fluxo OCR Completo: Documento -> Prefill -> Conferência -> Correção Humana -> Payload
     limparFormulario();
@@ -1142,38 +1158,35 @@ eval(fullFormularioScript);
 
     // 15.7: Provas de Resiliência: Duplicidade, Validação Inválida e Aba Ausente com ZERO ESCRITA
     global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsE2E;
-    // a) Duplicidade BOE
+    // a) Duplicidade BOE vira AVISO (grava; Guardião tria depois)
     sheetE2E.rangesEscritos = [];
     sheetE2E.colBoeValues = [['2026/888999']];
-    assert.throws(() => {
-        processarEntradaManual(payloadE2ECompleto);
-    }, /BLOQUEADO: A ocorrência com BOE 2026\/888999 já consta cadastrada/, 'Duplicidade BOE deve bloquear');
-    assert.strictEqual(sheetE2E.rangesEscritos.length, 0, 'Zero escrita comprovada em duplicidade de BOE');
+    const msgE2eBoe = processarEntradaManual(payloadE2ECompleto);
+    assert.ok(msgE2eBoe.indexOf('DUPLICIDADE') !== -1, 'Duplicidade BOE deve avisar (não bloquear)');
+    assert.ok(sheetE2E.rangesEscritos.length > 0, 'Escrita ocorre mesmo em duplicidade de BOE');
 
-    // b) Duplicidade MIKE
+    // b) Duplicidade MIKE vira AVISO
     sheetE2E.rangesEscritos = [];
     sheetE2E.colBoeValues = null;
     sheetE2E.colMikeValues = [['M888999']];
-    assert.throws(() => {
-        processarEntradaManual(payloadE2ECompleto);
-    }, /BLOQUEADO: A ocorrência com MIKE M888999 já consta cadastrada/, 'Duplicidade MIKE deve bloquear');
-    assert.strictEqual(sheetE2E.rangesEscritos.length, 0, 'Zero escrita comprovada em duplicidade de MIKE');
+    const msgE2eMike = processarEntradaManual(payloadE2ECompleto);
+    assert.ok(msgE2eMike.indexOf('DUPLICIDADE') !== -1, 'Duplicidade MIKE deve avisar (não bloquear)');
+    assert.ok(sheetE2E.rangesEscritos.length > 0, 'Escrita ocorre mesmo em duplicidade de MIKE');
 
-    // c) Validação Inválida (Fase 1)
+    // c) Validação Inválida (Fase 1) vira AVISO
     sheetE2E.rangesEscritos = [];
     sheetE2E.colBoeValues = null;
     sheetE2E.colMikeValues = null;
     const payloadInvalidoE2E = { ...payloadE2ECompleto, natureza: 'NATUREZA_INVALIDA_E2E' };
-    assert.throws(() => {
-        processarEntradaManual(payloadInvalidoE2E);
-    }, /não é permitido pela validação da planilha/, 'Fase 1 deve barrar valor inválido');
-    assert.strictEqual(sheetE2E.rangesEscritos.length, 0, 'Zero escrita comprovada em validação inválida');
+    const msgE2eInv = processarEntradaManual(payloadInvalidoE2E);
+    assert.ok(msgE2eInv.indexOf('VALOR_FORA_LISTA') !== -1, 'Fase 1 deve avisar (não bloquear) valor inválido');
+    assert.ok(sheetE2E.rangesEscritos.length > 0, 'Escrita ocorre mesmo com valor inválido');
 
-    // d) Aba Mensal Ausente
+    // d) Aba Mensal Ausente vira AVISO (não grava — não há onde escrever)
+    sheetE2E.rangesEscritos = [];
     const payloadAbaAusenteE2E = { ...payloadE2ECompleto, data: '01/01/2099' };
-    assert.throws(() => {
-        processarEntradaManual(payloadAbaAusenteE2E);
-    }, /Aba mensal esperada \(JAN2099\) não encontrada/, 'Aba ausente deve barrar');
+    const msgE2eAba = processarEntradaManual(payloadAbaAusenteE2E);
+    assert.ok(msgE2eAba.indexOf('ABA_MENSAL') !== -1, 'Aba ausente deve avisar (não lançar)');
     assert.strictEqual(sheetE2E.rangesEscritos.length, 0, 'Zero escrita comprovada em aba ausente');
 
     // 15.8: Preservação de Fórmulas e Fluxo sem seções opcionais (sem armas, sem drogas, sem PIP)
@@ -1198,13 +1211,13 @@ eval(fullFormularioScript);
         qtd_o: '1',
         detidos: '0',
         imputado: 'SEM IMPUTADO',
-        policiais: [{ nome: 'SGT TESTE', pelotao: '3', posto: 'SGT', matricula: '999999', qtd_armas: 0 }],
+        policiais: [{ nome: 'SGT TESTE', pelotao: '3', posto: '3º SGT', matricula: '999999', qtd_armas: 0 }],
         armas: [],
         drogas: [],
         ocorrenciasPip: []
     };
     const resMinimo = processarEntradaManual(payloadMinimo);
-    assert.ok(resMinimo.includes('salva com sucesso'), 'Fluxo mínimo sem seções opcionais deve ser salvo com sucesso');
+    assert.ok(resMinimo.includes('salva'), 'Fluxo mínimo sem seções opcionais deve ser salvo com sucesso (nunca lança)');
     assert.ok(sheetSemOpcionais.rangesEscritos.length > 0, 'Fluxo mínimo deve registrar no Sheets');
 
     console.log('✅ OK - EntradaManual.js e Formulario.html');

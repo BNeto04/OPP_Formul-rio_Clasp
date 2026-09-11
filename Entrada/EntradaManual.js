@@ -26,28 +26,71 @@ function obterSpreadsheetOcorrencias_() {
   return SpreadsheetApp.openById(SS_ID);
 }
 
-function processarEntradaManual(payload) {
+/**
+ * Núcleo da entrada manual: NUNCA bloqueia. Validações viram AVISOS (não exceções) e a gravação
+ * segue "best effort" — a triagem forte fica com o GUARDIÃO (auditoria), não com a entrada.
+ * @param {Object} payload
+ * @param {{simular?: boolean}} opcoes simular=true valida e NAO grava (dry-run).
+ * @returns {{status: string, registros: number, avisos: string[], identificador: string, aba: string|null}}
+ */
+function _processarEntradaManual(payload, opcoes) {
+  opcoes = opcoes || {};
+  const avisos = [];
+  const identificador = String(payload && (payload.mike || payload.boe) || 'sem identificador').trim();
+  let aba = null;
+
   try {
     const ss = obterSpreadsheetOcorrencias_();
-    let aba = localizarAbaMensalTratada(ss, payload.data);
+    try {
+      aba = localizarAbaMensalTratada(ss, payload.data);
+    } catch (e) {
+      avisos.push('ABA_MENSAL: ' + (e && e.message || e));
+      return { status: 'NAO_GRAVADO', registros: 0, avisos: avisos, identificador: identificador, aba: null };
+    }
 
-    // Verificação Anti-Duplicidade
-    verificarDuplicidadeOcorrencia(aba, payload.boe, payload.mike);
+    // Anti-duplicidade: vira AVISO, nao bloqueia (a triagem fica no Guardiao).
+    verificarDuplicidadeOcorrencia(aba, payload.boe, payload.mike, avisos);
 
-    // Montagem das linhas de entrada manual
-    const linhasParaInserir = montarLinhasEntradaManual(payload);
+    let linhas = [];
+    try {
+      linhas = montarLinhasEntradaManual(payload);
+    } catch (e) {
+      avisos.push('MONTAGEM: ' + (e && e.message || e));
+      return { status: 'NAO_GRAVADO', registros: 0, avisos: avisos, identificador: identificador, aba: aba.getName() };
+    }
 
-    // Gravação em Chunks (Porta M01 → M02/M06)
-    gravarLinhasEntradaManual(aba, linhasParaInserir);
+    try {
+      gravarLinhasEntradaManual(aba, linhas, { simular: opcoes.simular, avisos: avisos });
+    } catch (e) {
+      avisos.push('GRAVACAO: ' + (e && e.message || e));
+      return { status: 'NAO_GRAVADO', registros: 0, avisos: avisos, identificador: identificador, aba: aba.getName() };
+    }
 
-    const payloadBoe = payload.boe ? String(payload.boe).trim() : "";
-    const payloadMike = payload.mike ? String(payload.mike).trim() : "";
-    const identificador = payloadMike || payloadBoe || "sem identificador";
-    return `Ocorrência ${identificador} salva com sucesso (${linhasParaInserir.length} registros computados)!`;
-  } catch (erro) {
-    console.error(`Falha: ${erro.message}`);
-    throw new Error(erro.message);
+    return {
+      status: opcoes.simular ? 'SIMULADO' : 'OK',
+      registros: linhas.length,
+      avisos: avisos,
+      identificador: identificador,
+      aba: aba.getName()
+    };
+  } catch (e) {
+    avisos.push('ERRO: ' + (e && e.message || e));
+    return { status: 'NAO_GRAVADO', registros: 0, avisos: avisos, identificador: identificador, aba: aba ? aba.getName() : null };
   }
+}
+
+/**
+ * Porta da UI: devolve mensagem amigavel (nunca lança). Avisos aparecem no texto, sem bloquear.
+ */
+function processarEntradaManual(payload) {
+  const r = _processarEntradaManual(payload, {});
+  let msg = r.status === 'OK'
+    ? 'Ocorrência ' + r.identificador + ' salva (' + r.registros + ' registros).'
+    : 'Ocorrência ' + r.identificador + ': ' + r.status + '.';
+  if (r.avisos.length) {
+    msg += '\n⚠️ Avisos (conferir no Guardião):\n' + r.avisos.map(function (a) { return ' • ' + a; }).join('\n');
+  }
+  return msg;
 }
 
 /**
@@ -127,7 +170,8 @@ function localizarAbaMensalTratada(ss, dataStr) {
  * @param {string|number} boe 
  * @param {string|number} mike 
  */
-function verificarDuplicidadeOcorrencia(aba, boe, mike) {
+function verificarDuplicidadeOcorrencia(aba, boe, mike, avisos) {
+  avisos = avisos || [];
   const payloadBoe = boe ? String(boe).trim() : "";
   const payloadMike = mike ? String(mike).trim() : "";
 
@@ -135,15 +179,16 @@ function verificarDuplicidadeOcorrencia(aba, boe, mike) {
       const colBoe = aba.getRange("G2:G" + aba.getMaxRows()).getValues();
       const colMike = aba.getRange("E2:E" + aba.getMaxRows()).getValues();
       
-      for (let i = 0; i < colBoe.length; i++) {
-          const boePlanilha = String(colBoe[i][0]).trim();
-          const mikePlanilha = String(colMike[i][0]).trim();
+      const total = Math.max(colBoe.length, colMike.length);
+      for (let i = 0; i < total; i++) {
+          const boePlanilha = colBoe[i] ? String(colBoe[i][0]).trim() : "";
+          const mikePlanilha = colMike[i] ? String(colMike[i][0]).trim() : "";
           
           if (payloadBoe && boePlanilha && payloadBoe === boePlanilha) {
-              throw new Error(`BLOQUEADO: A ocorrência com BOE ${payloadBoe} já consta cadastrada nesta planilha.`);
+              avisos.push('DUPLICIDADE: o BOE ' + payloadBoe + ' já consta cadastrado nesta aba.');
           }
           if (payloadMike && mikePlanilha && payloadMike === mikePlanilha) {
-              throw new Error(`BLOQUEADO: A ocorrência com MIKE ${payloadMike} já consta cadastrada nesta planilha.`);
+              avisos.push('DUPLICIDADE: o MIKE ' + payloadMike + ' já consta cadastrado nesta aba.');
           }
       }
   }
@@ -258,7 +303,8 @@ function montarLinhasEntradaManual(payload) {
  * @param {number} quantidade
  * @returns {Object}
  */
-function localizarBlocoModeloDisponivel_(aba, quantidade) {
+function localizarBlocoModeloDisponivel_(aba, quantidade, avisos) {
+  avisos = avisos || [];
   const colB = aba.getRange("B1:B" + aba.getMaxRows()).getValues();
   let ultimaLinha = 0;
   for (let i = colB.length - 1; i >= 0; i--) {
@@ -271,8 +317,12 @@ function localizarBlocoModeloDisponivel_(aba, quantidade) {
   const linhaParaEscrever = (ultimaLinha > 1) ? (ultimaLinha + 2) : 2; 
   const numColunas = aba.getLastColumn();
   
-  if (linhaParaEscrever + quantidade - 1 > aba.getMaxRows()) {
-      throw new Error(`A aba não possui linhas suficientes para inserir ${quantidade} registros.`);
+  // Permissivo: expande a grade em vez de bloquear (o operador insiste e passa).
+  const maxRows = aba.getMaxRows();
+  const linhasFaltantes = (linhaParaEscrever + quantidade - 1) - maxRows;
+  if (linhasFaltantes > 0) {
+      avisos.push('LINHAS_INSUFICIENTES: aba ' + aba.getName() + ' expandida em ' + linhasFaltantes + ' linha(s).');
+      aba.insertRows(maxRows, linhasFaltantes);
   }
 
   const targetRange = aba.getRange(linhaParaEscrever, 1, quantidade, numColunas);
@@ -290,9 +340,9 @@ function localizarBlocoModeloDisponivel_(aba, quantidade) {
      for (let i = 0; i < colunasFormulaObrigatoriaNomes.length; i++) {
         const nomeF = colunasFormulaObrigatoriaNomes[i];
         const colIdx = SyntheonCabecalhosObj.encontrar(headersIndex, nomeF);
-        if (colIdx === -1) throw new Error(`Coluna obrigatória de cálculo '${nomeF}' não encontrada na aba.`);
+        if (colIdx === -1) { avisos.push('COLUNA_FORMULA_AUSENTE: coluna de cálculo \'' + nomeF + '\' não localizada.'); continue; }
         if (!rowFormulas[colIdx] || !rowFormulas[colIdx].toString().startsWith('=')) {
-            throw new Error(`Linha ${linhaParaEscrever + rowIdx} da aba não possui as fórmulas pré-formatadas requeridas na coluna '${nomeF}'. Faltam linhas preparadas.`);
+            avisos.push('FALTAM_FORMULAS: linha ' + (linhaParaEscrever + rowIdx) + ' sem fórmula pré-formatada na coluna \'' + nomeF + '\'.');
         }
      }
   }
@@ -305,7 +355,7 @@ function localizarBlocoModeloDisponivel_(aba, quantidade) {
          const valStr = String(targetValues[rowIdx][colIdx]).trim();
          const isFormula = targetFormulas[rowIdx][colIdx] && targetFormulas[rowIdx][colIdx].toString().startsWith('=');
          if (!isFormula && valStr !== "") {
-             throw new Error(`Linha ${linhaParaEscrever + rowIdx} da aba não está vazia na coluna ${colIdx + 1}. Garanta linhas em branco antes de gravar.`);
+             avisos.push('CELULA_NAO_VAZIA: linha ' + (linhaParaEscrever + rowIdx) + ' coluna ' + (colIdx + 1) + ' já contém \'' + valStr.substring(0, 30) + '\'.');
          }
      }
   }
@@ -325,8 +375,9 @@ function localizarBlocoModeloDisponivel_(aba, quantidade) {
  * @param {Object=} opcoes {simular:true} executa TODA a validação e NAO grava (dry-run).
  */
 function gravarLinhasEntradaManual(aba, linhasParaInserir, opcoes) {
+  const avisos = (opcoes && opcoes.avisos) || [];
   const totalLinhas = linhasParaInserir.length;
-  const bloco = localizarBlocoModeloDisponivel_(aba, totalLinhas);
+  const bloco = localizarBlocoModeloDisponivel_(aba, totalLinhas, avisos);
   
   const linhaParaEscrever = bloco.startRow;
   const targetRange = bloco.range;
@@ -361,7 +412,7 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir, opcoes) {
          
          if (rowFormulas[colIdx] && rowFormulas[colIdx].toString().startsWith('=')) {
              if (valorPretendido) {
-                 throw new Error(`Tentativa de sobrescrever a fórmula da coluna '${headerOrig}' na linha ${linhaParaEscrever + rowIdx}.`);
+                 avisos.push('SOBRESCRITA_FORMULA: valor \'' + valorPretendido + '\' ignorado na coluna ' + headerOrig + ' (linha ' + (linhaParaEscrever + rowIdx) + ') que é fórmula.');
              }
          }
 
@@ -389,7 +440,7 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir, opcoes) {
               }
 
               if (!valid) {
-                 throw new Error(`O valor '${valorPretendido}' não é permitido pela validação da planilha na coluna '${headerOrig}'. Gravação abortada.`);
+                 avisos.push('VALOR_FORA_LISTA: \'' + valorPretendido + '\' na coluna ' + headerOrig + ' (gravado assim mesmo; conferir no Guardião).');
               }
           }
      }
