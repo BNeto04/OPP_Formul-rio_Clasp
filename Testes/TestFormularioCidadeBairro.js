@@ -47,17 +47,19 @@ const functionBody = scriptMatch[1].substring(pfStart + 'function parseAndFill(t
 
 // Card #140: o nucleo de endereco passou a viver em `extrairEnderecoOcr_` (funcao propria, testada de forma
 // isolada em TestFormularioAisSei.js). Aqui ele e injetado no mesmo escopo para preservar estes testes de DOM.
-let helperEndereco = '';
-{
-  const hStart = scriptMatch[1].indexOf('function extrairEnderecoOcr_');
-  if (hStart !== -1) {
-    let nivel = 0;
-    for (let j = scriptMatch[1].indexOf('{', hStart); j < scriptMatch[1].length; j++) {
-      if (scriptMatch[1][j] === '{') nivel++;
-      else if (scriptMatch[1][j] === '}') { nivel--; if (nivel === 0) { helperEndereco = scriptMatch[1].slice(hStart, j + 1); break; } }
-    }
+// Helpers que o miolo de parseAndFill consome (cards #140 e #144), injetados no mesmo escopo.
+function extrairFonte(nome) {
+  const hStart = scriptMatch[1].indexOf('function ' + nome + '(');
+  if (hStart === -1) return '';
+  let nivel = 0;
+  for (let j = scriptMatch[1].indexOf('{', hStart); j < scriptMatch[1].length; j++) {
+    if (scriptMatch[1][j] === '{') nivel++;
+    else if (scriptMatch[1][j] === '}') { nivel--; if (nivel === 0) return scriptMatch[1].slice(hStart, j + 1); }
   }
+  return '';
 }
+const helperEndereco = ['extrairEnderecoOcr_', 'extrairDrogasOcr_', 'detidosPendentesOcr_']
+  .map(extrairFonte).join('\n');
 
 const testableParser = new Function('document', 'text', `
   let execucaoOcrId = 1;
