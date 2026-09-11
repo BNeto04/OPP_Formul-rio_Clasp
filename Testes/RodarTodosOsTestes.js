@@ -46,6 +46,7 @@ async function main() {
   require('./TestOcrVeiculoRoubado');
   console.log('');
   require('./TestSeletorMesesGuardiao');
+  require('./TestGuardiaoHeadless');
   console.log('');
   require('./TestCatalogoPipGuardiao');
   console.log('');
