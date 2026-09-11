@@ -93,6 +93,8 @@ async function main() {
   console.log('');
   require('./TestOrdemAntiguidadeEquipe');
   console.log('');
+  require('./TestWebAppExecucao');
+  console.log('');
   require('./TestVigiaPonte');
   console.log('');
   require('./TestVigiaBootRecovery');
