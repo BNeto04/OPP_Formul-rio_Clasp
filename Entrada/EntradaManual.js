@@ -322,8 +322,9 @@ function localizarBlocoModeloDisponivel_(aba, quantidade) {
  * Escreve as linhas formatadas apenas em colunas permitidas, baseando-se nos nomes dos cabeçalhos.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} aba 
  * @param {Array<Array>} linhasParaInserir 
+ * @param {Object=} opcoes {simular:true} executa TODA a validação e NAO grava (dry-run).
  */
-function gravarLinhasEntradaManual(aba, linhasParaInserir) {
+function gravarLinhasEntradaManual(aba, linhasParaInserir, opcoes) {
   const totalLinhas = linhasParaInserir.length;
   const bloco = localizarBlocoModeloDisponivel_(aba, totalLinhas);
   
@@ -392,6 +393,17 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir) {
               }
           }
      }
+  }
+
+  // Dry-run (pedido do proprietario, 12/09/2026): validação concluída SEM tocar na planilha.
+  if (opcoes && opcoes.simular) {
+    return {
+      simulado: true,
+      aba: aba.getName(),
+      linhas: totalLinhas,
+      linhaInicial: linhaParaEscrever,
+      colunasPermitidas: null
+    };
   }
 
   // Fase 2: Gravação Física (Colunas AB, AC e AD são preenchidas pelas fórmulas PROCV da planilha)

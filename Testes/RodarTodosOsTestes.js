@@ -47,6 +47,8 @@ async function main() {
   console.log('');
   require('./TestSeletorMesesGuardiao');
   require('./TestGuardiaoHeadless');
+  require('./TestMunicaoPipOcr');
+  require('./TestEntradaManualDryRun');
   console.log('');
   require('./TestCatalogoPipGuardiao');
   console.log('');

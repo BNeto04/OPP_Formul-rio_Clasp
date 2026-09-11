@@ -1083,14 +1083,35 @@
       }
 
       // 2. Conciliação de Munições
-      if (upper.includes('MUNIÇÃO') || upper.includes('MUNICAO') || upper.includes('CARTUCHO')) {
-        if (upper.includes('FUZIL')) {
-          titulos.push(encontrarOpcaoValida('Apreensão de munição fuzil'));
-        } else if (upper.includes('12') || upper.includes('.12')) {
-          titulos.push(encontrarOpcaoValida('Apreensão de munição calibre .12'));
-        } else {
-          titulos.push(encontrarOpcaoValida('Apreensão de munição revólver/pistola'));
-        }
+      // Correcao (12/09/2026, pedido do proprietario): dois defeitos.
+      //  (a) a deteccao antiga procurava o literal 'MUNIÇÃO' e o BO do SEI escreve "Munições" (plural) ->
+      //      a municao NUNCA era reconhecida pelo parser (so na mao do operador);
+      //  (b) o calibre estava chumbado em '.12' e era decidido por uma busca da substring "12" no texto
+      //      INTEIRO do BO - que aparece na viatura (RC1210) e nas matriculas (1129210, 1210939) -> municao
+      //      de revolver .32 era classificada como calibre .12 (30 pts em vez de 15).
+      // Agora: deteccao sem acento/plural e calibre lido do PROPRIO objeto da arma.
+      const upperSemAcento = String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+      const mencionaMunicao = /(MUNICAO|MUNICOES|CARTUCHO|CARTUCHOS)/.test(upperSemAcento);
+
+      function classificarMunicaoDaArma(arma) {
+        const alvo = [arma && arma.tipo, arma && arma.modelo, arma && arma.calibre]
+          .map(function (v) { return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase(); })
+          .join(' ');
+        if (/FUZIL/.test(alvo)) return 'Apreensão de munição fuzil';
+        if (/(^|[^0-9])\.?12([^0-9]|$)|12\s*GA|CALIBRE\s*12/.test(alvo)) return 'Apreensão de munição calibre .12';
+        return 'Apreensão de munição revólver/pistola';
+      }
+
+      const armasComMunicao = (armasDetectadas || []).filter(function (a) { return Number(a && a.municao) > 0; });
+      if (armasComMunicao.length > 0) {
+        armasComMunicao.forEach(function (a) {
+          const alvo = encontrarOpcaoValida(classificarMunicaoDaArma(a));
+          if (titulos.indexOf(alvo) === -1) titulos.push(alvo);
+        });
+      } else if (mencionaMunicao) {
+        const base = (armasDetectadas && armasDetectadas[0]) || null;
+        const alvo = encontrarOpcaoValida(classificarMunicaoDaArma(base));
+        if (titulos.indexOf(alvo) === -1) titulos.push(alvo);
       }
 
       // 3. Conciliação de Drogas (Gramas vs. Quilos)
