@@ -9,6 +9,18 @@ const constantes = {
   // Divisor Fixo Oficial para Rateio PIP de Pontos Ficção (independente da quantidade de policiais no túnel)
   DIVISOR_RATEIO_PIP: 4,
 
+  // Conversoes canonicas das formas de apreensao de drogas para gramas (ARCA-DROGAS-001).
+  // O tunel registra as formas; a aba mensal consolida em total: S = MACONHA DOLAR*3 + MACONHA GRAMA,
+  // W = CRACK GRAMA + CRACK PEDRA/4 e Z = (COCAINA PINO + COCAINA GRAMA) + (CRACK GRAMA + CRACK PEDRA/4).
+  CONVERSOES_DROGAS: {
+    CRACK_PEDRA_GRAMA: 0.25,     // 1 pedra de crack = 0,25 g
+    MACONHA_PAPELOTE_GRAMA: 3,   // 1 papelote/big de maconha = 3 g
+    COCAINA_PINO_GRAMA: 1        // 1 pino/ziplock de cocaína = 1 g
+  },
+  // Para os escaloes superiores o crack entra no somatorio geral da cocaina (derivado direto dela),
+  // ainda que a unidade mantenha as duas contabilidades separadas.
+  COCAINA_INCLUI_CRACK_EM_ESCALOES_SUPERIORES: true,
+
   // Mapeamento de Aliases para Cabeçalhos Dinâmicos
   ALIASES: {
     MATRICULA: ['MATRICULA', 'MAT.', 'MAT', 'MATR'],

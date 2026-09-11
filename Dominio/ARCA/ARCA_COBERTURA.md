@@ -19,7 +19,7 @@
 | **MERITO_ARMAS** | `COBERTO` | Atribuição exclusiva ao menor N da equipe, bloqueio em empate e blindagem de fonte Pecúlio cobertos. |
 | **ARMAS** | `COBERTO` | Fonte exclusiva na coluna ARMA, exclusão de QDT ARMAS, diferenciação de artesanal e consistência com indicadores cobertos. |
 | **MUNICOES** | `COBERTO` | Validação material de apreensão de munições associada a indicadores coberta. |
-| **DROGAS** | `COBERTO` | Validação material por tipo (maconha, crack, cocaína) e agregação de gramas/unidades coberta. |
+| **DROGAS** | `COBERTO` | Validação material por tipo (maconha, crack, cocaína), agregação de gramas/unidades e **conversão canônica das formas de apreensão em gramas** (`ARCA-CONVERSAO-001`: pedra 0,25 g · papelote/big 3 g · pino/ziplock 1 g; crack entra no total geral da cocaína nos escalões superiores). |
 | **NUMERARIO** | `COBERTO` | Proteção explícita de não auditabilidade automática e preservação da autonomia humana coberta. |
 | **VEICULOS** | `NAO_COBERTO` | O sistema atual não possui regras de validação de veículos apreendidos/recuperados (placa, chassi, roubo/furto). |
 | **ESCALA** | `NAO_COBERTO` | Não há integração com escalas de serviço ou registro de afastamentos/férias para checar legalidade da escala. |
@@ -57,3 +57,5 @@
 
 
 > **Integracao OCR/Veiculo 10/09/2026 (#138 OCR-ARCA-004):** `ARCA-VEICULO-001` passou a ter **consumidores reais** (`Entrada/Formulario.html` + `Entrada/EntradaManual.js`): o formulario consulta os metadados canonicos por rule_id (fail-soft) e a heuristica lexical segue no parser, agora cobrindo substantivo, adjetivo e participio e tolerando quebra de linha. A defesa anti-falso-positivo foi preservada.
+
+> **Registro de conversão de drogas 11/09/2026 (#144 OCR-P3-010):** catálogo com **42 regras**. Nova regra de domínio `ARCA-CONVERSAO-001` (subdomínio `drogas`) registra as medidas canônicas ditadas pelo proprietário — 1 pedra de crack = 0,25 g, 1 papelote/big de maconha = 3 g, 1 pino/ziplock de cocaína = 1 g — e a razão de o `TOTAL DE COCAINA` incluir o crack (crack é derivado direto da cocaína e entra no somatório geral dos escalões superiores, ainda que a unidade mantenha as contabilidades separadas). Isso resolve o risco R2 do mapa do túnel (card #142) como **intencional**, não defeito. Consumidor real: `Core/Constantes.js` (`CONVERSOES_DROGAS`).

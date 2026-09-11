@@ -89,12 +89,12 @@ test('toda regra declara auditabilidade explicita (MAPEADO | NAO_AUDITAVEL com m
 test('contagens de cobertura conferem com o meta do catalogo', () => {
   const mapeadas = regras.filter(r => r.auditabilidade_guardiao.status === 'MAPEADO').length;
   const naoAud = regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_AUDITAVEL').length;
-  assert.strictEqual(regras.length, 41, 'total de regras deveria ser 41 (40 + ARCA-VEICULO-001 do #137)');
+  assert.strictEqual(regras.length, 42, 'total de regras deveria ser 42 (41 + ARCA-CONVERSAO-001 do #144)');
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_mapeadas, mapeadas);
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_nao_auditaveis, naoAud);
-  assert.strictEqual(mapeadas + naoAud, 41);
+  assert.strictEqual(mapeadas + naoAud, 42);
   assert.strictEqual(mapeadas, 26);
-  assert.strictEqual(naoAud, 15, 'ARCA-VEICULO-001 (#137) entra como NAO_AUDITAVEL com motivo');
+  assert.strictEqual(naoAud, 16, 'ARCA-VEICULO-001 (#137) e ARCA-CONVERSAO-001 (#144) entram como NAO_AUDITAVEL com motivo');
 });
 
 test('nenhuma heuristica foi promovida a regra oficial na reconciliacao', () => {

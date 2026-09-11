@@ -31,7 +31,7 @@ const md = fs.readFileSync(MD_PATH, 'utf8');
 const CHAVES = ['REAL_CODE_CONSUMER', 'INDIRECT_CONSUMER', 'DECLARED_CONSUMER', 'PLANNED_CONSUMER'];
 
 test('catalogo tem 31 regras e registro de metodo da reconciliacao', () => {
-  assert.strictEqual(regras.length, 41, '41 regras: 40 do lote ARCA + ARCA-VEICULO-001 (#137)');
+  assert.strictEqual(regras.length, 42, '42 regras: 41 do lote ARCA + ARCA-VEICULO-001 (#137) + ARCA-CONVERSAO-001 (#144)');
   assert.ok(arca.meta.consumidores_reconciliacao, 'meta.consumidores_reconciliacao ausente');
   assert.ok(String(arca.meta.consumidores_reconciliacao.card).includes('#125'));
 });

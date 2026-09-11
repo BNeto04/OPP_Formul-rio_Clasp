@@ -710,3 +710,19 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência em Testes:** `Testes/TestOcrVeiculoRoubado.js`, `Testes/TestEntradaManualFormulario.js:749-761`, `Testes/TestArcaVeiculoOcr.js`
 - **Auditabilidade no Guardiao:** `NAO_AUDITAVEL` — consumidor e o formulario (cliente, `Entrada/Formulario.html`) e nao a planilha auditada; o Guardiao nao emite codigo de diagnostico para titulo PIP de veiculo.
 - **Consumidores (reconciliado #125 / #137 / #138):** REAL: `Entrada/Formulario.html`, `Entrada/EntradaManual.js` | INDIRETO: - | DECLARADO: - | PLANEJADO: -
+
+---
+
+### [ARCA-CONVERSAO-001] Conversao de formas de apreensao de drogas em quantidade total (gramas)
+- **Subdomínio:** `drogas` | **Categoria:** `DEFINICAO_METRICA`
+- **Tipo de Regra:** `OFFICIAL_BUSINESS_RULE` | **Status de Fonte:** `CANONICAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** O túnel registra as formas de apreensão em colunas próprias (pedra de crack, papelote/big de maconha, pino/ziplock de cocaína) e a aba mensal **consolida em quantidade total em gramas**. Medidas canônicas: **1 pedra de crack = 0,25 g**; **1 papelote/big de maconha = 3 g**; **1 pino/ziplock de cocaína = 1 g**.
+- **Condição Lógica:** `Registro de apreensão em forma unitária (pedra, papelote/big, pino/ziplock) ou já em gramas.`
+- **Resultado Esperado:** Consolidação em total de gramas. Fórmulas da aba (`SET2026`): `TOTAL DE MACONHA (S) = MACONHA DOLAR*3 + MACONHA GRAMA`; `Total CRACK (gr) (W) = CRACK GRAMA + CRACK PEDRA/4`; `TOTAL DE COCAINA (Z) = (COCAINA PINO + COCAINA GRAMA) + (CRACK GRAMA + CRACK PEDRA/4)`.
+- **Regra de escalão superior:** a unidade separa **cocaína e crack** para fins de contabilidade próprios, mas **nos escalões superiores o crack entra no somatório geral da cocaína**, por ser derivado direto dela. É por isso que `Z` inclui o crack.
+- **Fontes Declaradas:** determinação literal do proprietário do domínio (11/09/2026), registrada na issue #139 e nos cards #142/#144.
+- **Evidência no Código:** `Core/Constantes.js` (`CONVERSOES_DROGAS`)
+- **Evidência em Testes:** `Testes/TestConversaoDrogas.js`
+- **Exceções:** substâncias sem coluna na aba (ex.: ANABOLIZANTES) não têm consolidação possível hoje — não podem ser inferidas nem convertidas.
+- **Auditabilidade no Guardião:** `NAO_AUDITAVEL` — regra aplicada nas fórmulas da aba mensal; não há código de diagnóstico para conversão de drogas.
+- **Consumidores (reconciliado #125):** REAL: `Core/Constantes.js` | INDIRETO: - | DECLARADO: - | PLANEJADO: -

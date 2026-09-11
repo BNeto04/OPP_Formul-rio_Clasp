@@ -37,7 +37,7 @@
         "ARCA-VEICULO-001"
       ],
       "regras_mapeadas": 26,
-      "regras_nao_auditaveis": 15,
+      "regras_nao_auditaveis": 16,
       "regras_adicionadas_total": [
         "ARCA-MIKE-004",
         "ARCA-EFETIVO-003",
@@ -2484,6 +2484,67 @@
         "status": "NAO_AUDITAVEL",
         "codigos": [],
         "motivo": "Consumidor e o formulario (cliente, Entrada/Formulario.html) e nao a planilha auditada; o Guardiao nao emite codigo de diagnostico para titulo PIP de veiculo."
+      }
+    },
+    {
+      "rule_id": "ARCA-CONVERSAO-001",
+      "titulo": "Conversao de formas de apreensao de drogas em quantidade total (gramas)",
+      "descricao_humana": "O tunel registra as formas de apreensao em colunas proprias (pedra de crack, papelote/big de maconha, pino/ziplock de cocaina) e a aba mensal consolida tudo em quantidade total em gramas. Medidas canonicas: 1 pedra de crack = 0,25 g; 1 papelote/big de maconha = 3 g; 1 pino/ziplock de cocaina = 1 g. Para os escaloes superiores o crack entra no somatorio geral da cocaina (derivado direto dela), embora a unidade mantenha as duas contabilidades separadas para fins proprios.",
+      "categoria": "DEFINICAO_METRICA",
+      "subdominio": "drogas",
+      "tipo_regra": "OFFICIAL_BUSINESS_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DETERMINACAO_DO_PROPRIETARIO",
+          "nome": "Medidas informadas pelo proprietario do dominio (11/09/2026)",
+          "localizacao": "issue #139 / cards #142 e #144",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/Constantes.js:CONVERSOES_DROGAS"
+      ],
+      "evidencia_testes": [
+        "Testes/TestConversaoDrogas.js"
+      ],
+      "condicao": "Registro de apreensao de droga em forma unitaria (pedra, papelote/big, pino/ziplock) ou ja em gramas.",
+      "resultado_esperado": "Consolidacao em total de gramas conforme as medidas canonicas. Formulas da aba mensal: TOTAL DE MACONHA = MACONHA DOLAR*3 + MACONHA GRAMA; Total CRACK (gr) = CRACK GRAMA + CRACK PEDRA/4; TOTAL DE COCAINA = (COCAINA PINO + COCAINA GRAMA) + (CRACK GRAMA + CRACK PEDRA/4).",
+      "excecoes": [],
+      "parametros": [
+        {
+          "nome": "CRACK_PEDRA_GRAMA",
+          "valor": 0.25
+        },
+        {
+          "nome": "MACONHA_PAPELOTE_GRAMA",
+          "valor": 3
+        },
+        {
+          "nome": "COCAINA_PINO_GRAMA",
+          "valor": 1
+        }
+      ],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/Constantes.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "A consolidacao efetiva acontece nas formulas da propria aba mensal (colunas S, W e Z). As medidas canonicas tambem ficam expostas em Core/Constantes.js (CONVERSOES_DROGAS) para uso do codigo e dos testes."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": "Se as medidas oficiais mudarem sem atualizar simultaneamente a planilha e as constantes, os totais divergem. Substancias sem coluna na aba (ex.: ANABOLIZANTES) nao tem consolidacao possivel hoje.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Registrado por determinacao literal do proprietario (11/09/2026): 1 pedra de crack = 0,25 g; 1 papelote/big de maconha = 3 g; 1 pino/ziplock de cocaina = 1 g; e o crack, embora separado da cocaina na contabilidade da unidade, entra no somatorio geral da cocaina nos escaloes superiores por ser derivado direto dela. Resolve o risco R2 do mapa do tunel (card #142): a formula que inclui o crack no TOTAL DE COCAINA e intencional, nao defeito.",
+      "auditabilidade_guardiao": {
+        "status": "NAO_AUDITAVEL",
+        "codigos": [],
+        "motivo": "Regra aplicada nas formulas da aba mensal; o Guardiao nao emite codigo de diagnostico para conversao de drogas hoje."
       }
     }
   ]
