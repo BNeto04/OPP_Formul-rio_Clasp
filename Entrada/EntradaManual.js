@@ -695,6 +695,34 @@ function resolverAISTerritorial(cidade, bairro) {
   };
 }
 
+/**
+ * Corrige a DATA (coluna B) de um bloco de ocorrência já gravado, localizando pelo MIKE.
+ * Uso pontual de calibragem (regra do proprietário: madrugada conta no serviço do dia anterior).
+ */
+function corrigirDataBloco(mike, novaData) {
+  const ss = obterSpreadsheetOcorrencias_();
+  const abas = ss.getSheets();
+  for (const aba of abas) {
+    const maxRows = aba.getMaxRows();
+    if (maxRows < 2) continue;
+    const colMike = aba.getRange('E2:E' + maxRows).getValues();
+    const rangeData = aba.getRange('B2:B' + maxRows);
+    const dados = rangeData.getValues();
+    let mudou = false;
+    for (let i = 0; i < colMike.length; i++) {
+      if (String(colMike[i][0]).trim() === String(mike).trim()) {
+        dados[i][0] = novaData;
+        mudou = true;
+      }
+    }
+    if (mudou) {
+      rangeData.setValues(dados);
+      return 'OK: ' + mike + ' -> ' + novaData + ' em ' + aba.getName();
+    }
+  }
+  return 'MIKE nao encontrado: ' + mike;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     processarEntradaManual: processarEntradaManual,

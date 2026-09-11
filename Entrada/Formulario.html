@@ -576,8 +576,8 @@
           if (fim.length >= 2) {
             const cidadeSei = fim[fim.length - 1];
             const bairroSei = fim[fim.length - 2];
-            if (!cidadeDetectada && !ignorarValor(cidadeSei)) { cidadeDetectada = cidadeSei; }
-            if (!bairroDetectado && !ignorarValor(bairroSei)) { bairroDetectado = bairroSei; }
+            if (!ignorarValor(cidadeSei)) { cidadeDetectada = cidadeSei; }
+            if (!ignorarValor(bairroSei)) { bairroDetectado = bairroSei; }
           }
         }
       }
@@ -586,6 +586,10 @@
       if (cidadeDetectada && /[:]/.test(cidadeDetectada)) { cidadeDetectada = ''; }
       if (bairroDetectado && /[:]/.test(bairroDetectado)) { bairroDetectado = ''; }
       if (bairroDetectado && /^[A-Za-z]{2}$/.test(bairroDetectado)) { bairroDetectado = ''; }
+
+      // Normaliza espacos (a colagem do PDF costuma duplicar espacos, ex.: "DOIS  UNIDOS").
+      cidadeDetectada = cidadeDetectada.replace(/\s+/g, ' ').trim();
+      bairroDetectado = bairroDetectado.replace(/\s+/g, ' ').trim();
 
       return { cidade: cidadeDetectada, bairro: bairroDetectado };
     }
@@ -773,7 +777,16 @@
           }
         }
       });
-      
+
+      // Calibre e munição ficam na linha "Caracteristicas Adicionais" (separada do objeto da arma).
+      // (calibragem 09/09) o formulario nao preenchia CALIBRE/MUNIÇÃO -> coluna P vazia.
+      const calibreBOMatch = String(text || '').match(/Calibre\s*[:.]\s*(\.?\d+(?:[.,]\d+)?)/i);
+      const municaoBOMatch = String(text || '').match(/Quantidade de Muni[çc][õo]es\s*[:.]\s*(\d+)/i);
+      armasDetectadas.forEach(function (a) {
+        if (!a.calibre && calibreBOMatch) a.calibre = calibreBOMatch[1].replace(/[.,]/g, '');
+        if (!a.municao && municaoBOMatch) a.municao = parseInt(municaoBOMatch[1], 10);
+      });
+
       // As armas serão criadas apenas após as opções carregarem,
       // para não falharem por falta da lista.
 
@@ -812,7 +825,7 @@
             if (ocrId !== execucaoOcrId) return;
             if (armasDetectadas.length) {
               document.getElementById('armasList').innerHTML = '';
-              armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, '', 0, a.quantidade));
+              armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, a.calibre || '', a.municao || 0, a.quantidade));
             }
             const confOCR = document.getElementById('ocrConferenceCard');
             const confContent = document.getElementById('ocrConferenceContent');
@@ -906,7 +919,7 @@
             }
             if (armasDetectadas.length) {
                document.getElementById('armasList').innerHTML = '';
-               armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, '', 0, a.quantidade));
+               armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, a.calibre || '', a.municao || 0, a.quantidade));
             }
             log('>> AVISO: ' + (err.message || 'Opções da aba não carregadas.'));
             setStatus(
@@ -1458,23 +1471,21 @@ function ordenarEquipePorAntiguidade_(lista) {
       div.id = id;
       
       let htmlTipos = '';
-      const tList = (window.opcoesFormulario && window.opcoesFormulario.armasTipos) ? window.opcoesFormulario.armasTipos : [];
-      if (tList.length === 0) {
-          setStatus('Aguarde o carregamento das opções (Data) antes de adicionar Arma.', 'var(--danger-color)');
-          return;
-      }
+      // Fallback (calibragem 09/09): colunas TIPO/MODELO podem não ter validação na planilha —
+      // sem isso o dropdown ficava vazio e a arma era DROPADA silenciosamente do payload.
+      const tList = (window.opcoesFormulario && window.opcoesFormulario.armasTipos && window.opcoesFormulario.armasTipos.length)
+        ? window.opcoesFormulario.armasTipos
+        : ['INDUSTRIAL', 'FABRICAÇÃO CASEIRA'];
       tList.forEach(t => {
          htmlTipos += `<option value="${t}" ${tipo===t?'selected':''}>${t}</option>`;
       });
       let htmlModelos = '';
-      const mList = (window.opcoesFormulario && window.opcoesFormulario.armasModelos) ? window.opcoesFormulario.armasModelos : [];
-      if (mList.length > 0) {
-          mList.forEach(m => {
-             htmlModelos += `<option value="${m}" ${modelo===m?'selected':''}>${m}</option>`;
-          });
-      } else {
-          htmlModelos = `<option value="">Nenhum modelo disponível</option>`;
-      }
+      const mList = (window.opcoesFormulario && window.opcoesFormulario.armasModelos && window.opcoesFormulario.armasModelos.length)
+        ? window.opcoesFormulario.armasModelos
+        : ['REVÓLVER', 'PISTOLA', 'ESPINGARDA', 'FUZIL'];
+      mList.forEach(m => {
+         htmlModelos += `<option value="${m}" ${modelo===m?'selected':''}>${m}</option>`;
+      });
 
       div.innerHTML = `
         <select style="flex:1" class="arma-tipo">
