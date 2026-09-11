@@ -552,6 +552,83 @@
       return { cidade: cidadeDetectada, bairro: bairroDetectado };
     }
 
+    /**
+     * Extrai as drogas do texto do BO (card #144 OCR-P3-010 - nucleo testavel).
+     * Preserva os 5 padroes historicos; a DEDUPLICACAO e por substancia+unidade (nao so substancia),
+     * senao uma entrada em GRAMAS some quando existe outra maior em UNIDADES (ex.: CRACK 10 GRAMA x 20 PEDRA).
+     */
+    function extrairDrogasOcr_(text) {
+      const drogasDetectadas = [];
+      const textoDrogas = String(text).toUpperCase();
+      const padroesDrogas = [
+        /(MACONHA|CRACK|COCA[ÍI]NA)[\s\S]{0,120}?QUANTIDADE:\s*(\d+(?:[.,]\d+)?)/g,
+        /(MACONHA|CRACK|COCA[ÍI]NA)\s*,\s*(\d+(?:[.,]\d+)?)\s*UNIDADE/g,
+        /(\d+(?:[.,]\d+)?)\s*(G|KG|GRAMAS?|QUILOS?)\s*(?:DE\s*)?(MACONHA|CRACK|COCA[ÍI]NA)/g,
+        /(\d+)\s*(ZIPLOCKS?|PAPELOTES?|PEDRAS?|INV[ÓO]LUCROS?|UNIDADES?|ENVOLT[ÓO]RIOS?|POR[ÇC][ÕO]ES)\s*(?:DE\s*)?(MACONHA|CRACK|COCA[ÍI]NA)/g,
+        /(MACONHA|CRACK|COCA[ÍI]NA)[\s\S]{0,30}?(?<!\d\d\/\d\d\/\d\d\d\d\s)(\d+(?:[.,]\d+)?)\s*(G|KG|GRAMAS?|QUILOS?)\b/g
+      ];
+
+      const drogasMap = new Map();
+      padroesDrogas.forEach((regex, index) => {
+        let m;
+        while ((m = regex.exec(textoDrogas)) !== null) {
+          let tipoRaw, valStr, undRaw;
+          if (index === 0) {
+            tipoRaw = m[1]; valStr = m[2];
+            // O padrao 1 nao captura a unidade: olha a palavra imediatamente apos o numero.
+            const depois = textoDrogas.slice(regex.lastIndex, regex.lastIndex + 24);
+            if (/^\s*(KG|QUILOS?)\b/.test(depois)) undRaw = 'QUILOGRAMAS';
+            else if (/^\s*(G|GRAMAS?)\b/.test(depois)) undRaw = 'GRAMAS';
+            else undRaw = 'UNIDADES';
+          } else if (index === 1) {
+            tipoRaw = m[1]; valStr = m[2]; undRaw = 'UNIDADES';
+          } else if (index === 2) {
+            valStr = m[1]; undRaw = m[2]; tipoRaw = m[3];
+          } else if (index === 3) {
+            valStr = m[1]; undRaw = 'UNIDADES'; tipoRaw = m[3];
+          } else if (index === 4) {
+            tipoRaw = m[1]; valStr = m[2]; undRaw = m[3];
+          }
+
+          let tipoNorm = String(tipoRaw).replace('I', 'Í');
+          if (tipoNorm === 'COCAÍNA' || tipoNorm === 'COCAINA') tipoNorm = 'COCAÍNA';
+
+          const qtd = parseFloat(String(valStr).replace(',', '.'));
+          let unidadeNorm = 'GRAMAS';
+          if (undRaw.includes('K') || undRaw.includes('Q')) unidadeNorm = 'QUILOGRAMAS';
+          else if (undRaw === 'UNIDADES') unidadeNorm = 'UNIDADES';
+
+          // Card #144: deduplicacao por SUBSTANCIA + UNIDADE. Antes era so por substancia, guardando a
+          // maior quantidade: uma entrada em GRAMAS era engolida quando havia outra maior em UNIDADES
+          // (caso real: CRACK 10 GRAMA(S) perdido por causa de CRACK 20 UNIDADE(S)).
+          const chaveDroga = tipoNorm + '|' + unidadeNorm;
+          if (!drogasMap.has(chaveDroga) || drogasMap.get(chaveDroga).quantidade < qtd) {
+            drogasMap.set(chaveDroga, { tipo: tipoNorm, quantidade: qtd, unidadeMedida: unidadeNorm });
+          }
+        }
+      });
+
+      drogasMap.forEach(v => drogasDetectadas.push(v));
+      return drogasDetectadas;
+    }
+
+    /**
+     * DETIDOS e um indicador processual (APFD/TCO/BOC/AAFAI) - nunca inferido automaticamente (card #144).
+     * Retorna true quando ha evidencia estruturada de autor/autuado no BO E o campo esta vazio
+     * (ou seja: o operador precisa conferir explicitamente).
+     */
+    function detidosPendentesOcr_(text, valorAtual) {
+      if (String(valorAtual === undefined || valorAtual === null ? '' : valorAtual).trim()) return false;
+      const t = String(text);
+      const evidencias = [
+        /TIPO DE ENVOLVIMENTO:\s*AUTOR/i,
+        /AUTUA[ÇC][ÃA]O:\s*ENTORPECENTES/i,
+        /AUTO DE PRIS[ÃA]O EM FLAGRANTE/i,
+        /PRESO EM FLAGRANTE/i
+      ].filter(function (re) { return re.test(t); }).length;
+      return evidencias > 0;
+    }
+
     function parseAndFill(text, ocrId = execucaoOcrId) {
       if (!text || ocrId !== execucaoOcrId) return;
       const upper = text.toUpperCase();
@@ -660,60 +737,22 @@
         if (!policiaisSet.has(m)) adicionarPolicialLinha(m);
       });
 
-      // Drogas: Extração contextual inteligente
-      const drogasDetectadas = [];
-      const textoDrogas = text.toUpperCase();
-      const padroesDrogas = [
-        // 1. Padrão Estruturado BOE (ex: Categoria do Objeto: COCAINA ... Quantidade: 500)
-        /(MACONHA|CRACK|COCA[ÍI]NA)[\s\S]{0,120}?QUANTIDADE:\s*(\d+(?:[.,]\d+)?)/g,
-        // 2. Padrão Imagens Complementares (ex: ENTORPECENTE/COCAINA , 500 UNIDADE(S))
-        /(MACONHA|CRACK|COCA[ÍI]NA)\s*,\s*(\d+(?:[.,]\d+)?)\s*UNIDADE/g,
-        // 3. Peso Antes (ex: 50g de cocaína)
-        /(\d+(?:[.,]\d+)?)\s*(G|KG|GRAMAS?|QUILOS?)\s*(?:DE\s*)?(MACONHA|CRACK|COCA[ÍI]NA)/g,
-        // 4. Unidades Antes (ex: 497 ziplocks de cocaína)
-        /(\d+)\s*(ZIPLOCKS?|PAPELOTES?|PEDRAS?|INV[ÓO]LUCROS?|UNIDADES?|ENVOLT[ÓO]RIOS?|POR[ÇC][ÕO]ES)\s*(?:DE\s*)?(MACONHA|CRACK|COCA[ÍI]NA)/g,
-        // 5. Peso Depois (ex: cocaína 50 g)
-        /(MACONHA|CRACK|COCA[ÍI]NA)[\s\S]{0,30}?(?<!\d\d\/\d\d\/\d\d\d\d\s)(\d+(?:[.,]\d+)?)\s*(G|KG|GRAMAS?|QUILOS?)\b/g
-      ];
-
-      const drogasMap = new Map(); // Evitar duplicatas do mesmo tipo
-      
-      padroesDrogas.forEach((regex, index) => {
-        let m;
-        while ((m = regex.exec(textoDrogas)) !== null) {
-          let tipoRaw, valStr, undRaw;
-          
-          if (index === 0 || index === 1) {
-            tipoRaw = m[1]; valStr = m[2]; undRaw = 'UNIDADES';
-          } else if (index === 2) {
-            valStr = m[1]; undRaw = m[2]; tipoRaw = m[3];
-          } else if (index === 3) {
-            valStr = m[1]; undRaw = 'UNIDADES'; tipoRaw = m[3]; // m[2] é a palavra ziplock/etc
-          } else if (index === 4) {
-            tipoRaw = m[1]; valStr = m[2]; undRaw = m[3];
-          }
-          
-          let tipoNorm = tipoRaw.replace('I', 'Í'); // Padronizar COCAINA para COCAÍNA
-          if (tipoNorm === 'COCAÍNA' || tipoNorm === 'COCAINA') tipoNorm = 'COCAÍNA';
-          
-          let qtd = parseFloat(valStr.replace(',', '.'));
-          let unidadeNorm = 'GRAMAS';
-          if (undRaw.includes('K') || undRaw.includes('Q')) unidadeNorm = 'QUILOGRAMAS';
-          else if (undRaw === 'UNIDADES') unidadeNorm = 'UNIDADES';
-
-          // Salva a maior quantidade encontrada para o tipo
-          if (!drogasMap.has(tipoNorm) || drogasMap.get(tipoNorm).quantidade < qtd) {
-            drogasMap.set(tipoNorm, { tipo: tipoNorm, quantidade: qtd, unidadeMedida: unidadeNorm });
-          }
-        }
-      });
-
-      drogasMap.forEach(v => drogasDetectadas.push(v));
+      // Drogas: Extração contextual inteligente (nucleo movido para `extrairDrogasOcr_` - card #144)
+      const drogasDetectadas = extrairDrogasOcr_(text);
 
       if (drogasDetectadas.length) {
         document.getElementById('drogasList').innerHTML = '';
         drogasDetectadas.forEach(d => adicionarDrogaField(d.tipo, d.quantidade, d.unidadeMedida));
       }
+
+      // DETIDOS (card #144): indicador processual (APFD/TCO/BOC/AAFAI) - NUNCA inferido automaticamente.
+      // Quando o BO traz evidencia estruturada de autor/autuado e o campo esta vazio, sinaliza conferencia
+      // explicita (nao preenche: preserva a soberania do operador e nao inventa detido).
+      try {
+        if (detidosPendentesOcr_(text, document.getElementById('detidos').value) === true) {
+          setStatus('⚠ DETIDOS vazio, mas o BO indica autor/autuado - confira se cabe APFD/TCO/BOC/AAFAI. Nao foi inferido automaticamente.', 'var(--danger-color)');
+        }
+      } catch (e) { /* fail-soft: nunca bloqueia o OCR */ }
 
       const dataExtraida = document.getElementById('data').value;
       if (dataExtraida) {
