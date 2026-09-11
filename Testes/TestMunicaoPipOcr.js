@@ -145,6 +145,14 @@ test('municao de calibre repetido nao duplica indicador', () => {
   assert.strictEqual(m[0], 'Apreensão de munição revólver/pistola');
 });
 
+test('espingarda (calibre .28) gera municao de classe calibre .12, nao revolver/pistola', () => {
+  const arma = [{ tipo: 'ARMA DE FOGO', modelo: 'ESPINGARDA', calibre: '.28', municao: 2, quantidade: 1 }];
+  const t = conciliarTitulosPipOcr('ARMA DE FOGO ESPINGARDA Calibre:.28 Quantidade de Munições:2 (dois)', arma, [], '');
+  const m = municao(t);
+  assert.strictEqual(m[0], 'Apreensão de munição calibre .12');
+  assert.ok(t.indexOf('Apreensão de arma longa (12 industrial)') !== -1, 'arma longa deve ser 12 industrial');
+});
+
 console.log(`\nTestes de munição (PIP): ${sucessos} PASS / ${falhas} FAIL`);
 if (falhas > 0) process.exitCode = 1;
 

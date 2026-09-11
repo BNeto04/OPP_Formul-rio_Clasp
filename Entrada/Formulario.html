@@ -1102,7 +1102,8 @@
       function classeDeCalibre(calibreTexto) {
         const t = normalizarAlvo(calibreTexto);
         if (/FUZIL|7[.,]62|5[.,]56|762|556/.test(t)) return 'fuzil';
-        if (/(^|[^0-9])\.?12([^0-9]|$)|12\s*GA|CALIBRE\s*12/.test(t)) return 'calibre12';
+        // Espingarda / arma longa (nao fuzil): municao de cartucho -> classe calibre .12 (12 industrial).
+        if (/ESPINGARDA|ARMA\s+LONGA|(^|[^0-9])\.?12([^0-9]|$)|12\s*GA|CALIBRE\s*12/.test(t)) return 'calibre12';
         return 'revolverPistola';
       }
       const ROTULO_CLASSE_MUNICAO = {
