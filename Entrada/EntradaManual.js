@@ -746,6 +746,25 @@ function corrigirBlocoOcorrencia(mike, cidade, bairro, detidos, arma, tipo, cali
   return 'MIKE nao encontrado: ' + mike;
 }
 
+/**
+ * Corrige DETIDOS (coluna K) do bloco, na primeira linha (fato). Uso: operador deixou o padrão TCO.
+ */
+function corrigirDetidos(mike, detidos) {
+  const ss = obterSpreadsheetOcorrencias_();
+  for (const aba of ss.getSheets()) {
+    const maxRows = aba.getMaxRows();
+    if (maxRows < 2) continue;
+    const colMike = aba.getRange('E2:E' + maxRows).getValues();
+    for (let i = 0; i < colMike.length; i++) {
+      if (String(colMike[i][0]).trim() === String(mike).trim()) {
+        aba.getRange(i + 2, 11).setValue(detidos); // K=11 DETIDOS
+        return 'OK: DETIDOS de ' + mike + ' -> ' + detidos + ' em ' + aba.getName();
+      }
+    }
+  }
+  return 'MIKE nao encontrado: ' + mike;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     processarEntradaManual: processarEntradaManual,
