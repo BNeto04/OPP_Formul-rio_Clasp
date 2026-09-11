@@ -45,6 +45,20 @@ const pfEnd = scriptMatch[1].indexOf('const dataExtraida =', pfStart);
 // Extrai o miolo exato da função sem redeclarar variáveis
 const functionBody = scriptMatch[1].substring(pfStart + 'function parseAndFill(text, ocrId = execucaoOcrId) {'.length, pfEnd);
 
+// Card #140: o nucleo de endereco passou a viver em `extrairEnderecoOcr_` (funcao propria, testada de forma
+// isolada em TestFormularioAisSei.js). Aqui ele e injetado no mesmo escopo para preservar estes testes de DOM.
+let helperEndereco = '';
+{
+  const hStart = scriptMatch[1].indexOf('function extrairEnderecoOcr_');
+  if (hStart !== -1) {
+    let nivel = 0;
+    for (let j = scriptMatch[1].indexOf('{', hStart); j < scriptMatch[1].length; j++) {
+      if (scriptMatch[1][j] === '{') nivel++;
+      else if (scriptMatch[1][j] === '}') { nivel--; if (nivel === 0) { helperEndereco = scriptMatch[1].slice(hStart, j + 1); break; } }
+    }
+  }
+}
+
 const testableParser = new Function('document', 'text', `
   let execucaoOcrId = 1;
   let ocrId = 1;
@@ -52,6 +66,7 @@ const testableParser = new Function('document', 'text', `
   function adicionarPolicialLinha() {}
   function adicionarDrogaField() {}
   
+  ${helperEndereco}
   ${functionBody}
   return document;
 `);

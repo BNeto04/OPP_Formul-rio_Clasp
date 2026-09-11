@@ -81,6 +81,8 @@ async function main() {
   console.log('');
   require('./TestFormularioAis');
   console.log('');
+  require('./TestFormularioAisSei');
+  console.log('');
   require('./TestVigiaPonte');
   console.log('');
   require('./TestVigiaBootRecovery');

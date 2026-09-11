@@ -472,6 +472,86 @@
       `;
     }
 
+    /**
+     * Extrai { cidade, bairro } do texto bruto do BO.
+     * Card #140 (OCR-P3-006) - nucleo exportavel para teste isolado.
+     * Regras: rotulo explicito "Bairro:" (com " - cidade", " / cidade" e "bairro-cidade"), rotulo
+     * "Municipio:/Cidade:" (precedencia sobre cidade) e fallback no bloco de Endereco/Local do Fato.
+     */
+    function extrairEnderecoOcr_(text) {
+      let cidadeDetectada = '';
+      let bairroDetectado = '';
+
+      // 1. Contexto explicito de Bairro (ex: "Bairro: SANTA MONICA - CAMARAGIBE" ou "Bairro: BOA VIAGEM")
+      const bairroMatch = text.match(/Bairro[:\s]+([^\n\r,;]+)/i);
+      if (bairroMatch) {
+        const rawBairro = bairroMatch[1].trim();
+        if (rawBairro.includes(' - ')) {
+          const parts = rawBairro.split(' - ');
+          bairroDetectado = parts[0].trim();
+          cidadeDetectada = parts.slice(1).join(' - ').trim();
+        } else if (rawBairro.includes(' / ')) {
+          const parts = rawBairro.split(' / ');
+          bairroDetectado = parts[0].trim();
+          cidadeDetectada = parts.slice(1).join(' / ').trim();
+        } else if (rawBairro.includes('-') && !rawBairro.includes(' ')) {
+          const parts = rawBairro.split('-');
+          bairroDetectado = parts[0].trim();
+          cidadeDetectada = parts.slice(1).join('-').trim();
+        } else {
+          bairroDetectado = rawBairro;
+        }
+      }
+
+      // 2. Contexto explicito de Cidade / Municipio (precedencia maxima para cidade)
+      const cidadeMatch = text.match(/(?:Munic[íi]pio|Cidade)[:\s]+([^\n\r,;]+)/i);
+      if (cidadeMatch) {
+        cidadeDetectada = cidadeMatch[1].trim();
+      }
+
+      // 3. Fallback contextual em bloco de Endereco / Local do Fato
+      if (!bairroDetectado || !cidadeDetectada) {
+        const localMatch = text.match(/(?:Local(?:\s+do\s+Fato)?|Endere[çc]o(?:\s+do\s+Fato)?)[:\s]+([^\n\r]+)/i);
+        if (localMatch) {
+          const localStr = localMatch[1];
+          if (!bairroDetectado) {
+            const bSub = localStr.match(/Bairro[:\s]+([^\n\r,;\-]+)/i);
+            if (bSub) bairroDetectado = bSub[1].trim();
+          }
+          if (!cidadeDetectada) {
+            const cSub = localStr.match(/(?:Munic[íi]pio|Cidade)[:\s]+([^\n\r,;\-]+)/i);
+            if (cSub) cidadeDetectada = cSub[1].trim();
+          }
+        }
+      }
+
+      // 4. Layout SEI/CIODS: endereco segmentado por ';' sem rotulos (card #140 OCR-P3-006).
+      //    Formato observado nos BOs reais: "logradouro; COMPLEMENTO...;NUMERO...;CEP...; BAIRRO;CIDADE;UF; BRASIL"
+      //    Lido do fim para o comeco, tolerando 'CEP NAO INFORMADO'/'NUMERO NAO INFORMADO' no meio.
+      if (!bairroDetectado || !cidadeDetectada) {
+        const blocoEnd = text.match(/(?:Local(?:\s+do\s+Fato)?|Endere[çc]o(?:\s+do\s+Fato)?)[:\s]+([^\n\r]+)/i);
+        const endBruto = blocoEnd ? blocoEnd[1] : (/;/.test(text) ? text : '');
+        const partes = String(endBruto).split(';').map(function (p) { return p.trim(); })
+          .filter(function (p) { return p.length > 0; });
+        const ignorarValor = function (v) {
+          return !v || /^N[ÃA]O INFORMADO/i.test(v) || /^CEP\s/i.test(v) || /^\d{5}-?\d{3}$/.test(v);
+        };
+        if (partes.length >= 4) {
+          const fim = partes.slice();
+          if (/^BRASIL$/i.test(fim[fim.length - 1])) { fim.pop(); }
+          if (/^[A-Za-z]{2}$/.test(fim[fim.length - 1])) { fim.pop(); }
+          if (fim.length >= 2) {
+            const cidadeSei = fim[fim.length - 1];
+            const bairroSei = fim[fim.length - 2];
+            if (!cidadeDetectada && !ignorarValor(cidadeSei)) { cidadeDetectada = cidadeSei; }
+            if (!bairroDetectado && !ignorarValor(bairroSei)) { bairroDetectado = bairroSei; }
+          }
+        }
+      }
+
+      return { cidade: cidadeDetectada, bairro: bairroDetectado };
+    }
+
     function parseAndFill(text, ocrId = execucaoOcrId) {
       if (!text || ocrId !== execucaoOcrId) return;
       const upper = text.toUpperCase();
@@ -511,51 +591,12 @@
       }
 
       // Cidade e Bairro (Parser Contextual Par Semântico - TASK: FORMULARIO-CIDADE-BAIRRO-OCR-001)
-      let cidadeDetectada = '';
-      let bairroDetectado = '';
+      // Nucleo extraido para `extrairEnderecoOcr_` (card #140) para ser testavel de forma isolada.
+      const enderecoOcr_ = extrairEnderecoOcr_(text);
+      let cidadeDetectada = enderecoOcr_.cidade;
+      let bairroDetectado = enderecoOcr_.bairro;
 
-      // 1. Contexto explícito de Bairro (ex: "Bairro: SANTA MÔNICA - CAMARAGIBE" ou "Bairro: BOA VIAGEM")
-      const bairroMatch = text.match(/Bairro[:\s]+([^\n\r,;]+)/i);
-      if (bairroMatch) {
-        const rawBairro = bairroMatch[1].trim();
-        if (rawBairro.includes(' - ')) {
-          const parts = rawBairro.split(' - ');
-          bairroDetectado = parts[0].trim();
-          cidadeDetectada = parts.slice(1).join(' - ').trim();
-        } else if (rawBairro.includes(' / ')) {
-          const parts = rawBairro.split(' / ');
-          bairroDetectado = parts[0].trim();
-          cidadeDetectada = parts.slice(1).join(' / ').trim();
-        } else if (rawBairro.includes('-') && !rawBairro.includes(' ')) {
-          const parts = rawBairro.split('-');
-          bairroDetectado = parts[0].trim();
-          cidadeDetectada = parts.slice(1).join('-').trim();
-        } else {
-          bairroDetectado = rawBairro;
-        }
-      }
-
-      // 2. Contexto explícito de Cidade / Município (tem precedência máxima para cidade)
-      const cidadeMatch = text.match(/(?:Munic[íi]pio|Cidade)[:\s]+([^\n\r,;]+)/i);
-      if (cidadeMatch) {
-        cidadeDetectada = cidadeMatch[1].trim();
-      }
-
-      // 3. Fallback contextual em bloco de Endereço / Local do Fato
-      if (!bairroDetectado || !cidadeDetectada) {
-        const localMatch = text.match(/(?:Local(?:\s+do\s+Fato)?|Endere[çc]o(?:\s+do\s+Fato)?)[:\s]+([^\n\r]+)/i);
-        if (localMatch) {
-          const localStr = localMatch[1];
-          if (!bairroDetectado) {
-            const bSub = localStr.match(/Bairro[:\s]+([^\n\r,;\-]+)/i);
-            if (bSub) bairroDetectado = bSub[1].trim();
-          }
-          if (!cidadeDetectada) {
-            const cSub = localStr.match(/(?:Munic[íi]pio|Cidade)[:\s]+([^\n\r,;\-]+)/i);
-            if (cSub) cidadeDetectada = cSub[1].trim();
-          }
-        }
-      }
+      // (regras 1-3 movidas para `extrairEnderecoOcr_` no card #140)
 
       // Função de higienização segura (preserva nomes próprios, remove pontuação residual e UF)
       function limparLocalFato_(str) {
