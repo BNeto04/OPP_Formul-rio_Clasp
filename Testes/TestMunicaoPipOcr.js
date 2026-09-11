@@ -117,7 +117,7 @@ test('arma com municao 0 e texto sem municao nao gera titulo de municao', () => 
   assert.strictEqual(municao(t).length, 0);
 });
 
-test('BO de 06/09 completo: revolver + maconha + crack (sem duplicidade de titulos)', () => {
+test('BO do 06/09 completo: revolver + maconha + crack (sem duplicidade de titulos)', () => {
   const drogas = [{ tipo: 'MACONHA', quantidade: 52, unidadeMedida: 'UNIDADE' },
                   { tipo: 'CRACK', quantidade: 2, unidadeMedida: 'UNIDADE' }];
   const t = conciliarTitulosPipOcr(TEXTO_BO_0609, REVOLVER_32, drogas, 'ENTORPECENTES (POSSE E USO)');
@@ -126,6 +126,23 @@ test('BO de 06/09 completo: revolver + maconha + crack (sem duplicidade de titul
   assert.ok(t.indexOf('Apreensão de maconha por grama (invólucro ou papelote)') !== -1);
   assert.ok(t.indexOf('Apreensão de crack por grama') !== -1);
   assert.strictEqual(t.length, new Set(t).size, 'nao pode haver titulos repetidos');
+});
+
+test('BO com .38 (5 municoes) E 10 municoes de .12 gera os DOIS indicadores', () => {
+  const arma = [{ tipo: 'ARMA DE FOGO', modelo: 'REVOLVER', calibre: '.38', municao: 5, quantidade: 1 }];
+  const texto = 'OBJETO 1 REVOLVER Calibre:.38 Quantidade de Munições:5 (cinco) Objeto Apreendido:SIM\n' +
+                'OBJETO 2 MUNICAO Calibre .12 Quantidade: 10 (dez) Unidade de Medida: UNIDADE Objeto Apreendido:SIM';
+  const m = municao(conciliarTitulosPipOcr(texto, arma, [], 'PORTE ILEGAL DE ARMA'));
+  assert.ok(m.indexOf('Apreensão de munição revólver/pistola') !== -1, 'falta o indicador de revolver/pistola');
+  assert.ok(m.indexOf('Apreensão de munição calibre .12') !== -1, 'falta o indicador de calibre .12');
+  assert.strictEqual(m.length, 2, `exatamente dois indicadores, veio: ${JSON.stringify(m)}`);
+});
+
+test('municao de calibre repetido nao duplica indicador', () => {
+  const texto = 'Munições .32 (3 unidades) e .32 (mais 7)';
+  const m = municao(conciliarTitulosPipOcr(texto, [], [], ''));
+  assert.strictEqual(m.length, 1);
+  assert.strictEqual(m[0], 'Apreensão de munição revólver/pistola');
 });
 
 console.log(`\nTestes de munição (PIP): ${sucessos} PASS / ${falhas} FAIL`);

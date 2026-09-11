@@ -1093,26 +1093,46 @@
       const upperSemAcento = String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
       const mencionaMunicao = /(MUNICAO|MUNICOES|CARTUCHO|CARTUCHOS)/.test(upperSemAcento);
 
-      function classificarMunicaoDaArma(arma) {
-        const alvo = [arma && arma.tipo, arma && arma.modelo, arma && arma.calibre]
-          .map(function (v) { return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase(); })
-          .join(' ');
-        if (/FUZIL/.test(alvo)) return 'Apreensão de munição fuzil';
-        if (/(^|[^0-9])\.?12([^0-9]|$)|12\s*GA|CALIBRE\s*12/.test(alvo)) return 'Apreensão de munição calibre .12';
-        return 'Apreensão de munição revólver/pistola';
+      function normalizarAlvo(v) {
+        return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+      }
+      // Classe de calibre -> rotulo do catalogo. Regra do proprietario (12/09/2026): um MESMO BO pode ter
+      // arma e municoes de calibres diferentes (ex.: um .38 com 5 municoes MAIS 10 municoes de .12) — logo
+      // o correto e gerar UM titulo por CLASSE de calibre identificada, nunca um so.
+      function classeDeCalibre(calibreTexto) {
+        const t = normalizarAlvo(calibreTexto);
+        if (/FUZIL|7[.,]62|5[.,]56|762|556/.test(t)) return 'fuzil';
+        if (/(^|[^0-9])\.?12([^0-9]|$)|12\s*GA|CALIBRE\s*12/.test(t)) return 'calibre12';
+        return 'revolverPistola';
+      }
+      const ROTULO_CLASSE_MUNICAO = {
+        fuzil: 'Apreensão de munição fuzil',
+        calibre12: 'Apreensão de munição calibre .12',
+        revolverPistola: 'Apreensão de munição revólver/pistola'
+      };
+      const classesMunicao = [];
+      function registrarClasseMunicao(classe) {
+        if (classesMunicao.indexOf(classe) === -1) classesMunicao.push(classe);
       }
 
-      const armasComMunicao = (armasDetectadas || []).filter(function (a) { return Number(a && a.municao) > 0; });
-      if (armasComMunicao.length > 0) {
-        armasComMunicao.forEach(function (a) {
-          const alvo = encontrarOpcaoValida(classificarMunicaoDaArma(a));
-          if (titulos.indexOf(alvo) === -1) titulos.push(alvo);
-        });
-      } else if (mencionaMunicao) {
-        const base = (armasDetectadas && armasDetectadas[0]) || null;
-        const alvo = encontrarOpcaoValida(classificarMunicaoDaArma(base));
-        if (titulos.indexOf(alvo) === -1) titulos.push(alvo);
+      // (a) armas apreendidas que trazem municao
+      (armasDetectadas || []).forEach(function (a) {
+        if (Number(a && a.municao) > 0) {
+          registrarClasseMunicao(classeDeCalibre([a.tipo, a.modelo, a.calibre].join(' ')));
+        }
+      });
+
+      // (b) calibres citados no texto (municao apreendida separada da arma / de outro calibre)
+      if (mencionaMunicao) {
+        const tokens = String(text || '').match(/(?:\.(?:12|20|22|25|32|38|380|40|45|357|44|9))|(?:7[.,]62)|(?:5[.,]56)|\b\d{2}\s*(?:GA|MM)\b/g) || [];
+        tokens.forEach(function (tk) { registrarClasseMunicao(classeDeCalibre(tk)); });
+        if (!classesMunicao.length) registrarClasseMunicao('revolverPistola');
       }
+
+      classesMunicao.forEach(function (c) {
+        const alvo = encontrarOpcaoValida(ROTULO_CLASSE_MUNICAO[c]);
+        if (titulos.indexOf(alvo) === -1) titulos.push(alvo);
+      });
 
       // 3. Conciliação de Drogas (Gramas vs. Quilos)
       if (drogasDetectadas && drogasDetectadas.length > 0) {
