@@ -3,12 +3,16 @@
  * DESCRICAO: Sincroniza a aba EFETIVO a partir do QO/PECULIO sem apagar registros extras.
  */
 class NormalizadorEfetivo {
-  static executar() {
+  static executar(opcoes) {
+    opcoes = opcoes || {};
+    const abaDestino = opcoes.abaDestino || CONSTANTES_SYNTHEON.ABA_EFETIVO;
+    const abaLog = opcoes.abaLog || '[AUDITORIA] Efetivo';
+
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const peculioId = CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.PECULIO_ID;
     if (!peculioId) throw new Error('ID da planilha do PECULIO nao configurado.');
 
-    const sheetEfetivo = ss.getSheetByName(CONSTANTES_SYNTHEON.ABA_EFETIVO) || ss.insertSheet(CONSTANTES_SYNTHEON.ABA_EFETIVO);
+    const sheetEfetivo = ss.getSheetByName(abaDestino) || ss.insertSheet(abaDestino);
     const existentes = NormalizadorEfetivo.lerEfetivoAtual(sheetEfetivo);
 
     // G01 #127: metadados da ARCA que sustentam as decisoes deste modulo (consumo real, fail-soft)
@@ -22,7 +26,7 @@ class NormalizadorEfetivo {
       linhas: existentes.registros.length,
       arca: arcaMetadados,
       log: [['SISTEMA', '-', 'INICIADO', 'Sincronizacao iniciada; se falhar, o erro sera registrado nesta aba.']]
-    });
+    }, abaLog);
 
     const ssPeculio = SpreadsheetApp.openById(peculioId);
     const sheetPeculio = NormalizadorEfetivo.localizarAba(ssPeculio, 'PECULIO');
@@ -65,7 +69,7 @@ class NormalizadorEfetivo {
       linhas: saida.length,
       arca: arcaMetadados,
       log
-    });
+    }, abaLog);
 
     return {
       peculio: peculio.length,
@@ -98,7 +102,7 @@ class NormalizadorEfetivo {
         subunidadeExistente: existente ? existente.subunidadeProdutividade : ''
       });
 
-      const antiguidadeN = parseInt(row[0] || row[1] || row[2], 10);
+      const antiguidadeN = parseInt(row[2], 10); // col C = ORD (a col A é 'O'/'P' e a B é 'SIM'/'NAO' — nunca numéricas)
       registros.push({
         linhaOrigem: index + 12,
         antiguidadeN: !isNaN(antiguidadeN) ? antiguidadeN : (index + 1),
@@ -253,8 +257,8 @@ class NormalizadorEfetivo {
     return { disponivel: regras.length > 0, regras };
   }
 
-  static renderizarLog(ss, resultado) {
-    const nomeLog = '[AUDITORIA] Efetivo';
+  static renderizarLog(ss, resultado, nomeLog) {
+    nomeLog = nomeLog || '[AUDITORIA] Efetivo';
     let logSheet = ss.getSheetByName(nomeLog);
     if (!logSheet) logSheet = ss.insertSheet(nomeLog);
 
@@ -392,4 +396,15 @@ function normalizarEfetivo() {
     ui.alert('Erro na Sincronizacao do EFETIVO', mensagem, ui.ButtonSet.OK);
     throw erro;
   }
+}
+
+/**
+ * Porta HEADLESS de teste: sincroniza na aba EFETIVO_TESTE (mesmas regras), sem tocar no canônico.
+ * Log vai para '[AUDITORIA] Efetivo TESTE'. Rode com: clasp run normalizarEfetivoTeste
+ */
+function normalizarEfetivoTeste() {
+  return NormalizadorEfetivo.executar({
+    abaDestino: 'EFETIVO_TESTE',
+    abaLog: '[AUDITORIA] Efetivo TESTE'
+  });
 }
