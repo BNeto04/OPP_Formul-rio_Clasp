@@ -411,16 +411,17 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 ### [ARCA-ARMAS-001] Fonte Exclusiva de Arma Física (Coluna ARMA x Exclusão de QDT ARMAS)
 - **Subdomínio:** `armas` | **Categoria:** `DEFINICAO_METRICA`
 - **Tipo de Regra:** `OFFICIAL_BUSINESS_RULE` | **Status de Fonte:** `CANONICAL_SOURCE_CONFIRMED`
-- **Descrição Humana:** A quantidade de armas de fogo físicas apreendidas decorre unicamente da coluna ARMA (numérica). A coluna QDT ARMAS jamais entra na soma dos relatórios executivos para evitar contagem duplicada.
+- **Descrição Humana:** A quantidade de armas de fogo físicas apreendidas decorre unicamente da coluna **ARMA** (coluna 12, numérica — uma arma por linha). A coluna **QDT ARMAS** (coluna 32) **não é quantidade física**: é a **participação por policial** — quantas participações aquele policial tem na apreensão do túnel. Jamais entra na soma dos relatórios executivos (somá-la multiplicaria o resultado pelo número de policiais).
+- **Semântica dos campos (card #141):** `ARMA` = total físico **da linha** (2 armas = 2 linhas com `ARMA=1`); `QDT ARMAS` = participações **do policial**, replicadas para todos os participantes do túnel (1 arma no túnel → todos com 1; 1 arma na linha 1 + 1 na linha 2 → todos com 2). Invariante auditável: `QDT ARMAS` idêntico para todos os participantes do túnel e igual à soma de `ARMA` do túnel (0 quando não há arma).
 - **Condição Lógica:** `Cálculo e totalização de armas apreendidas no mês/trimestre.`
-- **Resultado Esperado:** Total de armas = soma da coluna ARMA; QDT ARMAS ignorada.
-- **Fontes Declaradas:** Regra de Ouro do Relatório Trimestral Gxt (REGRA_DE_OURO_GXT em Features/CompiladorGxt.js:4-8)
-- **Evidência no Código:** `Features/CompiladorGxt.js:4-8`, `Motor/PoliticaMeritoArmas.js:4-6`
-- **Evidência em Testes:** `Testes/TestRelatorioArmas.js`, `Testes/TestRelatorioGxt.js`
+- **Resultado Esperado:** Total de armas = soma da coluna ARMA (col 12); QDT ARMAS ignorada em somas; QDT ARMAS deve respeitar a invariante de participação por túnel.
+- **Fontes Declaradas:** Regra de Ouro do Relatório Trimestral Gxt (REGRA_DE_OURO_GXT em Features/CompiladorGxt.js:4-8); confirmação factual do proprietário sobre `ARMA` × `QDT ARMAS` (card #141, issue #139).
+- **Evidência no Código:** `Features/CompiladorGxt.js:4-8`, `Motor/PoliticaMeritoArmas.js:4-6`, `Core/Constantes.js:33-37` (aliases), `Core/LeitorPlanilhas.js:150,242,267`, `Features/GuardiaoQualidade.js:178-179`
+- **Evidência em Testes:** `Testes/TestRelatorioArmas.js`, `Testes/TestRelatorioGxt.js`, `Testes/TestSemanticaArmasQdt.js`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
 - **Consumidores (reconciliado #125):** REAL: Features/CompiladorGxt.js, Motor/PoliticaMeritoArmas.js | INDIRETO: - | DECLARADO: CompiladorGxt, PoliticaMeritoArmas, PluginArmas | PLANEJADO: -
 - **Riscos Identificados:** Se um operador preencher apenas QDT ARMAS, a arma não entra na soma oficial.
-- **Observações Operacionais:** Resolução consolidada para sanar antigas divergências em fechamentos mensais.
+- **Observações Operacionais:** Resolução consolidada para sanar antigas divergências em fechamentos mensais. Card #141: o alias `ARMAS` em `Core/Constantes.js` listava `QDT ARMAS` (participação) antes de `ARMA`, o que fazia Guardião/Leitor somarem participação como arma física (no túnel real de 4 policiais: 8 em vez de 2). Corrigido no menor ponto responsável; a semântica de participação ficou explícita nos dois artefatos.
 
 ---
 

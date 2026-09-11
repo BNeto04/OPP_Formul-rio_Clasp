@@ -30,8 +30,12 @@ const constantes = {
     MODELO_ARMA: ['MODELO', 'MODELO ARMA', 'MODELO DE ARMA'],
     CALIBRE: ['CALIBRE'],
     MUNICAO: ['MUNIÇÃO', 'MUNICAO', 'QTD MUNIÇÃO'],
+    // Participacao por policial (coluna 32 na planilha real). NUNCA entra em soma de arma fisica.
     QDT_ARMAS: ['QDT ARMAS', 'QTD ARMAS'],
-    ARMAS: ['QDT ARMAS', 'QTD ARMAS', 'ARMAS'],
+    // Arma fisica registrada na linha (coluna 12 na planilha real).
+    // Card #141: o alias NAO pode listar 'QDT ARMAS'/'QTD ARMAS' (participacao) - isso fazia o
+    // Guardiao e o LeitorPlanilhas somarem participacao como se fosse arma fisica (contagem duplicada).
+    ARMAS: ['ARMA', 'ARMAS'],
     ARMA_LINHA: ['ARMA'],
     MACONHA: ['TOTAL DE MACONHA', 'MACONHA', 'TOTAL MACONHA', 'DIVIDIDO MAC'],
     COCAINA: ['TOTAL DE COCAINA', 'COCAINA', 'TOTAL COCAINA', 'DIVIDIDO COC'],

@@ -1340,7 +1340,7 @@
     {
       "rule_id": "ARCA-ARMAS-001",
       "titulo": "Fonte Exclusiva de Arma Física (Coluna ARMA x Exclusão de QDT ARMAS)",
-      "descricao_humana": "A quantidade de armas de fogo físicas apreendidas decorre unicamente da coluna ARMA (numérica). A coluna QDT ARMAS jamais entra na soma dos relatórios executivos para evitar contagem duplicada.",
+      "descricao_humana": "A quantidade de armas de fogo físicas apreendidas decorre unicamente da coluna ARMA (coluna 12, numérica, uma arma por linha). A coluna QDT ARMAS (coluna 32) não é quantidade física: é a participação por policial, replicada para todos os participantes do túnel, e jamais entra na soma dos relatórios executivos (somá-la multiplicaria o resultado pelo número de policiais).",
       "categoria": "DEFINICAO_METRICA",
       "subdominio": "armas",
       "tipo_regra": "OFFICIAL_BUSINESS_RULE",
@@ -1355,14 +1355,18 @@
       ],
       "evidencia_codigo": [
         "Features/CompiladorGxt.js:4-8",
-        "Motor/PoliticaMeritoArmas.js:4-6"
+        "Motor/PoliticaMeritoArmas.js:4-6",
+        "Core/Constantes.js:33-37",
+        "Core/LeitorPlanilhas.js:150,242,267",
+        "Features/GuardiaoQualidade.js:178-179"
       ],
       "evidencia_testes": [
         "Testes/TestRelatorioArmas.js",
-        "Testes/TestRelatorioGxt.js"
+        "Testes/TestRelatorioGxt.js",
+        "Testes/TestSemanticaArmasQdt.js"
       ],
       "condicao": "Cálculo e totalização de armas apreendidas no mês/trimestre.",
-      "resultado_esperado": "Total de armas = soma da coluna ARMA; QDT ARMAS ignorada.",
+      "resultado_esperado": "Total de armas = soma da coluna ARMA (col 12); QDT ARMAS ignorada em somas; QDT ARMAS deve ser idêntico para todos os participantes do túnel e igual à soma de ARMA do túnel (invariante de participação).",
       "excecoes": [],
       "parametros": [],
       "hardcoded": true,
@@ -1385,11 +1389,11 @@
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Se um operador preencher apenas QDT ARMAS, a arma não entra na soma oficial.",
       "status_cobertura": "COBERTO",
-      "observacoes": "Resolução consolidada para sanar antigas divergências em fechamentos mensais.",
+      "observacoes": "Resolução consolidada para sanar antigas divergências em fechamentos mensais. Card #141: o alias ARMAS de Core/Constantes.js listava QDT ARMAS antes de ARMA, fazendo Guardião/Leitor somarem participação como arma física (no túnel real de 4 policiais: 8 em vez de 2). Corrigido no menor ponto responsável.",
       "auditabilidade_guardiao": {
         "status": "NAO_AUDITAVEL",
         "codigos": [],
-        "motivo": "Fonte exclusiva da coluna ARMA (exclusao de QDT ARMAS) implementada em Features/CompiladorGxt.js e Motor/PoliticaMeritoArmas.js; sem diagnostico dedicado no Guardiao hoje."
+        "motivo": "Fonte exclusiva da coluna ARMA (exclusao de QDT ARMAS) implementada em Features/CompiladorGxt.js e Motor/PoliticaMeritoArmas.js; sem diagnostico dedicado no Guardiao hoje. Card #141 corrigiu o alias ARMAS (Core/Constantes.js) e definiu a invariante de participacao por tunel (QDT ARMAS identico entre participantes e igual a soma de ARMA do tunel), que habilita um futuro diagnostico dedicado (ex.: QDT_ARMAS_DIVERGENTE_NO_TUNEL) - nao implementado para nao criar codigo sem cobertura ARCA."
       }
     },
     {

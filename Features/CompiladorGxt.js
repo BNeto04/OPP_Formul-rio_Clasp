@@ -2,7 +2,7 @@
  * ARQUIVO: Features/CompiladorGxt.js
  * DESCRIÇÃO: Compilador do Relatório Trimestral de Mérito por Armas (GTAR X TROPA ARMAS) (TASK-M06.3-05I.2).
  * REGRA DE OURO: Traduz os Registros Canônicos para o DTO esperado pela Política de Armas.
- * ARMA (coluna 11) é a fonte de arma de fogo física (numérica). QDT ARMAS (coluna 31) não entra na soma.
+ * ARMA (coluna 12) é a fonte de arma de fogo física (numérica). QDT ARMAS (coluna 32) é participação por policial e não entra na soma.
  * Indicadores textuais ("ARTESANAL") definem armas artesanais.
  * Pecúlio externo fornece apenas ORD; nome, graduação e pelotão do líder vêm da ocorrência mensal.
  * Resumos e cards somam apenas armas de fogo numéricas: Abril 40, Maio 27, Junho 21, Total 88.

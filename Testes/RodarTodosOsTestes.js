@@ -83,6 +83,8 @@ async function main() {
   console.log('');
   require('./TestFormularioAisSei');
   console.log('');
+  require('./TestSemanticaArmasQdt');
+  console.log('');
   require('./TestVigiaPonte');
   console.log('');
   require('./TestVigiaBootRecovery');
