@@ -726,3 +726,12 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Exceções:** substâncias sem coluna na aba (ex.: ANABOLIZANTES) não têm consolidação possível hoje — não podem ser inferidas nem convertidas.
 - **Auditabilidade no Guardião:** `NAO_AUDITAVEL` — regra aplicada nas fórmulas da aba mensal; não há código de diagnóstico para conversão de drogas.
 - **Consumidores (reconciliado #125):** REAL: `Core/Constantes.js` | INDIRETO: - | DECLARADO: - | PLANEJADO: -
+
+
+## ARCA-IMPUTACAO-003 — Instrumento Mais Gravoso no Preenchimento (APFD / AAAI para Menor)
+
+- **Descrição:** Quando uma ocorrência envolve múltiplas pessoas/instrumentos, registra-se o MAIS GRAVOSO: adulto → APFD; menor de idade → AAAI. Sem instrumento no BO → campo em branco (manual).
+- **Fonte Declarada:** Orientação do Proprietário (calibragem de BOs, 12/09/2026).
+- **Evidência no Código:** `Entrada/EntradaManual.js` (coluna DETIDOS, preenchimento orientado).
+- **Exceções:** numerário e demais campos ausentes do BO ficam em branco (numerário segue discricionário — `ARCA-NUMERARIO-001`).
+- **Auditabilidade:** NAO_AUDITAVEL — critério discricionário de preenchimento; sem fonte canônica no BO para auditar automaticamente.

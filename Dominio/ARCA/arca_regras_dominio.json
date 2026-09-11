@@ -8,7 +8,7 @@
       "files_discovered_total": 3413,
       "files_scanned_total": 127,
       "files_excluded_total": 3286,
-      "business_rules_total": 29,
+      "business_rules_total": 30,
       "technical_rules_total": 2,
       "rules_with_canonical_source_total": 11,
       "rules_with_unknown_source_total": 2,
@@ -2545,6 +2545,54 @@
         "status": "NAO_AUDITAVEL",
         "codigos": [],
         "motivo": "Regra aplicada nas formulas da aba mensal; o Guardiao nao emite codigo de diagnostico para conversao de drogas hoje."
+      }
+    },
+    {
+      "rule_id": "ARCA-IMPUTACAO-003",
+      "titulo": "Instrumento Mais Gravoso no Preenchimento (APFD / AAAI para Menor)",
+      "descricao_humana": "Quando uma mesma ocorrencia envolve multiplas pessoas e/ou instrumentos legais, registra-se o INSTRUMENTO MAIS GRAVOSO: APFD (auto de prisao em flagrante) para adultos; AAAI (auto de apreensao de adolescente infrator) quando ha menor de idade envolvido. Se o BO nao trouxer o instrumento, o campo fica em branco para preenchimento manual.",
+      "categoria": "DISCRICIONARIEDADE_HUMANA",
+      "subdominio": "imputacao",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_OPERACIONAL",
+          "nome": "Orientacao do Proprietario (calibragem de BOs, 12/09/2026)",
+          "localizacao": "sessao de calibragem",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Entrada/EntradaManual.js (coluna DETIDOS, preenchimento orientado)"
+      ],
+      "evidencia_testes": [],
+      "condicao": "Preenchimento do campo DETIDOS (coluna K) na entrada de uma ocorrencia.",
+      "resultado_esperado": "Menor envolvido -> AAAI; somente adultos -> APFD; ausente no BO -> em branco (manual).",
+      "excecoes": [
+        "Numerario e demais campos ausentes do BO ficam em branco para preenchimento manual (numerario permanece discricionario, conforme ARCA-NUMERARIO-001)."
+      ],
+      "parametros": [],
+      "hardcoded": false,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "EntradaManual"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra de preenchimento orientado; ainda nao automatizada no formulario (decisao humana na entrada)."
+      },
+      "alcance": "MODULO_ENTRADA",
+      "riscos": "Perda de padronizacao do instrumento se cada operador aplicar criterio proprio.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Dirime qual instrumento registrar quando ha varios; complementa ARCA-IMPUTACAO-002.",
+      "auditabilidade_guardiao": {
+        "status": "NAO_AUDITAVEL",
+        "codigos": [],
+        "motivo": "Criterio discricionario de preenchimento orientado por diretriz; nao ha fonte canonica no BO para auditar automaticamente."
       }
     }
   ]
