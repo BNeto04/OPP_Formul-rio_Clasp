@@ -7,13 +7,15 @@ class NormalizadorEfetivo {
     opcoes = opcoes || {};
     const abaDestino = opcoes.abaDestino || CONSTANTES_SYNTHEON.ABA_EFETIVO;
     const abaLog = opcoes.abaLog || '[AUDITORIA] Efetivo';
+    const abaFonteExistentes = opcoes.abaFonteExistentes || abaDestino;
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const peculioId = CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.PECULIO_ID;
     if (!peculioId) throw new Error('ID da planilha do PECULIO nao configurado.');
 
     const sheetEfetivo = ss.getSheetByName(abaDestino) || ss.insertSheet(abaDestino);
-    const existentes = NormalizadorEfetivo.lerEfetivoAtual(sheetEfetivo);
+    const sheetFonte = (abaFonteExistentes !== abaDestino) ? (ss.getSheetByName(abaFonteExistentes) || null) : sheetEfetivo;
+    const existentes = NormalizadorEfetivo.lerEfetivoAtual(sheetFonte || sheetEfetivo);
 
     // G01 #127: metadados da ARCA que sustentam as decisoes deste modulo (consumo real, fail-soft)
     const arcaMetadados = NormalizadorEfetivo.obterMetadadosArca();
@@ -405,6 +407,7 @@ function normalizarEfetivo() {
 function normalizarEfetivoTeste() {
   return NormalizadorEfetivo.executar({
     abaDestino: 'EFETIVO_TESTE',
-    abaLog: '[AUDITORIA] Efetivo TESTE'
+    abaLog: '[AUDITORIA] Efetivo TESTE',
+    abaFonteExistentes: CONSTANTES_SYNTHEON.ABA_EFETIVO
   });
 }
