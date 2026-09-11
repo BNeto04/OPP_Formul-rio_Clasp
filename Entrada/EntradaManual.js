@@ -723,6 +723,29 @@ function corrigirDataBloco(mike, novaData) {
   return 'MIKE nao encontrado: ' + mike;
 }
 
+/**
+ * Corrige as colunas de fato/arma de um bloco já gravado (calibragem): primeira linha recebe
+ * CIDADE/BAIRRO/DETIDOS/ARMA/TIPO/CALIBRE/MODELO/MUNIÇÃO; todas as linhas recebem QDT ARMAS.
+ */
+function corrigirBlocoOcorrencia(mike, cidade, bairro, detidos, arma, tipo, calibre, modelo, municao, qtdArmas) {
+  const ss = obterSpreadsheetOcorrencias_();
+  for (const aba of ss.getSheets()) {
+    const maxRows = aba.getMaxRows();
+    if (maxRows < 2) continue;
+    const colMike = aba.getRange('E2:E' + maxRows).getValues();
+    const linhas = [];
+    for (let i = 0; i < colMike.length; i++) {
+      if (String(colMike[i][0]).trim() === String(mike).trim()) linhas.push(i + 2);
+    }
+    if (linhas.length === 0) continue;
+    // I=9 CIDADE, J=10 BAIRRO, K=11 DETIDOS, L=12 ARMA, M=13 TIPO, N=14 CALIBRE, O=15 MODELO, P=16 MUNIÇÃO
+    aba.getRange(linhas[0], 9, 1, 8).setValues([[cidade, bairro, detidos, arma, tipo, calibre, modelo, municao]]);
+    linhas.forEach(function (ln) { aba.getRange(ln, 32).setValue(qtdArmas); });
+    return 'OK: ' + linhas.length + ' linhas corrigidas em ' + aba.getName();
+  }
+  return 'MIKE nao encontrado: ' + mike;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     processarEntradaManual: processarEntradaManual,
