@@ -2549,8 +2549,8 @@
     },
     {
       "rule_id": "ARCA-IMPUTACAO-003",
-      "titulo": "Instrumento Mais Gravoso no Preenchimento (APFD / AAAI para Menor)",
-      "descricao_humana": "Quando uma mesma ocorrencia envolve multiplas pessoas e/ou instrumentos legais, registra-se o INSTRUMENTO MAIS GRAVOSO: APFD (auto de prisao em flagrante) para adultos; AAAI (auto de apreensao de adolescente infrator) quando ha menor de idade envolvido. Se o BO nao trouxer o instrumento, o campo fica em branco para preenchimento manual.",
+      "titulo": "Instrumento Mais Gravoso no Preenchimento (APFD / AAFAI para Menor)",
+      "descricao_humana": "Quando uma mesma ocorrencia envolve multiplas pessoas e/ou instrumentos legais, registra-se o INSTRUMENTO MAIS GRAVOSO: APFD (auto de prisao em flagrante) para adultos; AAFAI (auto de apreensao de adolescente infrator) quando ha menor de idade envolvido. Se o BO nao trouxer o instrumento, o campo fica em branco para preenchimento manual.",
       "categoria": "DISCRICIONARIEDADE_HUMANA",
       "subdominio": "imputacao",
       "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
@@ -2568,7 +2568,7 @@
       ],
       "evidencia_testes": [],
       "condicao": "Preenchimento do campo DETIDOS (coluna K) na entrada de uma ocorrencia.",
-      "resultado_esperado": "Menor envolvido -> AAAI; somente adultos -> APFD; ausente no BO -> em branco (manual).",
+      "resultado_esperado": "Menor envolvido -> AAFAI; somente adultos -> APFD; ausente no BO -> em branco (manual).",
       "excecoes": [
         "Numerario e demais campos ausentes do BO ficam em branco para preenchimento manual (numerario permanece discricionario, conforme ARCA-NUMERARIO-001)."
       ],

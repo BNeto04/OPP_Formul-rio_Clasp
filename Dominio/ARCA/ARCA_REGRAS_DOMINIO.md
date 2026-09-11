@@ -728,9 +728,9 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Consumidores (reconciliado #125):** REAL: `Core/Constantes.js` | INDIRETO: - | DECLARADO: - | PLANEJADO: -
 
 
-## ARCA-IMPUTACAO-003 — Instrumento Mais Gravoso no Preenchimento (APFD / AAAI para Menor)
+## ARCA-IMPUTACAO-003 — Instrumento Mais Gravoso no Preenchimento (APFD / AAFAI para Menor)
 
-- **Descrição:** Quando uma ocorrência envolve múltiplas pessoas/instrumentos, registra-se o MAIS GRAVOSO: adulto → APFD; menor de idade → AAAI. Sem instrumento no BO → campo em branco (manual).
+- **Descrição:** Quando uma ocorrência envolve múltiplas pessoas/instrumentos, registra-se o MAIS GRAVOSO: adulto → APFD; menor de idade → AAFAI. Sem instrumento no BO → campo em branco (manual).
 - **Fonte Declarada:** Orientação do Proprietário (calibragem de BOs, 12/09/2026).
 - **Evidência no Código:** `Entrada/EntradaManual.js` (coluna DETIDOS, preenchimento orientado).
 - **Exceções:** numerário e demais campos ausentes do BO ficam em branco (numerário segue discricionário — `ARCA-NUMERARIO-001`).
