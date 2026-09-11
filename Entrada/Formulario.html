@@ -193,7 +193,7 @@
           <div class="form-row">
             <div class="form-group">
               <label for="qtd_o">QTD O</label>
-              <input type="number" id="qtd_o" placeholder="1" value="1" min="1">
+              <input type="number" id="qtd_o" placeholder="01" value="01" min="1" onblur="normalizarQtdO()">
             </div>
             <div class="form-group">
               <label for="mike">MIKE</label>
@@ -235,8 +235,13 @@
           <div class="form-row">
             <div class="form-group">
               <label for="detidos">DETIDOS (Facultativo)</label>
-              <input type="text" id="detidos" list="detidosList" placeholder="Ex: APFD, TCO, BOC">
-              <datalist id="detidosList"></datalist>
+              <input type="text" id="detidos" list="detidosList" placeholder="TCO" value="TCO" title="Resultado processual (lista suspensa) — padrão TCO">
+              <datalist id="detidosList">
+                <option value="APFD"></option>
+                <option value="TCO"></option>
+                <option value="BOC"></option>
+                <option value="AAFAI"></option>
+              </datalist>
             </div>
           </div>
         </div>
@@ -528,13 +533,41 @@
       // 4. Layout SEI/CIODS: endereco segmentado por ';' sem rotulos (card #140 OCR-P3-006).
       //    Formato observado nos BOs reais: "logradouro; COMPLEMENTO...;NUMERO...;CEP...; BAIRRO;CIDADE;UF; BRASIL"
       //    Lido do fim para o comeco, tolerando 'CEP NAO INFORMADO'/'NUMERO NAO INFORMADO' no meio.
+      //    Complemento (print do BO 04/09): o PDF quebra o endereco em duas linhas e a colagem costuma
+      //    trocar a quebra por ESPACO - o bloco entao "engole" o campo seguinte ("Local Principal: VIA PUBLICA").
       if (!bairroDetectado || !cidadeDetectada) {
         const blocoEnd = text.match(/(?:Local(?:\s+do\s+Fato)?|Endere[çc]o(?:\s+do\s+Fato)?)[:\s]+([^\n\r]+)/i);
-        const endBruto = blocoEnd ? blocoEnd[1] : (/;/.test(text) ? text : '');
+        let endBruto = blocoEnd ? blocoEnd[1] : (/;/.test(text) ? text : '');
+
+        // (a) se o endereco ficou incompleto (menos de 4 segmentos), junta a linha seguinte do PDF.
+        const contarSegmentos = function (s) {
+          return String(s).split(';').map(function (p) { return p.trim(); })
+            .filter(function (p) { return p.length > 0; }).length;
+        };
+        if (blocoEnd && contarSegmentos(endBruto) < 4) {
+          const depois = text.slice(blocoEnd.index + blocoEnd[0].length);
+          const prox = depois.match(/^\s*([^\n\r]+)/);
+          if (prox && /;/.test(prox[1]) &&
+              !/^\s*(?:Local Principal|Local do Fato|Envolvidos|Objeto|Naturezas?|Data do Fato|Dados Complementares)\b/i.test(prox[1])) {
+            endBruto += '; ' + prox[1].trim();
+          }
+        }
+
+        // (b) corta no proximo rotulo de campo (protege contra a quebra virar espaco na colagem).
+        endBruto = String(endBruto).split(/\s(?=(?:Local Principal|Local do Fato|Ponto de Refer[êe]ncia|Naturezas?|Data do Fato|Hora do Fato|Unidade Operacional|Prefixo da Viatura|Envolvidos|Objeto\(s\)|Dados Complementares)\b)/i)[0];
+
         const partes = String(endBruto).split(';').map(function (p) { return p.trim(); })
           .filter(function (p) { return p.length > 0; });
         const ignorarValor = function (v) {
-          return !v || /^N[ÃA]O INFORMADO/i.test(v) || /^CEP\s/i.test(v) || /^\d{5}-?\d{3}$/.test(v);
+          if (!v) return true;
+          if (/^N[ÃA]O INFORMADO/i.test(v)) return true;
+          if (/^CEP\s/i.test(v)) return true;
+          if (/^\d{5}-?\d{3}$/.test(v)) return true;
+          if (/^(BRASIL|BRASILIA)$/i.test(v)) return true;
+          if (/:/.test(v)) return true;                 // rotulo vazado para o campo
+          if (String(v).length > 40) return true;       // valor absurdo (frase inteira)
+          if (/[.!?]$/.test(v)) return true;            // fim de frase (texto corrido)
+          return false;
         };
         if (partes.length >= 4) {
           const fim = partes.slice();
@@ -548,6 +581,11 @@
           }
         }
       }
+
+      // Ultima barreira: cidade/bairro nunca podem sair com rotulo colado, frase ou UF.
+      if (cidadeDetectada && /[:]/.test(cidadeDetectada)) { cidadeDetectada = ''; }
+      if (bairroDetectado && /[:]/.test(bairroDetectado)) { bairroDetectado = ''; }
+      if (bairroDetectado && /^[A-Za-z]{2}$/.test(bairroDetectado)) { bairroDetectado = ''; }
 
       return { cidade: cidadeDetectada, bairro: bairroDetectado };
     }
@@ -627,6 +665,22 @@
         /PRESO EM FLAGRANTE/i
       ].filter(function (re) { return re.test(t); }).length;
       return evidencias > 0;
+    }
+
+    /**
+     * QTD O (quantidade de ocorrencias do tunel): por padrao e SEMPRE 01 (regra do proprietario, 11/09/2026).
+     * O OCR NUNCA infere este campo. O operador pode digitar outro valor, mas vazio/0/1 voltam para '01'.
+     */
+    function normalizarQtdO_(valor) {
+      const v = String(valor === undefined || valor === null ? '' : valor).trim();
+      if (!v || v === '0' || v === '1' || v === '01') return '01';
+      return v;
+    }
+
+    /** Aplica o padrao 01 ao campo QTD O do formulario. */
+    function normalizarQtdO() {
+      const el = document.getElementById('qtd_o');
+      if (el) el.value = normalizarQtdO_(el.value);
     }
 
     function parseAndFill(text, ocrId = execucaoOcrId) {
@@ -929,7 +983,7 @@
               novoSelect.name = 'detidos';
               novoSelect.className = 'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]';
               novoSelect.innerHTML = `<option value="">Selecione...</option>` + window.opcoesFormulario.detidos.map(d => `<option value="${d}">${d}</option>`).join('');
-              novoSelect.value = valorAnterior;
+              novoSelect.value = valorAnterior || 'TCO'; // DETIDOS tem padrao TCO (regra do proprietario)
               selectDetidos.parentNode.replaceChild(novoSelect, selectDetidos);
           } else {
               if (selectDetidos.tagName === 'SELECT') {
@@ -1436,6 +1490,12 @@
       ['mike','boe','data','hora','cidade','bairro','natureza','qtd_o','ais','detidos'].forEach(id => {
           if (document.getElementById(id)) document.getElementById(id).value = '';
       });
+      // QTD O nao fica vazio: o padrao da ocorrencia e sempre 01 (regra do proprietario).
+      const elQtdO = document.getElementById('qtd_o');
+      if (elQtdO) elQtdO.value = '01';
+      // DETIDOS volta ao padrao TCO (o operador escolhe outro na lista suspensa).
+      const elDetidos = document.getElementById('detidos');
+      if (elDetidos) elDetidos.value = 'TCO';
       const datalistNat = document.getElementById('naturezasList');
       if (datalistNat) datalistNat.innerHTML = '';
       policiaisSet.clear();

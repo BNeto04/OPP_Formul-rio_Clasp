@@ -89,6 +89,8 @@ async function main() {
   console.log('');
   require('./TestConversaoDrogas');
   console.log('');
+  require('./TestPadroesFormularioQtdODetidos');
+  console.log('');
   require('./TestVigiaPonte');
   console.log('');
   require('./TestVigiaBootRecovery');

@@ -3,6 +3,16 @@
  * DESCRIÇÃO: Controlador que recebe o JSON do HTML e orquestra o pipeline de entrada manual.
  */
 
+/**
+ * QTD O (quantidade de ocorrencias do tunel): padrao fixo 01 (regra do proprietario, 11/09/2026).
+ * O OCR nao infere este campo; vazio/0/1 sao normalizados para 01.
+ */
+function qtdOcorrenciaPadrao_(valor) {
+  const v = String(valor === undefined || valor === null ? '' : valor).trim();
+  if (!v || v === '0' || v === '1' || v === '01') return '01';
+  return v;
+}
+
 function obterSpreadsheetOcorrencias_() {
   if (typeof SpreadsheetApp !== 'undefined') {
     try {
@@ -200,7 +210,7 @@ function montarLinhasEntradaManual(payload) {
           "", // ORD (A)
           payload.data, // DATA (B)
           payload.hora, // HORA (C)
-          isFirst ? (payload.qtd_o || "1") : "", // QTD O (D)
+          isFirst ? qtdOcorrenciaPadrao_(payload.qtd_o) : "", // QTD O (D) - padrao fixo 01
           payload.mike, // MIKE (E)
           payload.natureza, // NATUREZA (F)
           payload.boe, // BOE (G)
