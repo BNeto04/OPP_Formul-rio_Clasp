@@ -1081,5 +1081,57 @@ test('GuardiaoQualidade: planilha de ocorrências (sheet.getParent) NUNCA é usa
   assert.ok(obsFonte, 'Deve emitir a observação técnica de fonte indisponível sem tentar ler a planilha pai');
 });
 
+// ---- #146/#147: QTD O e ordem de antiguidade (ARCA-QTD-O-001 / ARCA-ANTIGUIDADE-002) ----
+const headersQtdOOrdem = ['DATA', 'QTD O', 'NÚMERO MIKE', 'BOE', 'GRAD', 'MATRÍCULA', 'POLICIAL', 'ARMAS', 'OCORRÊNCIA PIP', 'IMPUTADO?', 'TOTAL DE MACONHA', 'DIVIDIDO MAC', 'TOTAL CRACK', 'TOTAL DE COCAINA', 'DIVIDIDO COC', 'PONTOS TOTAIS', 'PONTOS FICCAO', 'CHAVE OCORRENCIA', 'ALERTA INTEGRIDADE'];
+const formulasQtdOOrdem = [headersQtdOOrdem.map(() => '')];
+
+// Carrega o nucleo canonico de ordem (Core/Policiais.js) no escopo global do teste.
+try {
+  const fsMod = require('fs'); const pathMod = require('path');
+  const fontePol = fsMod.readFileSync(pathMod.join(__dirname, '..', 'Core', 'Policiais.js'), 'utf8');
+  const iBloco = fontePol.indexOf('ORDEM_POSTOS_ANTIGUIDADE_ = [');
+  const inicio = fontePol.lastIndexOf('var ', iBloco);
+  const fim = fontePol.indexOf('// FIM-ORDEM-ANTIGUIDADE', inicio);
+  const bloco = fontePol.slice(inicio, fim);
+  const fns = new Function(bloco + '\nreturn { indice: indiceAntiguidadePosto_, matricula: matriculaNumerica_ };')();
+  global.indiceAntiguidadePosto_ = fns.indice;
+  global.matriculaNumerica_ = fns.matricula;
+} catch (e) { /* sem o nucleo, o check de ordem e ignorado */ }
+
+test('ARCA-QTD-O-001: QTD O = 01 na primeira linha (e vazio na filha) NAO gera diagnostico', () => {
+  const dados = [
+    ['15/07/2026', '01', '202607151000', '26E100', '3º SGT', '108394-5', 'IRAN SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY1', ''],
+    ['15/07/2026', '',   '202607151000', '26E100', 'CB',     '118379-6', 'ANDRESSON',  0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY1', '']
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersQtdOOrdem, dados, formulasQtdOOrdem));
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'QTD_O_DIVERGENTE').length, 0);
+});
+
+test('ARCA-QTD-O-001: QTD O diferente de 01 na primeira linha gera diagnostico', () => {
+  const dados = [
+    ['15/07/2026', '02', '202607151000', '26E100', '3º SGT', '108394-5', 'IRAN SILVA', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY1', '']
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersQtdOOrdem, dados, formulasQtdOOrdem));
+  assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'QTD_O_DIVERGENTE'));
+});
+
+test('ARCA-ANTIGUIDADE-002: equipe na ordem canonica NAO gera diagnostico', () => {
+  const dados = [
+    ['16/07/2026', '01', '202607161000', '26E200', '3º SGT', '110955-3', 'ARY SILVA',  0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY2', ''],
+    ['16/07/2026', '',   '202607161000', '26E200', 'CB',     '118379-6', 'ANDRESSON', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY2', '']
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersQtdOOrdem, dados, formulasQtdOOrdem));
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'ORDEM_ANTIGUIDADE_EQUIPE').length, 0);
+});
+
+test('ARCA-ANTIGUIDADE-002: equipe fora da ordem canonica gera diagnostico', () => {
+  const dados = [
+    ['16/07/2026', '01', '202607161000', '26E200', 'CB',     '118379-6', 'ANDRESSON', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY2', ''],
+    ['16/07/2026', '',   '202607161000', '26E200', '3º SGT', '110955-3', 'ARY SILVA',  0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY2', '']
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersQtdOOrdem, dados, formulasQtdOOrdem));
+  assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'ORDEM_ANTIGUIDADE_EQUIPE'));
+});
+
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);
 }

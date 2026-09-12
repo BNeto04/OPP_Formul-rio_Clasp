@@ -35,7 +35,9 @@ const constantes = {
     CIDADE: ['CIDADE', 'MUNICIPIO'],
     BAIRRO: ['BAIRRO'],
     AIS: ['AIS'],
-    
+    // #147 (ARCA-QTD-O-001): QTD O (quantidade de ocorrencias do tunel) - padrao fixo 01 na primeira linha (fato).
+    QTD_O: ['QTD O', 'QTD OCORRENCIA', 'QTD OCORRÊNCIA', 'QTD OCORRENCIAS', 'QTD OCORRÊNCIAS'],
+
     // Métricas
     ARMA_FATO: ['ARMA'],
     TIPO_ARMA: ['TIPO', 'TIPO ARMA', 'TIPO DE ARMA'],

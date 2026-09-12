@@ -39,7 +39,7 @@
         "ARCA-QTD-O-001",
         "ARCA-DETIDOS-001"
       ],
-      "regras_mapeadas": 29,
+      "regras_mapeadas": 31,
       "regras_nao_auditaveis": 0,
       "regras_adicionadas_total": [
         "ARCA-MIKE-004",
@@ -57,7 +57,7 @@
         "ARCA-DETIDOS-001"
       ],
       "card_137": "#137 OCR-ARCA-003: reconciliacao de veiculo (ARCA-VEICULO-001) - regra de dominio; heuristica lexical permanece no parser.",
-      "regras_integradas": 10,
+      "regras_integradas": 8,
       "regras_nao_aplicaveis": 9,
       "statuses": [
         "MAPEADO",
@@ -65,7 +65,8 @@
         "NAO_APLICAVEL"
       ],
       "fluid_flow": "2026-09-12: 17 NAO_AUDITAVEL reclassificadas em INTEGRADO(7)/NAO_APLICAVEL(9)/MAPEADO(1, QDT_ARMAS_DIVERGENTE_NO_TUNEL). Zero regras cegas. 2026-09-12 (#145): +3 regras canonicas registradas (ANTIGUIDADE-002, QTD-O-001, DETIDOS-001), todas INTEGRADO.",
-      "card_145": "#145 ARCA-GUARD-001: 3 regras canonicas registradas (antiguidade da equipe, QTD O = 01, DETIDOS) - todas INTEGRADO (aplicadas na entrada/normalizacao); diagnosticos previstos em #146/#147."
+      "card_145": "#145 ARCA-GUARD-001: 3 regras canonicas registradas (antiguidade da equipe, QTD O = 01, DETIDOS) - todas INTEGRADO (aplicadas na entrada/normalizacao); diagnosticos previstos em #146/#147.",
+      "card_146_147": "#146/#147 ARCA-GUARD-002/003: diagnosticos ORDEM_ANTIGUIDADE_EQUIPE (ARCA-ANTIGUIDADE-002) e QTD_O_DIVERGENTE (ARCA-QTD-O-001) implementados no Guardiao; regras promovidas de INTEGRADO para MAPEADO."
     },
     "normalizador_integracao": {
       "card": "#127 ARCA-FIX-004",
@@ -387,19 +388,24 @@
         "REAL_CODE_CONSUMER": [
           "Entrada/EntradaManual.js"
         ],
-        "INDIRECT_CONSUMER": [],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js"
+        ],
         "DECLARED_CONSUMER": [],
         "PLANNED_CONSUMER": [],
-        "OBSERVACAO": "Aplicada na entrada manual (qtdOcorrenciaPadrao_); diagnostico de divergencia previsto no card #147 (ARCA-GUARD-003)."
+        "OBSERVACAO": "Regra promovida de INTEGRADO para MAPEADO no #146/#147 (diagnostico implementado no Guardiao)."
       },
       "alcance": "MODULO_ENTRADA",
       "riscos": "QTD O ausente ou divergente quebra a leitura da quantidade de ocorrências do túnel.",
       "status_cobertura": "COBERTO",
       "observacoes": "Regra de entrada; o Guardiao passa a diagnosticar a divergencia no card #147.",
       "auditabilidade_guardiao": {
-        "status": "INTEGRADO",
-        "codigos": [],
-        "motivo": "Aplicada por Entrada/EntradaManual.js (qtdOcorrenciaPadrao_); diagnostico no Guardiao previsto no card #147 (ARCA-GUARD-003)."
+        "status": "MAPEADO",
+        "codigos": [
+          "QTD_O_DIVERGENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao (invariante do tunel) com metadados ARCA via porta - cards #146/#147."
       }
     },
     {
@@ -1363,19 +1369,24 @@
           "Motor/PoliticaMeritoArmas.js",
           "Features/NormalizadorEfetivo.js"
         ],
-        "INDIRECT_CONSUMER": [],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js"
+        ],
         "DECLARED_CONSUMER": [],
         "PLANNED_CONSUMER": [],
-        "OBSERVACAO": "Ordem aplicada na entrada/normalizacao; diagnostico de ordem no Guardiao previsto no card #146 (ARCA-GUARD-002)."
+        "OBSERVACAO": "Regra promovida de INTEGRADO para MAPEADO no #146/#147 (diagnostico implementado no Guardiao)."
       },
       "alcance": "MODULO_ENTRADA_E_AUDITORIA",
       "riscos": "Ordem incorreta da equipe distorce a atribuição de mérito de armas (líder errado) e a leitura do túnel.",
       "status_cobertura": "COBERTO",
       "observacoes": "Complementa ARCA-ANTIGUIDADE-001 (precedência por menor N): aqui a regra é a ORDEM da equipe (graduação primeiro, N como desempate).",
       "auditabilidade_guardiao": {
-        "status": "INTEGRADO",
-        "codigos": [],
-        "motivo": "Aplicada por Core/Policiais.js e NormalizadorEfetivo; o diagnostico de ordem no Guardiao esta previsto no card #146 (ARCA-GUARD-002)."
+        "status": "MAPEADO",
+        "codigos": [
+          "ORDEM_ANTIGUIDADE_EQUIPE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao (invariante do tunel) com metadados ARCA via porta - cards #146/#147."
       }
     },
     {

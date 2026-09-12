@@ -137,6 +137,19 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 
 ---
 
+### [ARCA-QTD-O-001] QTD O = 01 por Túnel (primeira linha do fato)
+- **Subdomínio:** `ocorrencia` | **Categoria:** `OBRIGATORIEDADE`
+- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** A coluna QTD O (quantidade de ocorrências do túnel) é padrão fixo 01 e deve constar na primeira linha (fato) do túnel; as linhas filhas ficam vazias. Valores vazio, 0 ou 1 são normalizados para 01. O OCR não infere este campo.
+- **Condição Lógica:** `Gravação de ocorrência: a coluna QTD O (D) deve valer 01 na primeira linha do túnel.`
+- **Resultado Esperado:** QTD O = '01' na primeira linha; vazio nas linhas filhas; vazio/0/1 normalizados para 01.
+- **Fontes Declaradas:** Regra do proprietário (11/09/2026): QTD O padrão fixo 01 (DIRETRIZ_OPERACIONAL em Entrada/EntradaManual.js:6-14)
+- **Evidência no Código:** `Entrada/EntradaManual.js:6-14`, `Entrada/EntradaManual.js:261`
+- **Evidência em Testes:** `Testes/TestEntradaManualFormulario.js`
+- **Exceções Admitidas:** Valor diferente de 01 é preservado (não sobrescrito) para sinalização.
+- **Consumidores (reconciliado #125):** REAL: Entrada/EntradaManual.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js | DECLARADO: - | PLANEJADO: -
+- **Riscos Identificados:** QTD O ausente ou divergente quebra a leitura da quantidade de ocorrências do túnel.
+- **Observações Operacionais:** Regra de entrada; o Guardiao passa a diagnosticar a divergencia no card #147.
 ### [ARCA-DETIDOS-001] DETIDOS: Conjunto Canônico e Gravação no Fato (primeira linha)
 - **Subdomínio:** `ocorrencia` | **Categoria:** `CONSISTENCIA_CAMPOS`
 - **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
@@ -150,19 +163,6 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Consumidores (reconciliado #125):** REAL: Core/Constantes.js, Entrada/EntradaManual.js, Core/LeitorPlanilhas.js, Leitura/Adaptador2026.js | INDIRETO: - | DECLARADO: - | PLANEJADO: -
 - **Riscos Identificados:** Valor de DETIDOS em linha filha (ou ausente no fato) distorce a contagem de detidos do túnel.
 - **Observações Operacionais:** Distingue a regra de domínio (conjunto + primeira linha) do comportamento visual da lista suspensa do formulário.
-### [ARCA-QTD-O-001] QTD O = 01 por Túnel (primeira linha do fato)
-- **Subdomínio:** `ocorrencia` | **Categoria:** `OBRIGATORIEDADE`
-- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
-- **Descrição Humana:** A coluna QTD O (quantidade de ocorrências do túnel) é padrão fixo 01 e deve constar na primeira linha (fato) do túnel; as linhas filhas ficam vazias. Valores vazio, 0 ou 1 são normalizados para 01. O OCR não infere este campo.
-- **Condição Lógica:** `Gravação de ocorrência: a coluna QTD O (D) deve valer 01 na primeira linha do túnel.`
-- **Resultado Esperado:** QTD O = '01' na primeira linha; vazio nas linhas filhas; vazio/0/1 normalizados para 01.
-- **Fontes Declaradas:** Regra do proprietário (11/09/2026): QTD O padrão fixo 01 (DIRETRIZ_OPERACIONAL em Entrada/EntradaManual.js:6-14)
-- **Evidência no Código:** `Entrada/EntradaManual.js:6-14`, `Entrada/EntradaManual.js:261`
-- **Evidência em Testes:** `Testes/TestEntradaManualFormulario.js`
-- **Exceções Admitidas:** Valor diferente de 01 é preservado (não sobrescrito) para sinalização.
-- **Consumidores (reconciliado #125):** REAL: Entrada/EntradaManual.js | INDIRETO: - | DECLARADO: - | PLANEJADO: -
-- **Riscos Identificados:** QTD O ausente ou divergente quebra a leitura da quantidade de ocorrências do túnel.
-- **Observações Operacionais:** Regra de entrada; o Guardiao passa a diagnosticar a divergencia no card #147.
 ### [ARCA-MIKE-001] Conformidade Temporal do Código MIKE (PMPE/CIODS)
 - **Subdomínio:** `mike` | **Categoria:** `INTEGRIDADE_TEMPORAL`
 - **Tipo de Regra:** `OFFICIAL_BUSINESS_RULE` | **Status de Fonte:** `CANONICAL_SOURCE_CONFIRMED`
@@ -413,7 +413,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Core/Policiais.js:94`, `Core/Policiais.js:138`, `Motor/PoliticaMeritoArmas.js`
 - **Evidência em Testes:** `Testes/TestMeritoEquipeArmas.js`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores (reconciliado #125):** REAL: Core/Policiais.js, Motor/PoliticaMeritoArmas.js, Features/NormalizadorEfetivo.js | INDIRETO: - | DECLARADO: - | PLANEJADO: -
+- **Consumidores (reconciliado #125):** REAL: Core/Policiais.js, Motor/PoliticaMeritoArmas.js, Features/NormalizadorEfetivo.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js | DECLARADO: - | PLANEJADO: -
 - **Riscos Identificados:** Ordem incorreta da equipe distorce a atribuição de mérito de armas (líder errado) e a leitura do túnel.
 - **Observações Operacionais:** Complementa ARCA-ANTIGUIDADE-001 (precedência por menor N): aqui a regra é a ORDEM da equipe (graduação primeiro, N como desempate).
 ### [ARCA-MERITO-001] Atribuição Exclusiva do Mérito de Armas ao Líder mais Antigo (Menor N)

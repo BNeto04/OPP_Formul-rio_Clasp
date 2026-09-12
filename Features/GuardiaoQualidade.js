@@ -175,6 +175,8 @@ class GuardiaoQualidade {
       boe: loc('BOE'),
       matricula: loc('MATRICULA'),
       policial: loc('POLICIAL'),
+      grad: loc('GRAD'),
+      qtdO: loc('QTD_O'),
       armaLinha: loc('ARMA_LINHA'),
       tipoArma: loc('TIPO_ARMA'),
       armas: loc('ARMAS'),
@@ -263,7 +265,9 @@ class GuardiaoQualidade {
       if (dataFormatada) mikesMapa[mike].datas.add(dataFormatada);
       const qdtArmasLinha = idx.qdtArmas !== -1 ? RegrasQualidade.texto(row[idx.qdtArmas]) : '';
       const armaValorLinha = idx.armaLinha !== -1 ? RegrasQualidade.texto(row[idx.armaLinha]) : '';
-      mikesMapa[mike].linhas.push({ linha, boe, dataTexto: dataFormatada, chave, qdtArmas: qdtArmasLinha, arma: armaValorLinha });
+      const qtdOLinha = idx.qtdO !== -1 ? RegrasQualidade.texto(row[idx.qtdO]) : '';
+      const gradLinha = idx.grad !== -1 ? RegrasQualidade.texto(row[idx.grad]) : '';
+      mikesMapa[mike].linhas.push({ linha, boe, dataTexto: dataFormatada, chave, qdtArmas: qdtArmasLinha, arma: armaValorLinha, qtdO: qtdOLinha, grad: gradLinha, matricula: matricula || '' });
 
       // Mapa matricula -> ocorrencias (para deteccao de vinculo multiplo na mesma data - #115)
       if (matricula) {
@@ -505,6 +509,59 @@ class GuardiaoQualidade {
         });
       }
     });
+
+    // Invariante ARCA-QTD-O-001: QTD O = 01 na primeira linha (fato) do tunel; vazio nas linhas filhas (#147)
+    Object.values(mikesMapa).forEach(t => {
+      const linhasOrd = t.linhas.slice().sort((a, b) => a.linha - b.linha);
+      linhasOrd.forEach((l, k) => {
+        const valor = String(l.qtdO || '').trim();
+        const normalizado = (valor === '' || valor === '0' || valor === '1') ? '01' : valor;
+        const ehPrimeira = k === 0;
+        const ok = ehPrimeira ? (normalizado === '01') : (valor === '');
+        if (!ok && l.linha >= 2 && l.linha - 2 < alertasPorLinha.length) {
+          alertasPorLinha[l.linha - 2].push(RegrasQualidade.criarDiagnostico({
+            severidade: SEVERIDADES_GUARDIAO.ALERTA,
+            codigoRegra: 'QTD_O_DIVERGENTE',
+            camada: 'SEMANTICA',
+            linha: l.linha,
+            tunel: l.chave,
+            diagnostico: 'QTD O divergente: deve ser 01 na primeira linha (fato) do tunel e vazio nas linhas filhas.',
+            evidencia: `QTD O lido: "${valor}" na ${ehPrimeira ? 'linha do fato' : 'linha filha'}`,
+            acaoRecomendada: 'Ajuste a coluna QTD O: 01 apenas na primeira linha do tunel.'
+          }));
+        }
+      });
+    });
+
+    // Invariante ARCA-ANTIGUIDADE-002: equipe do tunel na ordem canonica (posto/graduacao; desempate pela matricula mais antiga) (#146)
+    if (typeof indiceAntiguidadePosto_ === 'function' && typeof matriculaNumerica_ === 'function') {
+      Object.values(mikesMapa).forEach(t => {
+        const equipe = t.linhas.slice().sort((a, b) => a.linha - b.linha);
+        if (equipe.length < 2) return;
+        const ord = equipe.slice().sort((a, b) => {
+          const dg = indiceAntiguidadePosto_(a.grad) - indiceAntiguidadePosto_(b.grad);
+          if (dg !== 0) return dg;
+          return matriculaNumerica_(a.matricula) - matriculaNumerica_(b.matricula);
+        });
+        const foraDeOrdem = equipe.some((l, k) => l.linha !== ord[k].linha);
+        if (foraDeOrdem) {
+          equipe.forEach(l => {
+            if (l.linha >= 2 && l.linha - 2 < alertasPorLinha.length) {
+              alertasPorLinha[l.linha - 2].push(RegrasQualidade.criarDiagnostico({
+                severidade: SEVERIDADES_GUARDIAO.ALERTA,
+                codigoRegra: 'ORDEM_ANTIGUIDADE_EQUIPE',
+                camada: 'SEMANTICA',
+                linha: l.linha,
+                tunel: l.chave,
+                diagnostico: 'Equipe fora da ordem canonica de antiguidade (posto/graduacao; desempate pela matricula mais antiga).',
+                evidencia: `Ordem gravada: [${equipe.map(x => String(x.grad) + ' ' + String(x.matricula)).join(' | ')}]`,
+                acaoRecomendada: 'Reordene a equipe do tunel: mais antigo (patente) primeiro; empate resolvido pela matricula menor.'
+              }));
+            }
+          });
+        }
+      });
+    }
 
     // Policial vinculado a 2+ MIKEs na MESMA data exige confirmacao humana (#115)
     let CoberturaMod = typeof CoberturaAuditoria !== 'undefined' ? CoberturaAuditoria : null;
