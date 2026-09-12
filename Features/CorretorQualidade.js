@@ -55,7 +55,15 @@ var CorretorQualidade = {
   corrigirFormulasAba: function (sheet, opcoes) {
     const self = this;
     const dryRun = !!(opcoes && opcoes.dryRun);
-    const colunas = this.localizarColunas(sheet);
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const colunas = (typeof RegrasQualidade !== 'undefined' && typeof RegrasQualidade.localizarColunasCalculadas === 'function')
+      ? RegrasQualidade.localizarColunasCalculadas(headers)
+      : [];
+    const idxPolicial = (typeof RegrasQualidade !== 'undefined' && typeof RegrasQualidade.localizarPorAliases === 'function')
+      ? RegrasQualidade.localizarPorAliases(headers, ['POLICIAL', 'POLICIAL (CHAVE DO EFETIVO)'])
+      : -1;
+
     const ultimaLinha = Math.max(sheet.getLastRow(), 1);
     const ultimaCol = Math.max(sheet.getLastColumn(), 1);
     const nomeAba = (typeof sheet.getName === 'function') ? sheet.getName() : '';
@@ -65,14 +73,30 @@ var CorretorQualidade = {
       return resumo;
     }
 
+    // Nomes do EFETIVO (para NAO apagar dados de policiais legados nas colunas VLOOKUP).
+    let nomesEfetivo = null;
+    try {
+      const parent = (typeof sheet.getParent === 'function') ? sheet.getParent() : null;
+      const efetivo = (parent && typeof parent.getSheetByName === 'function') ? parent.getSheetByName('EFETIVO') : null;
+      if (efetivo && efetivo.getLastRow() > 1) {
+        nomesEfetivo = new Set();
+        efetivo.getRange(2, 1, efetivo.getLastRow() - 1, 1).getValues().forEach(function (linha) {
+          const n = String(linha[0] || '').trim().toUpperCase();
+          if (n) nomesEfetivo.add(n);
+        });
+      }
+    } catch (e) {
+      nomesEfetivo = null;
+    }
+
     // Leitura em lote (uma chamada so): formulas, valores e notas das linhas de dados.
     const rangeDados = sheet.getRange(2, 1, ultimaLinha - 1, ultimaCol);
-    const formulas = rangeDados.getFormulas();  // [linha-2][col-1]
+    const formulas = rangeDados.getFormulas();
     const valores = (typeof rangeDados.getValues === 'function') ? rangeDados.getValues() : [];
     const notes = (typeof rangeDados.getNotes === 'function') ? rangeDados.getNotes() : [];
 
     colunas.forEach(function (coluna) {
-      const col = coluna.indice; // zero-based
+      const col = coluna.indice;
       if (col < 0 || col >= ultimaCol) {
         resumo.naoCorrigidas.push(coluna.nome + ' (indice fora do range)');
         return;
@@ -80,12 +104,14 @@ var CorretorQualidade = {
 
       // 1. Acha uma linha-fonte com formula valida nesta coluna.
       let fonteR1C1 = null;
+      let fonteFormula = '';
       let fonteLinha = 0;
       for (let r = 0; r < formulas.length; r++) {
         const f = String(formulas[r][col] || '');
         const v = (valores[r] && valores[r][col] !== undefined) ? String(valores[r][col]) : '';
         if (f.charAt(0) === '=' && !self.temErro(f) && !self.ehErroValor(v)) {
           fonteR1C1 = sheet.getRange(r + 2, col + 1).getFormulaR1C1();
+          fonteFormula = f;
           fonteLinha = r + 2;
           break;
         }
@@ -96,15 +122,23 @@ var CorretorQualidade = {
         return;
       }
 
+      const ehVlookup = fonteFormula.toUpperCase().indexOf('VLOOKUP') !== -1;
+
       // 2. Replica nas celulas sem formula valida (e sem excecao justificada).
       let corrigidas = 0;
       for (let r = 0; r < formulas.length; r++) {
         const f = String(formulas[r][col] || '');
         const v = (valores[r] && valores[r][col] !== undefined) ? String(valores[r][col]) : '';
-        // ja tem formula valida (nao produz erro de planilha) -> preserva.
         if (f.charAt(0) === '=' && !self.ehErroValor(v)) continue;
+
+        // Colunas VLOOKUP: preserva valor estatico de policial FORA do EFETIVO (legado).
+        if (ehVlookup && nomesEfetivo && idxPolicial >= 0) {
+          const nomeAE = String((valores[r] && valores[r][idxPolicial]) || '').trim().toUpperCase();
+          if (nomeAE && !nomesEfetivo.has(nomeAE)) continue;
+        }
+
         const nota = (notes[r] && notes[r][col]) ? String(notes[r][col]) : '';
-        if (nota.toUpperCase().indexOf('EXCECAO:') === 0) continue; // excecao manual
+        if (nota.toUpperCase().indexOf('EXCECAO:') === 0) continue;
         if (!dryRun) {
           sheet.getRange(r + 2, col + 1).setFormulaR1C1(fonteR1C1);
         }

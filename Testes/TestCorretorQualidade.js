@@ -17,13 +17,14 @@ global.RegrasQualidade = {
       { nome: 'GRAD', indice: 1 },
       { nome: 'MATRICULA', indice: 2 }
     ];
-  }
+  },
+  localizarPorAliases: function () { return 3; } // POLICIAL no indice 3 (col 4)
 };
 
 const CorretorQualidade = require('../Features/CorretorQualidade');
 
 // ---------- Mock de Sheet (getRange sobrecarregado: celula vs range) ----------
-function criarSheet(lastRow, celulasIniciais) {
+function criarSheet(lastRow, celulasIniciais, efetivoNomes) {
   const celulas = {};
   (Object.keys(celulasIniciais || {})).forEach(function (k) {
     celulas[k] = Object.assign({ formula: '', nota: '', valor: '' }, celulasIniciais[k]);
@@ -72,6 +73,17 @@ function criarSheet(lastRow, celulasIniciais) {
     getLastRow: function () { return lastRow; },
     getLastColumn: function () { return headers.length; },
     getName: function () { return 'MOCK'; },
+    getParent: function () {
+      return {
+        getSheetByName: function (nome) {
+          if (nome !== 'EFETIVO') return null;
+          return {
+            getLastRow: function () { return efetivoNomes ? efetivoNomes.length + 1 : 1; },
+            getRange: function () { return { getValues: function () { return (efetivoNomes || []).map(function (n) { return [n]; }); } }; }
+          };
+        }
+      };
+    },
     getRange: getRange
   };
 }
@@ -155,7 +167,22 @@ test('fonte com erro e pulada, usa a proxima valida', () => {
     'linhas 2 e 4 corrigidas; linha 3 preservada');
 });
 
-// 6. Idempotencia: segunda execucao nao corrige nada.
+// 6. Coluna VLOOKUP preserva dado de policial legado (fora do EFETIVO).
+test('coluna VLOOKUP preserva dado de policial legado (fora do EFETIVO)', () => {
+  const sheet = criarSheet(4, {
+    '2,3': { formula: '=VLOOKUP(AE2;EFETIVO;5;0)' },  // MATRICULA (idx 2 -> col 3), fonte VLOOKUP
+    '3,3': { formula: '' },                           // policial atual -> preenche
+    '4,3': { formula: '', valor: '1216902' },         // policial legado (valor estatico) -> preserva
+    '3,4': { valor: 'CURRENT1' },                     // AE (POLICIAL, idx 3 -> col 4) no EFETIVO
+    '4,4': { valor: 'LEGADO' }                        // AE fora do EFETIVO
+  }, ['CURRENT1', 'CURRENT2']);
+  CorretorQualidade.corrigirFormulasAba(sheet);
+  assert.deepStrictEqual(sheet.chamadas.filter(ch => ch.c === 3).map(ch => ch.r).sort(), [3],
+    'linha 3 (atual) preenchida; linha 4 (legado) preservada');
+  assert.strictEqual(sheet.celulas['4,3'].formula, '', 'matricula do legado permanece estatica');
+});
+
+// 7. Idempotencia: segunda execucao nao corrige nada.
 test('idempotencia: segunda execucao corrige zero', () => {
   const sheet = criarSheet(5, {
     '2,1': { formula: '=VLOOKUP(AE2;EFETIVO;6;0)' },
