@@ -82,3 +82,11 @@ As regras inventariadas na ARCA classificam-se em níveis estritos de autoridade
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **ARCA-VEICULO-001** | Autorizacao Canonica do Titulo PIP de Veiculo (Recuperacao de Veiculo Roubado/Furtado) | `DOCUMENTACAO_INTERNA` + `CATALOGO_OFICIAL` | Regra de veiculo do Formulario/OCR documentada em `SUB-C01-01-01_OCR_E_CONFERENCIA/AUDITORIA_OCR_ARCA.md` (card #135) + rotulo oficial da Tabela PIP consumido em `Entrada/Formulario.html:963` | Media / Alta | `INTERNAL_SOURCE_CONFIRMED` |
 | **ARCA-CONVERSAO-001** | Conversao de formas de apreensao de drogas em quantidade total (gramas) | `DETERMINACAO_DO_PROPRIETARIO` | Determinacao literal do proprietario do dominio (11/09/2026): 1 pedra de crack = 0,25 g; 1 papelote/big de maconha = 3 g; 1 pino/ziplock de cocaina = 1 g; crack entra no somatorio geral da cocaina nos escaloes superiores (issue #139, cards #142/#144) | Oficial | `CANONICAL_SOURCE_CONFIRMED` |
+
+> **Fontes das regras adicionadas pelo bloco ARCA-GUARD (#145):**
+
+| ID da Regra | Título | Tipo de Fonte | Nome/Localização | Autoridade | Status da Fonte |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **ARCA-QTD-O-001** | QTD O = 01 por Túnel (primeira linha do fato) | `DIRETRIZ_OPERACIONAL` | Regra do proprietário (11/09/2026): QTD O padrão fixo 01 (Entrada/EntradaManual.js:6-14) | Alta | `INTERNAL_SOURCE_CONFIRMED` |
+| **ARCA-DETIDOS-001** | DETIDOS: Conjunto Canônico e Gravação no Fato (primeira linha) | `ESQUEMA_DADOS` | Dicionário de Colunas (aliases DETIDOS|PRESOS|CONDUZIDOS) (Core/Constantes.js:60) | Alta | `INTERNAL_SOURCE_CONFIRMED` |
+| **ARCA-ANTIGUIDADE-002** | Ordem de Antiguidade da Equipe no Túnel (Posto/Graduação, mais antigo primeiro) | `DIRETRIZ_OPERACIONAL` | Regra do proprietário (11/09/2026): ordem canônica da equipe por posto/graduação (Core/Policiais.js:94,138) | Alta | `INTERNAL_SOURCE_CONFIRMED` |

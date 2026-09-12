@@ -90,19 +90,19 @@ test('contagens de cobertura conferem com o meta do catalogo', () => {
   const mapeadas = regras.filter(r => r.auditabilidade_guardiao.status === 'MAPEADO').length;
   const integradas = regras.filter(r => r.auditabilidade_guardiao.status === 'INTEGRADO').length;
   const naoAplicaveis = regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_APLICAVEL').length;
-  assert.strictEqual(regras.length, 45, 'total de regras deveria ser 45');
+  assert.strictEqual(regras.length, 48, 'total de regras deveria ser 48 (45 + 3 do #145 ARCA-GUARD-001)');
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_mapeadas, mapeadas);
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_integradas, integradas);
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_nao_aplicaveis, naoAplicaveis);
-  assert.strictEqual(mapeadas + integradas + naoAplicaveis, 45);
+  assert.strictEqual(mapeadas + integradas + naoAplicaveis, 48);
   assert.strictEqual(mapeadas, 29, 'MAPEADO = 28 originais + ARCA-ARMAS-001 (QDT_ARMAS_DIVERGENTE_NO_TUNEL)');
-  assert.strictEqual(integradas, 7, 'INTEGRADO = 4 NormalizadorEfetivo + 3 plugins de metrica');
+  assert.strictEqual(integradas, 10, 'INTEGRADO = 4 NormalizadorEfetivo + 3 plugins de metrica + 3 registradas no #145');
   assert.strictEqual(naoAplicaveis, 9, 'NAO_APLICAVEL = 5 estruturais + 4 entrada/discricionarias');
 });
 
 test('nenhuma heuristica foi promovida a regra oficial na reconciliacao', () => {
   const adicionadas = arca.meta.cobertura_reconciliacao.regras_adicionadas_total || arca.meta.cobertura_reconciliacao.regras_adicionadas;
-  assert.ok(adicionadas.length === 10, 'esperado 10 regras adicionadas (#126: 5 + #128: 4 + #137: 1)');
+  assert.ok(adicionadas.length === 13, 'esperado 13 regras adicionadas (#126: 5 + #128: 4 + #137: 1 + #145: 3)');
   adicionadas.forEach(rid => {
     const r = regras.find(x => x.rule_id === rid);
     assert.ok(['INTERNAL_OPERATIONAL_RULE', 'TECHNICAL_RULE'].includes(r.tipo_regra), `${rid}: tipo ${r.tipo_regra} nao permitido`);

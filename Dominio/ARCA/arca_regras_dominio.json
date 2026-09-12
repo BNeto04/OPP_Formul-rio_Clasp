@@ -34,7 +34,10 @@
         "ARCA-MATRICULA-003",
         "ARCA-AUDITORIA-001",
         "ARCA-AUDITORIA-002",
-        "ARCA-VEICULO-001"
+        "ARCA-VEICULO-001",
+        "ARCA-ANTIGUIDADE-002",
+        "ARCA-QTD-O-001",
+        "ARCA-DETIDOS-001"
       ],
       "regras_mapeadas": 29,
       "regras_nao_auditaveis": 0,
@@ -48,17 +51,21 @@
         "ARCA-METRICAS-001",
         "ARCA-GXT-001",
         "ARCA-TECNICA-005",
-        "ARCA-VEICULO-001"
+        "ARCA-VEICULO-001",
+        "ARCA-ANTIGUIDADE-002",
+        "ARCA-QTD-O-001",
+        "ARCA-DETIDOS-001"
       ],
       "card_137": "#137 OCR-ARCA-003: reconciliacao de veiculo (ARCA-VEICULO-001) - regra de dominio; heuristica lexical permanece no parser.",
-      "regras_integradas": 7,
+      "regras_integradas": 10,
       "regras_nao_aplicaveis": 9,
       "statuses": [
         "MAPEADO",
         "INTEGRADO",
         "NAO_APLICAVEL"
       ],
-      "fluid_flow": "2026-09-12: 17 NAO_AUDITAVEL reclassificadas em INTEGRADO(7)/NAO_APLICAVEL(9)/MAPEADO(1, QDT_ARMAS_DIVERGENTE_NO_TUNEL). Zero regras cegas."
+      "fluid_flow": "2026-09-12: 17 NAO_AUDITAVEL reclassificadas em INTEGRADO(7)/NAO_APLICAVEL(9)/MAPEADO(1, QDT_ARMAS_DIVERGENTE_NO_TUNEL). Zero regras cegas. 2026-09-12 (#145): +3 regras canonicas registradas (ANTIGUIDADE-002, QTD-O-001, DETIDOS-001), todas INTEGRADO.",
+      "card_145": "#145 ARCA-GUARD-001: 3 regras canonicas registradas (antiguidade da equipe, QTD O = 01, DETIDOS) - todas INTEGRADO (aplicadas na entrada/normalizacao); diagnosticos previstos em #146/#147."
     },
     "normalizador_integracao": {
       "card": "#127 ARCA-FIX-004",
@@ -342,6 +349,112 @@
           "TUNEL_SEM_FATOS"
         ],
         "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-QTD-O-001",
+      "titulo": "QTD O = 01 por Túnel (primeira linha do fato)",
+      "descricao_humana": "A coluna QTD O (quantidade de ocorrências do túnel) é padrão fixo 01 e deve constar na primeira linha (fato) do túnel; as linhas filhas ficam vazias. Valores vazio, 0 ou 1 são normalizados para 01. O OCR não infere este campo.",
+      "categoria": "OBRIGATORIEDADE",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_OPERACIONAL",
+          "nome": "Regra do proprietário (11/09/2026): QTD O padrão fixo 01",
+          "localizacao": "Entrada/EntradaManual.js:6-14",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Entrada/EntradaManual.js:6-14",
+        "Entrada/EntradaManual.js:261"
+      ],
+      "evidencia_testes": [
+        "Testes/TestEntradaManualFormulario.js"
+      ],
+      "condicao": "Gravação de ocorrência: a coluna QTD O (D) deve valer 01 na primeira linha do túnel.",
+      "resultado_esperado": "QTD O = '01' na primeira linha; vazio nas linhas filhas; vazio/0/1 normalizados para 01.",
+      "excecoes": [
+        "Valor diferente de 01 é preservado (não sobrescrito) para sinalização."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Entrada/EntradaManual.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Aplicada na entrada manual (qtdOcorrenciaPadrao_); diagnostico de divergencia previsto no card #147 (ARCA-GUARD-003)."
+      },
+      "alcance": "MODULO_ENTRADA",
+      "riscos": "QTD O ausente ou divergente quebra a leitura da quantidade de ocorrências do túnel.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Regra de entrada; o Guardiao passa a diagnosticar a divergencia no card #147.",
+      "auditabilidade_guardiao": {
+        "status": "INTEGRADO",
+        "codigos": [],
+        "motivo": "Aplicada por Entrada/EntradaManual.js (qtdOcorrenciaPadrao_); diagnostico no Guardiao previsto no card #147 (ARCA-GUARD-003)."
+      }
+    },
+    {
+      "rule_id": "ARCA-DETIDOS-001",
+      "titulo": "DETIDOS: Conjunto Canônico e Gravação no Fato (primeira linha)",
+      "descricao_humana": "A coluna DETIDOS (K) registra os detidos/conduzidos do túnel na primeira linha (fato); as linhas filhas ficam vazias. O cabeçalho canônico aceita os aliases DETIDOS, PRESOS e CONDUZIDOS. O conjunto é regra de domínio de dados — distinto do comportamento visual da lista suspensa no formulário.",
+      "categoria": "CONSISTENCIA_CAMPOS",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "ESQUEMA_DADOS",
+          "nome": "Dicionário de Colunas (aliases DETIDOS|PRESOS|CONDUZIDOS)",
+          "localizacao": "Core/Constantes.js:60",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/Constantes.js:60",
+        "Entrada/EntradaManual.js:268",
+        "Entrada/EntradaManual.js:754-768"
+      ],
+      "evidencia_testes": [
+        "Testes/TestEntradaManualFormulario.js"
+      ],
+      "condicao": "Túnel operacional com detidos/conduzidos informados no fato.",
+      "resultado_esperado": "DETIDOS gravado na primeira linha (fato) do túnel; linhas filhas vazias; cabeçalho aceito por alias canônico.",
+      "excecoes": [
+        "Correção pontual via corrigirDetidos(mike, valor) quando o operador deixou o padrão indevido."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/Constantes.js",
+          "Entrada/EntradaManual.js",
+          "Core/LeitorPlanilhas.js",
+          "Leitura/Adaptador2026.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra de esquema/semantica de campo operacional aplicada na entrada; nao gera diagnostico automatico."
+      },
+      "alcance": "MODULO_ENTRADA",
+      "riscos": "Valor de DETIDOS em linha filha (ou ausente no fato) distorce a contagem de detidos do túnel.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Distingue a regra de domínio (conjunto + primeira linha) do comportamento visual da lista suspensa do formulário.",
+      "auditabilidade_guardiao": {
+        "status": "INTEGRADO",
+        "codigos": [],
+        "motivo": "Conjunto canonico e gravacao no fato aplicados na entrada (Constantes + EntradaManual); nao e regra de auditoria automatica do Guardiao."
       }
     },
     {
@@ -1211,6 +1324,58 @@
         "status": "INTEGRADO",
         "codigos": [],
         "motivo": "Precedencia por menor N aplicada em Motor/PoliticaMeritoArmas.js e NormalizadorEfetivo (#127); no Guardiao aparece via merito de armas."
+      }
+    },
+    {
+      "rule_id": "ARCA-ANTIGUIDADE-002",
+      "titulo": "Ordem de Antiguidade da Equipe no Túnel (Posto/Graduação, mais antigo primeiro)",
+      "descricao_humana": "A equipe de um túnel operacional é ordenada pela antiguidade militar: primeiro pelo posto/graduação (o mais antigo primeiro) e, em caso de mesma graduação, pelo menor número N de antiguidade. A ordem define quem lidera a ocorrência.",
+      "categoria": "HIERARQUIA",
+      "subdominio": "antiguidade",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_OPERACIONAL",
+          "nome": "Regra do proprietário (11/09/2026): ordem canônica da equipe por posto/graduação",
+          "localizacao": "Core/Policiais.js:94,138",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/Policiais.js:94",
+        "Core/Policiais.js:138",
+        "Motor/PoliticaMeritoArmas.js"
+      ],
+      "evidencia_testes": [
+        "Testes/TestMeritoEquipeArmas.js"
+      ],
+      "condicao": "Túnel operacional com dois ou mais policiais vinculados.",
+      "resultado_esperado": "Equipe ordenada por posto/graduação (mais antigo primeiro) e, no empate, pelo menor N de antiguidade.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/Policiais.js",
+          "Motor/PoliticaMeritoArmas.js",
+          "Features/NormalizadorEfetivo.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Ordem aplicada na entrada/normalizacao; diagnostico de ordem no Guardiao previsto no card #146 (ARCA-GUARD-002)."
+      },
+      "alcance": "MODULO_ENTRADA_E_AUDITORIA",
+      "riscos": "Ordem incorreta da equipe distorce a atribuição de mérito de armas (líder errado) e a leitura do túnel.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Complementa ARCA-ANTIGUIDADE-001 (precedência por menor N): aqui a regra é a ORDEM da equipe (graduação primeiro, N como desempate).",
+      "auditabilidade_guardiao": {
+        "status": "INTEGRADO",
+        "codigos": [],
+        "motivo": "Aplicada por Core/Policiais.js e NormalizadorEfetivo; o diagnostico de ordem no Guardiao esta previsto no card #146 (ARCA-GUARD-002)."
       }
     },
     {
