@@ -38,3 +38,18 @@ agentic/scratch/
 agentic/**/.env*
 !agentic/**/.env.example
 
+
+# Estado de execucao (muda a cada rodada; fica no disco, nao no Git)
+ponte1_telegram_chatgpt/server/*.log
+ponte1_telegram_chatgpt/server/ponte1_offset.json
+ponte1_telegram_chatgpt/server/ponte1_dedupe.json
+ponte1_telegram_chatgpt/server/ponte1_delivery_history.json
+ponte2_chatgpt_gravity/logs/
+ponte2_chatgpt_gravity/state/
+ponte2_chatgpt_gravity/server/*_result.js
+VigiaPonte/*_history.json
+VigiaPonte/*_state.json
+VigiaPonte/telegram_*.json
+VigiaPonte/telegram_*.jsonl
+VigiaPonte/carrier_*.json
+VigiaPonte/sprint_continuity_journal.json
