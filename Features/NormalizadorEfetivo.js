@@ -8,6 +8,7 @@ class NormalizadorEfetivo {
     const abaDestino = opcoes.abaDestino || CONSTANTES_SYNTHEON.ABA_EFETIVO;
     const abaLog = opcoes.abaLog || '[AUDITORIA] Efetivo';
     const abaFonteExistentes = opcoes.abaFonteExistentes || abaDestino;
+    const abaLegado = opcoes.abaLegado || 'EFETIVO_LEGADO';
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const peculioId = CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.PECULIO_ID;
@@ -51,22 +52,26 @@ class NormalizadorEfetivo {
       saida.push(NormalizadorEfetivo.linhaEfetivo(reg));
     });
 
+    // Regra do proprietário: "fora do PECULIO" = legado, NÃO entra na referência (EFETIVO).
+    // Em vez de manter ao final, arquiva na aba de legado (EFETIVO_LEGADO).
+    const legado = [];
     existentes.registros.forEach(reg => {
       if (!reg.matricula) {
-        saida.push(reg.valores);
-        log.push(['EFETIVO', reg.linhaOrigem, 'MANTIDO', 'Registro sem matricula mantido ao final para revisao manual.']);
+        legado.push(reg.valores);
+        log.push(['EFETIVO', reg.linhaOrigem, 'LEGADO', 'Registro sem matricula (legado) removido da referencia.']);
         return;
       }
       if (!matriculasPeculio[reg.matricula]) {
-        saida.push(reg.valores);
-        log.push(['EFETIVO', reg.linhaOrigem, 'MANTIDO', `Fora do PECULIO atual, mantido ao final: ${reg.matricula}.`]);
+        legado.push(reg.valores);
+        log.push(['EFETIVO', reg.linhaOrigem, 'LEGADO', `Fora do PECULIO (legado): ${reg.matricula}.`]);
       }
     });
 
     NormalizadorEfetivo.escreverEfetivo(sheetEfetivo, saida);
+    NormalizadorEfetivo.escreverLegado(ss, legado, abaLegado);
     NormalizadorEfetivo.renderizarLog(ss, {
       peculio: peculio.length,
-      mantidos: log.filter(item => item[2] === 'MANTIDO').length,
+      legado: legado.length,
       alertas: log.length,
       linhas: saida.length,
       arca: arcaMetadados,
@@ -75,7 +80,7 @@ class NormalizadorEfetivo {
 
     return {
       peculio: peculio.length,
-      mantidos: log.filter(item => item[2] === 'MANTIDO').length,
+      legado: legado.length,
       alertas: log.length,
       linhas: saida.length,
       arca: arcaMetadados
@@ -155,6 +160,16 @@ class NormalizadorEfetivo {
       sheet.getRange(1, 1, saida.length, 7).setValues(saida);
     }
     sheet.setFrozenRows(0);
+    sheet.autoResizeColumns(1, 7);
+  }
+
+  static escreverLegado(ss, legado, nomeAba) {
+    let sheet = ss.getSheetByName(nomeAba) || ss.insertSheet(nomeAba);
+    const linhasParaLimpar = Math.max(sheet.getLastRow(), legado.length, 1);
+    sheet.getRange(1, 1, linhasParaLimpar, 7).clearContent();
+    if (legado.length > 0) {
+      sheet.getRange(1, 1, legado.length, 7).setValues(legado);
+    }
     sheet.autoResizeColumns(1, 7);
   }
 
@@ -272,7 +287,7 @@ class NormalizadorEfetivo {
 
     const dados = [
       ['Sincronizacao do EFETIVO pelo PECULIO', agora, resultado.status || (resultado.alertas ? 'COM OBSERVACOES' : 'APROVADO'), ''],
-      ['Registros do PECULIO', resultado.peculio, 'Registros mantidos fora do PECULIO', resultado.mantidos],
+      ['Registros do PECULIO', resultado.peculio, 'Registros legados (removidos)', (resultado.legado !== undefined ? resultado.legado : resultado.mantidos)],
       ['Linhas finais do EFETIVO', resultado.linhas, 'Observacoes', resultado.alertas],
       ['', '', '', '']
     ];
@@ -383,7 +398,7 @@ function normalizarEfetivo() {
     const resultado = NormalizadorEfetivo.executar();
     ui.alert(
       'Sincronizacao do EFETIVO',
-      `Auditoria atualizada.\nRegistros do PECULIO: ${resultado.peculio}\nMantidos fora do PECULIO: ${resultado.mantidos}\nLinhas finais: ${resultado.linhas}\nObservacoes: ${resultado.alertas}`,
+      `Auditoria atualizada.\nRegistros do PECULIO: ${resultado.peculio}\nLegados (removidos): ${resultado.legado !== undefined ? resultado.legado : resultado.mantidos}\nLinhas finais: ${resultado.linhas}\nObservacoes: ${resultado.alertas}`,
       ui.ButtonSet.OK
     );
     return resultado;
@@ -408,6 +423,7 @@ function normalizarEfetivoTeste() {
   return NormalizadorEfetivo.executar({
     abaDestino: 'EFETIVO_TESTE',
     abaLog: '[AUDITORIA] Efetivo TESTE',
-    abaFonteExistentes: CONSTANTES_SYNTHEON.ABA_EFETIVO
+    abaFonteExistentes: CONSTANTES_SYNTHEON.ABA_EFETIVO,
+    abaLegado: 'EFETIVO_LEGADO_TESTE'
   });
 }
