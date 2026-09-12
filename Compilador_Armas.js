@@ -71,6 +71,17 @@ function processarMenuLivre(mesesSelecionados) {
   executarCompilador(mesesSelecionados, 'LIVRE');
 }
 
+// Tabela CANONICA de cores por grupo. Fonte unica: Render/RendererGxt.js:14-22 (CORES_PELOTAO).
+// O Compilador de Armas NAO deve reinventar esta tabela (#152 PROD-ARMAS-001).
+const CORES_GRUPO_ARMAS_ = {
+  'OFICIAIS':    { fundo: '#F1C232', fonte: '#000000', negrito: false },
+  '1º PEL GTAR': { fundo: '#00CC00', fonte: '#000000', negrito: true },
+  '1º PEL':      { fundo: '#00FF00', fonte: '#000000', negrito: false },
+  '2º PEL GTAR': { fundo: '#3C78D8', fonte: '#FFFFFF', negrito: true },
+  '2º PEL':      { fundo: '#6D9EEB', fonte: '#000000', negrito: false },
+  '3º PEL':      { fundo: '#FFFFFF', fonte: '#000000', negrito: false }
+};
+
 function corPorGrupoArmas_(grad, pelotao) {
   const g = (typeof SyntheonUtils !== 'undefined' && SyntheonUtils.normalizarTexto)
     ? SyntheonUtils.normalizarTexto(grad || '')
@@ -79,22 +90,20 @@ function corPorGrupoArmas_(grad, pelotao) {
     ? SyntheonUtils.normalizarTexto(pelotao || '')
     : String(pelotao || '').toUpperCase();
 
-  if (/(MAJ|CAP|TEN|ASP|CEL|TC)/.test(g) || p.includes('OFICIAIS')) {
-    return { fundo: '#f1c232', fonte: '#000000' };
+  // SOBERANIA DOS OFICIAIS (proprietario, 12/09/2026): a marca de oficial prevalece sobre a cor
+  // do pelotao. Posto isolado por fronteira de palavra (antes casava "TEN" dentro de qualquer texto).
+  if (/(^|[^A-Z])(MAJ|CAP|TEN|ASP|CEL|TC)([^A-Z]|$)/.test(g) || p.indexOf('OFICIAIS') !== -1) {
+    return CORES_GRUPO_ARMAS_['OFICIAIS'];
   }
-  if (p.includes('GTAR') && p.includes('1')) {
-    return { fundo: '#00cc00', fonte: '#000000', negrito: true };
+  // GTAR: o nome canonico e "1º PEL GTAR" / "2º PEL GTAR" (nunca "GTAR 1").
+  if (p.indexOf('GTAR') !== -1) {
+    if (p.indexOf('2') !== -1) return CORES_GRUPO_ARMAS_['2º PEL GTAR'];
+    if (p.indexOf('1') !== -1) return CORES_GRUPO_ARMAS_['1º PEL GTAR'];
   }
-  if (p.includes('GTAR') && p.includes('2')) {
-    return { fundo: '#3c78d8', fonte: '#ffffff', negrito: true };
-  }
-  if (p.includes('1') && p.includes('PEL')) {
-    return { fundo: '#00ff00', fonte: '#000000' };
-  }
-  if (p.includes('2') && p.includes('PEL')) {
-    return { fundo: '#6d9eeb', fonte: '#000000' };
-  }
-  return { fundo: '#ffffff', fonte: '#000000' };
+  if (p.indexOf('1') !== -1 && p.indexOf('PEL') !== -1) return CORES_GRUPO_ARMAS_['1º PEL'];
+  if (p.indexOf('2') !== -1 && p.indexOf('PEL') !== -1) return CORES_GRUPO_ARMAS_['2º PEL'];
+  // Fallback canonico: grupo desconhecido e o 3º PEL (RendererGxt.js:59).
+  return CORES_GRUPO_ARMAS_['3º PEL'];
 }
 
 function corPorArmasArmas_(qtd) {
@@ -221,7 +230,20 @@ function executarCompilador(mesesAlvo, modo) {
     for (const mat in produtividade) {
       ranking.push([produtividade[mat].pelotao, produtividade[mat].graduacao, mat, produtividade[mat].nome, produtividade[mat].score]);
     }
-    ranking.sort((a, b) => b[4] - a[4]);
+    // ORDEM DA ENTREGA (regra do proprietario, 12/09/2026 - R6):
+    //   1) quem esta mais bem colocado nas PARTICIPACOES (score desc);
+    //   2) empate -> ANTIGUIDADE (posto/graduacao canonico; depois matricula mais antiga).
+    // Usa o indice canonico de Core/Policiais.js (ARCA-ANTIGUIDADE-002) para nao divergir.
+    const _idxAntiguidade_ = (g) => (typeof indiceAntiguidadePosto_ === 'function')
+      ? indiceAntiguidadePosto_(g)
+      : 999;
+    ranking.sort((a, b) => {
+      if (b[4] !== a[4]) return b[4] - a[4];
+      const ia = _idxAntiguidade_(a[1]);
+      const ib = _idxAntiguidade_(b[1]);
+      if (ia !== ib) return ia - ib;
+      return Number(a[2]) - Number(b[2]);
+    });
     
     let nomeBaseAba = modo === 'ANUAL' ? 'COMP_ARMAS_2026' : `COMP_ARMAS_${logs.abasProcessadas[0]}_${logs.abasProcessadas[logs.abasProcessadas.length - 1]}`;
     let nomeFinalAba = nomeBaseAba;
