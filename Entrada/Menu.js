@@ -39,7 +39,8 @@ function arvoreMenuP3_() {
     { grupo: 'Guardião da Qualidade', itens: [
       { rotulo: 'Auditar (seletor de meses)', alvo: 'abrirSeletorMesesGuardiao' },
       { rotulo: 'Auditar aba atual', alvo: 'executarGuardiaoQualidade' },
-      { rotulo: 'Corrigir fórmulas da aba', alvo: 'corrigirFormulasAbaAtual' }
+      { rotulo: 'Corrigir fórmulas da aba', alvo: 'corrigirFormulasAbaAtual' },
+      { rotulo: 'Corrigir túneis da aba (DATA/BOE)', alvo: 'corrigirTuneisAbaAtual' }
       // Normalizador Seguro (#122) entra AQUI quando a funcao existir de fato: nada de item apontando para funcao inexistente.
     ]},
     { grupo: 'Efetivo', itens: [
