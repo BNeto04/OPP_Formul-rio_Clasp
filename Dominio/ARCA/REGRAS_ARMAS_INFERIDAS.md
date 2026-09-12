@@ -54,9 +54,28 @@ O `SCORE ACUMULADO (ARMAS)` de cada policial é a **soma das QDT ARMAS de todas 
 processadas**, chaveada pela **MATRÍCULA**. Nome, pelotão e graduação são capturados do
 **primeiro** registro encontrado do policial.
 
-## R6 — Ordenação da entrega
-**Fonte**: linha 224
-Ordenação **decrescente por SCORE ACUMULADO**. Sem critério de desempate explícito no código.
+## R6 — Ordenação da entrega ⚠️ *regra ditada pelo proprietário (12/09) — o código ainda NÃO a implementa*
+**Fonte da verdade**: proprietário. **Fonte no código**: linha 224 (implementa apenas metade).
+
+A ordem da entrega depende de **DOIS critérios**, nesta ordem:
+
+1. **Quem está mais bem colocado nas participações** → SCORE ACUMULADO decrescente
+   (participações/quantidade de armas).
+2. **Empate → ANTIGUIDADE** → posto/graduação primeiro; no empate, **matrícula mais antiga**
+   (mesma regra canônica `ARCA-ANTIGUIDADE-002`, já reconciliada no #145/#146).
+
+**Divergência com o código**: `ranking.sort((a, b) => b[4] - a[4])` (linha 224) ordena **só pelo
+score**. Em empate, a ordem fica na sequência de inserção do objeto — **não** aplica antiguidade.
+→ Regra registrada como sendo a correta; o compilador precisa ser corrigido para cumpri-la.
+
+## R10 — Soberania da regra dos OFICIAIS
+**Fonte**: proprietário ("a regra dos oficiais é soberana") — 12/09.
+
+A classificação de **OFICIAL** prevalece sobre qualquer outra leitura do valor de PELOTÃO/GRAD:
+identificado o oficial, ele é tratado como oficial **independentemente** do grupo a que o texto
+pareça pertencer. A identificação **não** pode depender de substring frágil
+(vide observação 3 abaixo).
+
 
 ## R7 — Nomenclatura da aba gerada
 **Fonte**: linhas 226-233
