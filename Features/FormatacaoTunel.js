@@ -81,11 +81,26 @@ function aplicarFormatacaoTunelHeadless(nomeAba) {
   };
 }
 
+// Aplica a formatação em TODOS os meses canônicos (JAN..DEZ) que existirem na planilha.
+function aplicarFormatacaoTodosMesesHeadless() {
+  const MESES = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+  const ss = obterSpreadsheetOcorrencias_();
+  const aplicados = [];
+  for (const m of MESES) {
+    const aba = m + '2026';
+    if (ss.getSheetByName(aba)) {
+      const r = aplicarFormatacaoTunelHeadless(aba);
+      aplicados.push({ aba: aba, status: r.status });
+    }
+  }
+  return { status: 'OK', total: aplicados.length, meses: aplicados };
+}
+
 // Alias antigo (compatibilidade)
 function aplicarFormatacaoChaveAusenteHeadless(nomeAba) {
   return aplicarFormatacaoTunelHeadless(nomeAba);
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { aplicarFormatacaoTunelHeadless, aplicarFormatacaoChaveAusenteHeadless };
+  module.exports = { aplicarFormatacaoTunelHeadless, aplicarFormatacaoChaveAusenteHeadless, aplicarFormatacaoTodosMesesHeadless };
 }
