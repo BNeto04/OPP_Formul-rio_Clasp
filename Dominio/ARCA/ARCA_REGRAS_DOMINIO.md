@@ -406,16 +406,17 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 ### [ARCA-ANTIGUIDADE-002] Ordem de Antiguidade da Equipe no Túnel (Posto/Graduação, mais antigo primeiro)
 - **Subdomínio:** `antiguidade` | **Categoria:** `HIERARQUIA`
 - **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
-- **Descrição Humana:** A equipe de um túnel operacional é ordenada pela antiguidade militar: primeiro pelo posto/graduação (o mais antigo primeiro) e, em caso de mesma graduação, pelo menor número N de antiguidade. A ordem define quem lidera a ocorrência.
-- **Condição Lógica:** `Túnel operacional com dois ou mais policiais vinculados.`
-- **Resultado Esperado:** Equipe ordenada por posto/graduação (mais antigo primeiro) e, no empate, pelo menor N de antiguidade.
+- **Descrição Humana:** A equipe de um tunel operacional e ordenada pela antiguidade militar: primeiro pelo posto/graduacao (o mais antigo primeiro) e, em caso de mesma graduacao, pela MATRICULA mais antiga (menor numero). A ordem define quem lidera a ocorrencia. A MESMA logica existe no formulario (Entrada/Formulario.html) e nao pode divergir.
+- **Condição Lógica:** `Tunel operacional com dois ou mais policiais vinculados.`
+- **Resultado Esperado:** Equipe ordenada por posto/graduacao (mais antigo primeiro) e, no empate, pela matricula mais antiga (menor numero).
 - **Fontes Declaradas:** Regra do proprietário (11/09/2026): ordem canônica da equipe por posto/graduação (DIRETRIZ_OPERACIONAL em Core/Policiais.js:94,138)
 - **Evidência no Código:** `Core/Policiais.js:94`, `Core/Policiais.js:138`, `Motor/PoliticaMeritoArmas.js`
 - **Evidência em Testes:** `Testes/TestMeritoEquipeArmas.js`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
 - **Consumidores (reconciliado #125):** REAL: Core/Policiais.js, Motor/PoliticaMeritoArmas.js, Features/NormalizadorEfetivo.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js | DECLARADO: - | PLANEJADO: -
 - **Riscos Identificados:** Ordem incorreta da equipe distorce a atribuição de mérito de armas (líder errado) e a leitura do túnel.
-- **Observações Operacionais:** Complementa ARCA-ANTIGUIDADE-001 (precedência por menor N): aqui a regra é a ORDEM da equipe (graduação primeiro, N como desempate).
+- **Observações Operacionais:** Complementa ARCA-ANTIGUIDADE-001 (precedencia por menor N, criterio de MERITO): aqui a regra e a ORDEM da equipe no tunel - graduacao primeiro, MATRICULA mais antiga como desempate (mesma logica de Core/Policiais.js:141-151).
+
 ### [ARCA-MERITO-001] Atribuição Exclusiva do Mérito de Armas ao Líder mais Antigo (Menor N)
 - **Subdomínio:** `merito_armas` | **Categoria:** `ATRIBUICAO_MERITO`
 - **Tipo de Regra:** `OFFICIAL_BUSINESS_RULE` | **Status de Fonte:** `CANONICAL_SOURCE_CONFIRMED`

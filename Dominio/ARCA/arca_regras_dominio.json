@@ -1336,7 +1336,7 @@
     {
       "rule_id": "ARCA-ANTIGUIDADE-002",
       "titulo": "Ordem de Antiguidade da Equipe no Túnel (Posto/Graduação, mais antigo primeiro)",
-      "descricao_humana": "A equipe de um túnel operacional é ordenada pela antiguidade militar: primeiro pelo posto/graduação (o mais antigo primeiro) e, em caso de mesma graduação, pelo menor número N de antiguidade. A ordem define quem lidera a ocorrência.",
+      "descricao_humana": "A equipe de um tunel operacional e ordenada pela antiguidade militar: primeiro pelo posto/graduacao (o mais antigo primeiro) e, em caso de mesma graduacao, pela MATRICULA mais antiga (menor numero). A ordem define quem lidera a ocorrencia. A MESMA logica existe no formulario (Entrada/Formulario.html) e nao pode divergir.",
       "categoria": "HIERARQUIA",
       "subdominio": "antiguidade",
       "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
@@ -1357,8 +1357,8 @@
       "evidencia_testes": [
         "Testes/TestMeritoEquipeArmas.js"
       ],
-      "condicao": "Túnel operacional com dois ou mais policiais vinculados.",
-      "resultado_esperado": "Equipe ordenada por posto/graduação (mais antigo primeiro) e, no empate, pelo menor N de antiguidade.",
+      "condicao": "Tunel operacional com dois ou mais policiais vinculados.",
+      "resultado_esperado": "Equipe ordenada por posto/graduacao (mais antigo primeiro) e, no empate, pela matricula mais antiga (menor numero).",
       "excecoes": [],
       "parametros": [],
       "hardcoded": true,
@@ -1381,7 +1381,7 @@
       "alcance": "MODULO_ENTRADA_E_AUDITORIA",
       "riscos": "Ordem incorreta da equipe distorce a atribuição de mérito de armas (líder errado) e a leitura do túnel.",
       "status_cobertura": "COBERTO",
-      "observacoes": "Complementa ARCA-ANTIGUIDADE-001 (precedência por menor N): aqui a regra é a ORDEM da equipe (graduação primeiro, N como desempate).",
+      "observacoes": "Complementa ARCA-ANTIGUIDADE-001 (precedencia por menor N, criterio de MERITO): aqui a regra e a ORDEM da equipe no tunel - graduacao primeiro, MATRICULA mais antiga como desempate (mesma logica de Core/Policiais.js:141-151).",
       "auditabilidade_guardiao": {
         "status": "MAPEADO",
         "codigos": [

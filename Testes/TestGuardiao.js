@@ -1161,5 +1161,37 @@ test('ARCA-TERRITORIO-001: AIS ausente (resolvivel) gera diagnostico AIS_AUSENTE
   assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'AIS_AUSENTE'));
 });
 
+// ---- #148: QDT ARMAS (participacao) x soma de ARMA fisica (ARCA-ARMAS-001) ----
+const headersArmas = ['DATA', 'QTD O', 'NÚMERO MIKE', 'BOE', 'GRAD', 'MATRÍCULA', 'POLICIAL', 'ARMA', 'QDT ARMAS', 'OCORRÊNCIA PIP', 'IMPUTADO?', 'TOTAL DE MACONHA', 'DIVIDIDO MAC', 'TOTAL CRACK', 'TOTAL DE COCAINA', 'DIVIDIDO COC', 'PONTOS TOTAIS', 'PONTOS FICCAO', 'CHAVE OCORRENCIA', 'ALERTA INTEGRIDADE'];
+const formulasArmas = [headersArmas.map(() => '')];
+const linhaArma = (mike, grad, mat, arma, qdt, chave) => ['15/07/2026', '01', mike, '26E100', grad, mat, 'POL ' + mat, arma, qdt, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, chave, ''];
+
+test('ARCA-ARMAS-001: QDT ARMAS == soma de ARMA fisica em todo o tunel NAO gera diagnostico', () => {
+  const dados = [
+    linhaArma('202607151000', '3º SGT', '110955-3', 1, 1, 'KEY1'),
+    linhaArma('202607151000', 'CB', '118379-6', 0, 1, 'KEY1')
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersArmas, dados, formulasArmas));
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'QDT_ARMAS_DIVERGENTE_NO_TUNEL').length, 0);
+});
+
+test('ARCA-ARMAS-001: QDT ARMAS divergente entre participantes gera diagnostico', () => {
+  const dados = [
+    linhaArma('202607151000', '3º SGT', '110955-3', 1, 1, 'KEY1'),
+    linhaArma('202607151000', 'CB', '118379-6', 0, 2, 'KEY1')
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersArmas, dados, formulasArmas));
+  assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'QDT_ARMAS_DIVERGENTE_NO_TUNEL'));
+});
+
+test('ARCA-ARMAS-001: QDT ARMAS diferente da soma de ARMA fisica gera diagnostico', () => {
+  const dados = [
+    linhaArma('202607151000', '3º SGT', '110955-3', 1, 1, 'KEY1'),
+    linhaArma('202607151000', 'CB', '118379-6', 1, 1, 'KEY1')
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersArmas, dados, formulasArmas));
+  assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'QDT_ARMAS_DIVERGENTE_NO_TUNEL'));
+});
+
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);
 }
