@@ -109,9 +109,18 @@ function corPorArmasArmas_(qtd) {
 // ============================================================================
 // MOTOR PRINCIPAL DO COMPILADOR
 // ============================================================================
+/** UI opcional: em contexto headless (executionApi/trigger) nao existe UI interativa. */
+function _uiSeguraArmas_() {
+  try {
+    return (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) ? SpreadsheetApp.getUi() : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 function executarCompilador(mesesAlvo, modo) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ui = SpreadsheetApp.getUi();
+  const ui = _uiSeguraArmas_();
   
   let logs = {
     abasProcessadas: [],
@@ -194,7 +203,7 @@ function executarCompilador(mesesAlvo, modo) {
     });
     
     if (dadosBrutos.length === 0) {
-      ui.alert('Aviso', 'Nenhum dado válido de armas foi encontrado.', ui.ButtonSet.OK);
+      if (ui) ui.alert('Aviso', 'Nenhum dado válido de armas foi encontrado.', ui.ButtonSet.OK);
       return;
     }
     
@@ -309,9 +318,21 @@ function executarCompilador(mesesAlvo, modo) {
     abaLog.getRange(1, 1, conteudoLog.length, 2).setValues(conteudoLog.map(linha => linha.length === 1 ? [linha[0], ''] : linha));
     abaLog.autoResizeColumns(1, 2);
     
-    ui.alert('Sucesso!', `Compilação concluída.\nAba: ${nomeFinalAba}`, ui.ButtonSet.OK);
+    if (ui) ui.alert('Sucesso!', `Compilação concluída.\nAba: ${nomeFinalAba}`, ui.ButtonSet.OK);
+    return { sucesso: true, aba: nomeFinalAba, logs: logs };
 
   } catch (error) {
-    ui.alert('Erro bloqueante', error.message, ui.ButtonSet.OK);
+    if (ui) ui.alert('Erro bloqueante', error.message, ui.ButtonSet.OK);
+    return { sucesso: false, erro: error.message, logs: logs };
   }
+}
+// ============================================================================
+// PORTA HEADLESS (clasp run / sem UI) — PROD-ARMAS-001 (#152)
+// ============================================================================
+function executarCompiladorArmasHeadless(mesesAlvo, modo) {
+  const lista = (typeof mesesAlvo === 'string')
+    ? (mesesAlvo ? mesesAlvo.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [])
+    : (mesesAlvo || []);
+  const r = executarCompilador(lista.length ? lista : ['JAN2026'], modo || 'LIVRE');
+  return JSON.stringify(r || { sucesso: null, aviso: 'executarCompilador nao retornou resumo' });
 }
