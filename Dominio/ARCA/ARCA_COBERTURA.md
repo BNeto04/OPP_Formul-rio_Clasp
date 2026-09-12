@@ -15,7 +15,7 @@
 | **IMPUTACAO** | `COBERTO` | Consistência de COM/SEM IMPUTADO e totalização de procedimentos (APFD, TCO, BOC, AAFAI) cobertos. |
 | **EFETIVO** | `COBERTO` | Normalização estrita de graduações e desambiguação de nomes de guerra por antiguidade N cobertos. |
 | **MATRICULA** | `COBERTO` | Higienização numérica e obrigatoriedade de vínculo cadastral cobertos. |
-| **ANTIGUIDADE** | `COBERTO` | Precedência hierárquica militar inversamente proporcional a N coberta em testes e código. |
+| **ANTIGUIDADE** | `COBERTO` | Precedência por posto/graduação (mais antigo primeiro) e, no empate, pela **matrícula mais antiga** — coberta em testes e código (`ARCA-ANTIGUIDADE-002`). |
 | **MERITO_ARMAS** | `COBERTO` | Atribuição exclusiva ao menor N da equipe, bloqueio em empate e blindagem de fonte Pecúlio cobertos. |
 | **ARMAS** | `COBERTO` | Fonte exclusiva na coluna ARMA, exclusão de QDT ARMAS, diferenciação de artesanal e consistência com indicadores cobertos. |
 | **MUNICOES** | `COBERTO` | Validação material de apreensão de munições associada a indicadores coberta. |
