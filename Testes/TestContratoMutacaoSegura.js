@@ -93,8 +93,9 @@ test('todos os 29 codigos reais do Guardiao estao cobertos pelo contrato (nenhum
     'MATRICULA_MULTIPLAS_OCORRENCIAS_MESMA_DATA', 'MATRICULA_AUSENTE', 'INDICADOR_DESCONHECIDO', 'IMPUTADO_SEM_EVENTO_AH',
     'IMPUTADO_INVALIDO', 'FORMULA_CORROMPIDA_ERRO_SINTAXE', 'FORMULA_AUSENTE', 'FATO_NAO_AUDITAVEL_AUTOMATICAMENTE',
     'FATO_MUNICAO_AUSENTE', 'FATO_MACONHA_AUSENTE', 'FATO_CRACK_AUSENTE', 'FATO_COCAINA_AUSENTE', 'FATO_ARMA_AUSENTE',
+    'ARMA_ARTESANAL_INCONSISTENTE',
     'EXCECAO_MANUAL_JUSTIFICADA', 'EVENTO_INCOMPLETO_AG', 'ANTIGUIDADE_FONTE_NAO_LOCALIZADA'];
-  assert.strictEqual(codigosReais.length, 29);
+  assert.strictEqual(codigosReais.length, 30);
   const desconhecidos = [];
   const mutaveis = [];
   codigosReais.forEach(codigo => {

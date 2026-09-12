@@ -93,8 +93,8 @@ test('contagens de cobertura conferem com o meta do catalogo', () => {
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_mapeadas, mapeadas);
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_nao_auditaveis, naoAud);
   assert.strictEqual(mapeadas + naoAud, 44);
-  assert.strictEqual(mapeadas, 26);
-  assert.strictEqual(naoAud, 18, 'ARCA-VEICULO-001, ARCA-CONVERSAO-001, ARCA-IMPUTACAO-003 e ARCA-OCORRENCIA-006 entram como NAO_AUDITAVEL');
+  assert.strictEqual(mapeadas, 27);
+  assert.strictEqual(naoAud, 17, 'ARCA-VEICULO-001, ARCA-CONVERSAO-001, ARCA-IMPUTACAO-003 e ARCA-OCORRENCIA-006 entram como NAO_AUDITAVEL');
 });
 
 test('nenhuma heuristica foi promovida a regra oficial na reconciliacao', () => {

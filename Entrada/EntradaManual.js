@@ -245,8 +245,10 @@ function montarLinhasEntradaManual(payload) {
       
       let armaTipo = "", armaQtd = "", armaModelo = "", armaCalibre = "", armaMunicao = "";
       if (arma) {
-          armaQtd = arma.quantidade;
           armaTipo = arma.tipo;
+          // Regra do dono (12/09): arma artesanal NAO entra na quantidade fisica (ARMA) -> forca vazio.
+          const ehArtesanal = String(arma.tipo || '').toUpperCase().includes('CASEIRA') || String(arma.tipo || '').toUpperCase().includes('ARTESANAL');
+          armaQtd = ehArtesanal ? "" : arma.quantidade;
           armaModelo = arma.modelo;
           armaCalibre = arma.calibre;
           armaMunicao = arma.municao;

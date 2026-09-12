@@ -1469,7 +1469,13 @@ function ordenarEquipePorAntiguidade_(lista) {
       const div = document.createElement('div');
       div.className = 'dynamic-item';
       div.id = id;
-      
+
+      // Regra do dono (12/09): arma artesanal (CASEIRA) NAO entra na quantidade fisica (ARMA)
+      // -> campo vai a 0 e fica desabilitado; a participacao (QDT ARMAS) segue normalmente.
+      const ehArtesanal = String(tipo || '').toUpperCase().includes('CASEIRA') || String(tipo || '').toUpperCase().includes('ARTESANAL');
+      const qtdValue = ehArtesanal ? 0 : quantidade;
+      const qtdDisabled = ehArtesanal ? 'disabled' : '';
+
       let htmlTipos = '';
       // Fallback (calibragem 09/09): colunas TIPO/MODELO podem não ter validação na planilha —
       // sem isso o dropdown ficava vazio e a arma era DROPADA silenciosamente do payload.
@@ -1496,7 +1502,7 @@ function ordenarEquipePorAntiguidade_(lista) {
         </select>
         <input type="text" style="flex:0.6" class="arma-calibre" placeholder="Calibre" value="${calibre}">
         <input type="number" style="flex:0.6" class="arma-municao" placeholder="Munição" value="${municao}" min="0">
-        <input type="number" style="flex:0.6" class="arma-qtd" placeholder="Qtd" value="${quantidade}" min="1">
+        <input type="number" style="flex:0.6" class="arma-qtd" placeholder="Qtd" value="${qtdValue}" min="1" ${qtdDisabled}>
         <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove();">&times;</button>`;
       document.getElementById('armasList').appendChild(div);
     }
@@ -1542,7 +1548,7 @@ function ordenarEquipePorAntiguidade_(lista) {
         calibre:   el.querySelector('.arma-calibre').value || '',
         municao:   parseInt(el.querySelector('.arma-municao').value) || 0,
         quantidade: parseInt(el.querySelector('.arma-qtd').value) || 0
-      })).filter(a => a.quantidade > 0);
+      })).filter(a => a.quantidade > 0 || String(a.tipo || '').toUpperCase().includes('CASEIRA') || String(a.tipo || '').toUpperCase().includes('ARTESANAL'));
     }
 
     function obterDrogas() {

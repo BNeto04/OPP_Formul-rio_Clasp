@@ -18,6 +18,7 @@ class AdaptadorConsultaArca {
 
       // Domínio: Armas
       'FATO_ARMA_AUSENTE': 'ARCA-ARMAS-003',
+      'ARMA_ARTESANAL_INCONSISTENTE': 'ARCA-ARMAS-002',
 
       // Domínio: Munições
       'FATO_MUNICAO_AUSENTE': 'ARCA-MUNICOES-001',

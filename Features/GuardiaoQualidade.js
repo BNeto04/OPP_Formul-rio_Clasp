@@ -176,6 +176,7 @@ class GuardiaoQualidade {
       matricula: loc('MATRICULA'),
       policial: loc('POLICIAL'),
       armaLinha: loc('ARMA_LINHA'),
+      tipoArma: loc('TIPO_ARMA'),
       armas: loc('ARMAS'),
       municao: RegrasQualidade.localizarPorAliases(headers, ['MUNICAO']),
       maconha: loc('MACONHA'),
@@ -341,6 +342,26 @@ class GuardiaoQualidade {
           evidencia: `Indicador: "${indicador}"`,
           acaoRecomendada: 'Verifique se o indicador está correto ou se necessita inclusão na Tabela PIP.',
           sugestaoCorrecao: 'Revisar se o título corresponde à Tabela PIP oficial.'
+        }));
+      }
+
+      // Regra ARCA-ARMAS-002: arma artesanal NAO entra na quantidade fisica (ARMA). TIPO
+      // artesanal com ARMA preenchido e inconsistencia que infla a soma oficial de armas.
+      const tipoArmaLinha = idx.tipoArma !== -1 ? RegrasQualidade.texto(row[idx.tipoArma]) : '';
+      const armaLinhaValor = idx.armaLinha !== -1 ? RegrasQualidade.texto(row[idx.armaLinha]) : '';
+      const tipoEhArtesanal = /ARTESANAL|CASEIR/.test(tipoArmaLinha.toUpperCase());
+      const armaPreenchida = armaLinhaValor !== '' && armaLinhaValor !== '0';
+      if (tipoEhArtesanal && armaPreenchida) {
+        alertasPorLinha[i - 1].push(RegrasQualidade.criarDiagnostico({
+          severidade: typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ALERTA : 'ALERTA',
+          codigoRegra: 'ARMA_ARTESANAL_INCONSISTENTE',
+          camada: 'SEMANTICA',
+          linha,
+          tunel: chave,
+          diagnostico: 'Arma artesanal com quantidade fisica (ARMA) preenchida: artesanal nao entra na quantidade fisica (deve ficar vazio).',
+          evidencia: `TIPO: "${tipoArmaLinha}" | ARMA: "${armaLinhaValor}"`,
+          acaoRecomendada: 'Zere a coluna ARMA na linha da arma artesanal (a participacao em QDT ARMAS permanece intacta).',
+          sugestaoCorrecao: 'Limpar ARMA (coluna L) na linha de TIPO artesanal.'
         }));
       }
 

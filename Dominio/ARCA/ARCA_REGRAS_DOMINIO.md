@@ -435,7 +435,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Evidência no Código:** `Motor/PoliticaMeritoArmas.js:50-52`, `Features/CompiladorGxt.js:6`
 - **Evidência em Testes:** `Testes/TestMeritoEquipeArmas.js`
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
-- **Consumidores (reconciliado #125):** REAL: Features/CompiladorGxt.js, Motor/PoliticaMeritoArmas.js | INDIRETO: - | DECLARADO: PoliticaMeritoArmas, CompiladorGxt | PLANEJADO: -
+- **Consumidores (reconciliado #125):** REAL: Features/CompiladorGxt.js, Motor/PoliticaMeritoArmas.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: PoliticaMeritoArmas, CompiladorGxt | PLANEJADO: -
 - **Riscos Identificados:** Erro de grafia (ex: "arma caseira" sem o termo artesanal).
 - **Observações Operacionais:** Atende às tabelas de diferenciação balística da corporação (quantidade física). Participação e recompensa seguem o mérito por desempenho individual, idênticas à arma industrial — determinado pelo proprietário em 12/09/2026.
 
