@@ -399,9 +399,11 @@ async function runTestSuite() {
     const nlRes = await commandRouter.processUpdate({
       message: { from: { id: 100 }, chat: { id: 100 }, text: 'retome o fluxo por favor' }
     });
-    assert.ok(nlRes.text.includes('Fluxo retomado') || nlRes.text.includes('V enviado'), 'Intenção deve acionar envio');
-    assert.strictEqual(mockDriver.sendCalls.length, 2);
-    console.log('  [PASS] Teste O: Telegram /retomar e linguagem natural "retome o fluxo" integrados à mesma máquina de estados.');
+    // Design atual: NL "retome o fluxo" ACIONA a maquina de estados (envia V),
+    // mas o canal do Telegram nao exibe resposta conversacional (exclusivo do ChatGPT).
+    assert.strictEqual(nlRes, null, 'Resposta NL conversacional no Telegram deve ser silenciosa');
+    assert.strictEqual(mockDriver.sendCalls.length, 2, 'NL "retome o fluxo" deve acionar o envio de V');
+    console.log('  [PASS] Teste O: /retomar e "retome o fluxo" acionam a máquina de estados; resposta NL fica silenciosa por design.');
   }
 
   // TESTE P: Pedido de digitação de texto arbitrário na UI -> negado estritamente

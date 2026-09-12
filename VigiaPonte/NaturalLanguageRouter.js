@@ -262,7 +262,10 @@ class NaturalLanguageRouter {
 
     // Fallback semântico assistido por modelo se ambíguo e modelo online
     // Proíbe expressamente consultas adversariais de chegarem ao modelo
-    const isAdversarial = /(ignore.*instru|system prompt|override|format\s+[a-z]:|powershell|delete.*arquivo|terminal livre)/i.test(normalized);
+    // Checa o texto BRUTO tambem: a normalizacao remove pontuacao e pode
+    // desarmar o padrao (ex.: "format c:" -> "format c"), abrindo bypass.
+    const PADRAO_ADVERSARIAL = /(ignore.*instru|system prompt|override|format\s+[a-z]:|powershell|delete.*arquivo|terminal livre)/i;
+    const isAdversarial = PADRAO_ADVERSARIAL.test(normalized) || PADRAO_ADVERSARIAL.test(sanitizedInput);
     let modelUsed = false;
     if (!isAdversarial && intent === 'UNKNOWN_OR_UNSUPPORTED' && this.ollamaAdapter && typeof this.ollamaAdapter.interpretarNLU === 'function') {
       try {

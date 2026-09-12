@@ -495,6 +495,9 @@ class GuardiaoQualidade {
 
     // Invariante ARCA-ARMAS-001: QDT ARMAS idêntico entre participantes E igual à soma de ARMA física do túnel
     Object.values(mikesMapa).forEach(t => {
+      // Sem a coluna QDT ARMAS na aba, a regra nao e aplicavel: NAO inferir 0 e acusar
+      // divergencia contra a soma real (evita falso positivo em aba nao auditavel).
+      if (idx.qdtArmas === -1) return;
       const qdtValores = t.linhas.map(l => parseFloat(l.qdtArmas) || 0);
       const somaArma = t.linhas.reduce((s, l) => s + (parseFloat(l.arma) || 0), 0);
       const qdtUnico = new Set(qdtValores);

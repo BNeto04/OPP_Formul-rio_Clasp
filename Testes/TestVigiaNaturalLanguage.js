@@ -158,12 +158,15 @@ async function runTests() {
   assert(resI.text.includes('invioláveis'));
   console.log('  [PASS] Teste I: Tentativa de prompt injection repelida com sucesso.');
 
-  // TESTE J: Dado inexistente gera resposta de insuficiência
-  console.log('\nTESTE J: Pergunta sem dados factuais -> resposta de insuficiência...');
+  // TESTE J: Dado inexistente nao e inventado (acolhimento sem alucinacao)
+  console.log('\nTESTE J: Pergunta sem dados factuais -> acolhimento sem alucinação...');
   const resJ = await nlRouter.process('Qual a previsão do tempo para amanhã em Tóquio?', 111222);
   assert.strictEqual(resJ.intent, 'UNKNOWN_OR_UNSUPPORTED');
-  assert(resJ.text.includes('Não tenho dados suficientes'));
-  console.log('  [PASS] Teste J: Falta de dados tratada sem alucinação.');
+  assert.strictEqual(resJ.metadata.route_reason, 'ANTIGRAVITY_NATURAL_CONVERSATION',
+    'Fora de dominio deve ser acolhido/encaminhado, nao respondido como se soubesse');
+  assert(!/(\bsol\b|\bchuva\b|nublado|celsius|°C|temperatura)/i.test(resJ.text),
+    'Nao pode inventar previsao do tempo (alucinacao)');
+  console.log('  [PASS] Teste J: Falta de dados tratada sem alucinação (acolhimento + encaminhamento).');
 
   // TESTE K: Follow-up "Por quanto tempo?" funciona com contexto anterior válido
   console.log('\nTESTE K: Follow-up "Por quanto tempo?" com contexto ativo...');

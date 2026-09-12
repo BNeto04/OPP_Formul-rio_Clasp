@@ -214,7 +214,9 @@ const headersPadrao = [
   'PONTOS TOTAIS', 'PONTOS FICCAO', 'CHAVE OCORRENCIA', 'ALERTA INTEGRIDADE'
 ];
 
-const formulaCalculadaPadrao = ['', '', '', '', '', '', '', '', '=H2/2', '=I2', '=J2', '=K2/2', '=L2', '=M2/4', '=N2', '=O2'];
+// ATENCAO: MATRICULA (idx 3) e coluna CALCULADA (Core/RegrasQualidade.localizarColunasCalculadas).
+// Sem formula aqui, o Guardiao dispara FORMULA_AUSENTE (regra #121) e polui os testes do renderer.
+const formulaCalculadaPadrao = ['', '', '', '=VLOOKUP(E2;PECULIO!$A:$E;3;0)', '', '', '', '', '=H2/2', '=I2', '=J2', '=K2/2', '=L2', '=M2/4', '=N2', '=O2'];
 
 const mockPeculioExterno = {
   getSheetByName: (n) => {

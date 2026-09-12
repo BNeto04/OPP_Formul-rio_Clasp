@@ -269,7 +269,9 @@ async function runTests() {
   await new Promise(r => setTimeout(r, 20)); // Expira
   const resM = await routerM.process('E antes disso?', 222);
   assert.strictEqual(resM.metadata.intent, 'UNKNOWN_OR_UNSUPPORTED');
-  assert.ok(resM.text.includes('Não compreendi'), 'Não deve assumir referente quando expirado');
+  assert.strictEqual(resM.metadata.route_reason, 'ANTIGRAVITY_NATURAL_CONVERSATION',
+    'Contexto expirado: acolhe e encaminha sem assumir referente algum');
+  assert.ok(!/Issue\s*#\d+/.test(resM.text), 'Nao pode inventar referente de Issue quando expirado');
   console.log('  ✅ [PASS] Teste M: contexto expirado não inventou referente');
 
   // TESTE N: /esquecer_contexto limpa somente memória conversacional

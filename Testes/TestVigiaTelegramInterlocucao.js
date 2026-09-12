@@ -83,25 +83,23 @@ async function testSuite() {
     nlRouter
   });
 
-  // TESTE A: "Oi" com Antigravity disponível -> ANTIGRAVITY >
-  console.log('TESTE A: "Oi" com Antigravity disponível -> resposta com prefixo ANTIGRAVITY >...');
+  // TESTE A: "Oi" (conversacional) -> ISOLAMENTO DE CANAL: silencio no Telegram
+  // (design vigente desde 70659aa/06-09: conversa livre e exclusiva do ChatGPT)
+  console.log('TESTE A: "Oi" conversacional -> isolamento estrito do canal...');
   driver.running = true;
   const resA = await commandRouter.processUpdate({
     message: { from: { id: 100 }, chat: { id: 100 }, text: 'Oi' }
   });
-  assert.ok(resA.text.startsWith('ANTIGRAVITY >'), `Deve iniciar com "ANTIGRAVITY >". Recebido: ${resA.text}`);
-  assert.ok(!resA.text.includes('Não tenho dados suficientes'), 'Não pode conter mensagem genérica antiga');
-  assert.ok(resA.text.includes('Issue #43') || resA.text.includes('Olá'), 'Deve conter saudação ou tarefa');
-  console.log('  [PASS] Teste A: Saudação "Oi" respondida diretamente pelo Antigravity.');
+  assert.strictEqual(resA, null, 'Conversa livre no Telegram deve ser silenciosa (não devolve resposta)');
+  console.log('  [PASS] Teste A: Conversa livre silenciada por design (isolamento estrito do Telegram).');
 
-  // TESTE B: Pergunta livre de acompanhamento -> ANTIGRAVITY >
-  console.log('\nTESTE B: Pergunta livre de acompanhamento -> ANTIGRAVITY >...');
+  // TESTE B: Pergunta livre -> tambem silenciosa (isolamento de canal)
+  console.log('\nTESTE B: Pergunta livre de acompanhamento -> silencio por design...');
   const resB = await commandRouter.processUpdate({
     message: { from: { id: 100 }, chat: { id: 100 }, text: 'como vão as coisas por aí?' }
   });
-  assert.ok(resB.text.startsWith('ANTIGRAVITY >'), `Deve iniciar com "ANTIGRAVITY >". Recebido: ${resB.text}`);
-  assert.ok(!resB.text.includes('Não tenho dados suficientes'));
-  console.log('  [PASS] Teste B: Pergunta livre respondida com contexto pelo Antigravity.');
+  assert.strictEqual(resB, null, 'Pergunta livre no Telegram nao recebe resposta conversacional');
+  console.log('  [PASS] Teste B: Pergunta livre silenciada por design.');
 
   // TESTE C: Antigravity indisponível -> VIGIA/FALLBACK >
   console.log('\nTESTE C: Antigravity indisponível controladamente -> VIGIA/FALLBACK >...');
@@ -113,14 +111,14 @@ async function testSuite() {
   assert.ok(resC.text.includes('Antigravity não está em execução') || resC.text.includes('indisponível'));
   console.log('  [PASS] Teste C: Queda do Antigravity acionou fallback imediato do Vigia.');
 
-  // TESTE D: Após recuperação -> conversa volta para ANTIGRAVITY >
-  console.log('\nTESTE D: Após restauração do processo -> conversa volta para ANTIGRAVITY >...');
+  // TESTE D: Apos recuperacao -> canal continua isolado (silencio), sem conversa
+  console.log('\nTESTE D: Após restauração do processo -> canal segue isolado...');
   driver.running = true;
   const resD = await commandRouter.processUpdate({
     message: { from: { id: 100 }, chat: { id: 100 }, text: 'Olá, voltou?' }
   });
-  assert.ok(resD.text.startsWith('ANTIGRAVITY >'), `Deve voltar para "ANTIGRAVITY >". Recebido: ${resD.text}`);
-  console.log('  [PASS] Teste D: Retorno do processo restaura canal primário com Antigravity.');
+  assert.strictEqual(resD, null, 'Recuperacao do processo nao reabre canal conversacional no Telegram');
+  console.log('  [PASS] Teste D: Canal permanece isolado apos restauracao do processo.');
 
   // TESTE E: "V" puro ou "/v" -> aciona retomada autorizada
   console.log('\nTESTE E: Envio de "V" e "v" -> aciona ciclo de retomada autorizada...');
@@ -154,20 +152,17 @@ async function testSuite() {
   assert.strictEqual(driver.sends.length, 0, 'NENHUM input pode ser enviado em tela bloqueada');
   console.log('  [PASS] Teste F: Tela bloqueada deferiu envio sem digitar às cegas e com feedback claro.');
 
-  // TESTE G: Pergunta semântica discutindo o comando V -> conversa normal com ANTIGRAVITY >
-  console.log('\nTESTE G: Pergunta discutindo semântica de V -> conversa normal com Antigravity...');
+  // TESTE G: Pergunta semantica sobre o "v" -> silencio no Telegram e SEM disparo
+  console.log('\nTESTE G: Pergunta discutindo semântica de V -> silêncio e nenhum disparo...');
   driver.locked = false;
   driver.running = true;
   driver.sends = [];
   const resG = await commandRouter.processUpdate({
     message: { from: { id: 100 }, chat: { id: 100 }, text: 'você entende que o "v" é um comando para verificar as issues no repo do git?' }
   });
-  assert.ok(resG.text.startsWith('ANTIGRAVITY >'), `Deve iniciar com ANTIGRAVITY >. Recebido: ${resG.text}`);
-  assert.ok(!resG.text.includes('Não tenho dados suficientes'), 'Não pode cair no fallback genérico');
-  assert.ok(resG.text.toLowerCase().includes('compreendo') || resG.text.toLowerCase().includes('comando "v"'), 'Deve responder sobre o comando V');
+  assert.strictEqual(resG, null, 'Pergunta conversacional no Telegram fica silenciosa');
   assert.strictEqual(driver.sends.length, 0, 'Discussão sobre V não pode disparar envio de V à UI');
-  assert.strictEqual(resG.route_reason, 'V_COMMAND_SEMANTICS_QUERY');
-  console.log('  [PASS] Teste G: Pergunta explicativa sobre "v" respondida coerentemente pelo Antigravity sem disparar trigger.');
+  console.log('  [PASS] Teste G: Discussão semântica não dispara trigger e fica silenciosa por design.');
 
   // TESTE H: "vamos continuar" -> não é interpretado como V
   console.log('\nTESTE H: Frase iniciada em "v" ("vamos continuar") -> não aciona máquina de V...');
@@ -175,10 +170,9 @@ async function testSuite() {
   const resH = await commandRouter.processUpdate({
     message: { from: { id: 100 }, chat: { id: 100 }, text: 'vamos continuar' }
   });
-  assert.ok(resH.text.startsWith('ANTIGRAVITY >'), 'Deve ir para Antigravity');
+  assert.strictEqual(resH, null, 'Frase conversacional no Telegram fica silenciosa');
   assert.strictEqual(driver.sends.length, 0, '"vamos continuar" não pode disparar comando V');
-  assert.strictEqual(resH.route_reason, 'CONTINUE_REQUEST');
-  console.log('  [PASS] Teste H: Frases começando com "v" não confundidas com comando canônico V.');
+  console.log('  [PASS] Teste H: Frases começando com "v" não são confundidas com o comando canônico V.');
 
   // TESTE I: isCanonicalVCommand allowlist estrita
   console.log('\nTESTE I: isCanonicalVCommand valida allowlist estrita fechada...');

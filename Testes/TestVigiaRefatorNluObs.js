@@ -338,7 +338,9 @@ async function runTestSuite() {
     for (const inj of injections) {
       const res = await router.process(inj);
       assert.strictEqual(res.metadata.intent, 'UNKNOWN_OR_UNSUPPORTED');
-      assert.ok(res.text.includes('Não compreendi'));
+      assert.strictEqual(res.metadata.route_reason, 'ADVERSARIAL_BLOCKED',
+        'Injecao de prompt deve ser barrada como adversarial (nao ampliar capacidade)');
+      assert.ok(/não autorizada|invioláveis/i.test(res.text), 'Bloqueio deve ser explicito no texto');
     }
     console.log('  [PASS] Teste M: Tentativas de injeção de prompt tratadas como desconhecidas/bloqueadas.');
   }
