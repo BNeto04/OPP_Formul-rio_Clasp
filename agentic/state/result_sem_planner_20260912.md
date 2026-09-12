@@ -74,7 +74,10 @@
 
 - **Config de provedor** (ref cards #103/#92 HERMES-CLOUD-PROVIDERS): `agentic/config/providers.json`, `.env.example`, `agentic/.env.example`. Nao commitados por poderem carregar valor sensivel — avaliar antes.
 - **Estado de runtime** (nao e trabalho): `VigiaPonte/context_hub_state.json`, `VigiaPonte/conversation_memory.json`, `ponte1_telegram_chatgpt/server/ponte1.log`, `ponte1_delivery_history.json`, `ponte2_chatgpt_gravity/logs/ponte2.log`, `ponte2_chatgpt_gravity/state/*.json`.
-- **Untracked:** `Testes/temp_test_nl/`, `Testes/temp_test_obs/`, `Testes/temp_test_telegram/`.
+- **Untracked / nunca versionados** (trabalho antigo, sem commit):
+  - `scripts/build-gxt.js` (18/08), `scripts/graphify-cartografia.js` (03/09), `scripts/send_audit_fix_result.js` (08/09), `scripts/send_live_check_result.js` (08/09), `Testes/TestNormalizadorEfetivo.js` (10/09).
+  - `Testes/temp_test_nl/`, `Testes/temp_test_obs/`, `Testes/temp_test_telegram/` (diretorios de teste temporario).
+  - Nao commitados nesta passada: os `send_*` podem carregar endpoint/payload; decisao de commitar e do Planner.
 
 ---
 
