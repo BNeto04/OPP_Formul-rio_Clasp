@@ -427,3 +427,59 @@ function normalizarEfetivoTeste() {
     abaLegado: 'EFETIVO_LEGADO_TESTE'
   });
 }
+
+function normalizarEfetivoHeadless() {
+  return NormalizadorEfetivo.executar();
+}
+
+// Migra os nomes dos policiais já gravados nos BOs (abas mensais) para o novo
+// EFETIVO, usando a MATRICULA (col AD) como fonte de verdade:
+// - matricula esta no EFETIVO novo -> renomeia o nome de guerra (col AE);
+// - matricula NAO esta (legado) -> pinta a celula do nome de amarelo.
+function migrarNomesBosEfetivo() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const efetivo = ss.getSheetByName(CONSTANTES_SYNTHEON.ABA_EFETIVO);
+  if (!efetivo) throw new Error('Aba EFETIVO nao encontrada.');
+
+  const normMat = v => String(v).trim().replace(/^0+/, '');
+  const mapa = {};
+  efetivo.getRange(1, 1, Math.max(efetivo.getLastRow(), 1), 7).getValues().forEach(row => {
+    const mat = normMat(row[4]);
+    const nome = String(row[0] || '').trim();
+    if (mat && mat !== 'MATRICULA' && mat !== 'MAT.') mapa[mat] = nome;
+  });
+
+  const AMARELO = '#FFF2CC';
+  const resumo = { meses: 0, renomeados: 0, destacados: 0, inalterados: 0 };
+
+  ss.getSheets().forEach(sheet => {
+    const nomeAba = sheet.getName();
+    if (!/^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\d{4}$/.test(nomeAba)) return;
+    const ult = sheet.getLastRow();
+    if (ult < 2) return;
+    resumo.meses++;
+
+    const mats = sheet.getRange(2, 30, ult - 1, 1).getValues();   // AD = matricula
+    const nomes = sheet.getRange(2, 31, ult - 1, 1).getValues();  // AE = nome de guerra
+    mats.forEach((row, i) => {
+      const mat = normMat(row[0]);
+      if (!mat || mat === 'MATRICULA' || mat === 'MAT.') return;
+      const nomeAtual = String(nomes[i][0] || '').trim();
+      const linha = i + 2;
+      const novoNome = mapa[mat];
+      if (novoNome) {
+        if (novoNome !== nomeAtual) {
+          sheet.getRange(linha, 31).setValue(novoNome);
+          resumo.renomeados++;
+        } else {
+          resumo.inalterados++;
+        }
+      } else {
+        sheet.getRange(linha, 31).setBackground(AMARELO);
+        resumo.destacados++;
+      }
+    });
+  });
+
+  return resumo;
+}
