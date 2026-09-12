@@ -54,10 +54,48 @@ function corrigirArmaArtesanalTodosHeadless() {
   return _corrigirArmaArtesanalTodos(false);
 }
 
+/**
+ * Recalcula o QDT ARMAS (AF=32) de UM túnel específico e aplica o valor esperado
+ * (nº de armas = industriais com ARMA preenchido + artesanais por TIPO) em todas as linhas.
+ * Usado para corrigir divergência pontual de participação sem varrer todo o mês.
+ */
+function recomputarQtdArmasTunelHeadless(nomeAba, mike) {
+  const ss = obterSpreadsheetOcorrencias_();
+  const sheet = ss.getSheetByName(nomeAba);
+  if (!sheet) return { status: 'ERRO', mensagem: 'Aba nao encontrada: ' + nomeAba };
+  const ultima = sheet.getLastRow();
+  const mikes = sheet.getRange(2, 5, ultima - 1, 1).getValues(); // E=MIKE
+  const valores = sheet.getRange(2, 12, ultima - 1, 2).getValues(); // L=ARMA, M=TIPO
+
+  let industriais = 0, artesanais = 0, n = 0;
+  for (let i = 0; i < mikes.length; i++) {
+    if (String(mikes[i][0] || '').trim() !== String(mike)) continue;
+    const arma = valores[i][0];
+    const tipo = String(valores[i][1] || '').toUpperCase();
+    const ehArtesanal = tipo.includes('ARTESANAL') || tipo.includes('CASEIR');
+    if (ehArtesanal) artesanais++;
+    else if (arma !== '' && arma !== 0 && arma !== null && arma !== undefined) industriais++;
+  }
+  const qtdEsperado = industriais + artesanais;
+  if (n === 0) {
+    for (let i = 0; i < mikes.length; i++) {
+      if (String(mikes[i][0] || '').trim() === String(mike)) n++;
+    }
+  }
+  if (n === 0) return { status: 'ERRO', mensagem: 'MIKE nao encontrado: ' + mike };
+  for (let i = 0; i < mikes.length; i++) {
+    if (String(mikes[i][0] || '').trim() === String(mike)) {
+      sheet.getRange(i + 2, 32).setValue(qtdEsperado); // AF=32
+    }
+  }
+  return { status: 'OK', aba: nomeAba, mike, qtdEsperado, industriais, artesanais, linhasCorrigidas: n };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     _corrigirArmaArtesanalTodos,
     diagnosticarArmaArtesanalTodosHeadless,
-    corrigirArmaArtesanalTodosHeadless
+    corrigirArmaArtesanalTodosHeadless,
+    recomputarQtdArmasTunelHeadless
   };
 }
