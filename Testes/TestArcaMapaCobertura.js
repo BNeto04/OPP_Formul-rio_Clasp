@@ -95,9 +95,9 @@ test('contagens de cobertura conferem com o meta do catalogo', () => {
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_integradas, integradas);
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_nao_aplicaveis, naoAplicaveis);
   assert.strictEqual(mapeadas + integradas + naoAplicaveis, 48);
-  assert.strictEqual(mapeadas, 31, 'MAPEADO = 28 originais + ARCA-ARMAS-001 + ARCA-ANTIGUIDADE-002 + ARCA-QTD-O-001 (#146/#147)');
+  assert.strictEqual(mapeadas, 32, 'MAPEADO = 28 originais + ARCA-ARMAS-001 + ARCA-ANTIGUIDADE-002 + ARCA-QTD-O-001 + ARCA-TERRITORIO-001 (#149)');
   assert.strictEqual(integradas, 8, 'INTEGRADO = 4 NormalizadorEfetivo + 3 plugins de metrica + DETIDOS-001 (as 2 do #145 promoveram-se a MAPEADO no #146/#147)');
-  assert.strictEqual(naoAplicaveis, 9, 'NAO_APLICAVEL = 5 estruturais + 4 entrada/discricionarias');
+  assert.strictEqual(naoAplicaveis, 8, 'NAO_APLICAVEL: ARCA-TERRITORIO-001 promovida a MAPEADO no #149');
 });
 
 test('nenhuma heuristica foi promovida a regra oficial na reconciliacao', () => {

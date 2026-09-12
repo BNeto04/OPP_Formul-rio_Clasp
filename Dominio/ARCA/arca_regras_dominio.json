@@ -39,7 +39,7 @@
         "ARCA-QTD-O-001",
         "ARCA-DETIDOS-001"
       ],
-      "regras_mapeadas": 31,
+      "regras_mapeadas": 32,
       "regras_nao_auditaveis": 0,
       "regras_adicionadas_total": [
         "ARCA-MIKE-004",
@@ -58,15 +58,16 @@
       ],
       "card_137": "#137 OCR-ARCA-003: reconciliacao de veiculo (ARCA-VEICULO-001) - regra de dominio; heuristica lexical permanece no parser.",
       "regras_integradas": 8,
-      "regras_nao_aplicaveis": 9,
+      "regras_nao_aplicaveis": 8,
       "statuses": [
         "MAPEADO",
         "INTEGRADO",
         "NAO_APLICAVEL"
       ],
-      "fluid_flow": "2026-09-12: 17 NAO_AUDITAVEL reclassificadas em INTEGRADO(7)/NAO_APLICAVEL(9)/MAPEADO(1, QDT_ARMAS_DIVERGENTE_NO_TUNEL). Zero regras cegas. 2026-09-12 (#145): +3 regras canonicas registradas (ANTIGUIDADE-002, QTD-O-001, DETIDOS-001), todas INTEGRADO.",
+      "fluid_flow": "2026-09-12: 17 NAO_AUDITAVEL reclassificadas em INTEGRADO(7)/NAO_APLICAVEL(9)/MAPEADO(1, QDT_ARMAS_DIVERGENTE_NO_TUNEL). Zero regras cegas. 2026-09-12 (#145): +3 regras canonicas registradas (ANTIGUIDADE-002, QTD-O-001, DETIDOS-001), todas INTEGRADO. 2026-09-12 (#149): ARCA-TERRITORIO-001 promovida a MAPEADO - bloco ARCA-GUARD completo.",
       "card_145": "#145 ARCA-GUARD-001: 3 regras canonicas registradas (antiguidade da equipe, QTD O = 01, DETIDOS) - todas INTEGRADO (aplicadas na entrada/normalizacao); diagnosticos previstos em #146/#147.",
-      "card_146_147": "#146/#147 ARCA-GUARD-002/003: diagnosticos ORDEM_ANTIGUIDADE_EQUIPE (ARCA-ANTIGUIDADE-002) e QTD_O_DIVERGENTE (ARCA-QTD-O-001) implementados no Guardiao; regras promovidas de INTEGRADO para MAPEADO."
+      "card_146_147": "#146/#147 ARCA-GUARD-002/003: diagnosticos ORDEM_ANTIGUIDADE_EQUIPE (ARCA-ANTIGUIDADE-002) e QTD_O_DIVERGENTE (ARCA-QTD-O-001) implementados no Guardiao; regras promovidas de INTEGRADO para MAPEADO.",
+      "card_149": "#149 ARCA-GUARD-005: diagnostico de AIS (AIS_AUSENTE/AIS_DIVERGENTE) implementado no Guardiao; ARCA-TERRITORIO-001 promovida de NAO_APLICAVEL para MAPEADO; bloco ARCA-GUARD fechado."
     },
     "normalizador_integracao": {
       "card": "#127 ARCA-FIX-004",
@@ -2155,7 +2156,10 @@
           "Entrada/EntradaManual.js",
           "Entrada/Formulario.html"
         ],
-        "INDIRECT_CONSUMER": [],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js"
+        ],
         "DECLARED_CONSUMER": [
           "FormularioHtml",
           "EntradaManual",
@@ -2163,15 +2167,19 @@
           "MotorAnaliticoV2"
         ],
         "PLANNED_CONSUMER": [],
-        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+        "OBSERVACAO": "Promovida de NAO_APLICAVEL para MAPEADO no #149: o Guardiao passou a auditar o AIS gravado contra a base territorial."
       },
       "impacto_se_violada": "Inconsistência estatística na apuração por AIS e atribuição indevida de competência territorial.",
       "auditavel_automaticamente": true,
       "auditabilidade_guardiao": {
-        "status": "NAO_APLICAVEL",
-        "codigos": [],
-        "motivo": "Determinacao de AIS e entrada de dados (nao auditoria); o Guardiao nao audita dado de entrada."
-      }
+        "status": "MAPEADO",
+        "codigos": [
+          "AIS_AUSENTE",
+          "AIS_DIVERGENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao (invariante AIS gravado x base territorial canonica cidade+bairro) com metadados ARCA via porta - card #149."
+      },
+      "status_cobertura": "COBERTO"
     },
     {
       "rule_id": "ARCA-MIKE-004",

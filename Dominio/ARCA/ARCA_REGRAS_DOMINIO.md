@@ -613,19 +613,13 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Descrição Humana:** A determinação da Área Integrada de Segurança (AIS) em Pernambuco é estritamente canônica baseada nas 26 AIS instituídas por lei e portarias da SDS. Municípios 100% mono-AIS determinam a AIS diretamente sem ambiguidade. Municípios multi-AIS (ex: Recife) exigem o bairro para desambiguação entre AIS 1 a 5. Se os dados forem insuficientes ou não possuírem correlação inequívoca, o sistema não inventa AIS e sinaliza necessidade de conferência humana.
 - **Condição Lógica:** `Preenchimento ou extração de Município e/ou Bairro no formulário ou ocorrência.`
 - **Resultado Esperado:** Atribuição automática e segura da AIS correspondente ou sinalização de pendência de conferência quando inconclusivo.
-- **Fontes Declaradas:** `{'tipo': 'PORTARIA_ESTADUAL', 'nome': 'Portaria SDS nº 1197 de 11/06/2010 (DOE 15/06/2010)', 'localizacao': 'Dominio/TabelaTerritorialAIS.js', 'autoridade': 'Oficial'}`, `{'tipo': 'LEI_ESTADUAL', 'nome': 'Lei Estadual nº 14.320/2011 (alterada pela Lei nº 14.890/2012)', 'localizacao': 'ALEPE Legis - Anexo Único', 'autoridade': 'Oficial'}`, `{'tipo': 'PORTARIA_ESTADUAL', 'nome': 'Portaria SDS nº 129/2008 e Decreto Estadual nº 26.868/2004', 'localizacao': 'Normas de Compatibilização Territorial de Segurança Pública', 'autoridade': 'Oficial'}`
+- **Fontes Declaradas:** Portaria SDS nº 1197 de 11/06/2010 (DOE 15/06/2010) (PORTARIA_ESTADUAL em Dominio/TabelaTerritorialAIS.js); Lei Estadual nº 14.320/2011 (alterada pela Lei nº 14.890/2012) (LEI_ESTADUAL em ALEPE Legis - Anexo Único); Portaria SDS nº 129/2008 e Decreto Estadual nº 26.868/2004 (PORTARIA_ESTADUAL em Normas de Compatibilização Territorial de Segurança Pública)
 - **Evidência no Código:** `Dominio/TabelaTerritorialAIS.js`, `Dominio/ResolverAIS.js`, `Entrada/EntradaManual.js:578-620`, `Entrada/Formulario.html:1320-1550`
 - **Evidência em Testes:** `Testes/TestFormularioAis.js`, `Testes/TestIntegracaoArca.js`
-- **Exceções Admitidas:** `Se o operador editar manualmente o campo AIS no formulário, a vontade humana tem precedência soberana sobre o automatismo.`
-- **Parâmetros:** `TABELA_TERRITORIAL_AIS`
-- **Confiança:** `ALTA` | **Alcance:** `None`
-- **Riscos:** -
-- **Consumidores (reconciliado #125):** REAL: `Dominio/ResolverAIS.js`, `Dominio/TabelaTerritorialAIS.js`, `Entrada/EntradaManual.js`, `Entrada/Formulario.html` | INDIRETO: - | DECLARADO: `FormularioHtml`, `EntradaManual`, `GuardiaoQualidade`, `MotorAnaliticoV2` | PLANEJADO: -
-- **Observações:** SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126).
-
----
-
-## 3.2 Regras adicionadas na varredura exaustiva (#128 ARCA-FIX-005)
+- **Exceções Admitidas:** Se o operador editar manualmente o campo AIS no formulário, a vontade humana tem precedência soberana sobre o automatismo.
+- **Consumidores (reconciliado #125):** REAL: Dominio/ResolverAIS.js, Dominio/TabelaTerritorialAIS.js, Entrada/EntradaManual.js, Entrada/Formulario.html | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js | DECLARADO: FormularioHtml, EntradaManual, GuardiaoQualidade, MotorAnaliticoV2 | PLANEJADO: -
+- **Riscos Identificados:** (nao declarado)
+- **Observações Operacionais:** 
 
 ### [ARCA-OCORRENCIA-005] Validacao de Construcao da Ocorrencia (Aggregate Root)
 - **Subdomínio:** `ocorrencia` | **Categoria:** `CRIACAO_AGREGADO`

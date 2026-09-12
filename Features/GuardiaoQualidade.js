@@ -177,6 +177,9 @@ class GuardiaoQualidade {
       policial: loc('POLICIAL'),
       grad: loc('GRAD'),
       qtdO: loc('QTD_O'),
+      cidade: loc('CIDADE'),
+      bairro: loc('BAIRRO'),
+      ais: loc('AIS'),
       armaLinha: loc('ARMA_LINHA'),
       tipoArma: loc('TIPO_ARMA'),
       armas: loc('ARMAS'),
@@ -267,7 +270,10 @@ class GuardiaoQualidade {
       const armaValorLinha = idx.armaLinha !== -1 ? RegrasQualidade.texto(row[idx.armaLinha]) : '';
       const qtdOLinha = idx.qtdO !== -1 ? RegrasQualidade.texto(row[idx.qtdO]) : '';
       const gradLinha = idx.grad !== -1 ? RegrasQualidade.texto(row[idx.grad]) : '';
-      mikesMapa[mike].linhas.push({ linha, boe, dataTexto: dataFormatada, chave, qdtArmas: qdtArmasLinha, arma: armaValorLinha, qtdO: qtdOLinha, grad: gradLinha, matricula: matricula || '' });
+      const cidadeLinha = idx.cidade !== -1 ? RegrasQualidade.texto(row[idx.cidade]) : '';
+      const bairroLinha = idx.bairro !== -1 ? RegrasQualidade.texto(row[idx.bairro]) : '';
+      const aisLinha = idx.ais !== -1 ? RegrasQualidade.texto(row[idx.ais]) : '';
+      mikesMapa[mike].linhas.push({ linha, boe, dataTexto: dataFormatada, chave, qdtArmas: qdtArmasLinha, arma: armaValorLinha, qtdO: qtdOLinha, grad: gradLinha, cidade: cidadeLinha, bairro: bairroLinha, ais: aisLinha, matricula: matricula || '' });
 
       // Mapa matricula -> ocorrencias (para deteccao de vinculo multiplo na mesma data - #115)
       if (matricula) {
@@ -562,6 +568,47 @@ class GuardiaoQualidade {
         }
       });
     }
+
+    // Invariante ARCA-TERRITORIO-001: AIS gravado coerente com a base territorial canonica (cidade+bairro) (#149)
+    (function () {
+      var resFn = (typeof resolverAIS === 'function') ? resolverAIS : null;
+      var tab = (typeof TABELA_TERRITORIAL_AIS !== 'undefined') ? TABELA_TERRITORIAL_AIS : null;
+      if (!resFn && typeof require !== 'undefined') {
+        try {
+          resFn = require('../Dominio/ResolverAIS').resolverAIS;
+          tab = require('../Dominio/TabelaTerritorialAIS').TABELA_TERRITORIAL_AIS;
+        } catch (e) { resFn = null; }
+      }
+      if (!resFn) return;
+      Object.values(mikesMapa).forEach(function (t) {
+        const l0 = t.linhas.slice().sort((a, b) => a.linha - b.linha)[0];
+        if (!l0) return;
+        const cidade = String(l0.cidade || '').trim();
+        const bairro = String(l0.bairro || '').trim();
+        if (!cidade && !bairro) return;
+        let res = null;
+        try { res = resFn(cidade, bairro, tab); } catch (e) { return; }
+        if (!res || res.status !== 'DETERMINADO' || !res.ais) return; // ambiguo/insuficiente: preservado como pendente (sem falso positivo)
+        const esperado = String(res.ais).trim().toUpperCase();
+        const gravado = String(l0.ais || '').trim().toUpperCase();
+        if (gravado === esperado) return;
+        const codigo = gravado ? 'AIS_DIVERGENTE' : 'AIS_AUSENTE';
+        if (l0.linha >= 2 && l0.linha - 2 < alertasPorLinha.length) {
+          alertasPorLinha[l0.linha - 2].push(RegrasQualidade.criarDiagnostico({
+            severidade: SEVERIDADES_GUARDIAO.ALERTA,
+            codigoRegra: codigo,
+            camada: 'SEMANTICA',
+            linha: l0.linha,
+            tunel: l0.chave,
+            diagnostico: gravado
+              ? 'AIS divergente: valor gravado difere da base territorial canonica (cidade+bairro).'
+              : 'AIS ausente: cidade/bairro permitem determinacao territorial canonica.',
+            evidencia: `Cidade: "${cidade}" | Bairro: "${bairro}" | AIS gravado: "${gravado}" | AIS canonico: "${esperado}" (${res.criterio})`,
+            acaoRecomendada: 'Ajuste a coluna AIS conforme a base territorial canonica (cidade+bairro).'
+          }));
+        }
+      });
+    })();
 
     // Policial vinculado a 2+ MIKEs na MESMA data exige confirmacao humana (#115)
     let CoberturaMod = typeof CoberturaAuditoria !== 'undefined' ? CoberturaAuditoria : null;

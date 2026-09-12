@@ -1133,5 +1133,33 @@ test('ARCA-ANTIGUIDADE-002: equipe fora da ordem canonica gera diagnostico', () 
   assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'ORDEM_ANTIGUIDADE_EQUIPE'));
 });
 
+// ---- #149: AIS gravado vs base territorial canonica (ARCA-TERRITORIO-001) ----
+const headersAis = ['DATA', 'QTD O', 'NÚMERO MIKE', 'BOE', 'GRAD', 'MATRÍCULA', 'POLICIAL', 'CIDADE', 'BAIRRO', 'AIS', 'ARMAS', 'OCORRÊNCIA PIP', 'IMPUTADO?', 'TOTAL DE MACONHA', 'DIVIDIDO MAC', 'TOTAL CRACK', 'TOTAL DE COCAINA', 'DIVIDIDO COC', 'PONTOS TOTAIS', 'PONTOS FICCAO', 'CHAVE OCORRENCIA', 'ALERTA INTEGRIDADE'];
+const formulasAis = [headersAis.map(() => '')];
+
+test('ARCA-TERRITORIO-001: AIS coerente com cidade/bairro NAO gera diagnostico', () => {
+  const dados = [
+    ['15/07/2026', '01', '202607151000', '26E100', '3º SGT', '108394-5', 'IRAN SILVA', 'RECIFE', 'BOA VISTA', 'AIS 1', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY1', '']
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersAis, dados, formulasAis));
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'AIS_DIVERGENTE' || d.codigoRegra === 'AIS_AUSENTE').length, 0);
+});
+
+test('ARCA-TERRITORIO-001: AIS divergente da base canonica gera diagnostico', () => {
+  const dados = [
+    ['15/07/2026', '01', '202607151000', '26E100', '3º SGT', '108394-5', 'IRAN SILVA', 'RECIFE', 'BOA VISTA', 'AIS 9', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY1', '']
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersAis, dados, formulasAis));
+  assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'AIS_DIVERGENTE'));
+});
+
+test('ARCA-TERRITORIO-001: AIS ausente (resolvivel) gera diagnostico AIS_AUSENTE', () => {
+  const dados = [
+    ['15/07/2026', '01', '202607151000', '26E100', '3º SGT', '108394-5', 'IRAN SILVA', 'RECIFE', 'BOA VISTA', '', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY1', '']
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersAis, dados, formulasAis));
+  assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'AIS_AUSENTE'));
+});
+
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);
 }
