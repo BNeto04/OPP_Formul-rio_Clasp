@@ -36,6 +36,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 | **ARCA-MIKE-002** | Unicidade de Datas por MIKE | `mike` | `INTERNAL_OPERATIONAL_RULE` | `INTERNAL_SOURCE_CONFIRMED` | ALTA | GuardiaoQualidade |
 | **ARCA-MIKE-003** | Detecção de MIKE Incompleto ou Sinteticamente Suspeito | `mike` | `HEURISTIC` | `DOMAIN_RULE_SOURCE_UNKNOWN` | MEDIA | GuardiaoQualidade |
 | **ARCA-BOE-001** | Unicidade de BOE por MIKE (Consistência PCPE x PMPE) | `boe` | `INTERNAL_OPERATIONAL_RULE` | `INTERNAL_SOURCE_CONFIRMED` | ALTA | GuardiaoQualidade |
+| **ARCA-BOE-002** | Obrigatoriedade do BOE (Número da Polícia Civil) | `boe` | `INTERNAL_OPERATIONAL_RULE` | `INTERNAL_SOURCE_CONFIRMED` | ALTA | GuardiaoQualidade |
 | **ARCA-PIP-001** | Divisor Regulamentar Fixo de Rateio PIP (Quotas /4) | `pip` | `OFFICIAL_BUSINESS_RULE` | `CANONICAL_SOURCE_CONFIRMED` | ALTA | GuardiaoQualidade, PluginPontuacao, CompiladorProdutividade |
 | **ARCA-PIP-002** | Acúmulo Máximo de Pontos por Atuação no Mês | `pip` | `INTERNAL_OPERATIONAL_RULE` | `INTERNAL_SOURCE_CONFIRMED` | ALTA | PluginPontuacao, CompiladorProdutividade |
 | **ARCA-PIP-003** | Catálogo Oficial de Indicadores PIP (Tabela PIP Dinâmica) | `pip` | `OFFICIAL_BUSINESS_RULE` | `CANONICAL_SOURCE_CONFIRMED` | ALTA | GuardiaoQualidade |
@@ -197,6 +198,22 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
 - **Riscos Identificados:** Casos legítimos de desdobramento em flagrantes múltiplos.
 - **Observações Operacionais:** Preserva a integridade relacional entre o despacho militar e o inquérito civil.
+
+---
+
+### [ARCA-BOE-002] Obrigatoriedade do BOE (Número da Polícia Civil)
+- **Subdomínio:** `boe` | **Categoria:** `OBRIGATORIEDADE`
+- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** Todo despacho operacional MIKE da PMPE deve possuir um número de Boletim de Ocorrência (BOE) da Polícia Civil. Ausência de BOE em todas as linhas do túnel é um erro que exige a coleta do número junto à Polícia Civil.
+- **Condição Lógica:** `MIKE presente com BOE vazio em todas as linhas do túnel.`
+- **Resultado Esperado:** Diagnóstico ALERTA BOE_AUSENTE.
+- **Fontes Declaradas:** Regra do proprietário (12/09/2026): BOE sempre obrigatório (DIRETRIZ_OPERACIONAL em Core/RegrasQualidade.js:437-451)
+- **Evidência no Código:** `Core/RegrasQualidade.js:437-451`
+- **Evidência em Testes:** `Testes/TestGuardiao.js (MIKE sem BOE em nenhuma linha)`
+- **Exceções Admitidas:** Nenhuma exceção aplicável.
+- **Consumidores (reconciliado #125):** REAL: Core/RegrasQualidade.js, Features/GuardiaoQualidade.js | INDIRETO: Core/CoberturaAuditoria.js, Render/PainelSaude.js, Render/RendererAuditoriaSaude.js | DECLARADO: GuardiaoQualidade | PLANEJADO: -
+- **Riscos Identificados:** Túnel sem BOE perde o vínculo formal com o inquérito civil (chave do túnel fica incompleta).
+- **Observações Operacionais:** Complementa ARCA-OCORRENCIA-001: quando BOE está vazio, a agregação cai para DATA|MIKE, mas a ausência deve ser sinalizada para o operador coletar o número junto à Polícia Civil.
 
 ---
 

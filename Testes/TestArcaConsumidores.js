@@ -31,7 +31,7 @@ const md = fs.readFileSync(MD_PATH, 'utf8');
 const CHAVES = ['REAL_CODE_CONSUMER', 'INDIRECT_CONSUMER', 'DECLARED_CONSUMER', 'PLANNED_CONSUMER'];
 
 test('catalogo tem 31 regras e registro de metodo da reconciliacao', () => {
-  assert.strictEqual(regras.length, 44, '44 regras: lote ARCA + ARCA-VEICULO-001 + ARCA-CONVERSAO-001 + ARCA-IMPUTACAO-003 + ARCA-OCORRENCIA-006');
+  assert.strictEqual(regras.length, 45, '45 regras: lote ARCA + ARCA-BOE-002 do BOE obrigatório');
   assert.ok(arca.meta.consumidores_reconciliacao, 'meta.consumidores_reconciliacao ausente');
   assert.ok(String(arca.meta.consumidores_reconciliacao.card).includes('#125'));
 });
@@ -68,7 +68,7 @@ test('lista declarada original foi preservada (historico/proveniencia)', () => {
   const comGuardiao = regras.filter(r => r.consumidores.DECLARED_CONSUMER.includes('GuardiaoQualidade')).length;
   assert.ok(comGuardiao >= 20, `esperado >=20 regras com GuardiaoQualidade declarado, obtido ${comGuardiao}`);
   const algumDeclarado = regras.filter(r => r.consumidores.DECLARED_CONSUMER.length > 0).length;
-  assert.strictEqual(algumDeclarado, 33, 'toda regra deve preservar a lista declarada');
+  assert.strictEqual(algumDeclarado, 34, 'toda regra deve preservar a lista declarada');
 });
 
 test('gap explicito: NAO_AUDITAVEL nao declara consumidor indireto; MAPEADO com codigo flui pelo caminho', () => {

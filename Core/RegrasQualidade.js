@@ -434,6 +434,23 @@ class RegrasQualidade {
         });
       }
 
+      // Regra do proprietário (12/09): o BOE (número da Polícia Civil) é SEMPRE obrigatório.
+      // MIKE sem BOE em nenhuma linha = o operador deve coletar junto à Polícia Civil.
+      if (entry.boes.size === 0) {
+        const primeiraLinha = entry.linhas && entry.linhas[0];
+        if (primeiraLinha) {
+          diagnosticos.push(RegrasQualidade.criarDiagnostico({
+            severidade: SEVERIDADES_GUARDIAO.ALERTA,
+            codigoRegra: 'BOE_AUSENTE',
+            linha: primeiraLinha.linha,
+            tunel: primeiraLinha.chave,
+            diagnostico: `BOE ausente: o MIKE ${entry.mike} não possui número de Boletim de Ocorrência (Polícia Civil) em nenhuma linha.`,
+            evidencia: `MIKE: ${entry.mike} | BOE: vazio`,
+            acaoRecomendada: 'Colete o número do BOE junto à Polícia Civil e preencha a coluna BOE (G).'
+          }));
+        }
+      }
+
       if (entry.datas.size > 1) {
         entry.linhas.forEach(item => {
           diagnosticos.push(RegrasQualidade.criarDiagnostico({

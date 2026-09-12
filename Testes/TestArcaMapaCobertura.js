@@ -89,11 +89,11 @@ test('toda regra declara auditabilidade explicita (MAPEADO | NAO_AUDITAVEL com m
 test('contagens de cobertura conferem com o meta do catalogo', () => {
   const mapeadas = regras.filter(r => r.auditabilidade_guardiao.status === 'MAPEADO').length;
   const naoAud = regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_AUDITAVEL').length;
-  assert.strictEqual(regras.length, 44, 'total de regras deveria ser 44 (43 + ARCA-OCORRENCIA-006 do corretor de túneis)');
+  assert.strictEqual(regras.length, 45, 'total de regras deveria ser 45 (44 + ARCA-BOE-002 do BOE obrigatório)');
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_mapeadas, mapeadas);
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_nao_auditaveis, naoAud);
-  assert.strictEqual(mapeadas + naoAud, 44);
-  assert.strictEqual(mapeadas, 27);
+  assert.strictEqual(mapeadas + naoAud, 45);
+  assert.strictEqual(mapeadas, 28);
   assert.strictEqual(naoAud, 17, 'ARCA-VEICULO-001, ARCA-CONVERSAO-001, ARCA-IMPUTACAO-003 e ARCA-OCORRENCIA-006 entram como NAO_AUDITAVEL');
 });
 

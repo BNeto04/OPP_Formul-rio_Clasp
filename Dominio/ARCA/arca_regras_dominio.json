@@ -36,7 +36,7 @@
         "ARCA-AUDITORIA-002",
         "ARCA-VEICULO-001"
       ],
-      "regras_mapeadas": 27,
+      "regras_mapeadas": 28,
       "regras_nao_auditaveis": 17,
       "regras_adicionadas_total": [
         "ARCA-MIKE-004",
@@ -558,6 +558,63 @@
         "status": "MAPEADO",
         "codigos": [
           "MIKE_BOE_DIVERGENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-BOE-002",
+      "titulo": "Obrigatoriedade do BOE (Número da Polícia Civil)",
+      "descricao_humana": "Todo despacho operacional MIKE da PMPE deve possuir um número de Boletim de Ocorrência (BOE) da Polícia Civil. Ausência de BOE em todas as linhas do túnel é um erro que exige a coleta do número junto à Polícia Civil.",
+      "categoria": "OBRIGATORIEDADE",
+      "subdominio": "boe",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_OPERACIONAL",
+          "nome": "Regra do proprietário (12/09/2026): BOE sempre obrigatório",
+          "localizacao": "Core/RegrasQualidade.js:437-451",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:437-451"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (MIKE sem BOE em nenhuma linha)"
+      ],
+      "condicao": "MIKE presente com BOE vazio em todas as linhas do túnel.",
+      "resultado_esperado": "Diagnóstico ALERTA BOE_AUSENTE.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Túnel sem BOE perde o vínculo formal com o inquérito civil (chave do túnel fica incompleta).",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Complementa ARCA-OCORRENCIA-001: quando BOE está vazio, a agregação cai para DATA|MIKE, mas a ausência deve ser sinalizada para o operador coletar o número junto à Polícia Civil.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "BOE_AUSENTE"
         ],
         "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
       }

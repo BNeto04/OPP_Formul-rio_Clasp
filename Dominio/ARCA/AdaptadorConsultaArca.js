@@ -48,6 +48,7 @@ class AdaptadorConsultaArca {
 
       // Domínio: BOE
       'MIKE_BOE_DIVERGENTE': 'ARCA-BOE-001',
+      'BOE_AUSENTE': 'ARCA-BOE-002',
 
       // Domínio: Imputação
       'EVENTO_INCOMPLETO_AG': 'ARCA-IMPUTACAO-001',
