@@ -428,7 +428,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 ### [ARCA-ARMAS-002] Reconhecimento Textual de Arma Artesanal
 - **Subdomínio:** `armas` | **Categoria:** `CLASSIFICACAO`
 - **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
-- **Descrição Humana:** Armas artesanais/caseiras não são contadas como armas de fogo industriais na pontuação padrão; sua identificação provém exclusivamente de indicadores textuais ("ARTESANAL") nos campos de tipo ou modelo.
+- **Descrição Humana:** Armas artesanais/caseiras NÃO entram na quantidade física de armas de fogo (coluna ARMA) — não aceitas pelos escalões superiores na estatística oficial. PORÉM contam a participação (QDT ARMAS) e recebem a MESMA recompensa de mérito que uma arma industrial (risco operacional idêntico). Identificação exclusivamente por indicadores textuais ("ARTESANAL") nos campos de tipo ou modelo.
 - **Condição Lógica:** `Presença do termo ARTESANAL nas colunas de tipo, modelo, descrição ou natureza.`
 - **Resultado Esperado:** Contabilização na métrica armasArtesanais e segregação das armas de fogo industriais.
 - **Fontes Declaradas:** Classificação de Armas Artesanais (DIRETRIZ_GXT em Motor/PoliticaMeritoArmas.js:50-52)
@@ -437,7 +437,7 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Exceções Admitidas:** Nenhuma exceção aplicável.
 - **Consumidores (reconciliado #125):** REAL: Features/CompiladorGxt.js, Motor/PoliticaMeritoArmas.js | INDIRETO: - | DECLARADO: PoliticaMeritoArmas, CompiladorGxt | PLANEJADO: -
 - **Riscos Identificados:** Erro de grafia (ex: "arma caseira" sem o termo artesanal).
-- **Observações Operacionais:** Atende às tabelas de diferenciação balística da corporação.
+- **Observações Operacionais:** Atende às tabelas de diferenciação balística da corporação (quantidade física). Participação e recompensa seguem o mérito por desempenho individual, idênticas à arma industrial — determinado pelo proprietário em 12/09/2026.
 
 ---
 
