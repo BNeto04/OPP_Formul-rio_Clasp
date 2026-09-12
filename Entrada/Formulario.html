@@ -1606,8 +1606,13 @@ function ordenarEquipePorAntiguidade_(lista) {
 
       google.script.run
         .withSuccessHandler(res => {
-          setStatus('>> ' + res, 'var(--accent-color)');
-          limparFormulario();
+          const texto = String(res == null ? '' : res);
+          // O backend e' best-effort: uma falha chega como TEXTO de sucesso (nunca como
+          // excecao). Sem esta checagem o formulario era LIMPO mesmo sem gravar nada,
+          // e o operador perdia o BO achando que havia salvado (defeito do BO 04/09).
+          const falhou = /N[ÃA]O GRAVADO|NAO_GRAVADO/i.test(texto);
+          setStatus('>> ' + texto, falhou ? 'var(--danger-color)' : 'var(--accent-color)');
+          if (!falhou) limparFormulario();
         })
         .withFailureHandler(err => setStatus('>> ERRO: ' + err.message, 'var(--danger-color)'))
         .processarEntradaManual(payload);

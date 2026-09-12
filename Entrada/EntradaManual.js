@@ -84,9 +84,16 @@ function _processarEntradaManual(payload, opcoes) {
  */
 function processarEntradaManual(payload) {
   const r = _processarEntradaManual(payload, {});
-  let msg = r.status === 'OK'
-    ? 'Ocorrência ' + r.identificador + ' salva (' + r.registros + ' registros).'
-    : 'Ocorrência ' + r.identificador + ': ' + r.status + '.';
+  let msg;
+  if (r.status === 'OK') {
+    msg = 'Ocorrência ' + r.identificador + ' salva (' + r.registros + ' registros).';
+  } else if (r.status === 'SIMULADO') {
+    msg = 'SIMULAÇÃO (nada gravado) — ocorrência ' + r.identificador + '.';
+  } else {
+    // NAO_GRAVADO precisa ser INCONFUNDIVEL: o operador tem de perceber que o BO
+    // NAO entrou, para nao perder o registro (defeito do BO 04/09).
+    msg = '⛔ NÃO GRAVADO — ocorrência ' + r.identificador + ' (status: ' + r.status + ').';
+  }
   if (r.avisos.length) {
     msg += '\n⚠️ Avisos (conferir no Guardião):\n' + r.avisos.map(function (a) { return ' • ' + a; }).join('\n');
   }

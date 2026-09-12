@@ -1220,6 +1220,35 @@ eval(fullFormularioScript);
     assert.ok(resMinimo.includes('salva'), 'Fluxo mínimo sem seções opcionais deve ser salvo com sucesso (nunca lança)');
     assert.ok(sheetSemOpcionais.rangesEscritos.length > 0, 'Fluxo mínimo deve registrar no Sheets');
 
+    // ── TEST 16 (#143): falha de gravacao tem de ser VISIVEL e nao pode limpar o formulario ──
+    console.log('  [Test 16] #143 - NAO_GRAVADO visivel ao operador e formulario preservado');
+    {
+        // (a) Servidor: NAO_GRAVADO precisa ser inequivoco no texto de retorno.
+        const srcEntrada = fs.readFileSync(path.join(__dirname, '../Entrada/EntradaManual.js'), 'utf8');
+        assert.ok(/N[ÃA]O GRAVADO/.test(srcEntrada),
+            'processarEntradaManual deve marcar NAO_GRAVADO de forma inequivoca');
+        assert.ok(/r\.status === 'OK'/.test(srcEntrada),
+            'OK deve continuar sendo o unico caminho de sucesso');
+        assert.ok(/SIMULA[ÇC][ÃA]O/.test(srcEntrada),
+            'o dry-run deve ser rotulado como simulacao');
+
+        // (b) Cliente: o formulario SO pode ser limpo quando NAO houve falha.
+        const srcForm = fs.readFileSync(path.join(__dirname, '../Entrada/Formulario.html'), 'utf8');
+        const iSalvar = srcForm.indexOf('function salvarDados');
+        assert.ok(iSalvar > -1, 'salvarDados deve existir no formulario');
+        const iFim = srcForm.indexOf('function limparDadosDocumentoAnterior', iSalvar);
+        const blocoSalvar = srcForm.slice(iSalvar, iFim > iSalvar ? iFim : iSalvar + 3000);
+
+        assert.ok(/const falhou = /.test(blocoSalvar),
+            'salvarDados deve DETECTAR falha no retorno do backend');
+        assert.ok(/if \(!falhou\) limparFormulario\(\)/.test(blocoSalvar),
+            'limparFormulario so pode rodar quando NAO falhou');
+        assert.ok(!/setStatus\('>> ' \+ res[^]*?limparFormulario\(\);\s*\}/.test(blocoSalvar.replace(/if \(!falhou\) limparFormulario\(\);/, '')),
+            'nao pode haver limpeza incondicional do formulario');
+
+        console.log('  ✅ PASS Test 16 (#143): falha visivel + formulario preservado no insucesso');
+    }
+
     console.log('✅ OK - EntradaManual.js e Formulario.html');
 })().catch(err => {
     console.error("Falha no teste:", err);
