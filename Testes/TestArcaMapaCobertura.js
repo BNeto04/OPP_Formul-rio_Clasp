@@ -74,11 +74,11 @@ test('porta ARCA responde MAPPED (nao ARCA_RULE_NOT_MAPPED) para os codigos G01'
   });
 });
 
-test('toda regra declara auditabilidade explicita (MAPEADO | NAO_AUDITAVEL com motivo)', () => {
+test('toda regra declara auditabilidade explicita (MAPEADO | INTEGRADO | NAO_APLICAVEL com motivo)', () => {
   regras.forEach(r => {
     const a = r.auditabilidade_guardiao;
     assert.ok(a, `${r.rule_id}: auditabilidade ausente`);
-    assert.ok(['MAPEADO', 'NAO_AUDITAVEL'].includes(a.status), `${r.rule_id}: status invalido ${a.status}`);
+    assert.ok(['MAPEADO', 'INTEGRADO', 'NAO_APLICAVEL'].includes(a.status), `${r.rule_id}: status invalido ${a.status}`);
     assert.ok(typeof a.motivo === 'string' && a.motivo.length > 20, `${r.rule_id}: motivo ausente/curto`);
     if (a.status === 'MAPEADO' && a.codigos.length > 0) {
       a.codigos.forEach(c => assert.ok(mapaCodigoRegra[c] === r.rule_id, `${r.rule_id}: codigo ${c} nao aponta para ela`));
@@ -88,13 +88,16 @@ test('toda regra declara auditabilidade explicita (MAPEADO | NAO_AUDITAVEL com m
 
 test('contagens de cobertura conferem com o meta do catalogo', () => {
   const mapeadas = regras.filter(r => r.auditabilidade_guardiao.status === 'MAPEADO').length;
-  const naoAud = regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_AUDITAVEL').length;
-  assert.strictEqual(regras.length, 45, 'total de regras deveria ser 45 (44 + ARCA-BOE-002 do BOE obrigatório)');
+  const integradas = regras.filter(r => r.auditabilidade_guardiao.status === 'INTEGRADO').length;
+  const naoAplicaveis = regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_APLICAVEL').length;
+  assert.strictEqual(regras.length, 45, 'total de regras deveria ser 45');
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_mapeadas, mapeadas);
-  assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_nao_auditaveis, naoAud);
-  assert.strictEqual(mapeadas + naoAud, 45);
-  assert.strictEqual(mapeadas, 28);
-  assert.strictEqual(naoAud, 17, 'ARCA-VEICULO-001, ARCA-CONVERSAO-001, ARCA-IMPUTACAO-003 e ARCA-OCORRENCIA-006 entram como NAO_AUDITAVEL');
+  assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_integradas, integradas);
+  assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_nao_aplicaveis, naoAplicaveis);
+  assert.strictEqual(mapeadas + integradas + naoAplicaveis, 45);
+  assert.strictEqual(mapeadas, 29, 'MAPEADO = 28 originais + ARCA-ARMAS-001 (QDT_ARMAS_DIVERGENTE_NO_TUNEL)');
+  assert.strictEqual(integradas, 7, 'INTEGRADO = 4 NormalizadorEfetivo + 3 plugins de metrica');
+  assert.strictEqual(naoAplicaveis, 9, 'NAO_APLICAVEL = 5 estruturais + 4 entrada/discricionarias');
 });
 
 test('nenhuma heuristica foi promovida a regra oficial na reconciliacao', () => {

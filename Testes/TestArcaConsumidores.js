@@ -71,7 +71,7 @@ test('lista declarada original foi preservada (historico/proveniencia)', () => {
   assert.strictEqual(algumDeclarado, 34, 'toda regra deve preservar a lista declarada');
 });
 
-test('gap explicito: NAO_AUDITAVEL nao declara consumidor indireto; MAPEADO com codigo flui pelo caminho', () => {
+test('gap explicito: NAO_AUDITAVEL zerado; INTEGRADO/NAO_APLICAVEL sem codigo; MAPEADO com codigo flui pelo caminho', () => {
   const adaptador = fs.readFileSync(path.join(REPO, 'Dominio', 'ARCA', 'AdaptadorConsultaArca.js'), 'utf8');
   const idsMapeados = new Set((adaptador.match(/'ARCA-[A-Z0-9\-]+'/g) || []).map(s => s.replace(/'/g, '')));
   regras.forEach(r => {
@@ -79,6 +79,9 @@ test('gap explicito: NAO_AUDITAVEL nao declara consumidor indireto; MAPEADO com 
     if (a.status === 'NAO_AUDITAVEL') {
       assert.deepStrictEqual(r.consumidores.INDIRECT_CONSUMER, [], `${r.rule_id}: NAO_AUDITAVEL nao deve ter indireto`);
       assert.ok(a.motivo.length > 20, `${r.rule_id}: NAO_AUDITAVEL exige motivo`);
+    } else if (a.status === 'INTEGRADO' || a.status === 'NAO_APLICAVEL') {
+      assert.deepStrictEqual(a.codigos, [], `${r.rule_id}: ${a.status} nao deve ter codigo de diagnostico`);
+      assert.ok(a.motivo.length > 20, `${r.rule_id}: ${a.status} exige motivo`);
     } else if (a.codigos.length > 0) {
       assert.ok(idsMapeados.has(r.rule_id), `${r.rule_id}: MAPEADO com codigo deve estar na porta`);
       assert.ok(r.consumidores.INDIRECT_CONSUMER.length > 0, `${r.rule_id}: MAPEADO com codigo deve ter propagacao`);
@@ -87,7 +90,7 @@ test('gap explicito: NAO_AUDITAVEL nao declara consumidor indireto; MAPEADO com 
       assert.ok(r.rule_id.startsWith('ARCA-AUDITORIA-') || r.rule_id === 'ARCA-TECNICA-005', `${r.rule_id}: MAPEADO sem codigo so para regras tecnicas do catalogo/auditor`);
     }
   });
-  assert.ok(regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_AUDITAVEL').length >= 1);
+  assert.strictEqual(regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_AUDITAVEL').length, 0, 'zero regras cegas (fluid flow)');
 });
 
 test('integracao do NormalizadorEfetivo e REAL nas regras de efetivo/matricula/antiguidade (#127)', () => {

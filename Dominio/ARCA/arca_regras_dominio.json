@@ -36,8 +36,8 @@
         "ARCA-AUDITORIA-002",
         "ARCA-VEICULO-001"
       ],
-      "regras_mapeadas": 28,
-      "regras_nao_auditaveis": 17,
+      "regras_mapeadas": 29,
+      "regras_nao_auditaveis": 0,
       "regras_adicionadas_total": [
         "ARCA-MIKE-004",
         "ARCA-EFETIVO-003",
@@ -50,7 +50,15 @@
         "ARCA-TECNICA-005",
         "ARCA-VEICULO-001"
       ],
-      "card_137": "#137 OCR-ARCA-003: reconciliacao de veiculo (ARCA-VEICULO-001) - regra de dominio; heuristica lexical permanece no parser."
+      "card_137": "#137 OCR-ARCA-003: reconciliacao de veiculo (ARCA-VEICULO-001) - regra de dominio; heuristica lexical permanece no parser.",
+      "regras_integradas": 7,
+      "regras_nao_aplicaveis": 9,
+      "statuses": [
+        "MAPEADO",
+        "INTEGRADO",
+        "NAO_APLICAVEL"
+      ],
+      "fluid_flow": "2026-09-12: 17 NAO_AUDITAVEL reclassificadas em INTEGRADO(7)/NAO_APLICAVEL(9)/MAPEADO(1, QDT_ARMAS_DIVERGENTE_NO_TUNEL). Zero regras cegas."
     },
     "normalizador_integracao": {
       "card": "#127 ARCA-FIX-004",
@@ -156,9 +164,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Pilar estrutural para prevenir contagem duplicada de apreensões.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "NAO_APLICAVEL",
         "codigos": [],
-        "motivo": "Conceito estrutural de agregacao (chave DATA|MIKE|BOE); nao gera diagnostico proprio. A integridade pratica e coberta por ARCA-MIKE-004 (fragmentacao), ARCA-BOE-001 e ARCA-MIKE-002."
+        "motivo": "Conceito estrutural de agregacao (chave DATA|MIKE|BOE); nao e regra de auditoria. Integridade coberta por ARCA-MIKE-004, ARCA-BOE-001 e ARCA-MIKE-002."
       }
     },
     {
@@ -734,9 +742,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Garante que o policial receba exatamente sua quota daquela ocorrência.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "INTEGRADO",
         "codigos": [],
-        "motivo": "Acumulo maximo de pontos por atuacao no mes nao e verificado pelo Guardiao (implementado em Plugins/Metricas/PluginPontuacao.js, fora do caminho de auditoria)."
+        "motivo": "Aplicada em Plugins/Metricas/PluginPontuacao.js; o Guardiao audita os insumos (rateio) via ARCA-PIP-001, nao o acumulo final."
       }
     },
     {
@@ -915,9 +923,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Espelha o desfecho formal do inquérito na delegacia de plantão.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "INTEGRADO",
         "codigos": [],
-        "motivo": "Contabilizacao de procedimentos legais (APFD/TCO/BOC/AAFAI) implementada em Plugins/Metricas/PluginPrisoes.js; sem diagnostico no Guardiao."
+        "motivo": "Aplicada em Plugins/Metricas/PluginPrisoes.js; contabilizacao de procedimentos legais fora do caminho de auditoria do Guardiao."
       }
     },
     {
@@ -979,9 +987,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Base para ordenamento hierárquico em relatórios.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "INTEGRADO",
         "codigos": [],
-        "motivo": "Normalizacao de graduacoes implementada em Core/Utils.js + Features/NormalizadorEfetivo.js; sem diagnostico no Guardiao. Integracao com o NormalizadorEfetivo concluida no #127 (consumo de metadados via porta ARCA)."
+        "motivo": "Aplicada pelo NormalizadorEfetivo (Features/NormalizadorEfetivo.js) via porta ARCA (#127); transformacao de dados, nao auditoria de planilha."
       }
     },
     {
@@ -1029,9 +1037,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Evita homônimos em escalas de serviço e relatórios estatísticos.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "INTEGRADO",
         "codigos": [],
-        "motivo": "Desambiguacao de nomes de guerra implementada em Features/NormalizadorEfetivo.js; sem diagnostico no Guardiao. Integracao com o NormalizadorEfetivo concluida no #127 (consumo de metadados via porta ARCA)."
+        "motivo": "Aplicada pelo NormalizadorEfetivo (desambiguacao de nomes de guerra por menor N) via porta ARCA (#127)."
       }
     },
     {
@@ -1088,9 +1096,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Chave primária para joins entre ocorrências, pecúlio e produtividade.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "INTEGRADO",
         "codigos": [],
-        "motivo": "Higienizacao/validacao de formato de matricula implementada em Core/Utils.js e Dominio/Policial.js; o Guardiao cobre apenas ausencia (ARCA-MATRICULA-002). Integracao com o NormalizadorEfetivo concluida no #127 (consumo de metadados via porta ARCA)."
+        "motivo": "Higienizacao de formato aplicada pelo NormalizadorEfetivo; o Guardiao audita apenas a ausencia (ARCA-MATRICULA-002)."
       }
     },
     {
@@ -1200,9 +1208,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Base de todos os critérios de desempate e liderança de equipe.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "INTEGRADO",
         "codigos": [],
-        "motivo": "Precedencia por menor N implementada em Motor/PoliticaMeritoArmas.js; no Guardiao aparece apenas via merito de armas (ARCA-MERITO-001/002). Integracao com o NormalizadorEfetivo concluida no #127 (consumo de metadados via porta ARCA)."
+        "motivo": "Precedencia por menor N aplicada em Motor/PoliticaMeritoArmas.js e NormalizadorEfetivo (#127); no Guardiao aparece via merito de armas."
       }
     },
     {
@@ -1415,7 +1423,8 @@
         "Motor/PoliticaMeritoArmas.js:4-6",
         "Core/Constantes.js:33-37",
         "Core/LeitorPlanilhas.js:150,242,267",
-        "Features/GuardiaoQualidade.js:178-179"
+        "Features/GuardiaoQualidade.js:178-179",
+        "Features/GuardiaoQualidade.js:486-509"
       ],
       "evidencia_testes": [
         "Testes/TestRelatorioArmas.js",
@@ -1432,25 +1441,32 @@
       "consumidores": {
         "REAL_CODE_CONSUMER": [
           "Features/CompiladorGxt.js",
-          "Motor/PoliticaMeritoArmas.js"
+          "Motor/PoliticaMeritoArmas.js",
+          "Features/GuardiaoQualidade.js"
         ],
-        "INDIRECT_CONSUMER": [],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
         "DECLARED_CONSUMER": [
           "CompiladorGxt",
           "PoliticaMeritoArmas",
           "PluginArmas"
         ],
         "PLANNED_CONSUMER": [],
-        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (QDT_ARMAS_DIVERGENTE_NO_TUNEL mapeado na porta)."
       },
       "alcance": "GLOBAL_PROJETO",
       "riscos": "Se um operador preencher apenas QDT ARMAS, a arma não entra na soma oficial.",
       "status_cobertura": "COBERTO",
       "observacoes": "Resolução consolidada para sanar antigas divergências em fechamentos mensais. Card #141: o alias ARMAS de Core/Constantes.js listava QDT ARMAS antes de ARMA, fazendo Guardião/Leitor somarem participação como arma física (no túnel real de 4 policiais: 8 em vez de 2). Corrigido no menor ponto responsável.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
-        "codigos": [],
-        "motivo": "Fonte exclusiva da coluna ARMA (exclusao de QDT ARMAS) implementada em Features/CompiladorGxt.js e Motor/PoliticaMeritoArmas.js; sem diagnostico dedicado no Guardiao hoje. Card #141 corrigiu o alias ARMAS (Core/Constantes.js) e definiu a invariante de participacao por tunel (QDT ARMAS identico entre participantes e igual a soma de ARMA do tunel), que habilita um futuro diagnostico dedicado (ex.: QDT_ARMAS_DIVERGENTE_NO_TUNEL) - nao implementado para nao criar codigo sem cobertura ARCA."
+        "status": "MAPEADO",
+        "codigos": [
+          "QDT_ARMAS_DIVERGENTE_NO_TUNEL"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao (QDT_ARMAS_DIVERGENTE_NO_TUNEL) com metadados ARCA via porta. Invariante definida no card #141: QDT ARMAS identico entre participantes e igual a soma de ARMA do tunel."
       }
     },
     {
@@ -1726,9 +1742,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Expressa o volume total apreendido pelo militar no período.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "INTEGRADO",
         "codigos": [],
-        "motivo": "Consolidacao cumulativa de drogas por militar implementada em Plugins/Metricas/PluginEntorpecentes.js; sem diagnostico no Guardiao."
+        "motivo": "Aplicada em Plugins/Metricas/PluginEntorpecentes.js; consolidacao cumulativa de drogas fora do caminho de auditoria do Guardiao."
       }
     },
     {
@@ -1976,9 +1992,9 @@
       "impacto_se_violada": "Inconsistência estatística na apuração por AIS e atribuição indevida de competência territorial.",
       "auditavel_automaticamente": true,
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "NAO_APLICAVEL",
         "codigos": [],
-        "motivo": "Determinacao de AIS por municipio/bairro implementada em Dominio/TabelaTerritorialAIS.js e ResolverAIS.js; nao ha regra de auditoria no Guardiao (entrada de dados, nao auditoria)."
+        "motivo": "Determinacao de AIS e entrada de dados (nao auditoria); o Guardiao nao audita dado de entrada."
       }
     },
     {
@@ -2314,9 +2330,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Registrada na varredura exaustiva (#128 ARCA-FIX-005).",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "NAO_APLICAVEL",
         "codigos": [],
-        "motivo": "Validacao de construcao do agregado (fabrica); nao gera diagnostico de planilha no Guardiao."
+        "motivo": "Validacao de construcao do agregado (fabrica); garantia de integridade interna do modelo, nao gera diagnostico de planilha."
       }
     },
     {
@@ -2369,9 +2385,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Registrada na varredura exaustiva (#128 ARCA-FIX-005).",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "NAO_APLICAVEL",
         "codigos": [],
-        "motivo": "Consolidacao analitica de produtividade ocorre no motor/plugins; o Guardiao nao audita o calculo (audita os insumos e rateios)."
+        "motivo": "Consolidacao analitica por orquestracao de plugins; o Guardiao audita insumos e rateios, nao o calculo final."
       }
     },
     {
@@ -2422,9 +2438,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Registrada na varredura exaustiva (#128 ARCA-FIX-005).",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "NAO_APLICAVEL",
         "codigos": [],
-        "motivo": "Diagnostico de relatorio GXT (saida), nao regra de auditoria de planilha."
+        "motivo": "Diagnostico deterministico do relatorio GXT (saida); nao e regra de auditoria de planilha."
       }
     },
     {
@@ -2545,9 +2561,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Reconciliacao do lote OCR-ARCA (#135-#139). Origem: defeito real reproduzido (#136) - nenhum titulo gerado para naturezas com substantivo (ROUBO/FURTO) e para natureza quebrada em duas linhas. NAO promove heuristica de OCR a regra oficial e NAO reintroduz GXT/Central Analitica.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "NAO_APLICAVEL",
         "codigos": [],
-        "motivo": "Consumidor e o formulario (cliente, Entrada/Formulario.html) e nao a planilha auditada; o Guardiao nao emite codigo de diagnostico para titulo PIP de veiculo."
+        "motivo": "Consumidor e o formulario (cliente, Entrada/Formulario.html), nao a planilha auditada."
       }
     },
     {
@@ -2606,9 +2622,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Registrado por determinacao literal do proprietario (11/09/2026): 1 pedra de crack = 0,25 g; 1 papelote/big de maconha = 3 g; 1 pino/ziplock de cocaina = 1 g; e o crack, embora separado da cocaina na contabilidade da unidade, entra no somatorio geral da cocaina nos escaloes superiores por ser derivado direto dela. Resolve o risco R2 do mapa do tunel (card #142): a formula que inclui o crack no TOTAL DE COCAINA e intencional, nao defeito.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "NAO_APLICAVEL",
         "codigos": [],
-        "motivo": "Regra aplicada nas formulas da aba mensal; o Guardiao nao emite codigo de diagnostico para conversao de drogas hoje."
+        "motivo": "Conversao de drogas em gramas aplicada nas formulas da aba mensal; nao e auditoria do Guardiao."
       }
     },
     {
@@ -2656,9 +2672,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Dirime qual instrumento registrar quando ha varios; complementa ARCA-IMPUTACAO-002.",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "NAO_APLICAVEL",
         "codigos": [],
-        "motivo": "Criterio discricionario de preenchimento orientado por diretriz; nao ha fonte canonica no BO para auditar automaticamente."
+        "motivo": "Criterio discricionario de preenchimento (instrumento mais gravoso); sem fonte canonica no BO para auditar automaticamente."
       }
     },
     {
@@ -2709,9 +2725,9 @@
       "status_cobertura": "COBERTO",
       "observacoes": "Define o layout físico (bloco contíguo + linha em branco) que o corretor de TUNEL_FRAGMENTADO usa para reagrupar; complementa ARCA-MIKE-004 (fragmentação por chave).",
       "auditabilidade_guardiao": {
-        "status": "NAO_AUDITAVEL",
+        "status": "NAO_APLICAVEL",
         "codigos": [],
-        "motivo": "Especificação estrutural de layout físico; não gera código de diagnóstico próprio. A fragmentação detectável é coberta por ARCA-MIKE-004 (TUNEL_FRAGMENTADO). Regra consumida pelo corretor de túneis."
+        "motivo": "Especificacao estrutural de layout fisico; a fragmentacao detectavel e coberta por ARCA-MIKE-004 (TUNEL_FRAGMENTADO). Consumida pelo corretor de tuneis."
       }
     }
   ]

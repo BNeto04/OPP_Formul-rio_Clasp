@@ -178,6 +178,7 @@ class GuardiaoQualidade {
       armaLinha: loc('ARMA_LINHA'),
       tipoArma: loc('TIPO_ARMA'),
       armas: loc('ARMAS'),
+      qdtArmas: loc('QDT_ARMAS'),
       municao: RegrasQualidade.localizarPorAliases(headers, ['MUNICAO']),
       maconha: loc('MACONHA'),
       crack: loc('CRACK'),
@@ -260,7 +261,9 @@ class GuardiaoQualidade {
       if (boe) mikesMapa[mike].boes.add(boe);
       const dataFormatada = chave.split('|')[0];
       if (dataFormatada) mikesMapa[mike].datas.add(dataFormatada);
-      mikesMapa[mike].linhas.push({ linha, boe, dataTexto: dataFormatada, chave });
+      const qdtArmasLinha = idx.qdtArmas !== -1 ? RegrasQualidade.texto(row[idx.qdtArmas]) : '';
+      const armaValorLinha = idx.armaLinha !== -1 ? RegrasQualidade.texto(row[idx.armaLinha]) : '';
+      mikesMapa[mike].linhas.push({ linha, boe, dataTexto: dataFormatada, chave, qdtArmas: qdtArmasLinha, arma: armaValorLinha });
 
       // Mapa matricula -> ocorrencias (para deteccao de vinculo multiplo na mesma data - #115)
       if (matricula) {
@@ -479,6 +482,29 @@ class GuardiaoQualidade {
         });
       });
     }
+
+    // Invariante ARCA-ARMAS-001: QDT ARMAS idêntico entre participantes E igual à soma de ARMA física do túnel
+    Object.values(mikesMapa).forEach(t => {
+      const qdtValores = t.linhas.map(l => parseFloat(l.qdtArmas) || 0);
+      const somaArma = t.linhas.reduce((s, l) => s + (parseFloat(l.arma) || 0), 0);
+      const qdtUnico = new Set(qdtValores);
+      if (qdtUnico.size > 1 || (qdtValores.length && qdtValores[0] !== somaArma)) {
+        t.linhas.forEach(l => {
+          if (l.linha >= 2 && l.linha - 2 < alertasPorLinha.length) {
+            alertasPorLinha[l.linha - 2].push(RegrasQualidade.criarDiagnostico({
+              severidade: SEVERIDADES_GUARDIAO.ALERTA,
+              codigoRegra: 'QDT_ARMAS_DIVERGENTE_NO_TUNEL',
+              camada: 'SEMANTICA',
+              linha: l.linha,
+              tunel: l.chave,
+              diagnostico: 'QDT ARMAS divergente: participação inconsistente entre participantes ou diferente da soma de armas físicas do túnel.',
+              evidencia: `QDT ARMAS: [${qdtValores.join(', ')}] | Soma ARMA: ${somaArma}`,
+              acaoRecomendada: 'Recompute o QDT ARMAS do túnel (igual em todas as linhas e igual à soma da coluna ARMA).'
+            }));
+          }
+        });
+      }
+    });
 
     // Policial vinculado a 2+ MIKEs na MESMA data exige confirmacao humana (#115)
     let CoberturaMod = typeof CoberturaAuditoria !== 'undefined' ? CoberturaAuditoria : null;
