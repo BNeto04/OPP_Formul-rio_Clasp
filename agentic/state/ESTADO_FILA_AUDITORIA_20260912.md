@@ -30,7 +30,7 @@
 
 ### 🟡 Grupo 2 — precisa do Executor
 `#117`, `#122` — **somente se você não aceitar o gate live como dispensado**; aceitando, migram para o Grupo 1
-`#139` — a **Necessidade 5** do comentário `5628419318` (OCR extrai entorpecente parcial; DETIDOS fica vazio) **não tem card** e não foi tratada. É trabalho de código, não de prova
+`#139` — ~~Necessidade 5 sem card~~ **CORRIGIDO NA AUDITORIA (2026-09-12)**: entorpecentes + DETIDOS **já haviam sido tratados pelo #144**, homologado e fechado. Não há trabalho pendente nem card a abrir.
 
 ### 🔵 Grupo 3 — depende do proprietário / prova no Sheets
 **Vazio.** Os itens que estavam aqui (prova live do #117 e do #122) foram dispensados pela
@@ -41,11 +41,27 @@ substituida pelo uso real da ferramenta por ele"*). Reverter a dispensa = os ite
 
 ## 3. Pendência declarada (não escondida)
 
-1. **Necessidade 5 sem card** — OCR de entorpecentes parcial + DETIDOS vazio. Único buraco real da fila.
+1. ~~Necessidade 5 sem card~~ — **RETIRADO: afirmação incorreta minha.** O assunto foi tratado pelo #144 (já homologado e fechado). Registrado aqui como erro do Executor, corrigido pelo Planner na auditoria.
 2. **Erro meu, já corrigido** — no 1º comentário do #151 eu resumi a lista de arquivados como `#152-#200` (faixa inexistente). Reescrevi com a relação nominal real; seção *Correção* no próprio card.
 3. **Rate-limit da API** — dois episódios durante os lotes de arquivamento; retomados por verificação de estado, sem item duplicado ou pulado.
 
-## 4. Ponte 1 (contexto do pedido)
+## 4. CORREÇÃO DA AUDITORIA (2026-09-12) — estado final real
+
+O Planner retomou a auditoria e executou os fechamentos. Estado no GitHub:
+
+`#112` · `#117` · `#122` · `#133` · `#139` · `#143` · `#145` · `#146` · `#147` · `#148` · `#149` · `#151`
+→ todos **CLOSED / COMPLETED**.
+
+- Dispensa dos gates live do #117 e #122: **aceita** (prova controlada substituída pelo uso real).
+- Antiguidade reconciliada: **posto/graduação → empate por matrícula mais antiga**, separado do
+  critério de mérito por menor N.
+- **Erro meu retirado:** não existia "Necessidade 5 sem card" — #144 já cobria entorpecentes + DETIDOS.
+- Sprint raiz **#112 fechada** (filhos #113-#122 concluídos).
+
+**Consequência:** a fila Guardião + Normalizador + ARCA + OCR/P3 está administrativamente limpa.
+Não se abrem cards para assuntos já resolvidos.
+
+## 5. Ponte 1 (contexto do pedido)
 
 Ponte 1 (`127.0.0.1:8766`) **desligada** no momento do pedido. Fluxo verificado no código
 (`ponte1_telegram_chatgpt/server/ponte1_daemon.js`): `/status` e `/packet` (GET), `/ack`,
