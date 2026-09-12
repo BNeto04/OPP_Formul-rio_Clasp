@@ -46,8 +46,8 @@ test('proveniencia e limites declarados (fonte, evidencias, auditabilidade com m
   assert.ok(regra.fontes.some(f => f.tipo === 'CATALOGO_OFICIAL'), 'falta a fonte do rotulo oficial da Tabela PIP');
   assert.ok(regra.fontes.some(f => f.tipo === 'DOCUMENTACAO_INTERNA'), 'falta a fonte documental interna');
   assert.ok(regra.evidencia_codigo.length > 0 && regra.evidencia_testes.length > 0, 'sem evidencia de codigo/teste');
-  assert.strictEqual(regra.auditabilidade_guardiao.status, 'NAO_AUDITAVEL');
-  assert.ok(regra.auditabilidade_guardiao.motivo.length > 20, 'motivo de NAO_AUDITAVEL ausente/curto');
+  assert.strictEqual(regra.auditabilidade_guardiao.status, 'NAO_APLICAVEL');
+  assert.ok(regra.auditabilidade_guardiao.motivo.length > 20, 'motivo de NAO_APLICAVEL ausente/curto');
 });
 
 test('NENHUMA heuristica de OCR foi promovida a regra oficial', () => {
