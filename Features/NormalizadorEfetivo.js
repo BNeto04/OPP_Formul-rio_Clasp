@@ -483,3 +483,22 @@ function migrarNomesBosEfetivo() {
 
   return resumo;
 }
+
+// Adiciona CRAVEIRO (apagado manualmente do EFETIVO) ao arquivo de legado,
+// preservando a referencia para nao sumir, sem reentrar na validacao.
+function adicionarCraveiroAoLegado() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const legado = ss.getSheetByName('EFETIVO_LEGADO');
+  if (!legado) throw new Error('Aba EFETIVO_LEGADO nao encontrada.');
+  const linha = legado.getLastRow() + 1;
+  legado.getRange(linha, 1, 1, 7).setValues([[
+    'CRAVEIRO',       // A: nome de guerra
+    '1ºTEN 1127950',  // B: gradMat
+    '',               // C: nome completo (nao localizado)
+    '1ºTEN',          // D: grad
+    '1127950',        // E: matricula
+    '3º PEL',         // F: subunidade produtividade
+    '3º PEL'          // G: subunidade peculio
+  ]]);
+  return { linha: linha, nomeGuerra: 'CRAVEIRO', matricula: '1127950' };
+}
