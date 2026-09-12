@@ -2,7 +2,7 @@
 
 **Papel:** Operario executor (Hermes). **Autoridade:** ordem direta do proprietario (Mano), sem card previo.
 **Destino:** auditoria do Planner (reconciliacao local == Git == Kanban). Nada foi auto-homologado.
-**Issues relacionadas permanecem OPEN:** #112 (sprint), #145-#149 (ARCA-GUARD), #117, #133.
+**Issues relacionadas permanecem OPEN:** #112 (sprint), #145-#150 (ARCA-GUARD + ARCA-GOV), #117, #133.
 
 ---
 
@@ -54,7 +54,27 @@
 | **Total** | **45** |
 
 - Correcao de leitura: nao ha regra "cega". As 16 fora de MAPEADO sao 7 INTEGRADO + 9 NAO_APLICAVEL.
-- Lacuna de dados apurada: `ARCA-TERRITORIO-001` com `status_cobertura` vazio no JSON.
+
+## 4. Fluid flow da ARCA — reclassificacao + QDT ARMAS (ref #148, #141)
+
+**Estado no momento deste registro:** implementado e VERDE nos testes, porem **NAO COMMITADO**
+(drift local x Git — este RESULT foi escrito antes do commit desta secao).
+
+| Arquivo | Mudanca |
+|---|---|
+| `Dominio/ARCA/arca_regras_dominio.json` | 17 NAO_AUDITAVEL reclassificadas: 7 INTEGRADO + 9 NAO_APLICAVEL + 1 MAPEADO. Meta passa a `regras_mapeadas: 29`, `regras_integradas: 7`, `regras_nao_aplicaveis: 9`. Nota `fluid_flow` gravada no proprio JSON. |
+| `Features/GuardiaoQualidade.js` | Novo diagnostico `QDT_ARMAS_DIVERGENTE_NO_TUNEL` (invariante ARCA-ARMAS-001: QDT ARMAS identico entre participantes do tunel e igual a soma da coluna ARMA fisica). |
+| `Dominio/ARCA/AdaptadorConsultaArca.js` | Mapeia `QDT_ARMAS_DIVERGENTE_NO_TUNEL` -> `ARCA-ARMAS-001`. |
+| `Core/ContratoMutacaoSegura.js` | Novo codigo entra na blacklist dura (`DADO_OPERACIONAL_BLACKLIST`). |
+| `Testes/TestArcaConsumidores.js`, `Testes/TestArcaMapaCobertura.js` | Asserts atualizados para INTEGRADO/NAO_APLICAVEL e "zero regras cegas (fluid flow)". |
+
+**Testes executados 12/09:** `TestArcaMapaCobertura` 11 PASS / 0 FAIL · `TestArcaConsumidores` 9 PASS / 0 FAIL · `TestGuardiao` 32 PASS / 0 FAIL.
+
+## 5. Itens no worktree que NAO sao deste trabalho
+
+- **Config de provedor** (ref cards #103/#92 HERMES-CLOUD-PROVIDERS): `agentic/config/providers.json`, `.env.example`, `agentic/.env.example`. Nao commitados por poderem carregar valor sensivel — avaliar antes.
+- **Estado de runtime** (nao e trabalho): `VigiaPonte/context_hub_state.json`, `VigiaPonte/conversation_memory.json`, `ponte1_telegram_chatgpt/server/ponte1.log`, `ponte1_delivery_history.json`, `ponte2_chatgpt_gravity/logs/ponte2.log`, `ponte2_chatgpt_gravity/state/*.json`.
+- **Untracked:** `Testes/temp_test_nl/`, `Testes/temp_test_obs/`, `Testes/temp_test_telegram/`.
 
 ---
 
