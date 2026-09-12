@@ -1193,5 +1193,60 @@ test('ARCA-ARMAS-001: QDT ARMAS diferente da soma de ARMA fisica gera diagnostic
   assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'QDT_ARMAS_DIVERGENTE_NO_TUNEL'));
 });
 
+test('ARCA-ARMAS-001: tunel sem arma (ARMA 0 / QDT 0) NAO gera diagnostico', () => {
+  const dados = [
+    linhaArma('202607151000', '3º SGT', '110955-3', 0, 0, 'KEY1'),
+    linhaArma('202607151000', 'CB', '118379-6', 0, 0, 'KEY1')
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersArmas, dados, formulasArmas));
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'QDT_ARMAS_DIVERGENTE_NO_TUNEL').length, 0);
+});
+
+test('ARCA-ARMAS-001: multiplas armas coerentes (ARMA 2 / QDT 2) NAO geram diagnostico', () => {
+  const dados = [
+    linhaArma('202607151000', '3º SGT', '110955-3', 2, 2, 'KEY1'),
+    linhaArma('202607151000', 'CB', '118379-6', 0, 2, 'KEY1')
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersArmas, dados, formulasArmas));
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'QDT_ARMAS_DIVERGENTE_NO_TUNEL').length, 0);
+});
+
+test('ARCA-ARMAS-001: tunel com 3 policiais e QDT coerente NAO gera diagnostico', () => {
+  const dados = [
+    linhaArma('202607151000', '3º SGT', '110955-3', 1, 1, 'KEY1'),
+    linhaArma('202607151000', 'CB', '118379-6', 0, 1, 'KEY1'),
+    linhaArma('202607151000', 'SD', '120727-0', 0, 1, 'KEY1')
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersArmas, dados, formulasArmas));
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'QDT_ARMAS_DIVERGENTE_NO_TUNEL').length, 0);
+});
+
+test('ARCA-ARMAS-001: tunel divergente com 3 policiais gera diagnostico', () => {
+  const dados = [
+    linhaArma('202607151000', '3º SGT', '110955-3', 1, 1, 'KEY1'),
+    linhaArma('202607151000', 'CB', '118379-6', 0, 1, 'KEY1'),
+    linhaArma('202607151000', 'SD', '120727-0', 0, 3, 'KEY1')
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersArmas, dados, formulasArmas));
+  assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'QDT_ARMAS_DIVERGENTE_NO_TUNEL'));
+});
+
+// ---- #149: caso ambiguo (base nao determina) nao pode gerar falso positivo ----
+test('ARCA-TERRITORIO-001: cidade/bairro fora da base NAO gera falso positivo (ambiguo)', () => {
+  const dados = [
+    ['15/07/2026', '01', '202607151000', '26E100', '3º SGT', '108394-5', 'IRAN SILVA', 'MUNICIPIO_INEXISTENTE', 'BAIRRO_INEXISTENTE', 'AIS 9', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY1', '']
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersAis, dados, formulasAis));
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'AIS_DIVERGENTE' || d.codigoRegra === 'AIS_AUSENTE').length, 0);
+});
+
+test('ARCA-TERRITORIO-001: sem cidade nem bairro NAO gera falso positivo', () => {
+  const dados = [
+    ['15/07/2026', '01', '202607151000', '26E100', '3º SGT', '108394-5', 'IRAN SILVA', '', '', 'AIS 9', 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, 'KEY1', '']
+  ];
+  const r = GuardiaoQualidade.varrerAba(criarMockSheet(headersAis, dados, formulasAis));
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'AIS_DIVERGENTE' || d.codigoRegra === 'AIS_AUSENTE').length, 0);
+});
+
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);
 }
