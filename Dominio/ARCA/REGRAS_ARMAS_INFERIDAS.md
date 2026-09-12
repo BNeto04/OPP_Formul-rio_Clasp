@@ -17,18 +17,29 @@ O produto é consolidado por **PELOTÃO**. A coluna `PELOTÃO` é obrigatória n
 (erro bloqueante se ausente) e é a primeira coluna da entrega.
 
 ## R2 — Composição de grupo e cor (GTAR / PELOTÃO / OFICIAIS)
-**Fonte**: `corPorGrupoArmas_()` linhas 74-98
+**Fonte CANÔNICA encontrada**: `Render/RendererGxt.js:14-22` (`CORES_PELOTAO`) — mapeamento por
+**nome exato de grupo**, e o fallback de grupo desconhecido é o **3º PEL** (`:55-59`).
+A tabela abaixo é a canônica; o `Compilador_Armas.js` tenta reproduzi-la por substring.
 
-| Grupo (padrão no valor de PELOTÃO/GRAD) | Fundo | Fonte | Negrito |
+| Grupo (nome canônico) | Fundo | Fonte | Negrito |
 |---|---|---|---|
-| Oficiais — posto em `MAJ/CAP/TEN/ASP/CEL/TC` **ou** valor contendo `OFICIAIS` | `#f1c232` | `#000000` | não |
-| **GTAR 1** (contém `GTAR` **e** `1`) | `#00cc00` | `#000000` | **sim** |
-| **GTAR 2** (contém `GTAR` **e** `2`) | `#3c78d8` | `#ffffff` | **sim** |
-| **1º PEL** (contém `1` **e** `PEL`) | `#00ff00` | `#000000` | não |
-| **2º PEL** (contém `2` **e** `PEL`) | `#6d9eeb` | `#000000` | não |
-| Demais | `#ffffff` | `#000000` | não |
+| `OFICIAIS` | `#F1C232` | `#000000` | não |
+| `1º PEL GTAR` | `#00CC00` | `#000000` | **sim** |
+| `1º PEL` | `#00FF00` | `#000000` | não |
+| `2º PEL GTAR` | `#3C78D8` | `#FFFFFF` | **sim** |
+| `2º PEL` | `#6D9EEB` | `#000000` | não |
+| **`3º PEL`** | `#FFFFFF` | `#000000` | não |
+| `TOTAL` | `#073763` | `#FFFFFF` | **sim** |
 
-**Precedência**: a função avalia nesta ordem — Oficiais → GTAR1 → GTAR2 → 1PEL → 2PEL → padrão.
+**Precedência (soberania dos OFICIAIS)**: a marcação de **oficial prevalece** sobre a cor do
+pelotão — um oficial lotado no 3º PEL recebe a cor de **OFICIAIS**, não a do 3º PEL.
+O `TOTAL` não é linha de policial (é consolidado).
+
+**Divergência do compilador de Armas**:
+1. o **3º PEL não existe** no código dele (cai no branco genérico) — o 3º PEL tem grupo e cor próprios;
+2. ele procura `GTAR` + `1`/`2` por substring, mas o nome canônico é **`1º PEL GTAR` / `2º PEL GTAR`**;
+3. ele não tem o grupo `TOTAL` (`#073763`).
+
 
 ## R3 — Faixas de quantidade de armas (cor por célula)
 **Fonte**: `corPorArmasArmas_()` linhas 100-107 — o insumo é o **SCORE ACUMULADO**
