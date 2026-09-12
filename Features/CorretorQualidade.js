@@ -29,7 +29,10 @@ var CorretorQualidade = {
    * @returns {Array<{nome:string, indice:number}>} indice ZERO-based
    */
   localizarColunas: function (sheet) {
-    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const headersRaw = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const headers = headersRaw.map(function (h) {
+      return (typeof SyntheonUtils !== 'undefined') ? SyntheonUtils.normalizarTexto(h) : String(h).toUpperCase().trim();
+    });
     if (typeof RegrasQualidade !== 'undefined' && typeof RegrasQualidade.localizarColunasCalculadas === 'function') {
       return RegrasQualidade.localizarColunasCalculadas(headers);
     }
@@ -56,7 +59,10 @@ var CorretorQualidade = {
     const self = this;
     const dryRun = !!(opcoes && opcoes.dryRun);
 
-    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const headersRaw = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const headers = headersRaw.map(function (h) {
+      return (typeof SyntheonUtils !== 'undefined') ? SyntheonUtils.normalizarTexto(h) : String(h).toUpperCase().trim();
+    });
     const colunas = (typeof RegrasQualidade !== 'undefined' && typeof RegrasQualidade.localizarColunasCalculadas === 'function')
       ? RegrasQualidade.localizarColunasCalculadas(headers)
       : [];

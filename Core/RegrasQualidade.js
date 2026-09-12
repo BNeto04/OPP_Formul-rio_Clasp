@@ -476,7 +476,7 @@ class RegrasQualidade {
     const colunas = [
       { nome: 'PELOTAO', aliases: ['PELOTAO', 'PELOTÃO'] },
       { nome: 'GRAD', aliases: ['GRAD', 'GRADUACAO', 'GRADUAÇÃO', 'POSTO'] },
-      { nome: 'MATRICULA', aliases: ['MATRICULA (FÓRMULA)', 'MATRÍCULA (FÓRMULA)'] },
+      { nome: 'MATRICULA', aliases: ['MATRICULA (FÓRMULA)', 'MATRÍCULA (FÓRMULA)', 'MATRICULA', 'MATRÍCULA'] },
       { nome: 'TOTAL DE MACONHA', indicePadrao: 18, aliases: ['TOTAL DE MACONHA'] },
       { nome: 'DIVIDIDO MAC', indicePadrao: 19, aliases: ['DIVIDIDO MAC'] },
       { nome: 'TOTAL CRACK', indicePadrao: 22, aliases: ['TOTAL CRACK (GR)', 'TOTAL CRACK'] },
