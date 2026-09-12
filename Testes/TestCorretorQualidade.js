@@ -40,7 +40,8 @@ function criarSheet(lastRow, celulasIniciais, efetivoNomes) {
       getFormulaR1C1: function () { return cel.formula ? 'R1C1:' + cel.formula : ''; },
       setFormulaR1C1: function (s) { cel.formula = '=' + s; chamadas.push({ r: r, c: c, s: s }); },
       getNote: function () { return cel.nota; },
-      getValue: function () { return cel.valor; }
+      getValue: function () { return cel.valor; },
+      clearContent: function () { cel.formula = ''; cel.valor = ''; chamadas.push({ r: r, c: c, clear: true }); }
     };
   }
 
@@ -182,7 +183,23 @@ test('coluna VLOOKUP preserva dado de policial legado (fora do EFETIVO)', () => 
   assert.strictEqual(sheet.celulas['4,3'].formula, '', 'matricula do legado permanece estatica');
 });
 
-// 7. Idempotencia: segunda execucao nao corrige nada.
+// 7. ARRAYFORMULA: mantem a do topo e limpa as duplicadas (spill quebrado).
+test('ARRAYFORMULA: mantem a do topo e limpa as duplicadas', () => {
+  const sheet = criarSheet(5, {
+    '2,1': { formula: '=ARRAYFORMULA(IF((E2:E10="")*(G2:G10="");"";E2:E10&"|"&G2:G10))' },
+    '3,1': { formula: '=ARRAYFORMULA(IF((E3:E11="")*(G3:G11="");"";E3:E11&"|"&G3:G11))' },
+    '4,1': { formula: '=ARRAYFORMULA(IF((E4:E12="")*(G4:G12="");"";E4:E12&"|"&G4:G12))' }
+  });
+  const resumo = CorretorQualidade.corrigirFormulasAba(sheet);
+  const pelotao = resumo.colunas.find(c => c.nome === 'PELOTAO');
+  assert.ok(pelotao && pelotao.arrayFormula, 'coluna marcada como ARRAYFORMULA');
+  assert.strictEqual(pelotao.corrigidas, 2, '2 duplicadas limpas');
+  assert.ok(sheet.celulas['2,1'].formula.indexOf('ARRAYFORMULA') !== -1, 'topo preservado');
+  assert.strictEqual(sheet.celulas['3,1'].formula, '', 'duplicada 3 limpa');
+  assert.strictEqual(sheet.celulas['4,1'].formula, '', 'duplicada 4 limpa');
+});
+
+// 8. Idempotencia: segunda execucao nao corrige nada.
 test('idempotencia: segunda execucao corrige zero', () => {
   const sheet = criarSheet(5, {
     '2,1': { formula: '=VLOOKUP(AE2;EFETIVO;6;0)' },

@@ -108,6 +108,36 @@ var CorretorQualidade = {
         return;
       }
 
+      // ARRAYFORMULA: formula unica no topo derrama na coluna inteira. Nao se replica;
+      // o correto e manter apenas a PRIMEIRA e limpar as duplicadas (spill quebrado).
+      let ehArrayFormula = false;
+      for (let r = 0; r < formulas.length; r++) {
+        if (String(formulas[r][col] || '').toUpperCase().indexOf('ARRAYFORMULA') !== -1) {
+          ehArrayFormula = true;
+          break;
+        }
+      }
+      if (ehArrayFormula) {
+        let primeiroVisto = false;
+        let limpas = 0;
+        let fonteLinha = 0;
+        for (let r = 0; r < formulas.length; r++) {
+          const f = String(formulas[r][col] || '');
+          if (f.toUpperCase().indexOf('ARRAYFORMULA') !== -1) {
+            if (!primeiroVisto) {
+              primeiroVisto = true;
+              fonteLinha = r + 2;
+            } else {
+              if (!dryRun) sheet.getRange(r + 2, col + 1).clearContent();
+              limpas++;
+            }
+          }
+        }
+        resumo.colunas.push({ nome: coluna.nome, fonte: fonteLinha, corrigidas: limpas, arrayFormula: true });
+        resumo.corrigidas += limpas;
+        return;
+      }
+
       // 1. Acha uma linha-fonte com formula valida nesta coluna.
       let fonteR1C1 = null;
       let fonteFormula = '';
