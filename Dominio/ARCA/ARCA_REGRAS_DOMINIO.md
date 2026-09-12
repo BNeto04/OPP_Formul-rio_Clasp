@@ -728,10 +728,27 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Consumidores (reconciliado #125):** REAL: `Core/Constantes.js` | INDIRETO: - | DECLARADO: - | PLANEJADO: -
 
 
-## ARCA-IMPUTACAO-003 — Instrumento Mais Gravoso no Preenchimento (APFD / AAFAI para Menor)
+### [ARCA-IMPUTACAO-003] Instrumento Mais Gravoso no Preenchimento (APFD / AAFAI para Menor)
 
 - **Descrição:** Quando uma ocorrência envolve múltiplas pessoas/instrumentos, registra-se o MAIS GRAVOSO: adulto → APFD; menor de idade → AAFAI. Sem instrumento no BO → campo em branco (manual).
 - **Fonte Declarada:** Orientação do Proprietário (calibragem de BOs, 12/09/2026).
 - **Evidência no Código:** `Entrada/EntradaManual.js` (coluna DETIDOS, preenchimento orientado).
 - **Exceções:** numerário e demais campos ausentes do BO ficam em branco (numerário segue discricionário — `ARCA-NUMERARIO-001`).
 - **Auditabilidade:** NAO_AUDITAVEL — critério discricionário de preenchimento; sem fonte canônica no BO para auditar automaticamente.
+- **Consumidores (reconciliado #125):** REAL: `Entrada/EntradaManual.js` | DECLARADO: `EntradaManual` | PLANEJADO: -
+
+---
+
+### [ARCA-OCORRENCIA-006] Contiguidade Física do Bloco do Túnel
+- **Subdomínio:** `ocorrencia` | **Categoria:** `INTEGRIDADE_ESTRUTURAL`
+- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** As linhas de um mesmo túnel (mesma chave `DATA | MIKE | BOE`) formam um **bloco contíguo** na aba mensal. Uma **linha em branco** separa um túnel do próximo. Linhas do mesmo túnel separadas por outro túnel (ou por linha em branco) configuram **fragmentação física** do bloco.
+- **Condição Lógica:** `Mesma chave DATA|MIKE|BOE presente em blocos não-adjacentes (separados por linha em branco ou por outro túnel).`
+- **Resultado Esperado:** Bloco contíguo por túnel; fragmentação física detectável quando a chave reaparece em bloco separado.
+- **Fontes Declaradas:** Mapa do Túnel e Auditoria das Fórmulas (MOD-C03-01) — `02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-01_MODELO_DE_OCORRENCIA/MAPA_DO_TUNEL_E_FORMULAS.md`.
+- **Evidência no Código:** `Core/SaudeTuneis.js:detectarFragmentados`, `Features/GuardiaoQualidade.js` (bloco TUNEL_FRAGMENTADO).
+- **Evidência em Testes:** `Testes/TestSaudeTuneis.js`.
+- **Exceções Admitidas:** Linha em branco entre túneis **distintos** é fronteira intencional, não fragmentação.
+- **Auditabilidade no Guardião:** `NAO_AUDITAVEL` — especificação estrutural de layout físico; não gera código de diagnóstico próprio. A fragmentação detectável é coberta por `ARCA-MIKE-004` (`TUNEL_FRAGMENTADO`). Regra consumida pelo **corretor de túneis** (planejado).
+- **Observações:** Define o layout físico (bloco contíguo + linha em branco) que o corretor de `TUNEL_FRAGMENTADO` usa para reagrupar; complementa `ARCA-MIKE-004` (fragmentação por chave).
+- **Consumidores (reconciliado #125):** REAL: `Core/SaudeTuneis.js` | DECLARADO: `CorretorTuneis` | PLANEJADO: -
