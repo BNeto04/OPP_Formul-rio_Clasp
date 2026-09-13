@@ -48,8 +48,9 @@ function gerarComparativo2026Premium(abasSelecionadas) {
   const abasAlvo = abas2026.filter(nome => mapaSelecionadas[nome]);
 
   if (abasAlvo.length === 0) {
-    SpreadsheetApp.getUi().alert("Nenhuma aba de 2026 encontrada para gerar o comparativo.");
-    return;
+    const uiVazio = _uiSeguraComparativo_();
+    if (uiVazio) uiVazio.alert("Nenhuma aba de 2026 encontrada para gerar o comparativo.");
+    return { sucesso: false, erro: 'Nenhuma aba de 2026 encontrada', abas: [] };
   }
 
   const ocorrencias = SyntheonLeitor.lerAbas(ss, abasAlvo, null, null, logger);
@@ -72,7 +73,28 @@ function gerarComparativo2026Premium(abasSelecionadas) {
 
   RendererComparativo2026.render(ss, "COMPARATIVO_2026", arrayRegistros, metadata);
   logger.gravarPlanilha("LOG_COMPARATIVO_2026", "COMPARATIVO_2026");
-  SpreadsheetApp.getUi().alert(`Comparativo 2026 gerado em ${tempoSegundos}s!\nConsulte a aba COMPARATIVO_2026.`);
+  const uiFim = _uiSeguraComparativo_();
+  if (uiFim) uiFim.alert(`Comparativo 2026 gerado em ${tempoSegundos}s!\nConsulte a aba COMPARATIVO_2026.`);
+  return { sucesso: true, aba: 'COMPARATIVO_2026', abasLidas: abasAlvo.length,
+           policiais: arrayRegistros.length, ocorrencias: ocorrencias.length, tempo: tempoSegundos + 's' };
+}
+
+/** UI opcional: em contexto headless (executionApi/trigger) nao existe UI interativa. */
+function _uiSeguraComparativo_() {
+  try {
+    return (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.getUi) ? SpreadsheetApp.getUi() : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Porta headless (clasp run). Sem abas informadas = todas as abas mensais de 2026. */
+function gerarComparativo2026Headless(abas) {
+  const lista = (typeof abas === 'string')
+    ? (abas ? abas.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [])
+    : (abas || []);
+  const r = gerarComparativo2026Premium(lista.length ? lista : null);
+  return JSON.stringify(r || { sucesso: null, aviso: 'sem retorno' });
 }
 
 function obterAbasComparativo2026(ss) {
