@@ -87,7 +87,7 @@ const RendererComparativo2026 = {
     sheet.getRange(linhaDados, 7, Math.max(dados.length, 1), 1).setNumberFormat('#,##0.00');
     sheet.getRange(linhaDados, 9, Math.max(dados.length, 1), 1).setNumberFormat('#,##0.00');
 
-    RendererComparativo2026.renderizarLegenda(sheet, linhaLegenda);
+    RendererComparativo2026.renderizarLegenda(sheet, linhaLegenda, registros);
     RendererComparativo2026.renderizarCarimbo(sheet, linhaCarimbo, totalColunas, metadata);
     RendererComparativo2026.ajustarLayout(sheet);
   },
@@ -165,7 +165,7 @@ const RendererComparativo2026 = {
     return null;
   },
 
-  renderizarLegenda(sheet, linhaInicial) {
+  renderizarLegenda(sheet, linhaInicial, registros) {
     sheet.getRange(linhaInicial, 1).setValue('LEGENDA').setFontWeight('bold');
 
     // #152: ordem identica a `grupoOrdenacao` (GTAR ANTES do PEL) - a legenda espelha a tabela.
@@ -187,17 +187,27 @@ const RendererComparativo2026 = {
     // #152: a faixa ZERO estava AUSENTE - a tabela pinta zero de VERMELHO e nada explicava.
     // A regra de cores e a mesma de `corPorArmas` (0 / 1-3 / 4-5 / 6-9 / 10+).
     const legendaArmas = [
-      ['0 (nenhuma)', '#ff0000', '#ffffff'],
-      ['1 a 3', '#ff9900', '#000000'],
-      ['4 a 5', '#ffff00', '#000000'],
-      ['6 a 9', '#93c47d', '#000000'],
-      ['10+', '#38761d', '#ffffff']
+      ['0 (nenhuma)', '#ff0000', '#ffffff', 0, 0],
+      ['1 a 3', '#ff9900', '#000000', 1, 3],
+      ['4 a 5', '#ffff00', '#000000', 4, 5],
+      ['6 a 9', '#93c47d', '#000000', 6, 9],
+      ['10+', '#38761d', '#ffffff', 10, 999999]
     ];
+    const fonte = registros || [];
     legendaArmas.forEach((item, index) => {
       const linha = linhaInicial + 1 + index;
+      // #152: quem esta nessa faixa (mesmo campo que a tabela exibe)
+      const quem = fonte.filter(function (r) {
+        const a = Number((r.fatos && r.fatos.armas) || 0);
+        return a >= item[3] && a <= item[4];
+      });
       sheet.getRange(linha, 4).setValue(item[0]);
       sheet.getRange(linha, 5).setBackground(item[1]).setFontColor(item[2])
         .setBorder(true, true, true, true, false, false, '#000000', SpreadsheetApp.BorderStyle.SOLID);
+      sheet.getRange(linha, 6).setValue(quem.length + ' policiais').setHorizontalAlignment('center');
+      sheet.getRange(linha, 7).setValue(quem.map(function (r) {
+        return (r.nome || r.matricula) + ' (' + (r.fatos && r.fatos.armas || 0) + ')';
+      }).join(' - '));
     });
   },
 
