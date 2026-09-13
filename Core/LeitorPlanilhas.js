@@ -321,7 +321,7 @@ function diagnosticarCaminhoArmasHeadless(matriculaAlvo) {
   }
 
   try {
-    const ocorrencias = SyntheonLeitor.lerAbas(ss, ['SET2026']);
+    const ocorrencias = SyntheonLeitor.lerAbas(ss, ['SET2026'], null, null, new SyntheonLogger('DIAG_ARMA'));
     const mapa = SyntheonMetricas.consolidarPoliciais(ocorrencias);
     const chaves = Object.keys(mapa);
     const chave = chaves.filter(function (k) { return String(k).indexOf(String(matriculaAlvo)) !== -1; })[0];
