@@ -188,3 +188,27 @@ function inserirLinhasBrancasTuneisHeadless(nomeAba) {
     lastRowDepois: aba.getLastRow()
   });
 }
+
+/**
+ * REMOVE as linhas totalmente vazias de uma aba mensal (reverte insercao indevida).
+ * Diferente de inserir: aqui a ORDEM e DELETAR o que esta 100% vazio.
+ * Seguranca: so remove linha SEM NENHUM conteudo em nenhuma coluna.
+ */
+function removerLinhasBrancasHeadless(nomeAba) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const aba = ss.getSheetByName(nomeAba);
+  if (!aba) return JSON.stringify({ erro: 'Aba nao encontrada: ' + nomeAba });
+
+  const lastRow = aba.getLastRow();
+  const lastCol = Math.min(aba.getLastColumn(), 40);
+  if (lastRow < 2) return JSON.stringify({ aba: nomeAba, removidas: 0 });
+
+  const v = aba.getRange(1, 1, lastRow, lastCol).getValues();
+  let removidas = 0;
+  for (let r = lastRow; r >= 2; r--) {
+    const linha = v[r - 1];
+    const temConteudo = linha.some(function (c) { return String(c === null || c === undefined ? '' : c).trim() !== ''; });
+    if (!temConteudo) { aba.deleteRow(r); removidas++; }
+  }
+  return JSON.stringify({ aba: nomeAba, removidas: removidas, lastRowDepois: aba.getLastRow() });
+}
