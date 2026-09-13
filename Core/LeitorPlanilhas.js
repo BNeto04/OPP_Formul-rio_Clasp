@@ -88,6 +88,7 @@ const SyntheonLeitor = {
             pelotao: linha.pelotaoPolicial,
             pontosFiccao: 0,
             armas: 0,
+            participacaoArmas: 0,
             maconha: 0,
             cocaina: 0,
             crack: 0,
@@ -277,6 +278,8 @@ const SyntheonLeitor = {
 
   _acumularMetricasPolicial(policial, dadosLinha) {
     policial.armas += dadosLinha.armas;
+    // #152: acumula a PARTICIPACAO de arma (QDT ARMAS) - e o que o produto mede.
+    policial.participacaoArmas = (policial.participacaoArmas || 0) + (dadosLinha.participacaoArmas || 0);
     policial.maconha += dadosLinha.maconha;
     policial.cocaina += dadosLinha.cocaina;
     policial.crack += dadosLinha.crack;
