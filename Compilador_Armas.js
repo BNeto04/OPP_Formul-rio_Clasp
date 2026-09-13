@@ -164,7 +164,10 @@ function executarCompilador(mesesAlvo, modo) {
       const idxMatricula = loc('MATRICULA');
       const idxPolicial = loc('POLICIAL');
       const idxGraduacao = loc('GRAD');
-      const idxArmas = loc('ARMAS');
+      // PARTICIPACAO de armas (coluna QDT ARMAS, 32 na planilha real) — NAO a arma fisica (coluna L).
+      // Card #152 (relato do proprietario 12/09): lendo 'ARMAS' o compilador trazia apenas quem tem
+      // a arma fisica registrada na linha; o correto e TODOS que participaram, com suas participacoes.
+      const idxArmas = loc('QDT_ARMAS');
       
       if (idxPelotao === -1) throw new Error(`Coluna PELOTÃO não encontrada no cabeçalho da aba ${nomeAba}.`);
       if (idxMatricula === -1) throw new Error(`Coluna MATRICULA não encontrada no cabeçalho da aba ${nomeAba}.`);
