@@ -61,13 +61,20 @@ function test(nome, fn) {
 
 // 1. Teste: Funções Auxiliares de Cores para Pelotão e Escala de Armas
 test('Armas: corPorGrupoArmas_ e corPorArmasArmas_ cobrem todas as regras protegidas', () => {
+  // CANONICO (#152 / be68de8): corPorGrupoArmas_ espelha a tabela UNICA de grupos (Core/LegendaCores.js
+  // e Render/RendererGxt.js CORES_PELOTAO). O contrato novo entrega hex MAIUSCULO e o campo `negrito`
+  // explicitamente em TODAS as seis faixas de grupo (antes: hex minusculo e `negrito` ausente/opcional).
   // Pelotões
-  assert.deepStrictEqual(corPorGrupoArmas_('1º TEN', 'OFICIAIS'), { fundo: '#f1c232', fonte: '#000000' });
-  assert.deepStrictEqual(corPorGrupoArmas_('SD', '1º PEL GTAR'), { fundo: '#00cc00', fonte: '#000000', negrito: true });
-  assert.deepStrictEqual(corPorGrupoArmas_('SD', '1º PEL'), { fundo: '#00ff00', fonte: '#000000' });
-  assert.deepStrictEqual(corPorGrupoArmas_('CB', '2º PEL GTAR'), { fundo: '#3c78d8', fonte: '#ffffff', negrito: true });
-  assert.deepStrictEqual(corPorGrupoArmas_('SD', '2º PEL'), { fundo: '#6d9eeb', fonte: '#000000' });
-  assert.deepStrictEqual(corPorGrupoArmas_('SGT', '3º PEL'), { fundo: '#ffffff', fonte: '#000000' });
+  assert.deepStrictEqual(corPorGrupoArmas_('1º TEN', 'OFICIAIS'), { fundo: '#F1C232', fonte: '#000000', negrito: false });
+  assert.deepStrictEqual(corPorGrupoArmas_('SD', '1º PEL GTAR'), { fundo: '#00CC00', fonte: '#000000', negrito: true });
+  assert.deepStrictEqual(corPorGrupoArmas_('SD', '1º PEL'), { fundo: '#00FF00', fonte: '#000000', negrito: false });
+  assert.deepStrictEqual(corPorGrupoArmas_('CB', '2º PEL GTAR'), { fundo: '#3C78D8', fonte: '#FFFFFF', negrito: true });
+  assert.deepStrictEqual(corPorGrupoArmas_('SD', '2º PEL'), { fundo: '#6D9EEB', fonte: '#000000', negrito: false });
+  assert.deepStrictEqual(corPorGrupoArmas_('SGT', '3º PEL'), { fundo: '#FFFFFF', fonte: '#000000', negrito: false });
+  // Fallback canonico: grupo desconhecido cai no 3º PEL (RendererGxt.js:59).
+  assert.deepStrictEqual(corPorGrupoArmas_('SD', 'GRUPO INEXISTENTE'), { fundo: '#FFFFFF', fonte: '#000000', negrito: false });
+  // Soberania dos OFICIAIS: a marca de oficial prevalece sobre a cor do pelotao declarado.
+  assert.deepStrictEqual(corPorGrupoArmas_('CAP', '1º PEL'), { fundo: '#F1C232', fonte: '#000000', negrito: false });
 
   // Escala de Armas (5 faixas: 0, 1-3, 4-5, 6-9, 10+)
   assert.deepStrictEqual(corPorArmasArmas_(0), { fundo: '#ff0000', fonte: '#ff0000' }); // Zero vermelho/vermelho
@@ -250,8 +257,12 @@ test('Armas: executarCompilador() real gera aba de saída com paleta oficial, es
   executarCompilador(['JAN2026'], 'ANUAL');
 
   // Validações do cabeçalho da aba de saída COMP_ARMAS_2026
+  // CONTRATO NOVO (2263d87 / PR #152): a coluna E (ARMAS) nao se chama mais "SCORE ACUMULADO (ARMAS)".
   assert.strictEqual(tracker.valores['1:1'], 'PELOTÃO');
-  assert.strictEqual(tracker.valores['1:5'], 'SCORE ACUMULADO (ARMAS)');
+  assert.strictEqual(tracker.valores['1:2'], 'GRADUAÇÃO');
+  assert.strictEqual(tracker.valores['1:3'], 'MATRÍCULA');
+  assert.strictEqual(tracker.valores['1:4'], 'POLICIAL');
+  assert.strictEqual(tracker.valores['1:5'], 'ARMAS');
   assert.strictEqual(tracker.backgrounds['1:1'], '#e0e0e0');
   assert.strictEqual(tracker.linhasCongeladas, 1);
   assert.strictEqual(tracker.filterCreated, true);
@@ -262,16 +273,17 @@ test('Armas: executarCompilador() real gera aba de saída com paleta oficial, es
   assert.strictEqual(tracker.alignments['2:4'], 'left');
 
   // Cores dos Pelotões (ordenados por maior score de armas)
-  // L2: TEN SILVA (12 armas - Oficial) -> Fundo #f1c232
-  assert.strictEqual(tracker.backgrounds['2:1'], '#f1c232');
-  // L3: SD SOUZA (7 armas - 1º PEL GTAR) -> Fundo #00cc00 bold
-  assert.strictEqual(tracker.backgrounds['3:1'], '#00cc00');
+  // CORES CANONICAS (#152 / be68de8): mesma tabela unica dos renderers -> hex MAIUSCULO.
+  // L2: TEN SILVA (12 armas - Oficial) -> Fundo #F1C232
+  assert.strictEqual(tracker.backgrounds['2:1'], '#F1C232');
+  // L3: SD SOUZA (7 armas - 1º PEL GTAR) -> Fundo #00CC00 bold
+  assert.strictEqual(tracker.backgrounds['3:1'], '#00CC00');
   assert.strictEqual(tracker.fontWeightsMatriz[1][0], 'bold');
-  // L4: SD SANTOS (4 armas - 1º PEL) -> Fundo #00ff00
-  assert.strictEqual(tracker.backgrounds['4:1'], '#00ff00');
-  // L5: CB OLIVEIRA (2 armas - 2º PEL GTAR) -> Fundo #3c78d8 bold branco
-  assert.strictEqual(tracker.backgrounds['5:1'], '#3c78d8');
-  assert.strictEqual(tracker.fontColorsMatriz[3][0], '#ffffff');
+  // L4: SD SANTOS (4 armas - 1º PEL) -> Fundo #00FF00
+  assert.strictEqual(tracker.backgrounds['4:1'], '#00FF00');
+  // L5: CB OLIVEIRA (2 armas - 2º PEL GTAR) -> Fundo #3C78D8 bold branco
+  assert.strictEqual(tracker.backgrounds['5:1'], '#3C78D8');
+  assert.strictEqual(tracker.fontColorsMatriz[3][0], '#FFFFFF');
   assert.strictEqual(tracker.fontWeightsMatriz[3][0], 'bold');
 
   // Escala de Armas na Coluna 5

@@ -42,7 +42,7 @@ O `TOTAL` não é linha de policial (é consolidado).
 
 
 ## R3 — Faixas de quantidade de armas (cor por célula)
-**Fonte**: `corPorArmasArmas_()` linhas 100-107 — o insumo é o **SCORE ACUMULADO**
+**Fonte**: `corPorArmasArmas_()` linhas 100-107 — o insumo é o **ARMAS**
 
 | Faixa | Fundo | Fonte |
 |---|---|---|
@@ -61,7 +61,7 @@ O `TOTAL` não é linha de policial (é consolidado).
 
 ## R5 — Acúmulo do SCORE
 **Fonte**: linhas 210-223
-O `SCORE ACUMULADO (ARMAS)` de cada policial é a **soma das QDT ARMAS de todas as abas
+O `ARMAS (coluna E do cabeçalho, renomeada no commit 2263d87)` de cada policial é a **soma das QDT ARMAS de todas as abas
 processadas**, chaveada pela **MATRÍCULA**. Nome, pelotão e graduação são capturados do
 **primeiro** registro encontrado do policial.
 
@@ -100,7 +100,7 @@ Se o nome já existir, é criada uma versão `…v1`, `…v2`, … (nunca sobres
 
 ## R8 — Esquema e formatação da entrega
 **Fonte**: linhas 237-250
-Colunas exatas: `PELOTÃO | GRADUAÇÃO | MATRÍCULA | POLICIAL | SCORE ACUMULADO (ARMAS)`
+Colunas exatas: `PELOTÃO | GRADUAÇÃO | MATRÍCULA | POLICIAL | ARMAS (coluna E do cabeçalho, renomeada no commit 2263d87)`
 Cabeçalho: Arial 10, **negrito**, fundo `#e0e0e0`, centralizado, borda sólida `#000000`.
 
 ## R9 — Regra da linha mestra do túnel

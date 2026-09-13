@@ -323,7 +323,39 @@ test('RendererComparativo2026: gera legenda de pelotões/armas e carimbo institu
   const ultimaLinhaDados = 7 + fixtureRegistros.length - 1; // L12
   const legLinha = ultimaLinhaDados + 3; // L15
   assert.strictEqual(tracker.valores[`${legLinha}:1`], 'LEGENDA');
-  assert.strictEqual(tracker.valores[`${legLinha}:5`], 'ARMAS');
+
+  // CONTRATO NOVO (98f5c8d / PR #152): o rotulo "ARMAS" fica DENTRO do quadrado de cor —
+  // coluna 4 (mesmo range que recebe fundo/fonte) — e nao mais na coluna 5 separado do quadrado.
+  assert.strictEqual(tracker.valores[`${legLinha}:4`], 'ARMAS');
+  assert.strictEqual(tracker.fontWeights[`${legLinha}:4`], 'bold');
+  assert.strictEqual(tracker.alignments[`${legLinha}:4`], 'center');
+
+  // As 5 faixas de armas (0 / 1-3 / 4-5 / 6-9 / 10+): rotulo DENTRO do quadrado (texto + fundo +
+  // fonte na MESMA celula), contagem na coluna 5 e QUEM na coluna 6.
+  const faixasArmas = [
+    { linha: legLinha + 1, rotulo: '0 (nenhuma)', fundo: '#ff0000', fonte: '#ffffff', quem: 1, nomes: 'SD LIMA (0)' },
+    { linha: legLinha + 2, rotulo: '1 a 3', fundo: '#ff9900', fonte: '#000000', quem: 2, nomes: 'CB OLIVEIRA (2)' },
+    { linha: legLinha + 3, rotulo: '4 a 5', fundo: '#ffff00', fonte: '#000000', quem: 1, nomes: 'SD SANTOS (4)' },
+    { linha: legLinha + 4, rotulo: '6 a 9', fundo: '#93c47d', fonte: '#000000', quem: 1, nomes: 'SD SOUZA (7)' },
+    { linha: legLinha + 5, rotulo: '10+', fundo: '#38761d', fonte: '#ffffff', quem: 1, nomes: 'TEN SILVA (12)' }
+  ];
+  faixasArmas.forEach(f => {
+    assert.strictEqual(tracker.valores[`${f.linha}:4`], f.rotulo, `rotulo da faixa deve ficar dentro do quadrado (L${f.linha})`);
+    assert.strictEqual(tracker.backgrounds[`${f.linha}:4`], f.fundo, `fundo dentro do quadrado na L${f.linha}`);
+    assert.strictEqual(tracker.fontColors[`${f.linha}:4`], f.fonte, `fonte legivel na L${f.linha}`);
+    assert.strictEqual(tracker.valores[`${f.linha}:5`], `${f.quem} policiais`, `contagem de policiais na L${f.linha}`);
+    assert.ok(tracker.valores[`${f.linha}:6`].includes(f.nomes), `QUEM na faixa da L${f.linha} deve citar ${f.nomes}`);
+  });
+  // A faixa 1-3 tem DOIS policiais e lista os dois com as respectivas participacoes.
+  assert.ok(tracker.valores[`${legLinha + 2}:6`].includes('SGT FERREIRA (1)'));
+  // Contagem exata: 5 faixas (nenhuma 6a.) e 6 grupos de pelotao.
+  assert.strictEqual(tracker.valores[`${legLinha + 6}:4`], undefined, 'a 6a. linha da legenda de armas nao existe');
+
+  // A legenda de pelotoes segue o desenho proprio: quadrado na coluna 1, rotulo na coluna 2.
+  assert.strictEqual(tracker.backgrounds[`${legLinha + 1}:1`], '#f1c232');
+  assert.strictEqual(tracker.valores[`${legLinha + 1}:2`], 'Oficiais');
+  assert.strictEqual(tracker.backgrounds[`${legLinha + 6}:1`], '#ffffff');
+  assert.strictEqual(tracker.valores[`${legLinha + 6}:2`], '3o PEL');
 
   const carimboLinha = legLinha + 7; // L22
   assert.ok(tracker.valores[`${carimboLinha}:1`].includes('PRODUTIVIDADE_GERAL / SYNTHÉON V2'));
