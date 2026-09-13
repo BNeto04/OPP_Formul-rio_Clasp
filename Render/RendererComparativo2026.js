@@ -183,7 +183,7 @@ const RendererComparativo2026 = {
       sheet.getRange(linha, 2).setValue(item[0]).setBorder(true, true, true, true, false, false, '#000000', SpreadsheetApp.BorderStyle.SOLID);
     });
 
-    sheet.getRange(linhaInicial, 5).setValue('ARMAS').setFontWeight('bold').setHorizontalAlignment('center');
+    sheet.getRange(linhaInicial, 4).setValue('ARMAS').setFontWeight('bold').setHorizontalAlignment('center');
     // #152: a faixa ZERO estava AUSENTE - a tabela pinta zero de VERMELHO e nada explicava.
     // A regra de cores e a mesma de `corPorArmas` (0 / 1-3 / 4-5 / 6-9 / 10+).
     const legendaArmas = [
@@ -201,11 +201,12 @@ const RendererComparativo2026 = {
         const a = Number((r.fatos && r.fatos.armas) || 0);
         return a >= item[3] && a <= item[4];
       });
-      sheet.getRange(linha, 4).setValue(item[0]);
-      sheet.getRange(linha, 5).setBackground(item[1]).setFontColor(item[2])
+      // #152 LAYOUT: o rotulo vai DENTRO do quadrado de cor (antes ficava separado, ilegivel).
+      sheet.getRange(linha, 4).setValue(item[0]).setBackground(item[1]).setFontColor(item[2])
+        .setFontWeight('bold').setHorizontalAlignment('center')
         .setBorder(true, true, true, true, false, false, '#000000', SpreadsheetApp.BorderStyle.SOLID);
-      sheet.getRange(linha, 6).setValue(quem.length + ' policiais').setHorizontalAlignment('center');
-      sheet.getRange(linha, 7).setValue(quem.map(function (r) {
+      sheet.getRange(linha, 5).setValue(quem.length + ' policiais').setHorizontalAlignment('left');
+      sheet.getRange(linha, 6).setValue(quem.map(function (r) {
         return (r.nome || r.matricula) + ' (' + (r.fatos && r.fatos.armas || 0) + ')';
       }).join(' - '));
     });
