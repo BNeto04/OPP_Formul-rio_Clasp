@@ -177,8 +177,17 @@ const SyntheonLeitor = {
       return null;
     }
 
+    // #152: a linha FILHA herda a DATA da linha mestra do seu tunel.
+    // O formulario grava a DATA apenas na mestra (DATA|MIKE|BOE). Sem herdar, TODA linha filha
+    // era descartada aqui - e a participacao de arma (que vive nas filhas) desaparecia do produto.
     const rawData = idx.data !== -1 ? row[idx.data] : null;
-    const dataObjeto = converterDataUnificada(rawData);
+    let dataObjeto = converterDataUnificada(rawData);
+    const memoriaAba = contexto.estatisticas ? contexto.estatisticas : contexto;
+    if (SyntheonValidador.validarData(dataObjeto)) {
+      memoriaAba.dataCorrente = dataObjeto;          // mestra define a data corrente do tunel
+    } else if (SyntheonValidador.validarData(memoriaAba.dataCorrente)) {
+      dataObjeto = memoriaAba.dataCorrente;          // filha herda a data da mestra
+    }
     if (!SyntheonValidador.validarData(dataObjeto)) {
       logger.aviso(`Data invalida ou ausente na aba ${contexto.nomeAba}, linha ${contexto.linhaReal}: "${rawData}".`);
       logger.linhasIgnoradas++;
