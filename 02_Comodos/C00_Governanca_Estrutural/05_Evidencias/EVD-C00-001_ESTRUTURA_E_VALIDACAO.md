@@ -8,7 +8,7 @@ formato: "46.5 - commit . ambiente . entrada . resultado . limite"
 data: "2026-09-13"
 ---
 
-# EV-C00-001 - Estrutura do cofre e validacao estrutural
+# EVD-C00-001 - Estrutura do cofre e validacao estrutural
 
 > **Formato declarado:** o doc do metodo (`03_Fundacao/ESTRUTURA_DO_COFRE.md`) define os seis slots
 > obrigatorios e o lint `scripts/downplant/lint-estrutura.mjs`, mas **nao** traz template de evidencia.

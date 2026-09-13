@@ -9,5 +9,5 @@ Cada arquivo declara os cinco campos do recorte: **commit . ambiente . entrada .
 ## Indice
 | Evidencia | Card(s) | Entrega | Commit de referencia |
 |---|---|---|---|
-| [EV-C03-001_ARCA_ARMAS_SEMANTICA.md](EV-C03-001_ARCA_ARMAS_SEMANTICA.md) | #141 | ARCA: semantica canonica `ARMA` x `QDT ARMAS` + invariante de tunel | `0c489ad` |
-| [EV-C03-002_ARCA_CONVERSOES_E_MAPA_FORMULAS.md](EV-C03-002_ARCA_CONVERSOES_E_MAPA_FORMULAS.md) | #144, #142 | conversoes canonicas de drogas + mapa factual do tunel e formulas | `61e4415` |
+| [EVD-C03-001_ARCA_ARMAS_SEMANTICA.md](EVD-C03-001_ARCA_ARMAS_SEMANTICA.md) | #141 | ARCA: semantica canonica `ARMA` x `QDT ARMAS` + invariante de tunel | `0c489ad` |
+| [EVD-C03-002_ARCA_CONVERSOES_E_MAPA_FORMULAS.md](EVD-C03-002_ARCA_CONVERSOES_E_MAPA_FORMULAS.md) | #144, #142 | conversoes canonicas de drogas + mapa factual do tunel e formulas | `61e4415` |

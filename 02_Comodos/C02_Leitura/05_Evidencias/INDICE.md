@@ -9,4 +9,4 @@ Cada arquivo declara os cinco campos do recorte: **commit . ambiente . entrada .
 ## Indice
 | Evidencia | Card(s) | Entrega | Commit de referencia |
 |---|---|---|---|
-| [EV-C02-001_LEITURA_TUNEL_E_FORMULAS.md](EV-C02-001_LEITURA_TUNEL_E_FORMULAS.md) | #142, #152 | leitura somente-leitura do tunel/formulas + acumulo de participacao | `8f9bec8` |
+| [EVD-C02-001_LEITURA_TUNEL_E_FORMULAS.md](EVD-C02-001_LEITURA_TUNEL_E_FORMULAS.md) | #142, #152 | leitura somente-leitura do tunel/formulas + acumulo de participacao | `8f9bec8` |

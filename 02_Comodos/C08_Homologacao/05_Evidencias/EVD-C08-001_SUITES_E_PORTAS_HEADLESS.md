@@ -8,7 +8,7 @@ formato: "46.5 - commit . ambiente . entrada . resultado . limite"
 data: "2026-09-13"
 ---
 
-# EV-C08-001 - Suites de teste e portas headless dos cards recentes
+# EVD-C08-001 - Suites de teste e portas headless dos cards recentes
 
 **Entrega:** instrumentacao de prova que sustenta #140, #141, #142, #144 e #152 -
 testes automatizados e portas headless executaveis sem clique (inclusive do celular).

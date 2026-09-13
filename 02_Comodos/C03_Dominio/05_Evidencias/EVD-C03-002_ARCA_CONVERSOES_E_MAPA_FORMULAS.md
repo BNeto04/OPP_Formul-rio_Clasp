@@ -8,7 +8,7 @@ formato: "46.5 - commit . ambiente . entrada . resultado . limite"
 data: "2026-09-13"
 ---
 
-# EV-C03-002 - Conversoes de drogas na ARCA e o mapa do tunel / formulas
+# EVD-C03-002 - Conversoes de drogas na ARCA e o mapa do tunel / formulas
 
 **Entrega:** #144 (OCR-P3-010) - registro das conversoes canonicas na ARCA;
 #142 (OCR-P3-008) - mapa factual do tunel e auditoria das formulas da aba mensal (artefato do dominio).

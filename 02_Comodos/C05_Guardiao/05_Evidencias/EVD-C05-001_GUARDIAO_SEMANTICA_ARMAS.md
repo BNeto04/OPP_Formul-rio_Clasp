@@ -8,7 +8,7 @@ formato: "46.5 - commit . ambiente . entrada . resultado . limite"
 data: "2026-09-13"
 ---
 
-# EV-C05-001 - Guardiao: semantica de armas e invariante de participacao
+# EVD-C05-001 - Guardiao: semantica de armas e invariante de participacao
 
 **Entrega:** #141 (OCR-P3-007) - o Guardiao passa a usar a mesma semantica explicita de
 `ARMA` (fisica) x `QDT ARMAS` (participacao); #148/#149 - diagnosticos do bloco ARCA-GUARD.

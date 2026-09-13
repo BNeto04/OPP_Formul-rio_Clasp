@@ -8,7 +8,7 @@ formato: "46.5 - commit . ambiente . entrada . resultado . limite"
 data: "2026-09-13"
 ---
 
-# EV-C04-001 - Motor Analitico e politica de merito de armas
+# EVD-C04-001 - Motor Analitico e politica de merito de armas
 
 **Entrega:** #141 (OCR-P3-007) - auditoria da semantica de arma **no Motor**;
 #152 (PROD-ARMAS-001) - provas do comparativo e do merito.

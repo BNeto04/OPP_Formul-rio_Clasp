@@ -83,7 +83,7 @@ o seu teste `Testes/TestWebAppExecucao.js` e a linha que registra o teste no run
 > **Referências documentais (registro, não consumo).** Artigos de **outros cards** (executados em
 > paralelo a este) passaram a **citar** o artefato como endereço/registro, sem chamá-lo:
 > `dependencias/DEP-001_GOOGLE_APPS_SCRIPT.md:30` (“Web app — endpoint HTTP headless…”),
-> `MOD-C08-01_HOMOLOGACAO_OFFLINE.md:63` e `EV-C08-001_SUITES_E_PORTAS_HEADLESS.md:29` (listam o
+> `MOD-C08-01_HOMOLOGACAO_OFFLINE.md:63` e `EVD-C08-001_SUITES_E_PORTAS_HEADLESS.md:29` (listam o
 > arquivo entre as “portas headless”). **Citar não é consumir** — e essas listas **confundem o
 > endpoint com a rota `clasp run`** (que é a rota headless real). Divergência registrada em
 > `RELATORIO_DE_DIFERENCIAS_155.md` (D10).

@@ -2,7 +2,7 @@
 
 - **ID:** MOD-C00-01
 - **Endereco Down Plant:** `C00_Governanca_Estrutural / MOD-C00-01_ESTRUTURA_DO_COFRE` (escala: modulo) . circuito `CIR-MOD-C00-01_ESTRUTURA_DO_COFRE.canvas`
-- **Estado (§19):** Codigo - (nao ha codigo de produto) . Teste 🟡 (via lint do modulo irmao) . Contrato 🟢 . Integracao 🟡 . Visual - . Publicacao - . Documentacao 🟢 *(esta capsula; evidencia EV-C00-001)*
+- **Estado (§19):** Codigo - (nao ha codigo de produto) . Teste 🟡 (via lint do modulo irmao) . Contrato 🟢 . Integracao 🟡 . Visual - . Publicacao - . Documentacao 🟢 *(esta capsula; evidencia EVD-C00-001)*
 - **Perfil:** P1 (operacao recorrente; sem dados sensiveis)
 - **Responsavel:** Proprietario (Manoel) - execucao por agentes sob card
 
@@ -75,7 +75,7 @@ Saida do lint (`SUCESSO` / `FALHA! N erro(s)`), versionada pelo repo; sem teleme
 `scripts/downplant/lint-estrutura.mjs` (executado no #153: exit 0, "estrita conformidade com o Down Plant 2.1").
 
 ## Evidencias
-- [EV-C00-001](../../../05_Evidencias/EV-C00-001_ESTRUTURA_E_VALIDACAO.md) - estrutura, lint e fechamento do comunicado #150.
+- [EVD-C00-001](../../../05_Evidencias/EVD-C00-001_ESTRUTURA_E_VALIDACAO.md) - estrutura, lint e fechamento do comunicado #150.
 - Cards: **#153** (DP-SYNC-DOC-001, este trabalho), **#150** (ARCA-GOV-001, fechado por ordem do proprietario em 13/09/2026).
 - Branch canonico no momento do registro: `sprint/g01-guardiao-qualidade-live-001`, HEAD `98f5c8d`.
 

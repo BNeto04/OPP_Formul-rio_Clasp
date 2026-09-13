@@ -208,7 +208,7 @@ $ node scripts/downplant/lint-estrutura.mjs "C:/Users/Bneto04/Documents/Obsidian
 O lint do repo retornou **SUCESSO / exit 0** imediatamente depois da escrita dos 15 canvas e deste relatório. A partir de **13:53:52** — **2 segundos depois** de este relatório ser gravado — **outro processo** (execução do **card #153**, cápsulas §46.2) começou a criar arquivos `MOD-CXX-NN_*.md` na raiz dos módulos, e esses arquivos usam um caminho relativo **inválido**:
 
 ```text
-[EV-C00-001] ( ../05_Evidencias/EV-C00-001_ESTRUTURA_E_VALIDACAO.md )
+[EVD-C00-001] ( ../05_Evidencias/EVD-C00-001_ESTRUTURA_E_VALIDACAO.md )
 ```
 A partir de `02_Comodos/<CXX>/01_Dominio/modulos/<MOD>/`, `../05_Evidencias/` resolve para `01_Dominio/05_Evidencias/`, que **não existe** (o slot correto está dois níveis acima, em `02_Comodos/<CXX>/05_Evidencias/`). O erro é do arquivo de #153, **não** do Canvas, do espelho ou deste relatório.
 
@@ -216,11 +216,11 @@ Cada cápsula nova soma 1 erro, e a contagem **cresceu durante a medição** (1 
 
 | Arquivo acusado (autor: execução do #153) | Link quebrado |
 |---|---|
-| `MOD-C00-01_ESTRUTURA_DO_COFRE/MOD-C00-01_ESTRUTURA_DO_COFRE.md` | `../05_Evidencias/EV-C00-001_ESTRUTURA_E_VALIDACAO.md` |
-| `MOD-C00-02_VALIDACAO_ESTRUTURAL/MOD-C00-02_VALIDACAO_ESTRUTURAL.md` | `../05_Evidencias/EV-C00-001_ESTRUTURA_E_VALIDACAO.md` |
-| `MOD-C02-01_LEITURA_E_ADAPTACAO/MOD-C02-01_LEITURA_E_ADAPTACAO.md` | `../05_Evidencias/EV-C02-001_LEITURA_TUNEL_E_FORMULAS.md` |
-| `MOD-C04-01_MOTOR_ANALITICO/MOD-C04-01_MOTOR_ANALITICO.md` | `../05_Evidencias/EV-C04-001_MOTOR_E_MERITO_ARMAS.md` |
-| `MOD-C05-01_GUARDIAO_DE_QUALIDADE/MOD-C05-01_GUARDIAO_DE_QUALIDADE.md` | `../05_Evidencias/EV-C05-001_GUARDIAO_SEMANTICA_ARMAS.md` |
+| `MOD-C00-01_ESTRUTURA_DO_COFRE/MOD-C00-01_ESTRUTURA_DO_COFRE.md` | `../05_Evidencias/EVD-C00-001_ESTRUTURA_E_VALIDACAO.md` |
+| `MOD-C00-02_VALIDACAO_ESTRUTURAL/MOD-C00-02_VALIDACAO_ESTRUTURAL.md` | `../05_Evidencias/EVD-C00-001_ESTRUTURA_E_VALIDACAO.md` |
+| `MOD-C02-01_LEITURA_E_ADAPTACAO/MOD-C02-01_LEITURA_E_ADAPTACAO.md` | `../05_Evidencias/EVD-C02-001_LEITURA_TUNEL_E_FORMULAS.md` |
+| `MOD-C04-01_MOTOR_ANALITICO/MOD-C04-01_MOTOR_ANALITICO.md` | `../05_Evidencias/EVD-C04-001_MOTOR_E_MERITO_ARMAS.md` |
+| `MOD-C05-01_GUARDIAO_DE_QUALIDADE/MOD-C05-01_GUARDIAO_DE_QUALIDADE.md` | `../05_Evidencias/EVD-C05-001_GUARDIAO_SEMANTICA_ARMAS.md` |
 
 Há ainda 1 erro de outro artefato concorrente (não Canvas, não cápsula de módulo): `08_Execucao_Ao_Vivo/downplant_handoff.md` aponta para `../scripts/downplant/validar-handoff.mjs`, que não existe. Também não é desta entrega.
 

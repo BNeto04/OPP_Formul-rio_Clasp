@@ -8,7 +8,7 @@ formato: "46.5 - commit . ambiente . entrada . resultado . limite"
 data: "2026-09-13"
 ---
 
-# EV-C01-001 - OCR de AIS em endereco SEI/CIODS segmentado por ';'
+# EVD-C01-001 - OCR de AIS em endereco SEI/CIODS segmentado por ';'
 
 **Entrega:** #140 (OCR-P3-006, P0, `sprint:c01`) - corrigir deteccao de AIS em enderecos SEI com
 separadores e bairros canonicos.

@@ -8,7 +8,7 @@ formato: "46.5 - commit . ambiente . entrada . resultado . limite"
 data: "2026-09-13"
 ---
 
-# EV-C01-002 - OCR parcial de entorpecentes e DETIDOS vazio
+# EVD-C01-002 - OCR parcial de entorpecentes e DETIDOS vazio
 
 **Entrega:** #144 (OCR-P3-010, P0, `sprint:c01`) - corrigir OCR parcial de entorpecentes e DETIDOS vazio.
 

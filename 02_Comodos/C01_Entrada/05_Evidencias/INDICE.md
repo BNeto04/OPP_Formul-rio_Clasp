@@ -9,6 +9,6 @@ Cada arquivo declara os cinco campos do recorte: **commit . ambiente . entrada .
 ## Indice
 | Evidencia | Card(s) | Entrega | Commit de referencia |
 |---|---|---|---|
-| [EV-C01-001_OCR_AIS_SEI.md](EV-C01-001_OCR_AIS_SEI.md) | #140 | OCR de AIS em endereco SEI/CIODS segmentado por `;` | `62635ca` |
-| [EV-C01-002_OCR_ENTORPECENTES_DETIDOS.md](EV-C01-002_OCR_ENTORPECENTES_DETIDOS.md) | #144 | OCR parcial de entorpecentes + `DETIDOS` vazio | `5ac6670` |
-| [EV-C01-003_SEMANTICA_ARMA_QDT_ARMAS.md](EV-C01-003_SEMANTICA_ARMA_QDT_ARMAS.md) | #141 | semantica `ARMA` x `QDT ARMAS` - ponta C01 (auditada) | `0c489ad` |
+| [EVD-C01-001_OCR_AIS_SEI.md](EVD-C01-001_OCR_AIS_SEI.md) | #140 | OCR de AIS em endereco SEI/CIODS segmentado por `;` | `62635ca` |
+| [EVD-C01-002_OCR_ENTORPECENTES_DETIDOS.md](EVD-C01-002_OCR_ENTORPECENTES_DETIDOS.md) | #144 | OCR parcial de entorpecentes + `DETIDOS` vazio | `5ac6670` |
+| [EVD-C01-003_SEMANTICA_ARMA_QDT_ARMAS.md](EVD-C01-003_SEMANTICA_ARMA_QDT_ARMAS.md) | #141 | semantica `ARMA` x `QDT ARMAS` - ponta C01 (auditada) | `0c489ad` |

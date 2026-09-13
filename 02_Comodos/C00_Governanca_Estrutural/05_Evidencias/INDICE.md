@@ -10,4 +10,4 @@ Cada arquivo declara os cinco campos do recorte: **commit . ambiente . entrada .
 ## Indice
 | Evidencia | Card(s) | Entrega | Commit de referencia |
 |---|---|---|---|
-| [EV-C00-001_ESTRUTURA_E_VALIDACAO.md](EV-C00-001_ESTRUTURA_E_VALIDACAO.md) | #153, #150 | estrutura do cofre + lint estrutural + fechamento do comodo Governanca | `98f5c8d` |
+| [EVD-C00-001_ESTRUTURA_E_VALIDACAO.md](EVD-C00-001_ESTRUTURA_E_VALIDACAO.md) | #153, #150 | estrutura do cofre + lint estrutural + fechamento do comodo Governanca | `98f5c8d` |

@@ -63,17 +63,17 @@ e nada mais. O recorte usado (evidencia: *commit . ambiente . entrada . resultad
 ### 3.1 Evidencias §46.5 (11)
 
 ```
-C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C00_Governanca_Estrutural\05_Evidencias\EV-C00-001_ESTRUTURA_E_VALIDACAO.md
-C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C01_Entrada\05_Evidencias\EV-C01-001_OCR_AIS_SEI.md
-C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C01_Entrada\05_Evidencias\EV-C01-002_OCR_ENTORPECENTES_DETIDOS.md
-C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C01_Entrada\05_Evidencias\EV-C01-003_SEMANTICA_ARMA_QDT_ARMAS.md
-C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C02_Leitura\05_Evidencias\EV-C02-001_LEITURA_TUNEL_E_FORMULAS.md
-C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C03_Dominio\05_Evidencias\EV-C03-001_ARCA_ARMAS_SEMANTICA.md
-C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C03_Dominio\05_Evidencias\EV-C03-002_ARCA_CONVERSOES_E_MAPA_FORMULAS.md
-C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C04_Motor\05_Evidencias\EV-C04-001_MOTOR_E_MERITO_ARMAS.md
-C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C05_Guardiao\05_Evidencias\EV-C05-001_GUARDIAO_SEMANTICA_ARMAS.md
-C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C06_Relatorios\05_Evidencias\EV-C06-001_COMPARATIVO_E_ARMAS.md
-C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C08_Homologacao\05_Evidencias\EV-C08-001_SUITES_E_PORTAS_HEADLESS.md
+C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C00_Governanca_Estrutural\05_Evidencias\EVD-C00-001_ESTRUTURA_E_VALIDACAO.md
+C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C01_Entrada\05_Evidencias\EVD-C01-001_OCR_AIS_SEI.md
+C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C01_Entrada\05_Evidencias\EVD-C01-002_OCR_ENTORPECENTES_DETIDOS.md
+C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C01_Entrada\05_Evidencias\EVD-C01-003_SEMANTICA_ARMA_QDT_ARMAS.md
+C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C02_Leitura\05_Evidencias\EVD-C02-001_LEITURA_TUNEL_E_FORMULAS.md
+C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C03_Dominio\05_Evidencias\EVD-C03-001_ARCA_ARMAS_SEMANTICA.md
+C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C03_Dominio\05_Evidencias\EVD-C03-002_ARCA_CONVERSOES_E_MAPA_FORMULAS.md
+C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C04_Motor\05_Evidencias\EVD-C04-001_MOTOR_E_MERITO_ARMAS.md
+C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C05_Guardiao\05_Evidencias\EVD-C05-001_GUARDIAO_SEMANTICA_ARMAS.md
+C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C06_Relatorios\05_Evidencias\EVD-C06-001_COMPARATIVO_E_ARMAS.md
+C:\Users\Bneto04\Documents\Codex\syntheon-gs-downplant-offline\02_Comodos\C08_Homologacao\05_Evidencias\EVD-C08-001_SUITES_E_PORTAS_HEADLESS.md
 ```
 
 ### 3.2 Capsulas §46.2 (8 - a do MOD-C01-01 **nao** foi tocada)
@@ -145,10 +145,10 @@ erro de digitacao corrigido.
 
 | ID | Divergencia | Fonte |
 |---|---|---|
-| D-1 | **`agentic/state/RESULT_152_PARTE1_ARMAS.md` cita o commit `b7a0a5d` como "elo final" - esse hash NAO EXISTE no repositorio** (`git log --all` varrido, 10 refs + HEAD). O elo versionado e `824b545`. Registrada em `EV-C06-001` e na capsula `MOD-C06-01`. | git + RESULT 152 |
+| D-1 | **`agentic/state/RESULT_152_PARTE1_ARMAS.md` cita o commit `b7a0a5d` como "elo final" - esse hash NAO EXISTE no repositorio** (`git log --all` varrido, 10 refs + HEAD). O elo versionado e `824b545`. Registrada em `EVD-C06-001` e na capsula `MOD-C06-01`. | git + RESULT 152 |
 | D-2 | **Contagem de arquivos publicados:** `81/81 byte-iguais ao HEAD` (cards #140/#141/#144) x `68 arquivos canonicos` (`ponte2_chatgpt_gravity/server/send_audit_fix_result.js`). Nao reconciliados. | cards x log interno |
 | D-3 | **Fuso horario:** `appsscript.json` = `America/Sao_Paulo` x `Core/Config.js` = `America/Recife`. Visivel no repo, efeito **nao avaliado**. | manifesto x config |
-| D-4 | **`Motor/` nao foi alterado** por nenhum commit dos cards citados - o "#141 auditou o Motor" e **leitura**, nao alteracao. Registrado honestamente em `EV-C04-001`. | `git log -- Motor/` |
+| D-4 | **`Motor/` nao foi alterado** por nenhum commit dos cards citados - o "#141 auditou o Motor" e **leitura**, nao alteracao. Registrado honestamente em `EVD-C04-001`. | `git log -- Motor/` |
 | D-5 | **Protocolo de homologacao offline (C06) proibia qualquer push**; os cards #140/#141/#144 registraram `clasp push` com verificacao remota. Os dois registros convivem e a distincao **nao esta explicada em um unico lugar**. | C06 x cards |
 | D-6 | **`Testes/TestNormalizadorEfetivo.js` nunca foi versionado** (untracked, listado no #150) - logo **nao** esta na suite. | #150 |
 

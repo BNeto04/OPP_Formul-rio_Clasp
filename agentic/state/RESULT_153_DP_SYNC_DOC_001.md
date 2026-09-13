@@ -44,17 +44,17 @@ plausibilidade; toda ausência está **declarada como ausência**.
 ### 2.2 Evidências materializadas (§46.5) — 11 arquivos, 8 cômodos
 
 ```
-02_Comodos/C00_Governanca_Estrutural/05_Evidencias/EV-C00-001_ESTRUTURA_E_VALIDACAO.md   (#153, #150)
-02_Comodos/C01_Entrada/05_Evidencias/EV-C01-001_OCR_AIS_SEI.md                            (#140)
-02_Comodos/C01_Entrada/05_Evidencias/EV-C01-002_OCR_ENTORPECENTES_DETIDOS.md              (#144)
-02_Comodos/C01_Entrada/05_Evidencias/EV-C01-003_SEMANTICA_ARMA_QDT_ARMAS.md               (#141)
-02_Comodos/C02_Leitura/05_Evidencias/EV-C02-001_LEITURA_TUNEL_E_FORMULAS.md               (#142, #152)
-02_Comodos/C03_Dominio/05_Evidencias/EV-C03-001_ARCA_ARMAS_SEMANTICA.md                   (#141)
-02_Comodos/C03_Dominio/05_Evidencias/EV-C03-002_ARCA_CONVERSOES_E_MAPA_FORMULAS.md        (#144, #142)
-02_Comodos/C04_Motor/05_Evidencias/EV-C04-001_MOTOR_E_MERITO_ARMAS.md                     (#141, #152)
-02_Comodos/C05_Guardiao/05_Evidencias/EV-C05-001_GUARDIAO_SEMANTICA_ARMAS.md              (#141, #146-#149)
-02_Comodos/C06_Relatorios/05_Evidencias/EV-C06-001_COMPARATIVO_E_ARMAS.md                 (#152)
-02_Comodos/C08_Homologacao/05_Evidencias/EV-C08-001_SUITES_E_PORTAS_HEADLESS.md           (#140..#152)
+02_Comodos/C00_Governanca_Estrutural/05_Evidencias/EVD-C00-001_ESTRUTURA_E_VALIDACAO.md   (#153, #150)
+02_Comodos/C01_Entrada/05_Evidencias/EVD-C01-001_OCR_AIS_SEI.md                            (#140)
+02_Comodos/C01_Entrada/05_Evidencias/EVD-C01-002_OCR_ENTORPECENTES_DETIDOS.md              (#144)
+02_Comodos/C01_Entrada/05_Evidencias/EVD-C01-003_SEMANTICA_ARMA_QDT_ARMAS.md               (#141)
+02_Comodos/C02_Leitura/05_Evidencias/EVD-C02-001_LEITURA_TUNEL_E_FORMULAS.md               (#142, #152)
+02_Comodos/C03_Dominio/05_Evidencias/EVD-C03-001_ARCA_ARMAS_SEMANTICA.md                   (#141)
+02_Comodos/C03_Dominio/05_Evidencias/EVD-C03-002_ARCA_CONVERSOES_E_MAPA_FORMULAS.md        (#144, #142)
+02_Comodos/C04_Motor/05_Evidencias/EVD-C04-001_MOTOR_E_MERITO_ARMAS.md                     (#141, #152)
+02_Comodos/C05_Guardiao/05_Evidencias/EVD-C05-001_GUARDIAO_SEMANTICA_ARMAS.md              (#141, #146-#149)
+02_Comodos/C06_Relatorios/05_Evidencias/EVD-C06-001_COMPARATIVO_E_ARMAS.md                 (#152)
+02_Comodos/C08_Homologacao/05_Evidencias/EVD-C08-001_SUITES_E_PORTAS_HEADLESS.md           (#140..#152)
 ```
 
 ### 2.3 Cápsulas §46.2 completadas — 8 (o `MOD-C01-01` **não** foi reescrito, por ordem do proprietário)
@@ -130,7 +130,7 @@ git status --short | grep -c "RELATORIO_DE_DIFERENCIAS_153" # 1 (untracked)
 
 1. **`b7a0a5d` não existe.** `agentic/state/RESULT_152_PARTE1_ARMAS.md` cita esse hash como "commit do elo final";
    `git log --all` (10 refs + HEAD) **não o encontra**. O elo versionado é **`824b545`**. A referência quebrada
-   **não** foi corrigida no arquivo de origem (fora do escopo autorizado) — está registrada em `EV-C06-001` e na
+   **não** foi corrigida no arquivo de origem (fora do escopo autorizado) — está registrada em `EVD-C06-001` e na
    cápsula `MOD-C06-01`.
 2. **Contagem de publicação divergente:** `81/81 byte-iguais ao HEAD` (cards #140/#141/#144) × `68 arquivos canônicos`
    (`ponte2_chatgpt_gravity/server/send_audit_fix_result.js`). Não reconciliados.

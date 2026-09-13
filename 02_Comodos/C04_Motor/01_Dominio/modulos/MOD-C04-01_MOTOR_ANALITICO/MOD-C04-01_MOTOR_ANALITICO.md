@@ -2,7 +2,7 @@
 
 - **ID:** MOD-C04-01
 - **Endereco Down Plant:** `C04_Motor / MOD-C04-01_MOTOR_ANALITICO` (escala: modulo) . circuito `CIR-MOD-C04-01_MOTOR_ANALITICO.canvas`
-- **Estado (§19):** Codigo 🟢 . Teste 🟢 (`TestMotorAnaliticoRegressao`, `TestMeritoEquipeArmas`, `TestCentralAnalitica`) . Contrato 🟢 . Integracao 🟢 . Visual - . Publicacao 🟢 (81/81) . Documentacao 🟢 *(esta capsula; evidencia EV-C04-001)*
+- **Estado (§19):** Codigo 🟢 . Teste 🟢 (`TestMotorAnaliticoRegressao`, `TestMeritoEquipeArmas`, `TestCentralAnalitica`) . Contrato 🟢 . Integracao 🟢 . Visual - . Publicacao 🟢 (81/81) . Documentacao 🟢 *(esta capsula; evidencia EVD-C04-001)*
 - **Perfil:** P1 (operacao recorrente)
 - **Responsavel:** Proprietario (Manoel) - execucao por agentes sob card
 
@@ -80,7 +80,7 @@ relatorio de homologacao (`Homologacao/RodarTesteDeHomologacao.js`).
 Prova de produto do #152: PONTUACAO (CPM) `36.385,33 = 36.385,33` e QTD.O `8 = 8` para a matricula 1133306.
 
 ## Evidencias
-- [EV-C04-001](../../../05_Evidencias/EV-C04-001_MOTOR_E_MERITO_ARMAS.md) (#141, #152).
+- [EVD-C04-001](../../../05_Evidencias/EVD-C04-001_MOTOR_E_MERITO_ARMAS.md) (#141, #152).
 - Commit de auditoria: `0c489ad` (#141) - o inventario registra `Motor/PoliticaMeritoArmas.js` como **correto**.
 - **O `Motor` NAO foi alterado** por nenhum commit dos cards #140/#141/#142/#144/#152/#150.
 

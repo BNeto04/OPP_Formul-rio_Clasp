@@ -7,11 +7,11 @@ formato: "46.5 - commit . ambiente . entrada . resultado . limite"
 data: "2026-09-13"
 ---
 
-# EV-C01-003 - Semantica ARMA (fisica) x QDT ARMAS (participacao): a ponta do C01
+# EVD-C01-003 - Semantica ARMA (fisica) x QDT ARMAS (participacao): a ponta do C01
 
 **Entrega:** #141 (OCR-P3-007, P0, `sprint:c01`) - reconciliar `ARMA` x `QDT ARMAS` com ARCA e Guardiao.
 Este registro cobre **a ponta do comodo C01** (persistencia e formulario); as pontas ARCA e Guardiao
-estao em `EV-C03-001` e `EV-C05-001`.
+estao em `EVD-C03-001` e `EVD-C05-001`.
 
 ## Commit
 | Hash | Mensagem | Arquivos | Estatistica |

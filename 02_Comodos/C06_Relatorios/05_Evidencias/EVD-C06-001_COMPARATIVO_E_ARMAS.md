@@ -7,7 +7,7 @@ formato: "46.5 - commit . ambiente . entrada . resultado . limite"
 data: "2026-09-13"
 ---
 
-# EV-C06-001 - Comparativo 2026: as 4 partes provadas + Compilador de Armas
+# EVD-C06-001 - Comparativo 2026: as 4 partes provadas + Compilador de Armas
 
 **Entrega:** #152 (PROD-ARMAS-001, P0, `sprint:c01`) - gerar o **produto real** (listas de apreensao de
 armas por `P3 -> Armas -> Selecao Livre` e `Armas -> Anual`) e provar cada valor publicado.

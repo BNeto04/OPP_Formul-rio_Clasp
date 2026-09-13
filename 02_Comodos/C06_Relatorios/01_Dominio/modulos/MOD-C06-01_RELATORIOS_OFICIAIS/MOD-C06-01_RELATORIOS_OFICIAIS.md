@@ -2,7 +2,7 @@
 
 - **ID:** MOD-C06-01
 - **Endereco Down Plant:** `C06_Relatorios / MOD-C06-01_RELATORIOS_OFICIAIS` (escala: modulo) . circuito `CIR-MOD-C06-01_RELATORIOS_OFICIAIS.canvas`
-- **Estado (§19):** Codigo 🟢 . Teste 🟢 . Contrato 🟢 . Integracao 🟢 . Visual 🟢 . Publicacao 🟢 (81/81) . Documentacao 🟢 *(esta capsula; evidencia EV-C06-001)*
+- **Estado (§19):** Codigo 🟢 . Teste 🟢 . Contrato 🟢 . Integracao 🟢 . Visual 🟢 . Publicacao 🟢 (81/81) . Documentacao 🟢 *(esta capsula; evidencia EVD-C06-001)*
 - **Perfil:** P1 (operacao recorrente)
 - **Responsavel:** Proprietario (Manoel) - execucao por agentes sob card
 
@@ -80,7 +80,7 @@ Portas `verificarParticipacaoArmasHeadless`, `verificarQtdOcorrenciasHeadless`, 
 `TestSemRedefinicaoGlobal` (garante que o menu e as funcoes publicas nao colidem).
 
 ## Evidencias
-- [EV-C06-001](../../../05_Evidencias/EV-C06-001_COMPARATIVO_E_ARMAS.md) (#152).
+- [EVD-C06-001](../../../05_Evidencias/EVD-C06-001_COMPARATIVO_E_ARMAS.md) (#152).
 - Commit do elo final: **`824b545`** (`RegistroAnalitico` preserva `participacaoArmas`).
 - **Divergencia declarada:** `agentic/state/RESULT_152_PARTE1_ARMAS.md` cita o commit `b7a0a5d` como "elo final",
   mas **esse hash nao existe no repositorio** - o elo versionado e `824b545`.

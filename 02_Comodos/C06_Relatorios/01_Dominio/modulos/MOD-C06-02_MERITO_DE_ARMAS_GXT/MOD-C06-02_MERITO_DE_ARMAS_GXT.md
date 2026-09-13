@@ -2,7 +2,7 @@
 
 - **ID:** MOD-C06-02
 - **Endereco Down Plant:** `C06_Relatorios / MOD-C06-02_MERITO_DE_ARMAS_GXT` (escala: modulo) . circuito `CIR-MOD-C06-02_MERITO_DE_ARMAS_GXT.canvas`
-- **Estado (§19):** Codigo 🟢 . Teste 🟢 (`TestRelatorioArmas`, `TestMeritoEquipeArmas`) . Contrato 🟢 . Integracao 🟢 . Visual 🟢 . Publicacao 🟢 (81/81) . Documentacao 🟢 *(esta capsula; evidencia EV-C06-001)*
+- **Estado (§19):** Codigo 🟢 . Teste 🟢 (`TestRelatorioArmas`, `TestMeritoEquipeArmas`) . Contrato 🟢 . Integracao 🟢 . Visual 🟢 . Publicacao 🟢 (81/81) . Documentacao 🟢 *(esta capsula; evidencia EVD-C06-001)*
 - **Perfil:** P1 (operacao recorrente)
 - **Responsavel:** Proprietario (Manoel) - execucao por agentes sob card
 
@@ -85,7 +85,7 @@ QUEM por faixa de cor (leitura imediata do resultado).
 tunel duplo, equipe de cinco, lider fora do GTAR) . `TestSemRedefinicaoGlobal` (menu).
 
 ## Evidencias
-- [EV-C06-001](../../../05_Evidencias/EV-C06-001_COMPARATIVO_E_ARMAS.md) (#152).
+- [EVD-C06-001](../../../05_Evidencias/EVD-C06-001_COMPARATIVO_E_ARMAS.md) (#152).
 - Commits nucleares: `ab2e1b6` (porta headless) . `be68de8` (R2/R6/R10) . `1b2c0ae` (defeito real) .
   `9195a18` (legenda fonte unica) . `4b7b58d` / `64daaed` / `efd12f9` (regras e divergencias).
 - **Fechamento:** lista gerada e tema resolvido, confirmado pelo proprietario em 13/09/2026.

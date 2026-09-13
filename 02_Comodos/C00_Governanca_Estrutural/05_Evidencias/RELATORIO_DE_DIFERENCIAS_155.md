@@ -39,7 +39,7 @@ porém está **RETIRADO**: nunca implantado, sem consumidor, com a razão de exi
 | D7 | **consumidores** | O artefato é “infraestrutura de apoio” (implícito: haveria consumidor). | Varredura **no código de runtime** por `WebAppExecucao`, `TOKEN_EXECUCAO`, `EXECUCAO_LISTA_BRANCA`: **3 arquivos, todos autorreferentes** (o `.js`, seu teste e a linha 99 de `Testes/RodarTodosOsTestes.js`). | **Consumidores reais (runtime) = 0.** |
 | D8 | **redundância** | — | As 4 funções da lista branca (`getEfetivo`, `obterOpcoesValidacao`, `obterTabelaTerritorialAIS`, `resolverAISTerritorial`) **já** são alcançáveis por dois caminhos vivos: (a) a ponte oficial da UI `google.script.run` (`Entrada/Formulario.html:957-959, 1266-1268`); (b) a rota headless `clasp run`. | **Redundante na prática**, não só na teoria. |
 | D9 | **superação** | — | Entre 11/09 (`a1de4bf`) e 13/09, **toda** a cadeia headless correu pela rota `clasp run` (p.ex. `executarGuardiaoHeadless`, `executarCompiladorArmasHeadless`, `gerarComparativo2026Headless`, `verificarParticipacaoArmasHeadless`), com **zero** chamada ao endpoint. | **Superado em uso.** |
-| D10 | **DOCUMENTAÇÃO (concorrente) × ESTADO** | — | Cards **executados em paralelo** (#153/#156) passaram a **citar** o artefato como capacidade ativa, sem chamá-lo: `dependencias/DEP-001_GOOGLE_APPS_SCRIPT.md:30` (“Web app — endpoint HTTP headless, token em Script Properties”), `MOD-C08-01_HOMOLOGACAO_OFFLINE.md:63` e `EV-C08-001_SUITES_E_PORTAS_HEADLESS.md:29` (listam `Entrada/WebAppExecucao.js` entre as “portas headless”) — mas a rota headless real é `clasp run`. | **Citar ≠ consumir.** Registro conflate endpoint × `clasp run`; permanece **zero consumidor de runtime**. Não editado (pertence ao outro card). |
+| D10 | **DOCUMENTAÇÃO (concorrente) × ESTADO** | — | Cards **executados em paralelo** (#153/#156) passaram a **citar** o artefato como capacidade ativa, sem chamá-lo: `dependencias/DEP-001_GOOGLE_APPS_SCRIPT.md:30` (“Web app — endpoint HTTP headless, token em Script Properties”), `MOD-C08-01_HOMOLOGACAO_OFFLINE.md:63` e `EVD-C08-001_SUITES_E_PORTAS_HEADLESS.md:29` (listam `Entrada/WebAppExecucao.js` entre as “portas headless”) — mas a rota headless real é `clasp run`. | **Citar ≠ consumir.** Registro conflate endpoint × `clasp run`; permanece **zero consumidor de runtime**. Não editado (pertence ao outro card). |
 
 ## 3. Nota de concorrência (não confundir com regressão do #155)
 
@@ -49,7 +49,7 @@ do #155. Outros cards estão sendo executados **ao mesmo tempo** neste mesmo dir
 **inválido** para as evidências:
 
 ```text
-[EV-C00-001](../05_Evidencias/EV-C00-001_ESTRUTURA_E_VALIDACAO.md)
+[EVD-C00-001](../05_Evidencias/EVD-C00-001_ESTRUTURA_E_VALIDACAO.md)
 ```
 A partir de `02_Comodos/<CXX>/01_Dominio/modulos/<MOD>/`, `../05_Evidencias/` resolve para
 `01_Dominio/05_Evidencias/`, que não existe (o slot correto está **dois** níveis acima:
@@ -75,10 +75,10 @@ $ node scripts/downplant/lint-estrutura.mjs
 ```
 $ node scripts/downplant/lint-estrutura.mjs
 🔍 Verificando Terreno: ...
-❌ ERRO: Link quebrado em .../MOD-C00-01_ESTRUTURA_DO_COFRE/MOD-C00-01_ESTRUTURA_DO_COFRE.md: ../05_Evidencias/EV-C00-001_ESTRUTURA_E_VALIDACAO.md
-❌ ERRO: Link quebrado em .../MOD-C00-02_VALIDACAO_ESTRUTURAL/MOD-C00-02_VALIDACAO_ESTRUTURAL.md: ../05_Evidencias/EV-C00-001_ESTRUTURA_E_VALIDACAO.md
-❌ ERRO: Link quebrado em .../MOD-C02-01_LEITURA_E_ADAPTACAO/MOD-C02-01_LEITURA_E_ADAPTACAO.md: ../05_Evidencias/EV-C02-001_LEITURA_TUNEL_E_FORMULAS.md
-❌ ERRO: Link quebrado em .../MOD-C04-01_MOTOR_ANALITICO/MOD-C04-01_MOTOR_ANALITICO.md: ../05_Evidencias/EV-C04-001_MOTOR_E_MERITO_ARMAS.md
+❌ ERRO: Link quebrado em .../MOD-C00-01_ESTRUTURA_DO_COFRE/MOD-C00-01_ESTRUTURA_DO_COFRE.md: ../05_Evidencias/EVD-C00-001_ESTRUTURA_E_VALIDACAO.md
+❌ ERRO: Link quebrado em .../MOD-C00-02_VALIDACAO_ESTRUTURAL/MOD-C00-02_VALIDACAO_ESTRUTURAL.md: ../05_Evidencias/EVD-C00-001_ESTRUTURA_E_VALIDACAO.md
+❌ ERRO: Link quebrado em .../MOD-C02-01_LEITURA_E_ADAPTACAO/MOD-C02-01_LEITURA_E_ADAPTACAO.md: ../05_Evidencias/EVD-C02-001_LEITURA_TUNEL_E_FORMULAS.md
+❌ ERRO: Link quebrado em .../MOD-C04-01_MOTOR_ANALITICO/MOD-C04-01_MOTOR_ANALITICO.md: ../05_Evidencias/EVD-C04-001_MOTOR_E_MERITO_ARMAS.md
 🔥 FALHA! 4 erro(s) de estrutura encontrados.                                        (exit 1)
 ```
 A contagem oscilou (4 → 5 → 8) conforme o #153 criava mais cápsulas; em nenhum momento houve erro

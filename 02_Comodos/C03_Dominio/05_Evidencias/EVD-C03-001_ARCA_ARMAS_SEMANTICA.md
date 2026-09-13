@@ -8,7 +8,7 @@ formato: "46.5 - commit . ambiente . entrada . resultado . limite"
 data: "2026-09-13"
 ---
 
-# EV-C03-001 - ARCA: semantica canonica ARMA x QDT ARMAS
+# EVD-C03-001 - ARCA: semantica canonica ARMA x QDT ARMAS
 
 **Entrega:** #141 (OCR-P3-007) - a ARCA recebe a semantica explicita dos dois campos e a invariante de
 participacao por tunel, **somente com regra factual comprovada**.
@@ -53,6 +53,6 @@ Fluid flow final: **29 MAPEADO + 7 INTEGRADO + 9 NAO_APLICAVEL = 45 regras** (ne
   no `fa52c07`.
 - A ARCA **nao** promove convencao de UI a regra oficial: so recebeu o que o proprietario confirmou.
 - O ID `ARCA-DROGAS-001` **ja existia** (heuristica mapeada) - a regra de conversao teve de ser criada com
-  outro ID (`ARCA-CONVERSAO-001`). Detalhe em `EV-C03-002`.
+  outro ID (`ARCA-CONVERSAO-001`). Detalhe em `EVD-C03-002`.
 - O inventario de 45 regras e um **levantamento**, nao uma prova: e a contagem no momento do registro
   (`d4f6c0c`, 12/09/2026).

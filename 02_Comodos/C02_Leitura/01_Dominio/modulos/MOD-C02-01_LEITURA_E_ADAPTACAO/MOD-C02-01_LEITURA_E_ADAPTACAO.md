@@ -2,7 +2,7 @@
 
 - **ID:** MOD-C02-01
 - **Endereco Down Plant:** `C02_Leitura / MOD-C02-01_LEITURA_E_ADAPTACAO` (escala: modulo) . circuito `CIR-MOD-C02-01_LEITURA_E_ADAPTACAO.canvas`
-- **Estado (§19):** Codigo 🟢 . Teste 🟢 (`TestAdaptador2026`, `TestLeitorAntiguidadePeculio`, `TestMotorAnaliticoRegressao`) . Contrato 🟢 . Integracao 🟢 . Visual - . Publicacao 🟢 (81/81) . Documentacao 🟢 *(esta capsula; evidencia EV-C02-001)*
+- **Estado (§19):** Codigo 🟢 . Teste 🟢 (`TestAdaptador2026`, `TestLeitorAntiguidadePeculio`, `TestMotorAnaliticoRegressao`) . Contrato 🟢 . Integracao 🟢 . Visual - . Publicacao 🟢 (81/81) . Documentacao 🟢 *(esta capsula; evidencia EVD-C02-001)*
 - **Perfil:** P1 (operacao recorrente)
 - **Responsavel:** Proprietario (Manoel) - execucao por agentes sob card
 
@@ -83,7 +83,7 @@ Provas de leitura do #152: `verificarParticipacaoArmasHeadless` / `verificarQtdO
 (FERNANDES 1133306: fonte 8 = produto 8; ano 298 tuneis).
 
 ## Evidencias
-- [EV-C02-001](../../../05_Evidencias/EV-C02-001_LEITURA_TUNEL_E_FORMULAS.md) (#142, #152).
+- [EVD-C02-001](../../../05_Evidencias/EVD-C02-001_LEITURA_TUNEL_E_FORMULAS.md) (#142, #152).
 - Commits: `8f9bec8` (mapa do tunel), `a0045be` (heranca da DATA), `7e15433` (acumulo de participacao),
   `d52de16` (bisturi com logger).
 

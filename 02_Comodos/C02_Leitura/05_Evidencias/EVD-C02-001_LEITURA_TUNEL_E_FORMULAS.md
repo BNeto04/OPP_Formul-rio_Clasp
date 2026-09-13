@@ -8,7 +8,7 @@ formato: "46.5 - commit . ambiente . entrada . resultado . limite"
 data: "2026-09-13"
 ---
 
-# EV-C02-001 - Leitura do tunel e acumulacao de participacao
+# EVD-C02-001 - Leitura do tunel e acumulacao de participacao
 
 **Entrega:** #142 (OCR-P3-008) - arqueologia **somente-leitura** da aba mensal e das formulas;
 #152 (PROD-ARMAS-001) - leitura e acumulo do campo de participacao de arma ate o comparativo.

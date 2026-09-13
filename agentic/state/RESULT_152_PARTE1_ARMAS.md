@@ -29,7 +29,7 @@ mediu os elos e mostrou `elo4_metricas` devolvendo `participacaoArmas` **undefin
 | `Features/CompiladorProdutividade.js` | comparativo consome `fatos.participacaoArmas` |
 
 Commit do elo final: `b7a0a5d` (linha única no construtor).
-> ⚠️ **CORREÇÃO (13/09/2026, card #153):** o hash `b7a0a5d` **NÃO EXISTE** no repositório (`git log --all` varrido em 10 refs + HEAD). O commit versionado do elo final é **`824b545`**. A citação original fica preservada por ser registro histórico; a divergência está declarada em `02_Comodos/C06_Relatorios/05_Evidencias/EV-C06-001_COMPARATIVO_E_ARMAS.md`, na cápsula `MOD-C06-01` e em `RELATORIO_DE_DIFERENCIAS_153.md` (D-1).
+> ⚠️ **CORREÇÃO (13/09/2026, card #153):** o hash `b7a0a5d` **NÃO EXISTE** no repositório (`git log --all` varrido em 10 refs + HEAD). O commit versionado do elo final é **`824b545`**. A citação original fica preservada por ser registro histórico; a divergência está declarada em `02_Comodos/C06_Relatorios/05_Evidencias/EVD-C06-001_COMPARATIVO_E_ARMAS.md`, na cápsula `MOD-C06-01` e em `RELATORIO_DE_DIFERENCIAS_153.md` (D-1).
 
 ## Prova da Parte 1 (fonte = produto)
 

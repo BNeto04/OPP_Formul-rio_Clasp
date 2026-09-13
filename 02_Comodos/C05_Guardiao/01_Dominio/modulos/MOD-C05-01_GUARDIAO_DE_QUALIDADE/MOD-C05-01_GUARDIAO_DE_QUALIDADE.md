@@ -2,7 +2,7 @@
 
 - **ID:** MOD-C05-01
 - **Endereco Down Plant:** `C05_Guardiao / MOD-C05-01_GUARDIAO_DE_QUALIDADE` (escala: modulo) . circuito `CIR-MOD-C05-01_GUARDIAO_DE_QUALIDADE.canvas`
-- **Estado (§19):** Codigo 🟢 . Teste 🟢 (`TestGuardiao` 32 PASS, `TestGuardiaoHeadless`) . Contrato 🟢 . Integracao 🟢 . Visual 🟢 (abas `[AUDITORIA]`/`[HISTORICO]` + coluna AM) . Publicacao 🟢 (81/81) . Documentacao 🟢 *(esta capsula; evidencia EV-C05-001)*
+- **Estado (§19):** Codigo 🟢 . Teste 🟢 (`TestGuardiao` 32 PASS, `TestGuardiaoHeadless`) . Contrato 🟢 . Integracao 🟢 . Visual 🟢 (abas `[AUDITORIA]`/`[HISTORICO]` + coluna AM) . Publicacao 🟢 (81/81) . Documentacao 🟢 *(esta capsula; evidencia EVD-C05-001)*
 - **Perfil:** P1 (operacao recorrente)
 - **Responsavel:** Proprietario (Manoel) - execucao por agentes sob card
 
@@ -85,7 +85,7 @@ em branco separando execucoes . `GuardiaoHeadless.resumir()` (aba/status/tuneis/
 `TestArcaMapaCobertura` 11/11, `TestIntegracaoArca` 7/7 . Suite global `620 PASS` (`b74f9d0`).
 
 ## Evidencias
-- [EV-C05-001](../../../05_Evidencias/EV-C05-001_GUARDIAO_SEMANTICA_ARMAS.md) (#141, #146-#149).
+- [EVD-C05-001](../../../05_Evidencias/EVD-C05-001_GUARDIAO_SEMANTICA_ARMAS.md) (#141, #146-#149).
 - Commits: `0c489ad` (#141), `fa52c07` (#148/#141), `c60aeea` (#146/#147), `266a7db` (#149), `b74f9d0` (suite).
 
 ## Divergencias conhecidas

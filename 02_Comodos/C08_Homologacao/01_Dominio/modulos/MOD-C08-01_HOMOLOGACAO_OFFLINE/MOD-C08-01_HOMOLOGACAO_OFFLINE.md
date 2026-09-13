@@ -2,7 +2,7 @@
 
 - **ID:** MOD-C08-01
 - **Endereco Down Plant:** `C08_Homologacao / MOD-C08-01_HOMOLOGACAO_OFFLINE` (escala: modulo) . circuito `CIR-MOD-C08-01_HOMOLOGACAO_OFFLINE.canvas`
-- **Estado (§19):** Codigo 🟢 . Teste 🟢 (**71** arquivos `Testes/Test*.js`) . Contrato 🟢 . Integracao 🟢 . Visual 🟡 (homologacao visual e manual) . Publicacao 🟢 (81/81 nos cards #140/#141/#144) . Documentacao 🟢 *(esta capsula; evidencia EV-C08-001)*
+- **Estado (§19):** Codigo 🟢 . Teste 🟢 (**71** arquivos `Testes/Test*.js`) . Contrato 🟢 . Integracao 🟢 . Visual 🟡 (homologacao visual e manual) . Publicacao 🟢 (81/81 nos cards #140/#141/#144) . Documentacao 🟢 *(esta capsula; evidencia EVD-C08-001)*
 - **Perfil:** P1 (operacao recorrente)
 - **Responsavel:** Proprietario (Manoel) - execucao por agentes sob card
 
@@ -88,7 +88,7 @@ Saida consolidada do runner . `agentic/state/RESULT_*.md` (14 arquivos de result
 | Suite integral | - | **423 PASS** (#140/#144) . **411 PASS** (#141) . **620 PASS** (`b74f9d0`) |
 
 ## Evidencias
-- [EV-C08-001](../../../05_Evidencias/EV-C08-001_SUITES_E_PORTAS_HEADLESS.md) (#140, #141, #142, #144, #152).
+- [EVD-C08-001](../../../05_Evidencias/EVD-C08-001_SUITES_E_PORTAS_HEADLESS.md) (#140, #141, #142, #144, #152).
 - Commits: `62635ca`, `966bba0`, `5ac6670`, `61e4415`, `0c489ad`, `ab2e1b6`, `7a42ac3`, `eab6fa4`,
   `fe4ec03`, `89c8a17`, `486e324`, `71f1d61`, `a1de4bf`, `b74f9d0`.
 

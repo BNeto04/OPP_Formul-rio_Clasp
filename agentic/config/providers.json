@@ -1,0 +1,119 @@
+{
+  "version": "1.2.0",
+  "updated_at": "2026-09-09",
+  "semantics": {
+    "VALIDADO_POR_DOCUMENTACAO_ATUAL": "Identificador de modelo e endpoint conferidos contra documentacao oficial vigente (setembro/2026)",
+    "CONFIG_CONTRACT_READY_NO_CREDENTIAL": "Contrato de configuracao, timeout e env var prontos, aguardando insercao de credencial",
+    "SMOKE_PASS": "Requisicao minima real enviada com credencial e respondida com HTTP 200",
+    "SMOKE_PASS_WITH_LIMITS": "Requisicao minima real passou, mas o provedor exige escopo reduzido ou limites de payload/contexto",
+    "CONFIGURED_QUOTA_LIMITED": "Credencial configurada, mas o provedor respondeu limite de quota/rate limit e nao esta apto como primario",
+    "DEPRECATED": "Modelo descontinuado pela documentacao oficial do provedor",
+    "UNAVAILABLE": "Endpoint ou servico offline/inacessivel"
+  },
+  "routing_policy": {
+    "primary": "deepseek",
+    "fallback_1": "groq",
+    "fallback_2": "gemini",
+    "deferred": [
+      "openrouter"
+    ],
+    "local_models_required": false
+  },
+  "providers": {
+    "deepseek": {
+      "provider_id": "deepseek",
+      "name": "DeepSeek Direct API",
+      "tier": "primary",
+      "sdk": "openai-compatible",
+      "api_key_env_var": "DEEPSEEK_API_KEY",
+      "base_url": "https://api.deepseek.com/v1",
+      "default_model": "deepseek-v4-flash",
+      "complex_model": "deepseek-v4-pro",
+      "model_alias": "deepseek-v4",
+      "timeout_ms": 45000,
+      "context_length": 1000000,
+      "openai_compatible": true,
+      "validation_status": "VALIDADO_POR_DOCUMENTACAO_ATUAL",
+      "readiness": "SMOKE_PASS",
+      "models_supported": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "deprecated_models": [
+        "deepseek-chat",
+        "deepseek-reasoner"
+      ]
+    },
+    "gemini": {
+      "provider_id": "gemini",
+      "name": "Google Gemini",
+      "tier": "fallback_2_quota_limited",
+      "sdk": "google-genai",
+      "api_key_env_var": "GEMINI_API_KEY",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta",
+      "default_model": "gemini-3.6-flash",
+      "model_alias": "flash-fast",
+      "timeout_ms": 30000,
+      "openai_compatible": false,
+      "validation_status": "VALIDADO_POR_DOCUMENTACAO_ATUAL",
+      "readiness": "CONFIGURED_QUOTA_LIMITED",
+      "models_supported": [
+        "gemini-3.6-flash"
+      ],
+      "deprecated_models": [
+        "gemini-2.0-flash",
+        "gemini-2.5-flash",
+        "gemini-1.5-flash"
+      ]
+    },
+    "groq": {
+      "provider_id": "groq",
+      "name": "Groq Cloud",
+      "tier": "fallback_1",
+      "sdk": "openai-compatible",
+      "api_key_env_var": "GROQ_API_KEY",
+      "base_url": "https://api.groq.com/openai/v1",
+      "default_model": "openai/gpt-oss-120b",
+      "model_alias": "groq-fast-code",
+      "timeout_ms": 20000,
+      "operational_limit": "Usar toolsets escopados; payload completo do Hermes pode exceder limite HTTP 413.",
+      "openai_compatible": true,
+      "validation_status": "VALIDADO_POR_DOCUMENTACAO_ATUAL",
+      "readiness": "SMOKE_PASS_WITH_LIMITS",
+      "models_supported": [
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.6-27b"
+      ],
+      "deprecated_models": [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant"
+      ]
+    },
+    "openrouter": {
+      "provider_id": "openrouter",
+      "name": "OpenRouter",
+      "tier": "deferred",
+      "sdk": "openai-compatible",
+      "api_key_env_var": "OPENROUTER_API_KEY",
+      "base_url": "https://openrouter.ai/api/v1",
+      "default_model": "meta-llama/llama-3.3-70b-instruct",
+      "model_alias": "multi-model-router",
+      "timeout_ms": 45000,
+      "openai_compatible": true,
+      "validation_status": "VALIDADO_POR_DOCUMENTACAO_ATUAL",
+      "readiness": "DEFERRED",
+      "models_supported": [
+        "meta-llama/llama-3.3-70b-instruct"
+      ],
+      "deprecated_models": []
+    }
+  },
+  "retired_providers": {
+    "ollama_legacy": {
+      "provider_id": "ollama_legacy",
+      "name": "Hermes Local Ollama Endpoint",
+      "retired_at": "2026-09-09",
+      "reason": "Removido do fluxo operacional: hardware local insuficiente para operar modelos locais como requisito de trabalho."
+    }
+  }
+}

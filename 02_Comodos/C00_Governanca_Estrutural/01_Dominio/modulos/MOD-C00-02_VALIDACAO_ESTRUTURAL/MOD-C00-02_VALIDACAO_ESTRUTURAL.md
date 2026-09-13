@@ -2,7 +2,7 @@
 
 - **ID:** MOD-C00-02
 - **Endereco Down Plant:** `C00_Governanca_Estrutural / MOD-C00-02_VALIDACAO_ESTRUTURAL` (escala: modulo) . circuito `CIR-MOD-C00-02_VALIDACAO_ESTRUTURAL.canvas`
-- **Estado (§19):** Codigo 🟢 (`scripts/downplant/lint-estrutura.mjs`) . Teste 🟢 (o lint **e** o teste) . Contrato 🟢 . Integracao 🟡 . Visual - . Publicacao - . Documentacao 🟢 *(esta capsula; evidencia EV-C00-001)*
+- **Estado (§19):** Codigo 🟢 (`scripts/downplant/lint-estrutura.mjs`) . Teste 🟢 (o lint **e** o teste) . Contrato 🟢 . Integracao 🟡 . Visual - . Publicacao - . Documentacao 🟢 *(esta capsula; evidencia EVD-C00-001)*
 - **Perfil:** P1 (operacao recorrente; sem dados sensiveis)
 - **Responsavel:** Proprietario (Manoel) - execucao por agentes sob card
 
@@ -72,7 +72,7 @@ O proprio lint. Medicao do #153: **exit 0**, `SUCESSO! A arvore documental esta 
 Down Plant 2.1.`
 
 ## Evidencias
-- [EV-C00-001](../../../05_Evidencias/EV-C00-001_ESTRUTURA_E_VALIDACAO.md) - resultado do lint e os limites do que ele cobre.
+- [EVD-C00-001](../../../05_Evidencias/EVD-C00-001_ESTRUTURA_E_VALIDACAO.md) - resultado do lint e os limites do que ele cobre.
 - Card: **#153** (DP-SYNC-DOC-001). Nao ha commit associado a este modulo no ciclo recente (o script e de 14/08).
 
 ## Divergencias conhecidas
