@@ -19,6 +19,7 @@ active_rooms:
   - "C08_Homologacao"
 conditional_directories:
   - "C07_Efetivo (Pendente de Fronteira Comprovada)"
+  - "99_Arquivo_Transicao (NAO_APLICAVEL: condicional sem gatilho comprovado)"
 ---
 
 # Estrutura do Cofre
@@ -33,6 +34,17 @@ Organização canônica do projeto SYNTHEON GS sob a metodologia Down Plant 2.1.
 - `06_Inventario`: Levantamento do estado "As Is".
 - `07_Codigo_Leitura`: Referências ao código base.
 - `08_Execucao_Ao_Vivo`: Rastreador de sessões ativas.
+- `dependencias`: Registro das dependências externas e de dados do produto (§31.6) — criado no card #153. **Não** entra na varredura do lint.
+
+## Diretórios Condicionais e Transição
+Um diretório condicional só se materializa quando o gatilho é comprovado, com origem, dono e condição de encerramento (§40.2).
+
+| Elemento | Estado | Gatilho de ativação | Dono | Condição de encerramento |
+| --- | --- | --- | --- | --- |
+| `C07_Efetivo` | condicional, não materializado | fronteira de domínio independente comprovada | Proprietário | consolidação da fronteira C07 |
+| `99_Arquivo_Transicao` | NÃO_APLICÁVEL (condicional não ativado) | acervo legado em migração que precise ser preservado durante a transição | Proprietário | encerramento da migração correspondente |
+
+`99_Arquivo_Transicao` **não** é materializado: a raiz já materializa os oito diretórios ativos (incluindo `dependencias`, criado no #153) e o `README.md` da taxonomia canônica; código e documentação vivos estão endereçados em `02_Comodos` e `07_Codigo_Leitura`; e não existe acervo legado aguardando transição. Criar a pasta sem origem, dono e encerramento seria estrutura ornamental e, pelo §40.8, um achado de "pasta de transição sem dono, motivo ou condição de encerramento". A ausência é decisão registrada, não divergência.
 
 ## Padrão de Cômodos (CXX)
 Todo cômodo deve conter obrigatoriamente os seguintes seis slots físicos (diretórios com `INDICE.md`):
