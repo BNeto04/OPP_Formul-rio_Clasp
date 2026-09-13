@@ -136,7 +136,8 @@ function montarRegistroComparativo2026(policial, produtividade) {
     fatos: {
       ocorrencias: fatos.ocorrencias || 0,
       qtdBoe: fatos.qtdBoe || 0,
-      armas: fatos.armas || 0,
+      // #152: no COMPARATIVO (produtividade) a arma e a PARTICIPACAO, nao a apreensao fisica.
+      armas: fatos.participacaoArmas || 0,
       maconha: fatos.maconha || 0,
       crack: fatos.crack || 0,
       cocaina: fatos.cocaina || 0,

@@ -148,6 +148,8 @@ const SyntheonLeitor = {
       grad: loc('GRAD'),
       pelotao: loc('PELOTAO'),
       armas: loc('ARMAS'),
+      // #152: PARTICIPACAO de arma (QDT ARMAS, coluna AF) - e o que mede produtividade.
+      participacaoArmas: loc('QDT_ARMAS'),
       maconha: loc('MACONHA'),
       cocaina: loc('COCAINA'),
       crack: loc('CRACK'),
@@ -240,6 +242,7 @@ const SyntheonLeitor = {
       gradPolicial,
       pelotaoPolicial,
       armas: idx.armas !== -1 ? SyntheonUtils.converterNumero(row[idx.armas]) : 0,
+      participacaoArmas: idx.participacaoArmas !== -1 ? SyntheonUtils.converterNumero(row[idx.participacaoArmas]) : 0,
       maconha: idx.maconha !== -1 ? SyntheonUtils.converterNumero(row[idx.maconha]) : 0,
       cocaina: idx.cocaina !== -1 ? SyntheonUtils.converterNumero(row[idx.cocaina]) : 0,
       crack: idx.crack !== -1 ? SyntheonUtils.converterNumero(row[idx.crack]) : 0,

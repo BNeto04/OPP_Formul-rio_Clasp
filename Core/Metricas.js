@@ -24,6 +24,7 @@ const SyntheonMetricas = {
             fatos: {
               ocorrencias: 0,
               armas: 0,
+              participacaoArmas: 0,
               maconha: 0,
               cocaina: 0,
               crack: 0,
@@ -66,6 +67,7 @@ const SyntheonMetricas = {
 
         // Acumular Apreensões e KPIs (Fatos imutáveis da operação)
         registro.fatos.armas += pol.armas || 0;
+        registro.fatos.participacaoArmas += pol.participacaoArmas || 0;
         registro.fatos.maconha += pol.maconha || 0;
         registro.fatos.cocaina += pol.cocaina || 0;
         registro.fatos.crack += pol.crack || 0;
