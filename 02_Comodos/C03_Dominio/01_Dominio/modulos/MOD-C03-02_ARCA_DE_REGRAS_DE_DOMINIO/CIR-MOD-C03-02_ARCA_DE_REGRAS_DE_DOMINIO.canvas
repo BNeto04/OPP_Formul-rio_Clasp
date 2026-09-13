@@ -7,7 +7,7 @@
       "width": 420,
       "height": 120,
       "type": "text",
-      "text": "### MOD-C03-02 ARCA de Regras de Dominio\nCatalogo canonico read-only. 31 regras: 9 OFFICIAL_BUSINESS, 17 INTERNAL_OPERATIONAL, 1 CANONICAL_NORMATIVE, 2 HEURISTIC, 2 TECHNICAL."
+      "text": "### MOD-C03-02 ARCA de Regras de Dominio\nCatalogo canonico read-only. 49 regras: 10 OFFICIAL_BUSINESS, 31 INTERNAL_OPERATIONAL, 1 CANONICAL_NORMATIVE, 2 HEURISTIC, 5 TECHNICAL."
     },
     {
       "id": "arca-2",
@@ -25,7 +25,7 @@
       "width": 320,
       "height": 110,
       "type": "text",
-      "text": "### SUB-C03-02-02 FONTES E PROVENIENCIA\nARCA_FONTES.md\n11 canonicas | 18 internas | 2 desconhecidas"
+      "text": "### SUB-C03-02-02 FONTES E PROVENIENCIA\nARCA_FONTES.md\n12 canonicas | 35 internas | 2 desconhecidas"
     },
     {
       "id": "arca-4",
@@ -43,7 +43,7 @@
       "width": 320,
       "height": 110,
       "type": "text",
-      "text": "### SUB-C03-02-04 ADAPTADOR / PORTA DE CONSULTA\nAdaptadorConsultaArca.js\nenriquecerDiagnostico(codigoRegra) | 26 codigos -> 20 de 31 regras"
+      "text": "### SUB-C03-02-04 ADAPTADOR / PORTA DE CONSULTA\nAdaptadorConsultaArca.js\nenriquecerDiagnostico(codigoRegra) | 38 codigos -> 30 de 49 regras"
     },
     {
       "id": "arca-6",
@@ -53,6 +53,15 @@
       "height": 110,
       "type": "text",
       "text": "### Consumidores FACTUAIS (auditoria #123)\nCore/RegrasQualidade (hub) -> Core/CoberturaAuditoria + Render/PainelSaude -> C05 Guardiao (indireto)"
+    },
+    {
+      "id": "arca-metricas",
+      "x": 0,
+      "y": 520,
+      "width": 700,
+      "height": 190,
+      "type": "text",
+      "text": "### METRICAS DERIVADAS DA ARCA (do JSON - nao editar a mao)\nFonte: Dominio/ARCA/arca_regras_dominio.json\nsha256: f9c853d6725a4b76...\n49 regras | 33 MAPEADO | 8 INTEGRADO | 8 NAO_APLICAVEL | 0 NAO_AUDITAVEL\n16 regras fora da auditoria do Guardiao | 38 codigos de diagnostico (38 distintos) em 30 regras\nporta: 38 codigos -> 30 rule_ids | 19 regras sem regra na porta\n12 canonicas | 35 internas | 2 desconhecidas | 19 subdominios | 36 categorias | 23 campos por regra\nGerado por scripts/downplant/contar-regras-arca.mjs (#159 ARCA-COUNT-001)"
     }
   ],
   "edges": [

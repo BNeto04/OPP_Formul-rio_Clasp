@@ -11,15 +11,75 @@ A **ARCA** é o repositório canônico de todas as regras de domínio, política
 Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladores, motores, normalizadores, plugins e auditores (como o Guardião da Qualidade).
 
 ### Métricas de Consolidação
-> **Atualizado em 13/09/2026 pelo card #160 (GUARD-D7-001) — números RECONTADOS do JSON (fonte da verdade). Reconciliação anterior: 10/09/2026 (#125 consumidores, #126 cobertura, #128 varredura exaustiva).**
-- **Arquivos no repositório:** 3413 | **Universo de domínio JS varrido:** **127** | **Excluídos:** 3286 (motivos registrados em `meta.varredura_exaustiva`)
-- **Total de Regras:** 49 (negócio/operacionais: 41 | técnicas: 5 | canônica normativa: 1 | heurísticas: 2)
-- **Distribuição por tipo:** INTERNAL_OPERATIONAL_RULE=31, OFFICIAL_BUSINESS_RULE=10, TECHNICAL_RULE=5, HEURISTIC=2, CANONICAL_NORMATIVE_RULE=1
-- **Fontes:** canônicas confirmadas=12 | internas confirmadas=35 | desconhecidas=2 | conflitos=0
-- **Auditabilidade no Guardiao:** MAPEADO=33 | INTEGRADO=8 | NAO_APLICAVEL=8 | NAO_AUDITAVEL=0 (zero regras cegas)
-- **Códigos de diagnóstico do Guardiao sem regra ARCA:** 0
-- **Lacunas da varredura exaustiva:** 6 detectadas / 6 resolvidas / 0 aceitas
+<!-- ARCA-HISTORICO:INICIO -->
+> **Atualizado em 13/09/2026 pelo card #160 (GUARD-D7-001)** — números recontados à mão naquele momento.
+> Preservado como histórico: os números **vigentes** são os do bloco derivado abaixo, medidos do JSON pelo #159 ARCA-COUNT-001.
+<!-- ARCA-HISTORICO:FIM -->
+<!-- ARCA-METRICAS:INICIO (gerado por scripts/downplant/contar-regras-arca.mjs; sha256 do JSON: f9c853d6725a4b763472832f679ee339736a715ba4c2521f6b95a59588cadb43) -->
+#### Métricas derivadas do JSON — por métrica, com definição explícita (#159 ARCA-COUNT-001)
 
+> Gerado por `scripts/downplant/contar-regras-arca.mjs` a partir de `Dominio/ARCA/arca_regras_dominio.json` 
+> (sha256 `f9c853d6725a4b763472832f679ee339736a715ba4c2521f6b95a59588cadb43`). **Nenhum número abaixo é digitado à mão**: cada linha é a medição do campo indicado.
+> Substitui qualquer "total ARCA" anterior — o total ambíguo não existe mais.
+
+| Métrica | Definição (campo medido no JSON) | Valor |
+| :--- | :--- | ---: |
+| `regras_total` | registros na lista `regras` (total do catálogo) | **49** |
+| `rule_ids_unicos` | valores distintos de `rule_id` | **49** |
+| `regras_mapeadas` | `auditabilidade_guardiao.status = MAPEADO` (o Guardião audita) | **33** |
+| `regras_integradas` | `auditabilidade_guardiao.status = INTEGRADO` (NormalizadorEfetivo/plugins via porta) | **8** |
+| `regras_nao_aplicaveis` | `auditabilidade_guardiao.status = NAO_APLICAVEL` (estruturais) | **8** |
+| `regras_nao_auditaveis` | `auditabilidade_guardiao.status = NAO_AUDITAVEL` (regras cegas) | **0** |
+| `regras_sem_auditoria_guardiao` | `regras_total − regras_mapeadas` (tudo que o Guardião **não** audita) | **16** |
+| `codigos_diagnostico` | soma dos itens de `auditabilidade_guardiao.codigos` | **38** |
+| `codigos_diagnostico_unicos` | códigos distintos | **38** |
+| `regras_com_codigo` | regras com ao menos 1 código de diagnóstico | **30** |
+| `porta_codigos` | entradas de `AdaptadorConsultaArca.MAPA_DIAGNOSTICO_ARCA` | **38** |
+| `porta_rule_ids` | `rule_id` distintos alcançados pela porta | **30** |
+| `regras_sem_regra_na_porta` | `regras_total − porta_rule_ids` (regras fora do mapa de códigos) | **19** |
+| `campos_por_regra` | campos da regra no JSON (padrão do catálogo) | **23** |
+| `campos_por_regra_uniao` | união de campos declarados em alguma regra | **25** |
+| `fontes_canonicas` | `fonte_status = CANONICAL_SOURCE_CONFIRMED` | **12** |
+| `fontes_internas` | `fonte_status = INTERNAL_SOURCE_CONFIRMED` | **35** |
+| `fontes_desconhecidas` | `fonte_status = DOMAIN_RULE_SOURCE_UNKNOWN` | **2** |
+| `subdominios` | valores distintos de `subdominio` | **19** |
+| `categorias` | valores distintos de `categoria` | **36** |
+| `arquivos_totais_repo` | `meta.varredura_exaustiva.universo.arquivos_totais_repo` | **3413** |
+| `arquivos_varridos_dominio_js` | `meta.varredura_exaustiva.universo.arquivos_varridos_dominio_js` | **127** |
+| `arquivos_excluidos` | `meta.varredura_exaustiva.universo.arquivos_excluidos` | **3286** |
+| `lacunas_detectadas` | `meta.varredura_exaustiva.lacunas_detectadas` | **6** |
+| `lacunas_resolvidas` | `meta.varredura_exaustiva.lacunas_resolvidas` | **6** |
+| `lacunas_aceitas` | `meta.varredura_exaustiva.lacunas_aceitas` | **0** |
+
+**Por tipo de regra (`tipo_regra`)** — soma = 49: `INTERNAL_OPERATIONAL_RULE` = **31** · `OFFICIAL_BUSINESS_RULE` = **10** · `TECHNICAL_RULE` = **5** · `HEURISTIC` = **2** · `CANONICAL_NORMATIVE_RULE` = **1**.
+
+**Por subdomínio (`subdominio`)** — total = 49:
+
+| Subdomínio | Regras | MAPEADO | INTEGRADO | NAO_APLICAVEL |
+| :--- | ---: | ---: | ---: | ---: |
+| `ocorrencia` | 9 | 5 | 1 | 3 |
+| `mike` | 4 | 4 | 0 | 0 |
+| `armas` | 3 | 3 | 0 | 0 |
+| `auditoria` | 3 | 3 | 0 | 0 |
+| `drogas` | 3 | 1 | 1 | 1 |
+| `efetivo` | 3 | 1 | 2 | 0 |
+| `imputacao` | 3 | 1 | 1 | 1 |
+| `matricula` | 3 | 2 | 1 | 0 |
+| `merito_armas` | 3 | 3 | 0 | 0 |
+| `pip` | 3 | 2 | 1 | 0 |
+| `antiguidade` | 2 | 1 | 1 | 0 |
+| `boe` | 2 | 2 | 0 | 0 |
+| `formulas` | 2 | 2 | 0 | 0 |
+| `gxt` | 1 | 0 | 0 | 1 |
+| `metricas` | 1 | 0 | 0 | 1 |
+| `municoes` | 1 | 1 | 0 | 0 |
+| `numerario` | 1 | 1 | 0 | 0 |
+| `territorio` | 1 | 1 | 0 | 0 |
+| `veiculo` | 1 | 0 | 0 | 1 |
+
+**Códigos de diagnóstico:** 38 códigos (38 distintos) em 30 regras; a porta de consulta cobre 38 códigos → 30 rule_ids (0 código sem regra, 0 regra duplicada por código).
+
+<!-- ARCA-METRICAS:FIM -->
 ---
 
 ## 2. Catálogo Humano das Regras de Domínio
