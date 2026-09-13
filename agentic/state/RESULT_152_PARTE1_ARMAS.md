@@ -69,3 +69,44 @@ Na tela (`COMPARATIVO_2026`): `1133306 | FERNANDES | 3º PEL | QTD.O 8 | 36.385,
 
 **Medir antes de editar.** Nada de rodar às cegas em planilha real (a lição das 191 linhas no
 ABR2026). Se não se sabe qual elo quebra, **instrumentar** — não tentar.
+
+---
+
+# ADENDO — PARTES 2 E 4 PROVADAS (12/09/2026)
+
+## Parte 2 — QTD. O (occurrences)
+
+**Regra de domínio dada pelo proprietário**: *"de quantos túneis aquele policial participou"*.
+QTD. O = **número de túneis DISTINTOS** em que o policial participou. Quem estava no mesmo túnel
+conta o mesmo túnel (1 por participação, não 1 por ocorrência).
+
+Prova `verificarQtdOcorrenciasHeadless('1133306')`:
+`tuneisFonte = 8 · produto = 8 · confere = true · totalTuneisAno = 298`
+
+O `totalTuneisAno = 298` bate com o total do comparativo — consistência global confirmada.
+
+## Parte 4 — ENTROPECENTES (g)
+
+Fonte = soma das colunas MACONHA + COCAINA + CRACK por matrícula, nas 9 abas.
+
+Prova `verificarDrogasHeadless('1133306')`:
+`FEV 157 · MAI 20 · JUN 12,5 · AGO 130 · SET 2774 · FONTE = 3.093,5 · produto = 3.093,5 · confere = true`
+
+O valor coincide exatamente com o `3.093,50` exibido no `COMPARATIVO_2026`.
+
+## Estado das 4 partes (atualizado)
+
+| # | Parte | Estado |
+|---|---|---|
+| 1 | QTD. ARMAS | ✅ **PROVADA** (fonte = produto, 8 = 8) |
+| 2 | QTD. O | ✅ **PROVADA** (8 = 8, total 298) |
+| 3 | Pontuação | 🟡 funcional — **prova pendente** (depende da regra de cálculo do PIP/CPM) |
+| 4 | ENTROPECENTES | ✅ **PROVADA** (3.093,5 = 3.093,5) |
+
+## Ferramentas de prova criadas
+
+- `verificarParticipacaoArmasHeadless(matricula)` — Parte 1
+- `verificarQtdOcorrenciasHeadless(matricula)` — Parte 2
+- `verificarDrogasHeadless(matricula)` — Parte 4
+
+Cada uma devolve `confere: true/false` — **prova binária, sem opinião**.
