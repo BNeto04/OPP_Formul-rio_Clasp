@@ -111,7 +111,7 @@
       "color": "4"
     },
     {
-      "id": "mod_c01_02",
+      "id": "n_norm",
       "type": "text",
       "text": "MOD-C01-02 NORMALIZADOR DE EFETIVO\nSincroniza EFETIVO pelo PECULIO",
       "x": 400,
@@ -333,7 +333,7 @@
     {
       "id": "pl-r3",
       "fromNode": "room_c01",
-      "toNode": "mod_c01_02",
+      "toNode": "n_norm",
       "label": "contem"
     },
     {
@@ -423,7 +423,7 @@
     {
       "id": "pl-f5",
       "fromNode": "porta_p3",
-      "toNode": "mod_c01_02",
+      "toNode": "n_norm",
       "label": "submenu Efetivo"
     },
     {
@@ -459,11 +459,11 @@
     {
       "id": "pl-f11",
       "fromNode": "porta_efetivo",
-      "toNode": "mod_c01_02"
+      "toNode": "n_norm"
     },
     {
       "id": "pl-f12",
-      "fromNode": "mod_c01_02",
+      "fromNode": "n_norm",
       "toNode": "ext_sheets",
       "label": "escreve EFETIVO e log de auditoria"
     },
