@@ -310,6 +310,12 @@ function executarCompilador(mesesAlvo, modo) {
     novaAba.setFrozenRows(1);
     novaAba.getRange(1, 1, Math.max(1, ranking.length + 1), 5).createFilter();
     novaAba.autoResizeColumns(1, 5);
+
+    // LEGENDA DE CORES no fim da tabela (pedido do proprietario, 12/09/2026 - #152).
+    // Fonte unica: Core/LegendaCores.js — nao repetir a tabela de cores dentro do compilador.
+    if (typeof SyntheonLegendaCores !== 'undefined' && SyntheonLegendaCores.desenhar) {
+      SyntheonLegendaCores.desenhar(novaAba, ranking.length + 3, { faixas: true });
+    }
     
     const nomeLog = modo === 'ANUAL' ? 'LOG_ANUAL' : 'LOG_LIVRE';
     let abaLog = ss.getSheetByName(nomeLog);
