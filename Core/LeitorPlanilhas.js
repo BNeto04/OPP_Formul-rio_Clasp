@@ -459,3 +459,51 @@ function verificarDrogasHeadless(matriculaAlvo) {
   out.confere = Math.abs(Number(out.produto) - out.totalFonte) < 0.01;
   return JSON.stringify(out);
 }
+
+/**
+ * PROVA DA PARTE 3 (#152): PONTUACAO (CPM).
+ * Regra dada pelo proprietario: "o cpm [e] a soma da pontuacao do policial de todos os tuneis
+ * do mes corrente ou do ano". Mede 3 valores: soma na fonte, MAIOR tunel isolado, e o produto.
+ * Uso: verificarPontuacaoHeadless('1133306')
+ */
+function verificarPontuacaoHeadless(matriculaAlvo) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const meses = ['JAN2026','FEV2026','MAR2026','ABR2026','MAI2026','JUN2026','JUL2026','AGO2026','SET2026'];
+  const alvo = String(matriculaAlvo).trim();
+  const out = { matricula: alvo, porMes: {}, somaNaFonte: 0, maiorTunelNaFonte: 0 };
+
+  meses.forEach(function (nome) {
+    const aba = ss.getSheetByName(nome);
+    if (!aba) { return; }
+    const lastCol = aba.getLastColumn();
+    const headers = aba.getRange(1, 1, 1, lastCol).getValues()[0];
+    const iMat = SyntheonCabecalhos.encontrar(headers, 'MATRICULA');
+    const iPts = SyntheonCabecalhos.encontrar(headers, 'PONTOS_FICCAO');
+    if (iMat === -1 || iPts === -1) { out.porMes[nome] = 'coluna ausente'; return; }
+    const dados = aba.getRange(2, 1, aba.getLastRow() - 1, lastCol).getValues();
+    let soma = 0, maior = 0;
+    dados.forEach(function (r) {
+      if (String(r[iMat]).trim() === alvo) {
+        const v = Number(r[iPts]) || 0;
+        soma += v;
+        if (v > maior) { maior = v; }
+      }
+    });
+    out.porMes[nome] = { soma: Math.round(soma * 100) / 100, maior: Math.round(maior * 100) / 100 };
+    out.somaNaFonte += soma;
+    if (maior > out.maiorTunelNaFonte) { out.maiorTunelNaFonte = maior; }
+  });
+
+  try {
+    const occ = SyntheonLeitor.lerAbas(ss, meses, null, null, new SyntheonLogger('VERIF_PTS'));
+    const mapa = SyntheonMetricas.consolidarPoliciais(occ);
+    const reg = mapa[alvo];
+    out.produto = reg ? (reg.indicadores ? reg.indicadores.pontosCPM : reg.pontosCPM) : 'ausente';
+  } catch (e) { out.produto = 'erro: ' + (e && e.message || e); }
+
+  out.somaNaFonte = Math.round(out.somaNaFonte * 100) / 100;
+  out.maiorTunelNaFonte = Math.round(out.maiorTunelNaFonte * 100) / 100;
+  out.produto_igual_a_soma = Math.abs(Number(out.produto) - out.somaNaFonte) < 0.01;
+  out.produto_igual_a_maior = Math.abs(Number(out.produto) - out.maiorTunelNaFonte) < 0.01;
+  return JSON.stringify(out);
+}
