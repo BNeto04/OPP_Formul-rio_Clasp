@@ -1,210 +1,571 @@
 {
   "nodes": [
     {
-      "id": "n0",
+      "id": "room_c00",
       "type": "text",
-      "text": "C00 Governança Estrutural",
-      "x": 250,
-      "y": -150,
-      "width": 200,
-      "height": 100
-    },
-    {
-      "id": "n1",
-      "type": "text",
-      "text": "C01 Entrada",
+      "text": "C00 Governança Estrutural\nAutoridade de arquitetura e taxonomia do terreno",
       "x": 0,
       "y": 0,
-      "width": 200,
-      "height": 100
+      "width": 340,
+      "height": 90,
+      "color": "5"
     },
     {
-      "id": "n2",
+      "id": "room_c01",
       "type": "text",
-      "text": "C02 Leitura",
-      "x": 250,
+      "text": "C01 Entrada\nFormulario, menus e normalizador de efetivo",
+      "x": 400,
       "y": 0,
-      "width": 200,
-      "height": 100
+      "width": 340,
+      "height": 90,
+      "color": "5"
     },
     {
-      "id": "n3",
+      "id": "room_c02",
       "type": "text",
-      "text": "C03 Dominio",
-      "x": 500,
+      "text": "C02 Leitura\nLeitura de planilhas, PECULIO e adaptador 2026",
+      "x": 800,
       "y": 0,
-      "width": 200,
-      "height": 100
+      "width": 340,
+      "height": 90,
+      "color": "5"
     },
     {
-      "id": "n4",
+      "id": "room_c03",
       "type": "text",
-      "text": "C04 Motor",
+      "text": "C03 Dominio\nModelo de ocorrencia (tunel) e ARCA de regras",
+      "x": 1200,
+      "y": 0,
+      "width": 340,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "room_c04",
+      "type": "text",
+      "text": "C04 Motor\nMotor analitico e plugins de metrica",
+      "x": 1600,
+      "y": 0,
+      "width": 340,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "room_c05",
+      "type": "text",
+      "text": "C05 Guardiao\nAuditoria de qualidade e normalizador de aba",
+      "x": 2000,
+      "y": 0,
+      "width": 340,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "room_c06",
+      "type": "text",
+      "text": "C06 Relatorios\nRelatorios oficiais e merito de armas GXT",
+      "x": 2400,
+      "y": 0,
+      "width": 340,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "room_c08",
+      "type": "text",
+      "text": "C08 Homologacao\nBancada V1 x V2 em modo offline",
+      "x": 2800,
+      "y": 0,
+      "width": 340,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "mod_c00_01",
+      "type": "text",
+      "text": "MOD-C00-01 ESTRUTURA DO COFRE\nManifesto DP-VAULT-1 2.1 P1, slots e nomenclatura",
       "x": 0,
-      "y": 150,
-      "width": 200,
-      "height": 100
+      "y": 200,
+      "width": 340,
+      "height": 110,
+      "color": "4"
     },
     {
-      "id": "n5",
+      "id": "mod_c00_02",
       "type": "text",
-      "text": "C05 Guardiao",
-      "x": 250,
-      "y": 150,
-      "width": 200,
-      "height": 100
-    },
-    {
-      "id": "n6",
-      "type": "text",
-      "text": "C06 Relatorios",
-      "x": 500,
-      "y": 150,
-      "width": 200,
-      "height": 100
-    },
-    {
-      "id": "n8",
-      "type": "text",
-      "text": "C08 Homologacao",
+      "text": "MOD-C00-02 VALIDACAO ESTRUTURAL\nlint-estrutura.mjs",
       "x": 0,
-      "y": 300,
-      "width": 200,
-      "height": 100
+      "y": 330,
+      "width": 340,
+      "height": 110,
+      "color": "4"
     },
     {
-      "id": "n_sheets",
+      "id": "mod_c01_01",
       "type": "text",
-      "text": "Google Sheets",
-      "x": 250,
-      "y": 300,
-      "width": 200,
-      "height": 100
+      "text": "MOD-C01-01 FORMULARIO E MENUS\nPorta P3 + payload conferivel",
+      "x": 400,
+      "y": 200,
+      "width": 340,
+      "height": 110,
+      "color": "4"
     },
     {
-      "id": "n_peculio",
+      "id": "mod_c01_02",
       "type": "text",
-      "text": "Peculio Externo",
-      "x": 500,
-      "y": 300,
-      "width": 200,
-      "height": 100
+      "text": "MOD-C01-02 NORMALIZADOR DE EFETIVO\nSincroniza EFETIVO pelo PECULIO",
+      "x": 400,
+      "y": 330,
+      "width": 340,
+      "height": 110,
+      "color": "4"
     },
     {
-      "id": "n_arca",
-      "x": 780,
-      "y": 0,
-      "width": 220,
+      "id": "mod_c02_01",
+      "type": "text",
+      "text": "MOD-C02-01 LEITURA E ADAPTACAO\nlerAbas / extrairFatos / EFETIVO",
+      "x": 800,
+      "y": 200,
+      "width": 340,
+      "height": 110,
+      "color": "4"
+    },
+    {
+      "id": "mod_c03_01",
+      "type": "text",
+      "text": "MOD-C03-01 MODELO DE OCORRENCIA\nTunel DATA MIKE BOE, 37 colunas",
+      "x": 1200,
+      "y": 200,
+      "width": 340,
+      "height": 110,
+      "color": "4"
+    },
+    {
+      "id": "mod_c03_02",
+      "type": "text",
+      "text": "MOD-C03-02 ARCA DE REGRAS DE DOMINIO\nCatalogo read-only + porta de consulta",
+      "x": 1200,
+      "y": 330,
+      "width": 340,
+      "height": 110,
+      "color": "4"
+    },
+    {
+      "id": "mod_c04_01",
+      "type": "text",
+      "text": "MOD-C04-01 MOTOR ANALITICO\nMotorAnaliticoV2 + 5 plugins de metrica",
+      "x": 1600,
+      "y": 200,
+      "width": 340,
+      "height": 110,
+      "color": "4"
+    },
+    {
+      "id": "mod_c05_01",
+      "type": "text",
+      "text": "MOD-C05-01 GUARDIAO DE QUALIDADE\nAudita, classifica e mede cobertura; nao altera",
+      "x": 2000,
+      "y": 200,
+      "width": 340,
+      "height": 110,
+      "color": "4"
+    },
+    {
+      "id": "mod_c05_02",
+      "type": "text",
+      "text": "MOD-C05-02 NORMALIZADOR DE ABA\nContrato, dry-run, executor e reauditoria",
+      "x": 2000,
+      "y": 330,
+      "width": 340,
+      "height": 110,
+      "color": "4"
+    },
+    {
+      "id": "mod_c06_01",
+      "type": "text",
+      "text": "MOD-C06-01 RELATORIOS OFICIAIS\nComparativo, PIP, CPM, Armas, Drogas e Central Analitica",
+      "x": 2400,
+      "y": 200,
+      "width": 340,
+      "height": 110,
+      "color": "4"
+    },
+    {
+      "id": "mod_c06_02",
+      "type": "text",
+      "text": "MOD-C06-02 MERITO DE ARMAS GXT\nCompilador, politica e renderer GXT",
+      "x": 2400,
+      "y": 330,
+      "width": 340,
+      "height": 110,
+      "color": "4"
+    },
+    {
+      "id": "mod_c08_01",
+      "type": "text",
+      "text": "MOD-C08-01 HOMOLOGACAO OFFLINE\nV1 x V2 com 4 baterias; fora do push",
+      "x": 2800,
+      "y": 200,
+      "width": 340,
+      "height": 110,
+      "color": "4"
+    },
+    {
+      "id": "ext_bo",
+      "type": "text",
+      "text": "FORA DO TERRENO - TEXTO DO BO\nSEI / CIODS / PMPE: entrada do operador",
+      "x": 0,
+      "y": 520,
+      "width": 340,
+      "height": 110,
+      "color": "6"
+    },
+    {
+      "id": "ext_sheets",
+      "type": "text",
+      "text": "SERVICO EXTERNO - GOOGLE SHEETS\nAbas mensais A..AK, EFETIVO, Tabela PIP, abas de relatorio e de auditoria",
+      "x": 800,
+      "y": 520,
+      "width": 380,
+      "height": 130,
+      "color": "6"
+    },
+    {
+      "id": "ext_peculio",
+      "type": "text",
+      "text": "FORA DO TERRENO - PLANILHA PECULIO\nOrdem de antiguidade (N) dos militares - planilha externa",
+      "x": 1240,
+      "y": 520,
+      "width": 360,
+      "height": 120,
+      "color": "6"
+    },
+    {
+      "id": "porta_p3",
+      "type": "text",
+      "text": "PORTA P3 - MENU UNICO\n`onOpen` -> `Entrada/Menu.js`; item sem funcao alvo e' omitido",
+      "x": 0,
+      "y": 690,
+      "width": 340,
+      "height": 110,
+      "color": "3"
+    },
+    {
+      "id": "porta_payload",
+      "type": "text",
+      "text": "PORTA DO PAYLOAD\n`processarEntradaManual` grava AE (POLICIAL) e AF (QDT ARMAS)",
+      "x": 400,
+      "y": 690,
+      "width": 360,
+      "height": 110,
+      "color": "3"
+    },
+    {
+      "id": "porta_efetivo",
+      "type": "text",
+      "text": "PORTA EFETIVO\nSincronizacao do cadastro a partir do PECULIO",
+      "x": 400,
+      "y": 830,
+      "width": 360,
       "height": 100,
-      "type": "text",
-      "text": "C03 / MOD-C03-02 ARCA de Regras"
+      "color": "3"
     },
     {
-      "id": "n_norm",
-      "x": 0,
-      "y": 300,
-      "width": 240,
-      "height": 100,
+      "id": "porta_arca",
       "type": "text",
-      "text": "C01 / MOD-C01-02 Normalizador de Efetivo"
+      "text": "PORTA ARCA - READ-ONLY\n`AdaptadorConsultaArca` (falha em modo fail-soft, nunca bloqueia)",
+      "x": 1240,
+      "y": 690,
+      "width": 360,
+      "height": 110,
+      "color": "3"
     },
     {
-      "id": "n_p3",
+      "id": "porta_am",
       "type": "text",
-      "x": -300,
-      "y": 0,
-      "width": 220,
-      "height": 100,
-      "text": "C01 / MOD-C01-01\nP3 - porta unica de navegacao\n(`Entrada/Menu.js`)"
+      "text": "PORTA AM - COLUNA 39\nUnica coluna que o Guardiao escreve; A:AL permanecem intactas",
+      "x": 2000,
+      "y": 690,
+      "width": 380,
+      "height": 110,
+      "color": "3"
+    },
+    {
+      "id": "porta_saida",
+      "type": "text",
+      "text": "PORTAS DE SAIDA DE RELATORIO\nCOMPARATIVO_2026, PIP_ANUAL_2026, CPM_ANUAL_2026, COMP_ARMAS_2026, COMP_DROGAS_2026, GTAR X TROPA ARMAS 2026, CA_*",
+      "x": 2400,
+      "y": 690,
+      "width": 400,
+      "height": 130,
+      "color": "3"
+    },
+    {
+      "id": "porta_publicacao",
+      "type": "text",
+      "text": "PORTA DE PUBLICACAO\n`clasp push` ao Apps Script; o `.claspignore` exclui Homologacao, Testes, scripts, agentic, vigias, pontes e extensoes",
+      "x": 2800,
+      "y": 690,
+      "width": 400,
+      "height": 130,
+      "color": "3"
     }
   ],
   "edges": [
     {
-      "id": "e0",
-      "fromNode": "n0",
-      "fromSide": "bottom",
-      "toNode": "n2",
-      "toSide": "top"
+      "id": "pl-r0",
+      "fromNode": "room_c00",
+      "toNode": "mod_c00_01",
+      "label": "contem"
     },
     {
-      "id": "e1",
-      "fromNode": "n_sheets",
-      "fromSide": "top",
-      "toNode": "n1",
-      "toSide": "bottom"
+      "id": "pl-r1",
+      "fromNode": "room_c00",
+      "toNode": "mod_c00_02",
+      "label": "contem"
     },
     {
-      "id": "e2",
-      "fromNode": "n1",
-      "fromSide": "right",
-      "toNode": "n2",
-      "toSide": "left"
+      "id": "pl-r2",
+      "fromNode": "room_c01",
+      "toNode": "mod_c01_01",
+      "label": "contem"
     },
     {
-      "id": "e3",
-      "fromNode": "n2",
-      "fromSide": "right",
-      "toNode": "n3",
-      "toSide": "left"
+      "id": "pl-r3",
+      "fromNode": "room_c01",
+      "toNode": "mod_c01_02",
+      "label": "contem"
     },
     {
-      "id": "e4",
-      "fromNode": "n_peculio",
-      "fromSide": "left",
-      "toNode": "n6",
-      "toSide": "right"
+      "id": "pl-r4",
+      "fromNode": "room_c02",
+      "toNode": "mod_c02_01",
+      "label": "contem"
     },
     {
-      "id": "e5",
-      "fromNode": "n3",
-      "fromSide": "right",
-      "toNode": "n_arca",
-      "toSide": "left"
+      "id": "pl-r5",
+      "fromNode": "room_c03",
+      "toNode": "mod_c03_01",
+      "label": "contem"
     },
     {
-      "id": "e6",
-      "fromNode": "n_arca",
-      "fromSide": "bottom",
-      "toNode": "n5",
-      "toSide": "right"
+      "id": "pl-r6",
+      "fromNode": "room_c03",
+      "toNode": "mod_c03_02",
+      "label": "contem"
     },
     {
-      "id": "e7",
-      "fromNode": "n_arca",
-      "fromSide": "bottom",
-      "toNode": "n_norm",
-      "toSide": "right"
+      "id": "pl-r7",
+      "fromNode": "room_c04",
+      "toNode": "mod_c04_01",
+      "label": "contem"
     },
     {
-      "id": "e8",
-      "fromNode": "n_peculio",
-      "fromSide": "bottom",
-      "toNode": "n_norm",
-      "toSide": "top"
+      "id": "pl-r8",
+      "fromNode": "room_c05",
+      "toNode": "mod_c05_01",
+      "label": "contem"
     },
     {
-      "id": "e9",
-      "fromNode": "n_p3",
-      "toNode": "n1",
-      "label": "fachada do produto"
+      "id": "pl-r9",
+      "fromNode": "room_c05",
+      "toNode": "mod_c05_02",
+      "label": "contem"
     },
     {
-      "id": "e10",
-      "fromNode": "n_p3",
-      "toNode": "n5",
-      "label": "navega: Guardiao"
+      "id": "pl-r10",
+      "fromNode": "room_c06",
+      "toNode": "mod_c06_01",
+      "label": "contem"
     },
     {
-      "id": "e11",
-      "fromNode": "n_p3",
-      "toNode": "n6",
-      "label": "navega: Comparativo/GXT"
+      "id": "pl-r11",
+      "fromNode": "room_c06",
+      "toNode": "mod_c06_02",
+      "label": "contem"
     },
     {
-      "id": "e12",
-      "fromNode": "n1",
-      "toNode": "n_arca",
-      "label": "consulta canonica do titulo de veiculo (ARCA-VEICULO-001)"
+      "id": "pl-r12",
+      "fromNode": "room_c08",
+      "toNode": "mod_c08_01",
+      "label": "contem"
+    },
+    {
+      "id": "pl-f0",
+      "fromNode": "ext_bo",
+      "toNode": "porta_p3",
+      "label": "operador cola o BO"
+    },
+    {
+      "id": "pl-f1",
+      "fromNode": "porta_p3",
+      "toNode": "porta_payload",
+      "label": "abre o formulario"
+    },
+    {
+      "id": "pl-f2",
+      "fromNode": "porta_p3",
+      "toNode": "mod_c01_01",
+      "label": "submenu Formulario"
+    },
+    {
+      "id": "pl-f3",
+      "fromNode": "porta_p3",
+      "toNode": "mod_c05_01",
+      "label": "submenu Guardiao"
+    },
+    {
+      "id": "pl-f4",
+      "fromNode": "porta_p3",
+      "toNode": "mod_c06_01",
+      "label": "submenu Comparativo 2026"
+    },
+    {
+      "id": "pl-f5",
+      "fromNode": "porta_p3",
+      "toNode": "mod_c01_02",
+      "label": "submenu Efetivo"
+    },
+    {
+      "id": "pl-f6",
+      "fromNode": "porta_p3",
+      "toNode": "mod_c08_01",
+      "label": "item isolado [Dev]"
+    },
+    {
+      "id": "pl-f7",
+      "fromNode": "porta_payload",
+      "toNode": "ext_sheets",
+      "label": "grava na aba mensal"
+    },
+    {
+      "id": "pl-f8",
+      "fromNode": "ext_sheets",
+      "toNode": "mod_c02_01",
+      "label": "leitura das abas mensais"
+    },
+    {
+      "id": "pl-f9",
+      "fromNode": "ext_peculio",
+      "toNode": "mod_c02_01",
+      "label": "mapa de antiguidade"
+    },
+    {
+      "id": "pl-f10",
+      "fromNode": "ext_peculio",
+      "toNode": "porta_efetivo",
+      "label": "origem do cadastro"
+    },
+    {
+      "id": "pl-f11",
+      "fromNode": "porta_efetivo",
+      "toNode": "mod_c01_02"
+    },
+    {
+      "id": "pl-f12",
+      "fromNode": "mod_c01_02",
+      "toNode": "ext_sheets",
+      "label": "escreve EFETIVO e log de auditoria"
+    },
+    {
+      "id": "pl-f13",
+      "fromNode": "ext_peculio",
+      "toNode": "mod_c06_02",
+      "label": "antiguidade para o merito"
+    },
+    {
+      "id": "pl-f14",
+      "fromNode": "mod_c02_01",
+      "toNode": "mod_c03_01",
+      "label": "registros canonicos"
+    },
+    {
+      "id": "pl-f15",
+      "fromNode": "mod_c02_01",
+      "toNode": "mod_c04_01",
+      "label": "vetor de ocorrencias"
+    },
+    {
+      "id": "pl-f16",
+      "fromNode": "mod_c03_01",
+      "toNode": "mod_c04_01",
+      "label": "RegistroCanonico"
+    },
+    {
+      "id": "pl-f17",
+      "fromNode": "mod_c01_01",
+      "toNode": "porta_arca",
+      "label": "consulta canonica (fail-soft)"
+    },
+    {
+      "id": "pl-f18",
+      "fromNode": "porta_arca",
+      "toNode": "mod_c03_02",
+      "label": "le o catalogo read-only"
+    },
+    {
+      "id": "pl-f19",
+      "fromNode": "porta_arca",
+      "toNode": "mod_c05_01",
+      "label": "enriquecerDiagnostico"
+    },
+    {
+      "id": "pl-f20",
+      "fromNode": "mod_c04_01",
+      "toNode": "mod_c06_01",
+      "label": "registros analiticos"
+    },
+    {
+      "id": "pl-f21",
+      "fromNode": "mod_c04_01",
+      "toNode": "mod_c06_02",
+      "label": "metricas para o merito"
+    },
+    {
+      "id": "pl-f22",
+      "fromNode": "mod_c05_01",
+      "toNode": "porta_am",
+      "label": "diagnostico"
+    },
+    {
+      "id": "pl-f23",
+      "fromNode": "porta_am",
+      "toNode": "ext_sheets",
+      "label": "alerta na coluna AM"
+    },
+    {
+      "id": "pl-f24",
+      "fromNode": "mod_c05_01",
+      "toNode": "mod_c05_02",
+      "label": "diagnostico + plano de correcao"
+    },
+    {
+      "id": "pl-f25",
+      "fromNode": "mod_c05_02",
+      "toNode": "mod_c05_01",
+      "label": "reauditoria e delta"
+    },
+    {
+      "id": "pl-f26",
+      "fromNode": "mod_c06_01",
+      "toNode": "porta_saida"
+    },
+    {
+      "id": "pl-f27",
+      "fromNode": "mod_c06_02",
+      "toNode": "porta_saida"
+    },
+    {
+      "id": "pl-f28",
+      "fromNode": "porta_saida",
+      "toNode": "ext_sheets",
+      "label": "materializa a aba"
+    },
+    {
+      "id": "pl-f29",
+      "fromNode": "mod_c08_01",
+      "toNode": "porta_publicacao",
+      "label": "bancada excluida do push"
     }
   ]
 }
