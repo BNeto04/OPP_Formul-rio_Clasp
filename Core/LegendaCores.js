@@ -13,7 +13,7 @@ const SyntheonLegendaCores = (function () {
 
   /** Grupos: [rotulo, fundo, fonte, negrito] — espelho de Render/RendererGxt.js */
   const GRUPOS = [
-    ['OFICIAIS (oficial prevalece sobre o pelotao)', '#F1C232', '#000000', false],
+    ['OFICIAIS', '#F1C232', '#000000', false],
     ['1o PEL GTAR', '#00CC00', '#000000', true],
     ['1o PEL',      '#00FF00', '#000000', false],
     ['2o PEL GTAR', '#3C78D8', '#FFFFFF', true],
@@ -72,6 +72,8 @@ const SyntheonLegendaCores = (function () {
     }
 
     aba.getRange(linhaInicial, 1, lin - linhaInicial, 1).setHorizontalAlignment('left');
+    // Ajusta a largura das celulas da legenda ao conteudo.
+    if (typeof aba.autoResizeColumns === 'function') aba.autoResizeColumns(1, 1);
     return lin + 1;
   }
 

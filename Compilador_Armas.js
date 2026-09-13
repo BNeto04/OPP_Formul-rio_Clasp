@@ -259,7 +259,7 @@ function executarCompilador(mesesAlvo, modo) {
     
     const novaAba = ss.insertSheet(nomeFinalAba);
     
-    const cabecalhoResultado = [['PELOTÃO', 'GRADUAÇÃO', 'MATRÍCULA', 'POLICIAL', 'SCORE ACUMULADO (ARMAS)']];
+    const cabecalhoResultado = [['PELOTÃO', 'GRADUAÇÃO', 'MATRÍCULA', 'POLICIAL', 'ARMAS']];
     const borderStyle = (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.BorderStyle)
       ? SpreadsheetApp.BorderStyle.SOLID
       : 'SOLID';
