@@ -168,12 +168,13 @@ const RendererComparativo2026 = {
   renderizarLegenda(sheet, linhaInicial) {
     sheet.getRange(linhaInicial, 1).setValue('LEGENDA').setFontWeight('bold');
 
+    // #152: ordem identica a `grupoOrdenacao` (GTAR ANTES do PEL) - a legenda espelha a tabela.
     const legendaPel = [
       ['Oficiais', '#f1c232'],
-      ['1o PEL', '#00ff00'],
       ['1o PEL GTAR', '#00cc00'],
-      ['2o PEL', '#6d9eeb'],
+      ['1o PEL', '#00ff00'],
       ['2o PEL GTAR', '#3c78d8'],
+      ['2o PEL', '#6d9eeb'],
       ['3o PEL', '#ffffff']
     ];
     legendaPel.forEach((item, index) => {
@@ -183,7 +184,10 @@ const RendererComparativo2026 = {
     });
 
     sheet.getRange(linhaInicial, 5).setValue('ARMAS').setFontWeight('bold').setHorizontalAlignment('center');
+    // #152: a faixa ZERO estava AUSENTE - a tabela pinta zero de VERMELHO e nada explicava.
+    // A regra de cores e a mesma de `corPorArmas` (0 / 1-3 / 4-5 / 6-9 / 10+).
     const legendaArmas = [
+      ['0 (nenhuma)', '#ff0000', '#ffffff'],
       ['1 a 3', '#ff9900', '#000000'],
       ['4 a 5', '#ffff00', '#000000'],
       ['6 a 9', '#93c47d', '#000000'],
