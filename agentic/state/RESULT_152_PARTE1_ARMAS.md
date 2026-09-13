@@ -100,8 +100,26 @@ O valor coincide exatamente com o `3.093,50` exibido no `COMPARATIVO_2026`.
 |---|---|---|
 | 1 | QTD. ARMAS | ✅ **PROVADA** (fonte = produto, 8 = 8) |
 | 2 | QTD. O | ✅ **PROVADA** (8 = 8, total 298) |
-| 3 | Pontuação | 🟡 funcional — **prova pendente** (depende da regra de cálculo do PIP/CPM) |
+| 3 | Pontuação | ✅ **PROVADA** (36.385,33 = 36.385,33) |
 | 4 | ENTROPECENTES | ✅ **PROVADA** (3.093,5 = 3.093,5) |
+
+## Parte 3 — PONTUAÇÃO (CPM)
+
+**Regra de domínio dada pelo proprietário**: *"o cpm [é] a soma da pontuação do policial de todos
+os túneis do mês corrente ou do ano"*.
+
+Prova `verificarPontuacaoHeadless('1133306')`:
+`JUN 3.058,33 · AGO 12.413,67 · SET 20.913,33 · SOMA NA FONTE = 36.385,33 · produto = 36.385,33`
+`produto_igual_a_soma = true` · `produto_igual_a_maior = false`
+
+**Nota técnica**: o `Math.max` em `LeitorPlanilhas.js:290` parecia defeito (max em vez de soma),
+mas é o **dedupe dentro do mesmo túnel** — evita contar duas vezes o mesmo policial na mesma
+ocorrência. A soma entre túneis é feita depois, e o resultado confere.
+
+## Fechamento: as 4 partes do comparativo provadas
+
+Fonte = produto, nome por nome, número por número, com matrícula de referência. Nenhum valor
+publicado no `COMPARATIVO_2026` ficou sem conferência contra as 9 abas de origem.
 
 ## Ferramentas de prova criadas
 
