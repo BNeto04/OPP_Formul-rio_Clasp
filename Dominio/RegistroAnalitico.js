@@ -17,6 +17,8 @@ class RegistroAnalitico {
       ocorrencias: dados.fatos?.ocorrencias ?? dados.ocorrencias ?? 0,
       qtdBoe: dados.fatos?.qtdBoe ?? dados.qtdBoe ?? 0,
       armas: dados.fatos?.armas ?? dados.armas ?? 0,
+      // #152: PARTICIPACAO de arma (QDT ARMAS). Esta reconstrucao do registro descartava o campo.
+      participacaoArmas: dados.fatos?.participacaoArmas ?? dados.participacaoArmas ?? 0,
       maconha: dados.fatos?.maconha ?? dados.maconha ?? 0,
       cocaina: dados.fatos?.cocaina ?? dados.cocaina ?? 0,
       crack: dados.fatos?.crack ?? dados.crack ?? 0,
