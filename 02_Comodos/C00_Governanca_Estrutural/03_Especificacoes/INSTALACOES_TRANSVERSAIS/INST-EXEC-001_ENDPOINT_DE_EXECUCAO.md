@@ -221,3 +221,17 @@ funcional”, **nada foi removido**. O plano fica registrado para execução sob
 | DOCUMENTAÇÃO | ALINHADO — este documento + derivação no espelho + `RELATORIO_DE_DIFERENCAS_155.md` |
 | CANVAS / PLANTA | **ALTERADO** — nasce o endereço `C00_Governanca_Estrutural/03_Especificacoes/INSTALACOES_TRANSVERSAIS` (antes inexistente: o artefato era órfão no mapa). Sem cômodo novo; nenhum canvas editado |
 | GIT | **PENDENTE** — nada commitado (ordem do card: não commitar, não push, não postar) |
+
+---
+
+## ATUALIZAÇÃO — 13/09/2026 · REMOÇÃO EXECUTADA (decisão do Proprietário)
+
+**Decisão:** Proprietário autorizou a remoção em 13/09/2026, acolhendo a `TECHNICAL_RECOMMENDATION: RETIRAR` do Planner e a evidência deste documento. A porta externa **não é** instalação transversal: era código latente, sem consumidor, criado para um `403` já superado pelo `clasp run`.
+
+**Executado:**
+- Removidos `Entrada/WebAppExecucao.js` e `Testes/TestWebAppExecucao.js`;
+- Removida a entrada do runner `Testes/RodarTodosOsTestes.js` (linha do `require('./TestWebAppExecucao')`);
+- Espelho AS-IS `07_Codigo_Leitura/Entrada/WebAppExecucao.js.md` removido (não se espelha código inexistente).
+
+**PLANO B PRESERVADO (documentação, não código morto):**
+Se o `clasp run` voltar a falhar por permissão, a porta externa pode ser reconstruída a partir do commit **`a1de4bf`** (11/09): `git show a1de4bf -- Entrada/WebAppExecucao.js Testes/TestWebAppExecucao.js`. Ao reinstalar: (1) definir o token em **Script Properties** (`TOKEN_EXECUCAO`) e a lista branca (`EXECUCAO_LISTA_BRANCA` — só as funções de `Entrada/EntradaManual.js` já expostas por `google.script.run`); (2) implantar como App da Web com acesso restrito; (3) registrar aqui o endereço e a data. **Sem esses três passos, a porta não deve ser implantada** (§26 segurança; §14.1 proibição de antecipação).
