@@ -1,0 +1,66 @@
+downplant_schema: DP-HANDOFF-1
+downplant_version: "2.1"
+handoff_version: 1
+gerado_em: "2026-09-13"
+autor: HERMES
+card_origem: "#156 (DP-HANDOFF-001)"
+card_pai: "#57"
+estado_do_handoff: ATIVO
+proposito: "Contexto minimo obrigatorio para o inicio de uma task com o estado declarado das quatro pontas. Nao duplica estado operacional: referencia os documentos canonicos."
+
+identidade:
+  projeto: "SYNTHEON GS"
+  repositorio: "C:/Users/Bneto04/Documents/Codex/syntheon-gs-downplant-offline"
+  espelho: "C:/Users/Bneto04/Documents/Obsidian/Obsidian_Brain/Syntheon"
+  branch: "sprint/g01-guardiao-qualidade-live-001"
+  head_observado: "98f5c8d"
+  pasta_de_trabalho: "C:/Users/Bneto04"
+
+contexto_de_task:
+  comodo: "C00_Governanca_Estrutural"
+  modulo_ativo: "MOD-C00-02_VALIDACAO_ESTRUTURAL"
+  fatia_ativa: "#156 DP-HANDOFF-001 + #157 DP-TRANSICAO-001"
+  ambiente: local
+  portao_atual: "Executor -> Conferidor (aguardando auditoria); sem autorizacao de publicacao"
+  regra_de_parada: "parar ao fim da fatia; nao iniciar a proxima; nao commitar, nao push, nao deploy, nao postar"
+  arquivos_permitidos:
+    - "08_Execucao_Ao_Vivo/downplant_handoff.yaml"
+    - "08_Execucao_Ao_Vivo/downplant_handoff.md"
+    - "scripts/downplant/validar-handoff.mjs"
+    - "03_Fundacao/ESTRUTURA_DO_COFRE.md"
+    - "RELATORIO_DE_DIFERENCIAS_156_157.md"
+  proibicoes:
+    - "nao alterar codigo funcional do produto"
+    - "nao commitar, nao push, nao deploy"
+    - "nao postar ou comentar no GitHub"
+    - "nao inventar dado, versao ou evidencia"
+    - "nao criar pasta condicional sem gatilho, dono e condicao de encerramento"
+  ids_remotos:
+    apps_script_script_id: "1dudWJXeADZ3nSJSimyHgEQbi0Gu-RnV57w3dNvS6m-zbfqvtQ3GxEx4G"
+    sheets_id: "1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY"
+    github_repo: "BNeto04/OPP_Formul-rio_Clasp"
+
+quatro_pontas:
+  CODE_STATE: ALINHADO
+  DOC_STATE: ALINHADO
+  CANVAS_STATE: NAO_APLICAVEL
+  GIT_STATE: PENDENTE
+  justificativas:
+    CODE_STATE: "Validador node criado e verde (exit 0); nenhum codigo funcional do produto alterado."
+    DOC_STATE: "Handoff YAML+MD, manifesto e relatorio escritos no repo e derivados no espelho."
+    CANVAS_STATE: "Sem delta estrutural: nenhum comodo, modulo, porta ou no novo."
+    GIT_STATE: "Mudancas nao commitadas por regra do card; arvore de trabalho com alteracoes."
+
+proveniencia:
+  agente: HERMES
+  modelo: "deepseek-v4-flash"
+  objetivo: "Executar #156 e #157 com evidencia real, sem commit, sem push e sem postagem."
+  revisao_humana: pendente
+
+referencias:
+  estado_operacional: "08_Execucao_Ao_Vivo/AGORA.md"
+  manifesto: "03_Fundacao/ESTRUTURA_DO_COFRE.md"
+  constituicao: "03_Fundacao/CONSTITUICAO.md"
+  planta_mestra: "01_Planta/PLANTA_MESTRA.canvas"
+  lint: "scripts/downplant/lint-estrutura.mjs"
+  validador: "scripts/downplant/validar-handoff.mjs"
