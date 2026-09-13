@@ -469,6 +469,95 @@ class RegrasQualidade {
   }
 
   /**
+   * Invariante de identidade unitaria da ocorrencia (ARCA-OCORRENCIA-007 / card #160 GUARD-D7-001).
+   * Regra de dominio determinada pelo proprietario: "1 OCORRENCIA = 1 MIKE" — nao existe ocorrencia
+   * dividida entre MIKEs, nem a mesma ocorrencia repetida em datas diferentes. A chave canonica do
+   * tunel e DATA|MIKE|BOE, unica por ocorrencia.
+   *
+   * Emite DOIS diagnosticos, sem corrigir o dado (Regra do Guardiao: detecta, explica e aponta;
+   * quem muta e o Normalizador sob CONFIRM_AUTO/dry-run):
+   *   - OCORRENCIA_FRAGMENTADA_POR_DATA: mesma identidade (MIKE canonico + BOE) em >1 DATA;
+   *   - MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO: mesmo BOE com o MIKE em grafias diferentes
+   *     (mesmos digitos, pontuacao diferente) -> chaves distintas para a MESMA ocorrencia.
+   *
+   * Base externa: os digitos do MIKE sao a identidade; a pontuacao nao cria ocorrencia nova.
+   * Sem BOE a identidade e incompleta e a regra NAO se aplica (BOE ausente tem codigo proprio,
+   * ARCA-BOE-002 / BOE_AUSENTE) — evita falso positivo e nao duplica o alerta.
+   *
+   * @param {Object} mikesMapa - mapa MIKE -> { mike, boes:Set, datas:Set, linhas:[{linha,boe,dataTexto,chave}] }
+   * @returns {Array<Object>} diagnosticos prontos (linha + evidencia apontando a celula)
+   */
+  static validarIdentidadeOcorrencia(mikesMapa) {
+    const diagnosticos = [];
+    const entradas = Object.values(mikesMapa || {});
+    if (!entradas.length) return diagnosticos;
+
+    // Identidade = digitos do MIKE (grafia/pontuacao NAO definem identidade).
+    const identidadeMike_ = (valor) => String(valor == null ? '' : valor).replace(/\D/g, '');
+
+    // Agrupa todas as linhas por IDENTIDADE DA OCORRENCIA = MIKE canonico + BOE.
+    const identidades = {};
+    entradas.forEach(entry => {
+      const mikeCanonico = identidadeMike_(entry.mike);
+      if (!mikeCanonico) return;
+      (entry.linhas || []).forEach(linhaInfo => {
+        const boe = RegrasQualidade.texto(linhaInfo.boe);
+        if (!boe) return; // identidade incompleta: coberta por BOE_AUSENTE
+        const chaveIdentidade = mikeCanonico + '|' + boe;
+        if (!identidades[chaveIdentidade]) {
+          identidades[chaveIdentidade] = { mikeCanonico, boe, datas: new Set(), grafias: new Set(), linhas: [] };
+        }
+        const grupo = identidades[chaveIdentidade];
+        grupo.linhas.push(linhaInfo);
+        const dataTexto = RegrasQualidade.texto(linhaInfo.dataTexto);
+        if (dataTexto) grupo.datas.add(dataTexto);
+        grupo.grafias.add(RegrasQualidade.texto(entry.mike));
+      });
+    });
+
+    Object.values(identidades).forEach(grupo => {
+      const datas = Array.from(grupo.datas).sort();
+      const grafias = Array.from(grupo.grafias).sort();
+
+      // (a) Mesma ocorrencia em mais de uma DATA -> fragmentacao por DATA.
+      if (grupo.datas.size > 1) {
+        grupo.linhas.forEach(linhaInfo => {
+          diagnosticos.push(RegrasQualidade.criarDiagnostico({
+            severidade: SEVERIDADES_GUARDIAO.ALERTA,
+            codigoRegra: 'OCORRENCIA_FRAGMENTADA_POR_DATA',
+            camada: 'SEMANTICA',
+            linha: linhaInfo.linha,
+            tunel: linhaInfo.chave || '',
+            diagnostico: `Ocorrencia fragmentada por DATA: a MESMA ocorrencia (MIKE ${grupo.mikeCanonico} + BOE ${grupo.boe}) aparece em ${grupo.datas.size} datas distintas (${datas.join(', ')}), gerando ${grupo.datas.size} chaves DATA|MIKE|BOE. Pela regra "1 ocorrencia = 1 MIKE" nao existe ocorrencia dividida por data.`,
+            evidencia: `MIKE: "${grupo.mikeCanonico}" | BOE: "${grupo.boe}" | Datas encontradas: ${datas.join(' | ')} | Linha ${linhaInfo.linha}: MIKE na coluna E, BOE na coluna G, DATA na coluna B`,
+            acaoRecomendada: 'Confirme a data real do servico e unifique a DATA (coluna B) das linhas desta ocorrencia.',
+            sugestaoCorrecao: 'Unificar a DATA (coluna B) do tunel; a ocorrencia continua sendo uma so.'
+          }));
+        });
+      }
+
+      // (b) Mesma ocorrencia com o MIKE em grafias diferentes -> formato nao canonico / duplicado.
+      if (grupo.grafias.size > 1) {
+        grupo.linhas.forEach(linhaInfo => {
+          diagnosticos.push(RegrasQualidade.criarDiagnostico({
+            severidade: SEVERIDADES_GUARDIAO.ALERTA,
+            codigoRegra: 'MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO',
+            camada: 'SINTATICA',
+            linha: linhaInfo.linha,
+            tunel: linhaInfo.chave || '',
+            diagnostico: `MIKE em formatos divergentes: o mesmo BOE ${grupo.boe} foi gravado com ${grupo.grafias.size} grafias de MIKE (${grafias.map(g => '"' + g + '"').join(' e ')}), equivalentes em digitos (${grupo.mikeCanonico}) e produtoras de chaves distintas — a mesma ocorrencia aparece duas vezes.`,
+            evidencia: `BOE: "${grupo.boe}" | Grafias de MIKE: ${grafias.map(g => '"' + g + '"').join(' | ')} | Digitos (identidade): ${grupo.mikeCanonico} | Linha ${linhaInfo.linha}: MIKE na coluna E`,
+            acaoRecomendada: 'Padronize a grafia do MIKE (coluna E) no tunel: os digitos definem a identidade; a pontuacao nao cria ocorrencia nova.',
+            sugestaoCorrecao: 'Uniformizar a grafia do MIKE (coluna E) entre as linhas do mesmo BOE.'
+          }));
+        });
+      }
+    });
+
+    return diagnosticos;
+  }
+
+  /**
    * Consulta o catálogo dinâmico da Tabela PIP.
    * Se o catálogo for null (aba indisponível), retorna true para não gerar falso erro/observação.
    */

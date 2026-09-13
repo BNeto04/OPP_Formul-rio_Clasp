@@ -90,3 +90,9 @@ As regras inventariadas na ARCA classificam-se em níveis estritos de autoridade
 | **ARCA-QTD-O-001** | QTD O = 01 por Túnel (primeira linha do fato) | `DIRETRIZ_OPERACIONAL` | Regra do proprietário (11/09/2026): QTD O padrão fixo 01 (Entrada/EntradaManual.js:6-14) | Alta | `INTERNAL_SOURCE_CONFIRMED` |
 | **ARCA-DETIDOS-001** | DETIDOS: Conjunto Canônico e Gravação no Fato (primeira linha) | `ESQUEMA_DADOS` | Dicionário de Colunas (aliases DETIDOS|PRESOS|CONDUZIDOS) (Core/Constantes.js:60) | Alta | `INTERNAL_SOURCE_CONFIRMED` |
 | **ARCA-ANTIGUIDADE-002** | Ordem de Antiguidade da Equipe no Túnel (Posto/Graduação, mais antigo primeiro) | `DIRETRIZ_OPERACIONAL` | Regra do proprietário (11/09/2026): ordem canônica da equipe por posto/graduação (Core/Policiais.js:94,138) | Alta | `INTERNAL_SOURCE_CONFIRMED` |
+
+> **Fontes da regra adicionada pelo card #160 (GUARD-D7-001):**
+
+| ID da Regra | Título | Tipo de Fonte | Nome/Localização | Autoridade | Status da Fonte |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **ARCA-OCORRENCIA-007** | Identidade Unitária da Ocorrência: 1 Ocorrência = 1 MIKE | `DETERMINACAO_DO_PROPRIETARIO` | Decisão do proprietário (13/09/2026): 1 ocorrência = 1 MIKE (não existe ocorrência dividida entre MIKEs); chave canônica do túnel DATA + MIKE + BOE (`Core/RegrasQualidade.js:chaveTunel`) | Alta | `INTERNAL_SOURCE_CONFIRMED` |

@@ -37,9 +37,10 @@
         "ARCA-VEICULO-001",
         "ARCA-ANTIGUIDADE-002",
         "ARCA-QTD-O-001",
-        "ARCA-DETIDOS-001"
+        "ARCA-DETIDOS-001",
+        "ARCA-OCORRENCIA-007"
       ],
-      "regras_mapeadas": 32,
+      "regras_mapeadas": 33,
       "regras_nao_auditaveis": 0,
       "regras_adicionadas_total": [
         "ARCA-MIKE-004",
@@ -54,7 +55,8 @@
         "ARCA-VEICULO-001",
         "ARCA-ANTIGUIDADE-002",
         "ARCA-QTD-O-001",
-        "ARCA-DETIDOS-001"
+        "ARCA-DETIDOS-001",
+        "ARCA-OCORRENCIA-007"
       ],
       "card_137": "#137 OCR-ARCA-003: reconciliacao de veiculo (ARCA-VEICULO-001) - regra de dominio; heuristica lexical permanece no parser.",
       "regras_integradas": 8,
@@ -67,7 +69,8 @@
       "fluid_flow": "2026-09-12: 17 NAO_AUDITAVEL reclassificadas em INTEGRADO(7)/NAO_APLICAVEL(9)/MAPEADO(1, QDT_ARMAS_DIVERGENTE_NO_TUNEL). Zero regras cegas. 2026-09-12 (#145): +3 regras canonicas registradas (ANTIGUIDADE-002, QTD-O-001, DETIDOS-001), todas INTEGRADO. 2026-09-12 (#149): ARCA-TERRITORIO-001 promovida a MAPEADO - bloco ARCA-GUARD completo.",
       "card_145": "#145 ARCA-GUARD-001: 3 regras canonicas registradas (antiguidade da equipe, QTD O = 01, DETIDOS) - todas INTEGRADO (aplicadas na entrada/normalizacao); diagnosticos previstos em #146/#147.",
       "card_146_147": "#146/#147 ARCA-GUARD-002/003: diagnosticos ORDEM_ANTIGUIDADE_EQUIPE (ARCA-ANTIGUIDADE-002) e QTD_O_DIVERGENTE (ARCA-QTD-O-001) implementados no Guardiao; regras promovidas de INTEGRADO para MAPEADO.",
-      "card_149": "#149 ARCA-GUARD-005: diagnostico de AIS (AIS_AUSENTE/AIS_DIVERGENTE) implementado no Guardiao; ARCA-TERRITORIO-001 promovida de NAO_APLICAVEL para MAPEADO; bloco ARCA-GUARD fechado."
+      "card_149": "#149 ARCA-GUARD-005: diagnostico de AIS (AIS_AUSENTE/AIS_DIVERGENTE) implementado no Guardiao; ARCA-TERRITORIO-001 promovida de NAO_APLICAVEL para MAPEADO; bloco ARCA-GUARD fechado.",
+      "card_160": "#160 GUARD-D7-001: ARCA-OCORRENCIA-007 registra a identidade unitaria da ocorrencia ('1 ocorrencia = 1 MIKE', chave DATA|MIKE|BOE) e promove-a a MAPEADO com os diagnosticos OCORRENCIA_FRAGMENTADA_POR_DATA e MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO. D7 A/B/C = NAO_APLICAVEL."
     },
     "normalizador_integracao": {
       "card": "#127 ARCA-FIX-004",
@@ -2912,6 +2915,76 @@
         "status": "NAO_APLICAVEL",
         "codigos": [],
         "motivo": "Especificacao estrutural de layout fisico; a fragmentacao detectavel e coberta por ARCA-MIKE-004 (TUNEL_FRAGMENTADO). Consumida pelo corretor de tuneis."
+      }
+    },
+    {
+      "rule_id": "ARCA-OCORRENCIA-007",
+      "titulo": "Identidade Unitária da Ocorrência: 1 Ocorrência = 1 MIKE",
+      "descricao_humana": "Cada ocorrência operacional é identificada por UM ÚNICO MIKE. Não existe ocorrência legítima dividida entre MIKEs distintos, nem a mesma ocorrência repetida em datas diferentes: a chave canônica do túnel é DATA|MIKE|BOE e ela é única por ocorrência. Por consequência, (a) a mesma ocorrência (mesmo MIKE + mesmo BOE) só pode ter UMA DATA; e (b) um mesmo BOE não pode carregar MIKEs em grafias diferentes, porque os DÍGITOS — e não a pontuação — definem a identidade. O Guardião detecta e aponta (não corrige); a normalização do dado é do MOD-C05-02 sob CONFIRM_AUTO/dry-run. A decisão D7 A/B/C é NÃO_APLICÁVEL porque não há divisão legítima a arbitrar.",
+      "categoria": "IDENTIDADE_OCORRENCIA",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DETERMINACAO_DO_PROPRIETARIO",
+          "nome": "Decisão do proprietário (13/09/2026): 1 ocorrência = 1 MIKE (não existe ocorrência dividida entre MIKEs); D7 A/B/C = NÃO_APLICÁVEL",
+          "localizacao": "card #160 (GUARD-D7-001)",
+          "autoridade": "Alta"
+        },
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Chave canônica do túnel DATA|MIKE|BOE (coluna Chave Ocorrência)",
+          "localizacao": "Core/RegrasQualidade.js:chaveTunel",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:validarIdentidadeOcorrencia",
+        "Core/RegrasQualidade.js:chaveTunel",
+        "Features/GuardiaoQualidade.js"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js",
+        "Testes/TestArcaMapaCobertura.js"
+      ],
+      "condicao": "A mesma identidade de ocorrência (MIKE canônico = apenas dígitos + BOE) aparece em mais de uma DATA, ou o mesmo BOE aparece com o MIKE em mais de uma grafia.",
+      "resultado_esperado": "Diagnóstico ALERTA OCORRENCIA_FRAGMENTADA_POR_DATA em cada linha da mesma identidade com datas distintas; e ALERTA MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO em cada linha do mesmo BOE com grafias divergentes de MIKE. Nenhum dado é corrigido automaticamente pelo Guardião.",
+      "excecoes": [
+        "Sem BOE a identidade da ocorrência está incompleta: a regra não se aplica (a ausência tem código próprio, ARCA-BOE-002 / BOE_AUSENTE).",
+        "Mesmo MIKE em datas distintas com BOEs diferentes não é fragmentação por DATA desta regra (permanece coberto por ARCA-MIKE-002 e ARCA-BOE-001)."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra nova registrada no #160 a partir de decisão do proprietário + código existente: o Guardião emite os dois códigos e os enriquece via porta ARCA. A correção do dado é do MOD-C05-02 (Normalizador) sob CONFIRM_AUTO/dry-run; o Guardião só detecta, explica e aponta."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Fusão automática de ocorrências (reagrupar blocos, escolher uma DATA, reescrever o MIKE) destruiria a proveniência do dado; quem consolida chave é o Corretor/Normalizador sob confirmação humana.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Regra positiva de identidade que fecha o D7: a chave DATA|MIKE|BOE é única por ocorrência, logo não há divisão legítima a arbitrar (D7 A/B/C = NÃO_APLICÁVEL). Casos reais medidos: JUN2026 BOE 26E0321002656 (mesmo MIKE/BOE em 23/06 e 24/06) e JAN2026 BOE 26E0127000512 (mesmo dia, MIKE em duas grafias).",
+      "impacto_se_violada": "A mesma ocorrência conta duas vezes (duas chaves distintas) na produtividade e na estatística, ou se perde a rastreabilidade do BO quando a grafia do MIKE muda.",
+      "auditavel_automaticamente": true,
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "OCORRENCIA_FRAGMENTADA_POR_DATA",
+          "MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO"
+        ],
+        "motivo": "Códigos de diagnóstico emitidos pelo Guardião (invariante de identidade unitária da ocorrência) com metadados ARCA via porta - card #160."
       }
     }
   ]

@@ -1250,5 +1250,100 @@ test('ARCA-TERRITORIO-001: sem cidade nem bairro NAO gera falso positivo', () =>
   assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'AIS_DIVERGENTE' || d.codigoRegra === 'AIS_AUSENTE').length, 0);
 });
 
+// ---- #160 (GUARD-D7-001): identidade unitaria da ocorrencia — "1 ocorrencia = 1 MIKE" (ARCA-OCORRENCIA-007) ----
+// Fatos reais que originaram os diagnosticos (medidos nas abas mensais, leitura somente-leitura):
+//   JUN2026 — mesma ocorrencia (MIKE 202606231855084437 + BOE 26E0321002656) em DUAS DATAS (23/06 e 24/06);
+//   JAN2026 — mesmo dia (17/01) com o MIKE 2026117021535 em DUAS GRAFIAS ('2.026.117.021.535' e '2026117021535').
+// As fixtures abaixo reproduzem os dois casos em escala reduzida; a planilha real nao e tocada.
+const formulasIdentidade = (n) => Array.from({ length: n }, () => headersQtdOOrdem.map(() => ''));
+const linhaId = (data, mike, boe, grad, mat) => [data, '', mike, boe, grad, mat, 'POL ' + mat, 0, 'PORTE ILEGAL', 'COM IMPUTADO', 0, 0, 0, 0, 0, 10, 2.5, data + '|' + mike + '|' + boe, ''];
+const varrerIdentidade = (dados) => GuardiaoQualidade.varrerAba(criarMockSheet(headersQtdOOrdem, dados, formulasIdentidade(dados.length)));
+
+test('#160 OCORRENCIA_FRAGMENTADA_POR_DATA: mesma ocorrencia (MIKE+BOE) em duas DATAS aponta cada linha', () => {
+  const dados = [
+    linhaId('23/06/2026', '202606231855084437', '26E0321002656', '3º SGT', '110955-3'),
+    linhaId('23/06/2026', '202606231855084437', '26E0321002656', 'CB', '118379-6'),
+    linhaId('24/06/2026', '202606231855084437', '26E0321002656', 'SD', '120727-0')
+  ];
+  const r = varrerIdentidade(dados);
+  const diags = r.diagnosticos.filter(d => d.codigoRegra === 'OCORRENCIA_FRAGMENTADA_POR_DATA');
+  assert.strictEqual(diags.length, 3, 'deve apontar as 3 linhas da MESMA identidade (MIKE+BOE)');
+  assert.deepStrictEqual(diags.map(d => d.linha).sort((a, b) => a - b), [2, 3, 4], 'linha apontada = linha real da aba');
+  diags.forEach(d => assert.strictEqual(d.severidade, SEVERIDADES_GUARDIAO.ALERTA));
+  assert.ok(diags[0].diagnostico.includes('23/06/2026') && diags[0].diagnostico.includes('24/06/2026'), 'mensagem nomeia as duas datas');
+  assert.ok(diags[0].diagnostico.includes('1 ocorrencia = 1 MIKE'), 'mensagem enuncia a regra de dominio');
+  assert.ok(diags[0].evidencia.includes('26E0321002656'), 'evidencia nomeia o BOE (coluna G)');
+  assert.ok(diags[0].evidencia.includes('coluna E'), 'evidencia aponta a celula do MIKE');
+  assert.strictEqual(diags[0].arca.rule_id, 'ARCA-OCORRENCIA-007', 'diagnostico enriquecido pela porta ARCA');
+});
+
+test('#160 OCORRENCIA_FRAGMENTADA_POR_DATA: mesma ocorrencia com DATA unica NAO gera diagnostico', () => {
+  const dados = [
+    linhaId('23/06/2026', '202606231855084437', '26E0321002656', '3º SGT', '110955-3'),
+    linhaId('23/06/2026', '202606231855084437', '26E0321002656', 'CB', '118379-6')
+  ];
+  const r = varrerIdentidade(dados);
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'OCORRENCIA_FRAGMENTADA_POR_DATA').length, 0);
+});
+
+test('#160 zero falso positivo: ocorrencias DISTINTAS (MIKE e BOE proprios) em datas distintas', () => {
+  const dados = [
+    linhaId('23/06/2026', '202606231855084437', '26E0321002656', '3º SGT', '110955-3'),
+    linhaId('24/06/2026', '202606240900112233', '26E0321002999', 'CB', '118379-6')
+  ];
+  const r = varrerIdentidade(dados);
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'OCORRENCIA_FRAGMENTADA_POR_DATA').length, 0);
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO').length, 0);
+});
+
+test('#160 OCORRENCIA_FRAGMENTADA_POR_DATA: mesmo MIKE em duas datas com BOEs diferentes NAO e identidade (segue coberto pelos codigos de MIKE/BOE)', () => {
+  const dados = [
+    linhaId('23/06/2026', '202606231855084437', '26E0321002656', '3º SGT', '110955-3'),
+    linhaId('24/06/2026', '202606231855084437', '26E0321002999', 'CB', '118379-6')
+  ];
+  const r = varrerIdentidade(dados);
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'OCORRENCIA_FRAGMENTADA_POR_DATA').length, 0);
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO').length, 0);
+  assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'MIKE_BOE_DIVERGENTE'), 'o codigo de BOE divergente continua ativo');
+  assert.ok(r.diagnosticos.find(d => d.codigoRegra === 'MIKE_DATAS_DIVERGENTES'), 'o codigo de datas divergentes continua ativo');
+});
+
+test('#160 MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO: mesmo BOE com MIKE em dois formatos aponta cada linha', () => {
+  const dados = [
+    linhaId('17/01/2026', '2.026.117.021.535', '26E0127000512', '3º SGT', '110955-3'),
+    linhaId('17/01/2026', '2.026.117.021.535', '26E0127000512', 'CB', '118379-6'),
+    linhaId('17/01/2026', '2026117021535', '26E0127000512', '3º SGT', '110955-3'),
+    linhaId('17/01/2026', '2026117021535', '26E0127000512', 'CB', '118379-6')
+  ];
+  const r = varrerIdentidade(dados);
+  const diags = r.diagnosticos.filter(d => d.codigoRegra === 'MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO');
+  assert.strictEqual(diags.length, 4, 'deve apontar as 4 linhas do mesmo BOE');
+  assert.deepStrictEqual(diags.map(d => d.linha).sort((a, b) => a - b), [2, 3, 4, 5]);
+  assert.ok(diags[0].diagnostico.includes('2.026.117.021.535') && diags[0].diagnostico.includes('2026117021535'), 'mensagem nomeia as duas grafias');
+  assert.ok(diags[0].diagnostico.includes('2026117021535'), 'mensagem nomeia os digitos de identidade');
+  assert.ok(diags[0].evidencia.includes('coluna E'), 'evidencia aponta a celula do MIKE');
+  assert.strictEqual(diags[0].arca.rule_id, 'ARCA-OCORRENCIA-007');
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'OCORRENCIA_FRAGMENTADA_POR_DATA').length, 0, 'mesma data: nao e fragmentacao por data');
+});
+
+test('#160 MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO: mesmo BOE com grafia unica NAO gera diagnostico', () => {
+  const dados = [
+    linhaId('17/01/2026', '2026117021535', '26E0127000512', '3º SGT', '110955-3'),
+    linhaId('17/01/2026', '2026117021535', '26E0127000512', 'CB', '118379-6')
+  ];
+  const r = varrerIdentidade(dados);
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO').length, 0);
+});
+
+test('#160 sem BOE as duas regras NAO disparam (identidade incompleta; BOE ausente tem codigo proprio)', () => {
+  const dados = [
+    linhaId('23/06/2026', '202606231855084437', '', '3º SGT', '110955-3'),
+    linhaId('24/06/2026', '202606231855084437', '', 'CB', '118379-6')
+  ];
+  const r = varrerIdentidade(dados);
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'OCORRENCIA_FRAGMENTADA_POR_DATA').length, 0);
+  assert.strictEqual(r.diagnosticos.filter(d => d.codigoRegra === 'MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO').length, 0);
+});
+
 console.log(`\n🎉 Testes do Guardião da Qualidade concluídos: ${sucessos} testes passaram!`);
 }

@@ -90,19 +90,19 @@ test('contagens de cobertura conferem com o meta do catalogo', () => {
   const mapeadas = regras.filter(r => r.auditabilidade_guardiao.status === 'MAPEADO').length;
   const integradas = regras.filter(r => r.auditabilidade_guardiao.status === 'INTEGRADO').length;
   const naoAplicaveis = regras.filter(r => r.auditabilidade_guardiao.status === 'NAO_APLICAVEL').length;
-  assert.strictEqual(regras.length, 48, 'total de regras deveria ser 48 (45 + 3 do #145 ARCA-GUARD-001)');
+  assert.strictEqual(regras.length, 49, 'total de regras deveria ser 49 (45 + 3 do #145 ARCA-GUARD-001 + ARCA-OCORRENCIA-007 do #160)');
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_mapeadas, mapeadas);
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_integradas, integradas);
   assert.strictEqual(arca.meta.cobertura_reconciliacao.regras_nao_aplicaveis, naoAplicaveis);
-  assert.strictEqual(mapeadas + integradas + naoAplicaveis, 48);
-  assert.strictEqual(mapeadas, 32, 'MAPEADO = 28 originais + ARCA-ARMAS-001 + ARCA-ANTIGUIDADE-002 + ARCA-QTD-O-001 + ARCA-TERRITORIO-001 (#149)');
+  assert.strictEqual(mapeadas + integradas + naoAplicaveis, 49);
+  assert.strictEqual(mapeadas, 33, 'MAPEADO = 28 originais + ARCA-ARMAS-001 + ARCA-ANTIGUIDADE-002 + ARCA-QTD-O-001 + ARCA-TERRITORIO-001 (#149) + ARCA-OCORRENCIA-007 (#160)');
   assert.strictEqual(integradas, 8, 'INTEGRADO = 4 NormalizadorEfetivo + 3 plugins de metrica + DETIDOS-001 (as 2 do #145 promoveram-se a MAPEADO no #146/#147)');
   assert.strictEqual(naoAplicaveis, 8, 'NAO_APLICAVEL: ARCA-TERRITORIO-001 promovida a MAPEADO no #149');
 });
 
 test('nenhuma heuristica foi promovida a regra oficial na reconciliacao', () => {
   const adicionadas = arca.meta.cobertura_reconciliacao.regras_adicionadas_total || arca.meta.cobertura_reconciliacao.regras_adicionadas;
-  assert.ok(adicionadas.length === 13, 'esperado 13 regras adicionadas (#126: 5 + #128: 4 + #137: 1 + #145: 3)');
+  assert.ok(adicionadas.length === 14, 'esperado 14 regras adicionadas (#126: 5 + #128: 4 + #137: 1 + #145: 3 + #160: 1)');
   adicionadas.forEach(rid => {
     const r = regras.find(x => x.rule_id === rid);
     assert.ok(['INTERNAL_OPERATIONAL_RULE', 'TECHNICAL_RULE'].includes(r.tipo_regra), `${rid}: tipo ${r.tipo_regra} nao permitido`);

@@ -468,6 +468,17 @@ class GuardiaoQualidade {
       }
     });
 
+    // Invariante ARCA-OCORRENCIA-007 (#160 GUARD-D7-001): identidade unitaria da ocorrencia
+    // ("1 ocorrencia = 1 MIKE", chave DATA|MIKE|BOE). Emite OCORRENCIA_FRAGMENTADA_POR_DATA
+    // (mesma identidade MIKE+BOE em datas distintas) e MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO
+    // (mesmo BOE com o MIKE em grafias diferentes). O Guardiao so APONTA: a correcao do dado e do
+    // MOD-C05-02 (Normalizador) sob CONFIRM_AUTO/dry-run — nunca mutacao automatica pelo auditor.
+    RegrasQualidade.validarIdentidadeOcorrencia(mikesMapa).forEach(diag => {
+      if (diag.linha >= 2 && diag.linha - 2 < alertasPorLinha.length) {
+        alertasPorLinha[diag.linha - 2].push(diag);
+      }
+    });
+
     // Detecção de túnel FRAGMENTADO (#114): mesmo MIKE com BOE/data únicos, porém >1 chave
     let SaudeMod = typeof SaudeTuneis !== 'undefined' ? SaudeTuneis : null;
     if (!SaudeMod && typeof require !== 'undefined') {

@@ -40,6 +40,9 @@ class AdaptadorConsultaArca {
       'TUNEL_SEM_EQUIPE': 'ARCA-OCORRENCIA-003',
       'TUNEL_SEM_FATOS': 'ARCA-OCORRENCIA-004',
       'OCORRENCIA_ORFA': 'ARCA-OCORRENCIA-002',
+      // #160 (GUARD-D7-001): identidade unitaria da ocorrencia — "1 ocorrencia = 1 MIKE".
+      'OCORRENCIA_FRAGMENTADA_POR_DATA': 'ARCA-OCORRENCIA-007',
+      'MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO': 'ARCA-OCORRENCIA-007',
 
       // Domínio: Mérito de Equipe por Armas / Antiguidade
       'MERITO_ARMAS_ANTIGUIDADE_AUSENTE': 'ARCA-MERITO-001',

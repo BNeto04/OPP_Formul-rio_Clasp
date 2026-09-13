@@ -11,12 +11,12 @@ A **ARCA** é o repositório canônico de todas as regras de domínio, política
 Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladores, motores, normalizadores, plugins e auditores (como o Guardião da Qualidade).
 
 ### Métricas de Consolidação
-> **Atualizado em 10/09/2026 pelos cards #125 (consumidores), #126 (cobertura) e #128 (varredura exaustiva).**
+> **Atualizado em 13/09/2026 pelo card #160 (GUARD-D7-001) — números RECONTADOS do JSON (fonte da verdade). Reconciliação anterior: 10/09/2026 (#125 consumidores, #126 cobertura, #128 varredura exaustiva).**
 - **Arquivos no repositório:** 3413 | **Universo de domínio JS varrido:** **127** | **Excluídos:** 3286 (motivos registrados em `meta.varredura_exaustiva`)
-- **Total de Regras:** 40 (negócio/operacionais: 35 | técnicas: 5)
-- **Distribuição por tipo:** INTERNAL_OPERATIONAL_RULE=23, OFFICIAL_BUSINESS_RULE=9, TECHNICAL_RULE=5, HEURISTIC=2, CANONICAL_NORMATIVE_RULE=1
-- **Fontes:** canônicas confirmadas=11 | internas confirmadas=27 | desconhecidas=2 | conflitos=0
-- **Regras mapeadas no Guardiao:** 26 | **NAO auditáveis com motivo:** 14
+- **Total de Regras:** 49 (negócio/operacionais: 41 | técnicas: 5 | canônica normativa: 1 | heurísticas: 2)
+- **Distribuição por tipo:** INTERNAL_OPERATIONAL_RULE=31, OFFICIAL_BUSINESS_RULE=10, TECHNICAL_RULE=5, HEURISTIC=2, CANONICAL_NORMATIVE_RULE=1
+- **Fontes:** canônicas confirmadas=12 | internas confirmadas=35 | desconhecidas=2 | conflitos=0
+- **Auditabilidade no Guardiao:** MAPEADO=33 | INTEGRADO=8 | NAO_APLICAVEL=8 | NAO_AUDITAVEL=0 (zero regras cegas)
 - **Códigos de diagnóstico do Guardiao sem regra ARCA:** 0
 - **Lacunas da varredura exaustiva:** 6 detectadas / 6 resolvidas / 0 aceitas
 
@@ -803,3 +803,19 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 - **Auditabilidade no Guardião:** `NAO_AUDITAVEL` — especificação estrutural de layout físico; não gera código de diagnóstico próprio. A fragmentação detectável é coberta por `ARCA-MIKE-004` (`TUNEL_FRAGMENTADO`). Regra consumida pelo **corretor de túneis** (planejado).
 - **Observações:** Define o layout físico (bloco contíguo + linha em branco) que o corretor de `TUNEL_FRAGMENTADO` usa para reagrupar; complementa `ARCA-MIKE-004` (fragmentação por chave).
 - **Consumidores (reconciliado #125):** REAL: `Core/SaudeTuneis.js` | DECLARADO: `CorretorTuneis` | PLANEJADO: -
+
+---
+
+### [ARCA-OCORRENCIA-007] Identidade Unitária da Ocorrência: 1 Ocorrência = 1 MIKE
+- **Subdomínio:** `ocorrencia` | **Categoria:** `IDENTIDADE_OCORRENCIA`
+- **Tipo de Regra:** `INTERNAL_OPERATIONAL_RULE` | **Status de Fonte:** `INTERNAL_SOURCE_CONFIRMED`
+- **Descrição Humana:** Cada ocorrência operacional é identificada por UM ÚNICO MIKE. Não existe ocorrência legítima dividida entre MIKEs distintos, nem a mesma ocorrência repetida em datas diferentes: a chave canônica do túnel é DATA|MIKE|BOE e ela é única por ocorrência. Por consequência, (a) a mesma ocorrência (mesmo MIKE + mesmo BOE) só pode ter UMA DATA; e (b) um mesmo BOE não pode carregar MIKEs em grafias diferentes, porque os DÍGITOS — e não a pontuação — definem a identidade. O Guardião detecta e aponta (não corrige); a normalização do dado é do MOD-C05-02 (Normalizador) sob CONFIRM_AUTO/dry-run. A decisão D7 A/B/C é NÃO_APLICÁVEL porque não há divisão legítima a arbitrar.
+- **Condição Lógica:** `A mesma identidade de ocorrência (MIKE canônico = apenas dígitos + BOE) aparece em mais de uma DATA, ou o mesmo BOE aparece com o MIKE em mais de uma grafia.`
+- **Resultado Esperado:** Diagnóstico ALERTA OCORRENCIA_FRAGMENTADA_POR_DATA em cada linha da mesma identidade com datas distintas; e ALERTA MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO em cada linha do mesmo BOE com grafias divergentes de MIKE. Nenhum dado é corrigido automaticamente pelo Guardião.
+- **Fontes Declaradas:** Decisão do proprietário (13/09/2026) (DETERMINACAO_DO_PROPRIETARIO em card #160 (GUARD-D7-001)); Chave canônica do túnel DATA|MIKE|BOE (coluna Chave Ocorrência) (CONTRATO_ARQUITETURAL em Core/RegrasQualidade.js:chaveTunel)
+- **Evidência no Código:** `Core/RegrasQualidade.js:validarIdentidadeOcorrencia`, `Core/RegrasQualidade.js:chaveTunel`, `Features/GuardiaoQualidade.js`
+- **Evidência em Testes:** `Testes/TestGuardiao.js`, `Testes/TestArcaMapaCobertura.js`
+- **Exceções Admitidas:** Sem BOE a identidade da ocorrência está incompleta: a regra não se aplica (a ausência tem código próprio, ARCA-BOE-002 / BOE_AUSENTE).; Mesmo MIKE em datas distintas com BOEs diferentes não é fragmentação por DATA desta regra (permanece coberto por ARCA-MIKE-002 e ARCA-BOE-001).
+- **Consumidores (reconciliado #125):** REAL: `Core/RegrasQualidade.js`, `Features/GuardiaoQualidade.js` | INDIRETO: `Core/CoberturaAuditoria.js`, `Render/PainelSaude.js`, `Render/RendererAuditoriaSaude.js` | DECLARADO: - | PLANEJADO: -
+- **Riscos Identificados:** Fusão automática de ocorrências (reagrupar blocos, escolher uma DATA, reescrever o MIKE) destruiria a proveniência do dado; quem consolida chave é o Corretor/Normalizador sob confirmação humana.
+- **Observações Operacionais:** Regra positiva de identidade que fecha o D7: a chave DATA|MIKE|BOE é única por ocorrência, logo não há divisão legítima a arbitrar (D7 A/B/C = NÃO_APLICÁVEL). Casos reais medidos: JUN2026 BOE 26E0321002656 (mesmo MIKE/BOE em 23/06 e 24/06) e JAN2026 BOE 26E0127000512 (mesmo dia, MIKE em duas grafias).

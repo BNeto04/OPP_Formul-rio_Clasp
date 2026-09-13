@@ -1,0 +1,124 @@
+{
+  "proveniencia": {
+    "planilha_id": "1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY",
+    "leitura": "SOMENTE-LEITURA (spreadsheets.readonly / service account / MCP sheets)",
+    "medido_em": "2026-09-13",
+    "comandos": [
+      "scripts/ler_planilha_sa.py valores \"JUN2026!A126:G140\"",
+      "scripts/ler_planilha_sa.py valores \"JAN2026!A66:G75\""
+    ],
+    "observacao": "JUN2026: bloco de 11 linhas (128-138) da ocorrencia BOE 26E0321002656 / MIKE 202606231855084437, com a DATA mudando de 23/06 para 24/06 na linha 137. JAN2026: BOE 26E0127000512 no dia 17/01/2026 com o MIKE em duas grafias (linhas 69-70 e 71-72)."
+  },
+  "casos": [
+    {
+      "card_ref": "#160 GUARD-D7-001 (a)",
+      "aba": "JUN2026",
+      "titulo": "mesmo MIKE + mesmo BOE em DUAS DATAS",
+      "linhas": [
+        {
+          "linha": 128,
+          "data": "23/06/2026",
+          "mike": "202606231855084437",
+          "boe": "26E0321002656"
+        },
+        {
+          "linha": 129,
+          "data": "23/06/2026",
+          "mike": "202606231855084437",
+          "boe": "26E0321002656"
+        },
+        {
+          "linha": 130,
+          "data": "23/06/2026",
+          "mike": "202606231855084437",
+          "boe": "26E0321002656"
+        },
+        {
+          "linha": 131,
+          "data": "23/06/2026",
+          "mike": "202606231855084437",
+          "boe": "26E0321002656"
+        },
+        {
+          "linha": 132,
+          "data": "23/06/2026",
+          "mike": "202606231855084437",
+          "boe": "26E0321002656"
+        },
+        {
+          "linha": 133,
+          "data": "23/06/2026",
+          "mike": "202606231855084437",
+          "boe": "26E0321002656"
+        },
+        {
+          "linha": 134,
+          "data": "23/06/2026",
+          "mike": "202606231855084437",
+          "boe": "26E0321002656"
+        },
+        {
+          "linha": 135,
+          "data": "23/06/2026",
+          "mike": "202606231855084437",
+          "boe": "26E0321002656"
+        },
+        {
+          "linha": 136,
+          "data": "23/06/2026",
+          "mike": "202606231855084437",
+          "boe": "26E0321002656"
+        },
+        {
+          "linha": 137,
+          "data": "24/06/2026",
+          "mike": "202606231855084437",
+          "boe": "26E0321002656"
+        },
+        {
+          "linha": 138,
+          "data": "24/06/2026",
+          "mike": "202606231855084437",
+          "boe": "26E0321002656"
+        }
+      ],
+      "esperado": [
+        "OCORRENCIA_FRAGMENTADA_POR_DATA"
+      ]
+    },
+    {
+      "card_ref": "#160 GUARD-D7-001 (b)",
+      "aba": "JAN2026",
+      "titulo": "mesmo BOE com MIKE em DOIS FORMATOS",
+      "linhas": [
+        {
+          "linha": 69,
+          "data": "17/01/2026",
+          "mike": "2.026.117.021.535",
+          "boe": "26E0127000512"
+        },
+        {
+          "linha": 70,
+          "data": "17/01/2026",
+          "mike": "2.026.117.021.535",
+          "boe": "26E0127000512"
+        },
+        {
+          "linha": 71,
+          "data": "17/01/2026",
+          "mike": "2026117021535",
+          "boe": "26E0127000512"
+        },
+        {
+          "linha": 72,
+          "data": "17/01/2026",
+          "mike": "2026117021535",
+          "boe": "26E0127000512"
+        }
+      ],
+      "esperado": [
+        "MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO"
+      ]
+    }
+  ]
+}
