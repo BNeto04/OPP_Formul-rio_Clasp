@@ -290,3 +290,54 @@ const SyntheonLeitor = {
     policial.pontosFiccao = Math.max(policial.pontosFiccao, dadosLinha.pontosFiccao);
   }
 };
+
+/**
+ * BISTURI (#152): mostra o valor da PARTICIPACAO de arma em CADA elo da corrente do comparativo.
+ * Nao conserta nada - so mede. Uso: diagnosticarCaminhoArmasHeadless('1133306')
+ */
+function diagnosticarCaminhoArmasHeadless(matriculaAlvo) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const aba = ss.getSheetByName('SET2026');
+  const out = { matricula: String(matriculaAlvo), aba: 'SET2026' };
+
+  const lastCol = aba.getLastColumn();
+  const headers = aba.getRange(1, 1, 1, lastCol).getValues()[0];
+  out.elo1_encontrar_QDT = SyntheonCabecalhos.encontrar(headers, 'QDT_ARMAS');
+  out.elo1_encontrar_ARMAS = SyntheonCabecalhos.encontrar(headers, 'ARMAS');
+
+  const idx = SyntheonLeitor._mapearColunas(headers);
+  out.elo2_idx_participacaoArmas = idx.participacaoArmas;
+  out.elo2_idx_armas = idx.armas;
+
+  const dados = aba.getRange(2, 1, aba.getLastRow() - 1, lastCol).getValues();
+  for (let i = 0; i < dados.length; i++) {
+    if (String(dados[i][idx.matricula]).trim() === String(matriculaAlvo)) {
+      out.elo3_linha_fonte = {
+        linha: i + 2,
+        valor_na_coluna_QDT: idx.participacaoArmas > -1 ? String(dados[i][idx.participacaoArmas]) : 'INDICE NAO ENCONTRADO'
+      };
+      break;
+    }
+  }
+
+  try {
+    const ocorrencias = SyntheonLeitor.lerAbas(ss, ['SET2026']);
+    const mapa = SyntheonMetricas.consolidarPoliciais(ocorrencias);
+    const chaves = Object.keys(mapa);
+    const chave = chaves.filter(function (k) { return String(k).indexOf(String(matriculaAlvo)) !== -1; })[0];
+    if (chave) {
+      const reg = mapa[chave];
+      out.elo4_metricas = {
+        chave: chave,
+        armas: reg.fatos ? reg.fatos.armas : reg.armas,
+        participacaoArmas: reg.fatos ? reg.fatos.participacaoArmas : reg.participacaoArmas
+      };
+    } else {
+      out.elo4_metricas = 'matricula ausente nas metricas';
+    }
+    out.elo5_total_registros = chaves.length;
+  } catch (e) {
+    out.elo4_erro = String(e && e.message || e);
+  }
+  return JSON.stringify(out);
+}
