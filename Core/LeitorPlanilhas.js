@@ -380,3 +380,38 @@ function verificarParticipacaoArmasHeadless(matriculaAlvo) {
   out.confere = (out.totalFonte === out.produto);
   return JSON.stringify(out);
 }
+
+/**
+ * PROVA DA PARTE 2 (#152): QTD. O = numero de TUNEIS DISTINTOS que o policial participou.
+ * Regra dada pelo proprietario: "de quantos tuneis aquele policial participou".
+ * Uso: verificarQtdOcorrenciasHeadless('1133306')
+ */
+function verificarQtdOcorrenciasHeadless(matriculaAlvo) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const meses = ['JAN2026','FEV2026','MAR2026','ABR2026','MAI2026','JUN2026','JUL2026','AGO2026','SET2026'];
+  const alvo = String(matriculaAlvo).trim();
+
+  const occ = SyntheonLeitor.lerAbas(ss, meses, null, null, new SyntheonLogger('VERIF_O'));
+  let tuneisFonte = 0;
+  const porMes = {};
+  occ.forEach(function (o) {
+    if (o.policiais && o.policiais[alvo]) {
+      tuneisFonte++;
+      const m = String(o.data || '').substring(3) || 'sem-data';
+      porMes[m] = (porMes[m] || 0) + 1;
+    }
+  });
+
+  const mapa = SyntheonMetricas.consolidarPoliciais(occ);
+  const reg = mapa[alvo];
+  const produto = reg ? (reg.fatos ? reg.fatos.ocorrencias : reg.ocorrencias) : 'ausente';
+
+  return JSON.stringify({
+    matricula: alvo,
+    regra: 'tuneis distintos em que participou',
+    tuneisFonte: tuneisFonte,
+    produto: produto,
+    confere: Number(produto) === tuneisFonte,
+    totalTuneisAno: occ.length
+  });
+}
