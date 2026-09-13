@@ -42,7 +42,7 @@ Tudo o que decide **o que entra** no payload vive em `Entrada/Formulario.html` (
 | 1 | Armas → título PIP (artesanal/revólver/pistola/12/fuzil) | `:890-907` | ARCA-ARMAS-002/003 | não | HARDCODED_FORA_ARCA | regra de mérito de armas existe na ARCA e não é consultada | MÉDIO |
 | 2 | Munições → título PIP (fuzil/.12) | `:909-915` | ARCA-MUNICOES-001 | não | HARDCODED_FORA_ARCA | idem | MÉDIO |
 | 3 | Drogas → título PIP | `:917-955` | ARCA-DROGAS-001 | não | HARDCODED_FORA_ARCA | idem | MÉDIO |
-| **4** | **Veículo recuperado → "Apreensão de veículo furtado ou roubado" SOMENTE se a natureza confirmar** | **`:957-965`** | **—** | **não** | **HARDCODED_FORA_ARCA + HEURISTICA_OCR** | **LACUNA_ARCA: não existe regra de veículo/roubo/furto/recuperação na ARCA (40 regras, nenhuma sobre veículo)** | **ALTO — é a regra do defeito reportado** |
+| **4** | **Veículo recuperado → "Apreensão de veículo furtado ou roubado" SOMENTE se a natureza confirmar** | **`:957-965`** | **—** | **não** | **HARDCODED_FORA_ARCA + HEURISTICA_OCR** | **LACUNA_ARCA (na data da auditoria; hoje fechada por `ARCA-VEICULO-001`, #137/#138): não existia regra de veículo/roubo/furto/recuperação na ARCA** | **ALTO — é a regra do defeito reportado** |
 | 5 | Mandado de prisão → título PIP | `:967-969` | — | não | HARDCODED_FORA_ARCA | sem regra ARCA de mandado | MÉDIO |
 | 6 | Fallback por natureza (tráfico/entorpecentes/arma/veículo) | `:972-987` | — | não | HARDCODED_FORA_ARCA | fallback heurístico sem fonte canônica declarada | ALTO (risco de falso positivo) |
 
@@ -66,7 +66,7 @@ Fatos apurados (somente leitura):
 
 1. A regra existe, é única e está hardcoded: `Formulario.html:960-965`. Ela exige que a **natureza** contenha, na mesma string, um termo de recuperação `(RECUPERAÇÃO|APREENSÃO|LOCALIZAÇÃO)` **e** `(VEÍCULO|MOTO|CARRO)` **e** `(ROUBADO|FURTADO)`, em uma de duas ordens admitidas.
 2. A natureza que alimenta essa regra vem de **uma heurística de texto** (`:496-499`, primeira linha após o rótulo "Natureza da Ocorrência|Tipo de Ocorrência|Naturezas") e é depois reescrita pela conciliação de opções em `:702-715`.
-3. **Nenhuma regra da ARCA rege veículo, roubo, furto, recuperação ou escolha de natureza** (confirmado nas 40 regras de `Dominio/ARCA/arca_regras_dominio.json`).
+3. **Nenhuma regra da ARCA regia veículo, roubo, furto, recuperação ou escolha de natureza** no momento da auditoria (fechado por `ARCA-VEICULO-001` nos cards #137/#138; a contagem vigente do catálogo é a do bloco derivado em `Dominio/ARCA/ARCA_REGRAS_DOMINIO.md`).
 4. O título PIP "Apreensão de veículo furtado ou roubado" só é emitido por essa heurística — não há segunda porta.
 
 **Portanto o ponto de falha é a heurística de natureza × regex de veículo, no cliente**, e não há governança canônica da ARCA sobre esse trecho. A causa exata (extração parcial da natureza, variação lexical do BO, reescrita da natureza na conciliação, ou quebra de linha na regex) deve ser provada no #136 com fixture, não inferida.

@@ -3,7 +3,7 @@
 Responsabilidade canonica do submodulo.
 
 ## Papel
-PORTA DE SAIDA read-only da ARCA: enriquecerDiagnostico(codigoRegra, contexto) devolve metadados (rule_id, fonte, tipo, excecoes, human_action). Mapeia 26 codigos -> 20 das 31 regras; codigo sem mapeamento retorna ARCA_RULE_NOT_MAPPED (o consumidor deve reportar LACUNA_ARCA, nunca assumir verde).
+PORTA DE SAIDA read-only da ARCA: enriquecerDiagnostico(codigoRegra, contexto) devolve metadados (rule_id, fonte, tipo, excecoes, human_action). Mapeia 38 codigos -> 30 das 49 regras; codigo sem mapeamento retorna ARCA_RULE_NOT_MAPPED (o consumidor deve reportar LACUNA_ARCA, nunca assumir verde).
 
 ## Artefatos
 Dominio/ARCA/AdaptadorConsultaArca.js

@@ -20,7 +20,7 @@ e responde "existe regra canonica para este codigo? qual a fonte? qual o tipo?".
 ## Artefatos fisicos registrados neste endereco (realidade == planta)
 | Artefato | Repo path | Funcao | Submodulo |
 | :--- | :--- | :--- | :--- |
-| arca_regras_dominio.json | Dominio/ARCA/arca_regras_dominio.json | Catalogo canonico legivel por maquina (31 regras) | SUB-C03-02-01 |
+| arca_regras_dominio.json | Dominio/ARCA/arca_regras_dominio.json | Catalogo canonico legivel por maquina (49 regras) | SUB-C03-02-01 |
 | ARCA_REGRAS_DOMINIO.md | Dominio/ARCA/ARCA_REGRAS_DOMINIO.md | Catalogo humano das regras | SUB-C03-02-01 |
 | ARCA_FONTES.md | Dominio/ARCA/ARCA_FONTES.md | Proveniencia e autoridade das fontes | SUB-C03-02-02 |
 | ARCA_COBERTURA.md | Dominio/ARCA/ARCA_COBERTURA.md | Cobertura por subdominio e lacunas conhecidas | SUB-C03-02-03 |
@@ -28,7 +28,7 @@ e responde "existe regra canonica para este codigo? qual a fonte? qual o tipo?".
 
 ## Porta de saida (interface)
 - API: `AdaptadorConsultaArca.enriquecerDiagnostico(codigoRegra, contexto)` -> metadados ARCA.
-- Mapeamento: 26 codigos de diagnostico -> 20 das 31 regras.
+- Mapeamento: 38 codigos de diagnostico -> 30 das 49 regras.
 - Consumidores FACTUAIS (apurados na auditoria #123, leitura de codigo):
   1. `Core/RegrasQualidade.js` (hub unico; chama a porta ao criar cada diagnostico);
   2. `Core/CoberturaAuditoria.js` (le `arca.status` para reportar LACUNA_ARCA);
@@ -41,9 +41,9 @@ e responde "existe regra canonica para este codigo? qual a fonte? qual o tipo?".
 - Read-only: nunca altera dados, planilha, formulas ou colunas operacionais.
 - Nao promove HEURISTIC/UNKNOWN a regra oficial (2 HEURISTIC e 2 fontes desconhecidas permanecem sinalizadas).
 - Nao inventa regra nem fonte: regra sem norma/suporte entra como INTERNAL_OPERATIONAL_RULE ou fonte desconhecida.
-- Lacunas conhecidas: VEICULOS e ESCALA NAO_COBERTO; TIPIFICACAO NAO_AUTOMATIZAVEL; 11 regras sem mapeamento na porta.
+- Lacunas conhecidas: VEICULOS e ESCALA NAO_COBERTO; TIPIFICACAO NAO_AUTOMATIZAVEL; 19 regras sem mapeamento na porta.
 - Este modulo NAO fecha consumidor: quem consome e responsavel pelo seu proprio contrato.
 
 ## Pendencias registradas (cards corretivos)
-- #125 reconciliacao de consumidores; #126 cobertura Guardiao<->ARCA (11 regras + lacunas G01);
-  #127 integracao factual do NormalizadorEfetivo; #128 varredura exaustiva do dominio (catalogo atual varreu 200 de 1946 arquivos).
+- #125 reconciliacao de consumidores; #126 cobertura Guardiao<->ARCA (lacunas G01 do #126; hoje 19 regras fora do mapa de codigos);
+  #127 integracao factual do NormalizadorEfetivo; #128 varredura exaustiva do dominio (catalogo atual varreu 127 de 3413 arquivos (varredura exaustiva revisada no #159)).

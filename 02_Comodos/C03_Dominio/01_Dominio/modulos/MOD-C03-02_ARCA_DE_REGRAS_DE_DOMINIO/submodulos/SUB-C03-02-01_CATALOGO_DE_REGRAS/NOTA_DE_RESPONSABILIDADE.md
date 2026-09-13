@@ -3,7 +3,7 @@
 Responsabilidade canonica do submodulo.
 
 ## Papel
-Mantem o catalogo canonico legivel por maquina (JSON) e humano (MD). 31 regras com 22 campos por regra: rule_id, titulo, descricao_humana, categoria, subdominio, tipo_regra, fonte_status, fontes, evidencia_codigo, evidencia_testes, condicao, resultado_esperado, excecoes, parametros, hardcoded, vigencia, confianca, consumidores, alcance, riscos, status_cobertura, observacoes.
+Mantem o catalogo canonico legivel por maquina (JSON) e humano (MD). 49 regras com 23 campos por regra (uniao de campos: 25): rule_id, titulo, descricao_humana, categoria, subdominio, tipo_regra, fonte_status, fontes, evidencia_codigo, evidencia_testes, condicao, resultado_esperado, excecoes, parametros, hardcoded, vigencia, confianca, consumidores, alcance, riscos, status_cobertura, observacoes.
 
 ## Artefatos
 Dominio/ARCA/arca_regras_dominio.json + Dominio/ARCA/ARCA_REGRAS_DOMINIO.md

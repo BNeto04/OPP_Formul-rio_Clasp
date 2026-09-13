@@ -52,4 +52,4 @@ Endereco canonico materializado no Down Plant (antes: ARCA orfa na planta - acha
 - Artefatos fisicos endereçados: Dominio/ARCA/{arca_regras_dominio.json, ARCA_REGRAS_DOMINIO.md, ARCA_FONTES.md, ARCA_COBERTURA.md, AdaptadorConsultaArca.js}
 - Porta de saida: AdaptadorConsultaArca.enriquecerDiagnostico(codigoRegra) -> Core/RegrasQualidade (hub) -> C05 Guardiao (indireto)
 - Integracao na Planta Mestra: node `n_arca` + arestas e5 (C03 -> ARCA) e e6 (ARCA -> C05)
-- Pendencias declaradas: #125 (consumidores declarados x reais), #126 (cobertura 11 regras + lacunas G01), #127 (NormalizadorEfetivo), #128 (varredura exaustiva)
+- Pendencias declaradas: #125 (consumidores declarados x reais), #126 (cobertura Guardiao<->ARCA + lacunas G01; contagem vigente derivada do JSON no #159), #127 (NormalizadorEfetivo), #128 (varredura exaustiva)

@@ -25,7 +25,7 @@
       "width": 360,
       "height": 130,
       "type": "text",
-      "text": "### MOD-C03-02 ARCA DE REGRAS DE DOMINIO\nCatalogo canonico read-only (31 regras) + porta de consulta. Submodulos: CATALOGO, FONTES, COBERTURA, ADAPTADOR/PORTA."
+      "text": "### MOD-C03-02 ARCA DE REGRAS DE DOMINIO\nCatalogo canonico read-only (49 regras) + porta de consulta. Submodulos: CATALOGO, FONTES, COBERTURA, ADAPTADOR/PORTA."
     },
     {
       "id": "c03-4",
