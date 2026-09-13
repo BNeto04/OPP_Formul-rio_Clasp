@@ -415,3 +415,47 @@ function verificarQtdOcorrenciasHeadless(matriculaAlvo) {
     totalTuneisAno: occ.length
   });
 }
+
+/**
+ * PROVA DA PARTE 4 (#152): ENTROPECENTES - soma das colunas de droga na FONTE por matricula
+ * contra o total publicado no PRODUTO. Uso: verificarDrogasHeadless('1133306')
+ */
+function verificarDrogasHeadless(matriculaAlvo) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const meses = ['JAN2026','FEV2026','MAR2026','ABR2026','MAI2026','JUN2026','JUL2026','AGO2026','SET2026'];
+  const alvo = String(matriculaAlvo).trim();
+  const out = { matricula: alvo, porMes: {}, totalFonte: 0 };
+
+  meses.forEach(function (nome) {
+    const aba = ss.getSheetByName(nome);
+    if (!aba) { return; }
+    const lastCol = aba.getLastColumn();
+    const headers = aba.getRange(1, 1, 1, lastCol).getValues()[0];
+    const iMat = SyntheonCabecalhos.encontrar(headers, 'MATRICULA');
+    const iMac = SyntheonCabecalhos.encontrar(headers, 'MACONHA');
+    const iCoc = SyntheonCabecalhos.encontrar(headers, 'COCAINA');
+    const iCra = SyntheonCabecalhos.encontrar(headers, 'CRACK');
+    if (iMat === -1) { return; }
+    const dados = aba.getRange(2, 1, aba.getLastRow() - 1, lastCol).getValues();
+    let soma = 0;
+    dados.forEach(function (r) {
+      if (String(r[iMat]).trim() === alvo) {
+        soma += (Number(iMac > -1 ? r[iMac] : 0) || 0) +
+                (Number(iCoc > -1 ? r[iCoc] : 0) || 0) +
+                (Number(iCra > -1 ? r[iCra] : 0) || 0);
+      }
+    });
+    out.porMes[nome] = Math.round(soma * 100) / 100;
+    out.totalFonte += soma;
+  });
+
+  try {
+    const occ = SyntheonLeitor.lerAbas(ss, meses, null, null, new SyntheonLogger('VERIF_DROGA'));
+    const mapa = SyntheonMetricas.consolidarPoliciais(occ);
+    const reg = mapa[alvo];
+    out.produto = reg ? (reg.fatos ? reg.fatos.drogasTotal : reg.drogasTotal) : 'ausente';
+  } catch (e) { out.produto = 'erro: ' + (e && e.message || e); }
+  out.totalFonte = Math.round(out.totalFonte * 100) / 100;
+  out.confere = Math.abs(Number(out.produto) - out.totalFonte) < 0.01;
+  return JSON.stringify(out);
+}
