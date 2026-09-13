@@ -341,3 +341,42 @@ function diagnosticarCaminhoArmasHeadless(matriculaAlvo) {
   }
   return JSON.stringify(out);
 }
+
+/**
+ * PROVA DA PARTE 1 (#152): confere, mes a mes, a PARTICIPACAO de arma de uma matricula
+ * na FONTE contra o valor que o PRODUTO publica. Uso: verificarParticipacaoArmasHeadless('1133306')
+ */
+function verificarParticipacaoArmasHeadless(matriculaAlvo) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const meses = ['JAN2026','FEV2026','MAR2026','ABR2026','MAI2026','JUN2026','JUL2026','AGO2026','SET2026'];
+  const alvo = String(matriculaAlvo).trim();
+  const out = { matricula: alvo, porMes: {}, totalFonte: 0 };
+
+  meses.forEach(function (nome) {
+    const aba = ss.getSheetByName(nome);
+    if (!aba) { out.porMes[nome] = 'aba ausente'; return; }
+    const lastCol = aba.getLastColumn();
+    const headers = aba.getRange(1, 1, 1, lastCol).getValues()[0];
+    const idxMat = SyntheonCabecalhos.encontrar(headers, 'MATRICULA');
+    const idxQdt = SyntheonCabecalhos.encontrar(headers, 'QDT_ARMAS');
+    if (idxMat === -1 || idxQdt === -1) { out.porMes[nome] = 'coluna ausente'; return; }
+    const dados = aba.getRange(2, 1, aba.getLastRow() - 1, lastCol).getValues();
+    let soma = 0, linhas = 0;
+    dados.forEach(function (r) {
+      if (String(r[idxMat]).trim() === alvo) { soma += Number(r[idxQdt]) || 0; linhas++; }
+    });
+    out.porMes[nome] = { soma: soma, linhas: linhas };
+    out.totalFonte += soma;
+  });
+
+  try {
+    const occ = SyntheonLeitor.lerAbas(ss, meses, null, null, new SyntheonLogger('VERIF_ARMA'));
+    const mapa = SyntheonMetricas.consolidarPoliciais(occ);
+    const reg = mapa[alvo];
+    out.produto = reg ? (reg.fatos ? reg.fatos.participacaoArmas : reg.participacaoArmas) : 'ausente';
+  } catch (e) {
+    out.produto = 'erro: ' + (e && e.message || e);
+  }
+  out.confere = (out.totalFonte === out.produto);
+  return JSON.stringify(out);
+}
