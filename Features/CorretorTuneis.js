@@ -148,3 +148,43 @@ function diagnosticarTuneisAbaHeadless(nomeAba) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = CorretorTuneis;
 }
+
+/**
+ * Insere as LINHAS EM BRANCO separadoras ENTRE os tuneis de uma aba mensal.
+ * Pedido do proprietario (12/09/2026): "corrige logo a linha em branco de abril".
+ * A entrada manual grava em (ultimaLinha + 2) -> deixa 1 linha branca entre tuneis.
+ * Abas que nao passaram pela entrada ficaram sem ela.
+ * INVARIANTE: nao reordena, nao renumera, nao altera a coluna ORD (A) - apenas INSERE
+ * linha vazia ANTES do inicio de cada tunel. O ORD segue colado ao seu dado.
+ */
+function inserirLinhasBrancasTuneisHeadless(nomeAba) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const aba = ss.getSheetByName(nomeAba);
+  if (!aba) return JSON.stringify({ erro: 'Aba nao encontrada: ' + nomeAba });
+
+  const lastRow = aba.getLastRow();
+  const lastCol = Math.min(aba.getLastColumn(), 6);
+  if (lastRow < 3) return JSON.stringify({ aba: nomeAba, inseridas: 0, aviso: 'poucas linhas' });
+
+  const v = aba.getRange(1, 1, lastRow, lastCol).getValues();
+  const linhasInseridas = [];
+
+  // De baixo para cima: inserir nao invalida os indices ainda nao visitados (acima).
+  for (let r = lastRow; r >= 3; r--) {
+    const dataAtual = String(v[r - 1] ? v[r - 1][1] : '').trim();   // DATA da linha r
+    const ordAnterior = String(v[r - 2] ? v[r - 2][0] : '').trim(); // ORD da linha r-1
+    // linha r inicia tunel (tem DATA) e a anterior NAO e branca -> falta a separadora
+    if (dataAtual !== '' && ordAnterior !== '') {
+      aba.insertRowBefore(r);
+      linhasInseridas.push(r);
+    }
+  }
+
+  return JSON.stringify({
+    aba: nomeAba,
+    inseridas: linhasInseridas.length,
+    linhas: linhasInseridas.reverse(),
+    lastRowAntes: lastRow,
+    lastRowDepois: aba.getLastRow()
+  });
+}
