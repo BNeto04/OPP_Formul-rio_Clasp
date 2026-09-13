@@ -1,4 +1,58 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "pl-1",
+      "type": "text",
+      "text": "### SUB-C00-01-02 PLANTA MESTRA\nMantem a integridade do grafo visual da arquitetura.",
+      "x": 400,
+      "y": 0,
+      "width": 440,
+      "height": 110
+    },
+    {
+      "id": "pl-2",
+      "type": "text",
+      "text": "### Artefato unico\n`01_Planta/PLANTA_MESTRA.canvas` - 8 comodos, 13 modulos, vizinhanca externa e portas do produto.",
+      "x": 0,
+      "y": 200,
+      "width": 350,
+      "height": 120
+    },
+    {
+      "id": "pl-3",
+      "type": "text",
+      "text": "### Regra de conteudo\nTodo no precisa corresponder a endereco real do cofre ou a sistema externo comprovado. Nada de arquitetura ficticia: comportamento sem prova e marcado, nao desenhado.",
+      "x": 370,
+      "y": 200,
+      "width": 380,
+      "height": 140,
+      "color": "3"
+    },
+    {
+      "id": "pl-4",
+      "type": "text",
+      "text": "### Validacao\nO lint le o Canvas como JSON e reprova no do tipo file que aponte para arquivo inexistente.",
+      "x": 770,
+      "y": 200,
+      "width": 350,
+      "height": 120
+    }
+  ],
+  "edges": [
+    {
+      "id": "pl-e0",
+      "fromNode": "pl-1",
+      "toNode": "pl-2"
+    },
+    {
+      "id": "pl-e1",
+      "fromNode": "pl-1",
+      "toNode": "pl-3"
+    },
+    {
+      "id": "pl-e2",
+      "fromNode": "pl-1",
+      "toNode": "pl-4"
+    }
+  ]
 }

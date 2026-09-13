@@ -1,4 +1,151 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "leitura-1",
+      "type": "text",
+      "text": "### MOD-C02-01 LEITURA E ADAPTACAO\nLe as abas mensais + EFETIVO + PECULIO externo e entrega registros ja mapeados por cabecalho. Nao decide pontuacao nem audita.",
+      "x": 420,
+      "y": 0,
+      "width": 460,
+      "height": 130,
+      "color": "5"
+    },
+    {
+      "id": "leitura-2",
+      "type": "text",
+      "text": "### Fonte declarada\n`Config/Metamodelos.js` `CatalogoEstruturas` declara a fonte OPP_2026 e os campos obrigatorios MATRICULA, DATA e MIKE.",
+      "x": 0,
+      "y": 210,
+      "width": 320,
+      "height": 120
+    },
+    {
+      "id": "leitura-3",
+      "type": "text",
+      "text": "### Mapeamento de cabecalhos\n`Core/Cabecalhos.js` `SyntheonCabecalhos` + `Core/Utils.js` resolvem aliases; `Leitura/Adaptador2026.js` `extrairFatos` usa match exato e depois parcial.",
+      "x": 340,
+      "y": 210,
+      "width": 330,
+      "height": 120
+    },
+    {
+      "id": "leitura-4",
+      "type": "text",
+      "text": "### Leitura em lote das abas mensais\n`Core/LeitorPlanilhas.js` `SyntheonLeitor.lerAbas` -> `_mapearColunas` -> `_processarLinha`; agrupa por chave de ocorrencia e monta o vetor de ocorrencias.",
+      "x": 690,
+      "y": 210,
+      "width": 340,
+      "height": 120
+    },
+    {
+      "id": "leitura-5",
+      "type": "text",
+      "text": "### PECULIO externo\n`Leitura/LeitorAntiguidadePeculio.js` localiza aba + cabecalho (MATRICULA, N, NOME, GRAD, PELOTAO) e devolve o mapa de antiguidade; `Core/Config.js` fornece o ID da planilha.",
+      "x": 0,
+      "y": 380,
+      "width": 330,
+      "height": 130
+    },
+    {
+      "id": "leitura-6",
+      "type": "text",
+      "text": "### Cadastro de efetivo\n`Core/Policiais.js` `carregarEfetivo` / `carregarListaEfetivo` montam o mapa por matricula; `ordenarEquipePorAntiguidade_` ordena posto -> matricula.",
+      "x": 350,
+      "y": 380,
+      "width": 330,
+      "height": 130
+    },
+    {
+      "id": "leitura-7",
+      "type": "text",
+      "text": "### Normalizadores de leitura\n`Core/Normalizador.js` normaliza graduacao; `Core/Validador.js` valida; `Dominio/ResolverAIS.js` + `Dominio/TabelaTerritorialAIS.js` resolvem AIS por cidade/bairro.",
+      "x": 700,
+      "y": 380,
+      "width": 330,
+      "height": 130
+    },
+    {
+      "id": "leitura-8",
+      "type": "text",
+      "text": "### Saida\nInstancias de `Dominio/RegistroCanonico.js` e ocorrencias agrupadas -> consumidas pelo C03 Dominio e pelo C04 Motor.",
+      "x": 420,
+      "y": 560,
+      "width": 460,
+      "height": 110,
+      "color": "4"
+    },
+    {
+      "id": "leitura-9",
+      "type": "text",
+      "text": "### Riscos medidos (nao corrigidos aqui)\nID de planilha fixo no codigo; leitura posicional em EntradaManual e NormalizadorEfetivo; 3 resolvedores de cabecalho concorrentes no ecossistema.",
+      "x": 920,
+      "y": 560,
+      "width": 420,
+      "height": 120,
+      "color": "1"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c02-e0",
+      "fromNode": "leitura-1",
+      "toNode": "leitura-2"
+    },
+    {
+      "id": "c02-e1",
+      "fromNode": "leitura-1",
+      "toNode": "leitura-3"
+    },
+    {
+      "id": "c02-e2",
+      "fromNode": "leitura-1",
+      "toNode": "leitura-4"
+    },
+    {
+      "id": "c02-e3",
+      "fromNode": "leitura-1",
+      "toNode": "leitura-5"
+    },
+    {
+      "id": "c02-e4",
+      "fromNode": "leitura-2",
+      "toNode": "leitura-4",
+      "label": "aliases da fonte"
+    },
+    {
+      "id": "c02-e5",
+      "fromNode": "leitura-3",
+      "toNode": "leitura-4",
+      "label": "localizarColuna"
+    },
+    {
+      "id": "c02-e6",
+      "fromNode": "leitura-5",
+      "toNode": "leitura-6",
+      "label": "antiguidade N"
+    },
+    {
+      "id": "c02-e7",
+      "fromNode": "leitura-6",
+      "toNode": "leitura-8",
+      "label": "mapa de efetivo"
+    },
+    {
+      "id": "c02-e8",
+      "fromNode": "leitura-7",
+      "toNode": "leitura-8",
+      "label": "AIS resolvido"
+    },
+    {
+      "id": "c02-e9",
+      "fromNode": "leitura-4",
+      "toNode": "leitura-8",
+      "label": "vetor de ocorrencias"
+    },
+    {
+      "id": "c02-e10",
+      "fromNode": "leitura-8",
+      "toNode": "leitura-9"
+    }
+  ]
 }

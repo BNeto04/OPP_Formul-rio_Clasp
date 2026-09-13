@@ -1,4 +1,115 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "homol-1",
+      "type": "text",
+      "text": "### MOD-C08-01 HOMOLOGACAO OFFLINE\nBancada que compara V1 x V2 sobre a mesma aba mensal sem publicar nada. Acionada pelo item [Dev] Teste de homologacao V1 x V2.",
+      "x": 430,
+      "y": 0,
+      "width": 470,
+      "height": 130,
+      "color": "5"
+    },
+    {
+      "id": "homol-2",
+      "type": "text",
+      "text": "### Entrada\n`Homologacao/RodarTesteDeHomologacao.js` `rodarTesteDeHomologacao`: exige aba ativa no padrao 3 letras + 4 digitos e monta o metadado do catalogo OPP_2026.",
+      "x": 0,
+      "y": 200,
+      "width": 360,
+      "height": 130
+    },
+    {
+      "id": "homol-3",
+      "type": "text",
+      "text": "### Motor\n`Homologacao/Framework/HomologationEngine.js` `executar(aba, metadado, mapaEfetivo)`: roda V1 e V2, cruza por matricula e emite o relatorio.",
+      "x": 380,
+      "y": 200,
+      "width": 350,
+      "height": 130
+    },
+    {
+      "id": "homol-4",
+      "type": "text",
+      "text": "### 4 baterias registradas\n`Homologacao/Tests/`: TestPontuacao | TestOcorrencias | TestArmas | TestDrogas.",
+      "x": 750,
+      "y": 200,
+      "width": 350,
+      "height": 120
+    },
+    {
+      "id": "homol-5",
+      "type": "text",
+      "text": "### Comparador e relatorio\n`Homologacao/Framework/Comparator.js` + `HomologationReport.js`: PASS/FAIL por metrica, diferenca por PM, integridade de matriculas e `sucessoTotal`.",
+      "x": 0,
+      "y": 380,
+      "width": 360,
+      "height": 130
+    },
+    {
+      "id": "homol-6",
+      "type": "text",
+      "text": "### Drivers de saida\n`ConsoleDriver` | `JsonDriver` | `HomologationSheetsDriver` - o mesmo relatorio em console, JSON ou aba.",
+      "x": 380,
+      "y": 380,
+      "width": 350,
+      "height": 120
+    },
+    {
+      "id": "homol-7",
+      "type": "text",
+      "text": "### Fronteira de publicacao\nO `.claspignore` exclui Homologacao/ (junto com Testes/, scripts/, agentic/, vigias, pontes e extensoes) do envio ao Apps Script: a bancada nunca vai para producao.",
+      "x": 750,
+      "y": 380,
+      "width": 360,
+      "height": 130,
+      "color": "1"
+    },
+    {
+      "id": "homol-8",
+      "type": "text",
+      "text": "### Resultado\nAlerta APROVADA ou REPROVADA com o resumo do relatorio; erro tecnico cai no Logger.",
+      "x": 380,
+      "y": 560,
+      "width": 350,
+      "height": 110
+    }
+  ],
+  "edges": [
+    {
+      "id": "c08-e0",
+      "fromNode": "homol-1",
+      "toNode": "homol-2"
+    },
+    {
+      "id": "c08-e1",
+      "fromNode": "homol-1",
+      "toNode": "homol-7"
+    },
+    {
+      "id": "c08-e2",
+      "fromNode": "homol-2",
+      "toNode": "homol-3"
+    },
+    {
+      "id": "c08-e3",
+      "fromNode": "homol-3",
+      "toNode": "homol-4"
+    },
+    {
+      "id": "c08-e4",
+      "fromNode": "homol-4",
+      "toNode": "homol-5"
+    },
+    {
+      "id": "c08-e5",
+      "fromNode": "homol-5",
+      "toNode": "homol-6"
+    },
+    {
+      "id": "c08-e6",
+      "fromNode": "homol-6",
+      "toNode": "homol-8"
+    }
+  ]
 }

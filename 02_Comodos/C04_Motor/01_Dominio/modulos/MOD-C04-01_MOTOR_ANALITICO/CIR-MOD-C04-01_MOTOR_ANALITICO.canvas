@@ -1,4 +1,124 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "motor-1",
+      "type": "text",
+      "text": "### MOD-C04-01 MOTOR ANALITICO\nOrquestra o ciclo dos plugins de metrica (inicializar -> processar -> finalizar) e consolida um `RegistroAnalitico` por policial. Nucleo puro: sem SpreadsheetApp.",
+      "x": 420,
+      "y": 0,
+      "width": 470,
+      "height": 130,
+      "color": "5"
+    },
+    {
+      "id": "motor-2",
+      "type": "text",
+      "text": "### Entrada\nVetor de `RegistroCanonico` produzido pelo C02 Leitura (`Adaptador2026` / `SyntheonLeitor.lerAbas`).",
+      "x": 0,
+      "y": 210,
+      "width": 320,
+      "height": 110
+    },
+    {
+      "id": "motor-3",
+      "type": "text",
+      "text": "### 5 plugins reais e ordem de registro\n`PluginOcorrencias` -> `PluginArmas` -> `PluginEntorpecentes` -> `PluginPrisoes` -> `PluginPontuacao` (todos em `Plugins/Metricas/`).",
+      "x": 350,
+      "y": 210,
+      "width": 350,
+      "height": 120
+    },
+    {
+      "id": "motor-4",
+      "type": "text",
+      "text": "### Dedupe por atuacao\nChave `matricula_chaveOcorrencia` garante um processamento por par policial x ocorrencia; o pelotao e' propagado com historico de escalas, sem truncar grupos.",
+      "x": 720,
+      "y": 210,
+      "width": 360,
+      "height": 120
+    },
+    {
+      "id": "motor-5",
+      "type": "text",
+      "text": "### Ranking e consolidacao\n`Core/Ranking.js` `SyntheonRanking` classifica por vetores de criterio; `Core/Metricas.js` `SyntheonMetricas.consolidarPoliciais` preserva a API legado.",
+      "x": 0,
+      "y": 380,
+      "width": 330,
+      "height": 120
+    },
+    {
+      "id": "motor-6",
+      "type": "text",
+      "text": "### Central Analitica (casca real)\n`Features/CentralAnalitica.js`: `rodarCentralAnaliticaAnual`, `abrirMenuCentralAnaliticaSelecaoLivre`, `processarCentralAnaliticaSelecaoLivre` -> aba `CA_<primeiro>_<ultimo>`.",
+      "x": 350,
+      "y": 380,
+      "width": 360,
+      "height": 130
+    },
+    {
+      "id": "motor-7",
+      "type": "text",
+      "text": "### Saida materializada\n`Dominio/RegistroAnalitico.js` -> `Modelos/ModeloProdutividade.js` -> `Render/RendererLogico.js` + `Temas/TemaPMPE.js` -> `Drivers/GoogleSheetsDriver.materializar`.",
+      "x": 730,
+      "y": 380,
+      "width": 360,
+      "height": 130,
+      "color": "4"
+    },
+    {
+      "id": "motor-8",
+      "type": "text",
+      "text": "### Comportamento verificado\nO motor nao trunca pelotao nem detalhamento de armas: o C06 Relatorios recebe os grupos intactos para formatacao condicional por cor.",
+      "x": 420,
+      "y": 570,
+      "width": 470,
+      "height": 110,
+      "color": "3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c04-e0",
+      "fromNode": "motor-2",
+      "toNode": "motor-1",
+      "label": "fatos canonicos"
+    },
+    {
+      "id": "c04-e1",
+      "fromNode": "motor-1",
+      "toNode": "motor-3",
+      "label": "registra plugins"
+    },
+    {
+      "id": "c04-e2",
+      "fromNode": "motor-3",
+      "toNode": "motor-4"
+    },
+    {
+      "id": "c04-e3",
+      "fromNode": "motor-4",
+      "toNode": "motor-5"
+    },
+    {
+      "id": "c04-e4",
+      "fromNode": "motor-1",
+      "toNode": "motor-6",
+      "label": "mesma cadeia, casca de menu"
+    },
+    {
+      "id": "c04-e5",
+      "fromNode": "motor-5",
+      "toNode": "motor-7"
+    },
+    {
+      "id": "c04-e6",
+      "fromNode": "motor-6",
+      "toNode": "motor-7"
+    },
+    {
+      "id": "c04-e7",
+      "fromNode": "motor-7",
+      "toNode": "motor-8"
+    }
+  ]
 }

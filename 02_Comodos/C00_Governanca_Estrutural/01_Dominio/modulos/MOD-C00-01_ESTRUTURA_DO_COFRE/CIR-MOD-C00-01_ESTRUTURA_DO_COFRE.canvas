@@ -1,4 +1,146 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "cofre-1",
+      "type": "text",
+      "text": "### MOD-C00-01 ESTRUTURA DO COFRE\nGovernanca da estrutura canonica do cofre. Manifesto `03_Fundacao/ESTRUTURA_DO_COFRE.md`:\nmanifest DP-VAULT-1 | version 2.1 | profile P1 | owner SYNTHEON | trigger Manual/Linter.",
+      "x": 400,
+      "y": 0,
+      "width": 460,
+      "height": 150,
+      "color": "5"
+    },
+    {
+      "id": "cofre-2",
+      "type": "text",
+      "text": "### 6 slots obrigatorios por comodo\n00_Visao_Do_Comodo | 01_Dominio | 02_Integracoes | 03_Especificacoes | 04_Execucao | 05_Evidencias\nCada slot exige `INDICE.md` proprio.",
+      "x": 0,
+      "y": 230,
+      "width": 330,
+      "height": 120
+    },
+    {
+      "id": "cofre-3",
+      "type": "text",
+      "text": "### Nomenclatura\nComodos: C00..C08 | Modulos: MOD-CXX-NN | Submodulos: SUB-CXX-NN-NN\nModulos em `01_Dominio/modulos/`; submodulos em `<MOD>/submodulos/`.",
+      "x": 350,
+      "y": 230,
+      "width": 330,
+      "height": 120
+    },
+    {
+      "id": "cofre-4",
+      "type": "text",
+      "text": "### Comodos ativos (8)\nC00_Governanca_Estrutural | C01_Entrada | C02_Leitura | C03_Dominio | C04_Motor | C05_Guardiao | C06_Relatorios | C08_Homologacao",
+      "x": 700,
+      "y": 230,
+      "width": 330,
+      "height": 120
+    },
+    {
+      "id": "cofre-5",
+      "type": "text",
+      "text": "### Diretorio condicional\nC07_Efetivo (Pendente de Fronteira Comprovada): declarado no manifesto, nao criado no disco.",
+      "x": 1050,
+      "y": 230,
+      "width": 330,
+      "height": 120
+    },
+    {
+      "id": "cofre-6",
+      "type": "text",
+      "text": "### Raiz do cofre\n00_Painel | 01_Planta | 02_Comodos | 03_Fundacao | 06_Inventario | 07_Codigo_Leitura | 08_Execucao_Ao_Vivo",
+      "x": 0,
+      "y": 400,
+      "width": 330,
+      "height": 120
+    },
+    {
+      "id": "cofre-7",
+      "type": "text",
+      "text": "### Contrato por modulo\nNOTA_DE_RESPONSABILIDADE.md + CIR-MOD-*.canvas na raiz do modulo; diretorios `portas/`, `contratos/`, `regras/` sao opcionais.",
+      "x": 350,
+      "y": 400,
+      "width": 330,
+      "height": 120
+    },
+    {
+      "id": "cofre-s1",
+      "type": "text",
+      "text": "### SUB-C00-01-01 MIGRACAO DP21\nRegras e orquestracao da migracao para o padrao 2.1 sem legado ativo.",
+      "x": 700,
+      "y": 400,
+      "width": 330,
+      "height": 110,
+      "color": "3"
+    },
+    {
+      "id": "cofre-s2",
+      "type": "text",
+      "text": "### SUB-C00-01-02 PLANTA MESTRA\nIntegridade do grafo visual em `01_Planta/PLANTA_MESTRA.canvas`.",
+      "x": 1050,
+      "y": 400,
+      "width": 330,
+      "height": 110,
+      "color": "3"
+    },
+    {
+      "id": "cofre-lint",
+      "type": "text",
+      "text": "### Portao real\n`scripts/downplant/lint-estrutura.mjs` valida manifesto, slots, nomenclatura, varredura de legado, links e Canvas JSON.",
+      "x": 400,
+      "y": 560,
+      "width": 460,
+      "height": 110,
+      "color": "6"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c00m1-e0",
+      "fromNode": "cofre-1",
+      "toNode": "cofre-2"
+    },
+    {
+      "id": "c00m1-e1",
+      "fromNode": "cofre-1",
+      "toNode": "cofre-3"
+    },
+    {
+      "id": "c00m1-e2",
+      "fromNode": "cofre-1",
+      "toNode": "cofre-4"
+    },
+    {
+      "id": "c00m1-e3",
+      "fromNode": "cofre-1",
+      "toNode": "cofre-5"
+    },
+    {
+      "id": "c00m1-e4",
+      "fromNode": "cofre-1",
+      "toNode": "cofre-6"
+    },
+    {
+      "id": "c00m1-e5",
+      "fromNode": "cofre-1",
+      "toNode": "cofre-7"
+    },
+    {
+      "id": "c00m1-e6",
+      "fromNode": "cofre-1",
+      "toNode": "cofre-s1"
+    },
+    {
+      "id": "c00m1-e7",
+      "fromNode": "cofre-1",
+      "toNode": "cofre-s2"
+    },
+    {
+      "id": "c00m1-e8",
+      "fromNode": "cofre-1",
+      "toNode": "cofre-lint",
+      "label": "passa ou falha o cofre"
+    }
+  ]
 }

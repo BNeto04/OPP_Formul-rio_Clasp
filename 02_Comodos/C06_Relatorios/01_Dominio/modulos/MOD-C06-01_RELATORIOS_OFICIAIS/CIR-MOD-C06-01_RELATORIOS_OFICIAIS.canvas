@@ -1,4 +1,135 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "rel-1",
+      "type": "text",
+      "text": "### MOD-C06-01 RELATORIOS OFICIAIS\nGera e formata os relatorios oficiais e a auditoria visual. Nao decide metrica: consome o que o C04 Motor consolidou.",
+      "x": 430,
+      "y": 0,
+      "width": 470,
+      "height": 130,
+      "color": "5"
+    },
+    {
+      "id": "rel-2",
+      "type": "text",
+      "text": "### Comparativo 2026\n`Features/CompiladorProdutividade.js` `abrirMenuComparativo2026` -> `gerarComparativo2026Premium`; `Render/RendererComparativo2026.js` monta titulo, grupos (IDENTIFICACAO, QTD. O, Pontuacao, QTD. ARMAS, ENTORPECENTES em gramas), legenda e carimbo.",
+      "x": 0,
+      "y": 210,
+      "width": 380,
+      "height": 150
+    },
+    {
+      "id": "rel-3",
+      "type": "text",
+      "text": "### Caminho V2\n`Features/CompiladorProdutividadeV2.js`: `Modelos/ModeloProdutividade.js` + `Render/RendererLogico.js` + `Temas/TemaPMPE.js` -> `Drivers/GoogleSheetsDriver.materializar`.",
+      "x": 400,
+      "y": 210,
+      "width": 360,
+      "height": 140
+    },
+    {
+      "id": "rel-4",
+      "type": "text",
+      "text": "### PIP e CPM\n`Compilador PIP.js` -> aba PIP_ANUAL_2026; `CPM - Compilador de Pontuacao Mensal.js` -> CPM_ANUAL_2026 (mes civil).",
+      "x": 780,
+      "y": 210,
+      "width": 350,
+      "height": 140
+    },
+    {
+      "id": "rel-5",
+      "type": "text",
+      "text": "### Armas e Drogas\n`Compilador_Armas.js` -> COMP_ARMAS_2026; `Compilador de Entorpecentes.js` -> COMP_DROGAS_2026.",
+      "x": 0,
+      "y": 400,
+      "width": 350,
+      "height": 120
+    },
+    {
+      "id": "rel-6",
+      "type": "text",
+      "text": "### Central Analitica\n`Features/CentralAnalitica.js` -> aba CA_<primeiro>_<ultimo>; `Render/RendererCA.js`.",
+      "x": 370,
+      "y": 400,
+      "width": 350,
+      "height": 120
+    },
+    {
+      "id": "rel-7",
+      "type": "text",
+      "text": "### Auditoria visual\n`Render/RendererAuditoria.js` e `Render/RendererAuditoriaSaude.js`: aba [AUDITORIA] Ocorrencias (congela linha 5) e [HISTORICO] Auditoria Ocorrencias (congela linha 1, cumulativa); paleta oficial por severidade.",
+      "x": 740,
+      "y": 400,
+      "width": 380,
+      "height": 140
+    },
+    {
+      "id": "rel-8",
+      "type": "text",
+      "text": "### Fronteira de preservacao\nSomente a coluna AM (39) recebe alerta; as colunas A:AL (1 a 38) permanecem intactas em formula, valor, cor e borda.",
+      "x": 0,
+      "y": 570,
+      "width": 350,
+      "height": 120,
+      "color": "1"
+    },
+    {
+      "id": "rel-9",
+      "type": "text",
+      "text": "### Separacao dado x estilo\n`Render/DocumentoLogico.js` e `Render/RendererLogico.js` separam conteudo de apresentacao; `Render/RendererTabela.js` aplica cabecalho, filtro e autoResize.",
+      "x": 370,
+      "y": 570,
+      "width": 370,
+      "height": 120,
+      "color": "3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c06-1-e0",
+      "fromNode": "rel-1",
+      "toNode": "rel-2"
+    },
+    {
+      "id": "c06-1-e1",
+      "fromNode": "rel-1",
+      "toNode": "rel-3"
+    },
+    {
+      "id": "c06-1-e2",
+      "fromNode": "rel-1",
+      "toNode": "rel-4"
+    },
+    {
+      "id": "c06-1-e3",
+      "fromNode": "rel-1",
+      "toNode": "rel-5"
+    },
+    {
+      "id": "c06-1-e4",
+      "fromNode": "rel-1",
+      "toNode": "rel-6"
+    },
+    {
+      "id": "c06-1-e5",
+      "fromNode": "rel-1",
+      "toNode": "rel-7"
+    },
+    {
+      "id": "c06-1-e6",
+      "fromNode": "rel-7",
+      "toNode": "rel-8"
+    },
+    {
+      "id": "c06-1-e7",
+      "fromNode": "rel-2",
+      "toNode": "rel-9"
+    },
+    {
+      "id": "c06-1-e8",
+      "fromNode": "rel-3",
+      "toNode": "rel-9"
+    }
+  ]
 }

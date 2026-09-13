@@ -1,4 +1,136 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "norm-1",
+      "type": "text",
+      "text": "### MOD-C05-02 NORMALIZADOR DE ABA\nCORRIGE de forma controlada, a partir de plano explicito derivado dos diagnosticos do MOD-C05-01, e DEVOLVE o resultado para reauditoria.",
+      "x": 430,
+      "y": 0,
+      "width": 480,
+      "height": 130,
+      "color": "5"
+    },
+    {
+      "id": "norm-2",
+      "type": "text",
+      "text": "### Contrato de mutacao segura\n`Core/ContratoMutacaoSegura.js` + `Testes/TestContratoMutacaoSegura.js` (18/18 PASS). Porteiro unico: `podeAutorizar(plano, estado)`.",
+      "x": 0,
+      "y": 210,
+      "width": 340,
+      "height": 130
+    },
+    {
+      "id": "norm-3",
+      "type": "text",
+      "text": "### Classes de correcao\nAUTO_FIX (aplica apos dry-run + lock + snapshot) | CONFIRM_FIX (exige confirmacao do operador; padrao para formula) | MANUAL_ONLY (nunca mutado).",
+      "x": 360,
+      "y": 210,
+      "width": 360,
+      "height": 130
+    },
+    {
+      "id": "norm-4",
+      "type": "text",
+      "text": "### Blacklist dura e janela\nA:AL = dado operacional; AM = alerta do Guardiao.\nNunca muta MIKE, BOE, MATRICULA, POLICIAL, NOME, ARMA, DROGA, PIP, PONTOS, QTD, EFETIVO, FATO, OCORRENCIA, DATA, HORA, LOCAL, AIS, TERRITORIO, ANTIGUIDADE.",
+      "x": 740,
+      "y": 210,
+      "width": 380,
+      "height": 150,
+      "color": "1"
+    },
+    {
+      "id": "norm-5",
+      "type": "text",
+      "text": "### Dry-run e plano deterministico (#119)\n`Core/DryRunNormalizador.js`: plano com `plano_id` = hash, ordenacao canonica, preview legivel e problemas tipados (PLANO_VAZIO, CONFLITO_DE_ALVO, ALVO_FORA_DA_WHITELIST, FONTE_INSUFICIENTE, BLOQUEIO_CONTRATO, LIMITE_EXCEDIDO). Zero escrita.",
+      "x": 0,
+      "y": 400,
+      "width": 350,
+      "height": 150
+    },
+    {
+      "id": "norm-6",
+      "type": "text",
+      "text": "### Executor seguro (#120)\n`Core/ExecutorNormalizador.js` + `Testes/TestExecutorNormalizador.js` (17 PASS): lock single-flight, revalidacao anti plano stale, snapshot por celula, kill-switch antes de cada escrita, rollback do lote inteiro e fail-closed.",
+      "x": 370,
+      "y": 400,
+      "width": 370,
+      "height": 150
+    },
+    {
+      "id": "norm-7",
+      "type": "text",
+      "text": "### Reauditoria e delta (#121)\n`Core/ReauditoriaNormalizador.js` + `Testes/TestReauditoriaNormalizador.js` (13 PASS): ERRO_ALVO_RESOLVIDO=true, NOVOS_ERROS_CRIADOS=0, ESCOPO_MUTADO dentro do limite, REAUDITORIA=GREEN; qualquer criterio vermelho reverte o lote.",
+      "x": 760,
+      "y": 400,
+      "width": 370,
+      "height": 150
+    },
+    {
+      "id": "norm-8",
+      "type": "text",
+      "text": "### Cobertura real sobre o catalogo\nTodos os 29 codigos de diagnostico do MOD-C05-01 estao classificados; hoje apenas FORMULA_AUSENTE, FORMULA_CORROMPIDA_ERRO_SINTAXE e RATEIO_PONTOS_INCOERENTE sao corrigiveis (CONFIRM_FIX).",
+      "x": 0,
+      "y": 580,
+      "width": 350,
+      "height": 130,
+      "color": "3"
+    },
+    {
+      "id": "norm-9",
+      "type": "text",
+      "text": "### Fluxo canonico\nGUARDIAO -> DIAGNOSTICO -> CLASSIFICACAO -> DRY-RUN -> PLANO -> VALIDACAO DE ESCOPO -> LOCK -> APLICACAO -> LOG ANTES/DEPOIS -> REAUDITORIA -> DELTA -> COMMIT OU ROLLBACK",
+      "x": 370,
+      "y": 580,
+      "width": 370,
+      "height": 130
+    }
+  ],
+  "edges": [
+    {
+      "id": "c05-2-e0",
+      "fromNode": "norm-1",
+      "toNode": "norm-2"
+    },
+    {
+      "id": "c05-2-e1",
+      "fromNode": "norm-2",
+      "toNode": "norm-3"
+    },
+    {
+      "id": "c05-2-e2",
+      "fromNode": "norm-2",
+      "toNode": "norm-4"
+    },
+    {
+      "id": "c05-2-e3",
+      "fromNode": "norm-2",
+      "toNode": "norm-5"
+    },
+    {
+      "id": "c05-2-e4",
+      "fromNode": "norm-5",
+      "toNode": "norm-6",
+      "label": "so plano autorizado"
+    },
+    {
+      "id": "c05-2-e5",
+      "fromNode": "norm-6",
+      "toNode": "norm-7"
+    },
+    {
+      "id": "c05-2-e6",
+      "fromNode": "norm-7",
+      "toNode": "norm-8"
+    },
+    {
+      "id": "c05-2-e7",
+      "fromNode": "norm-1",
+      "toNode": "norm-9"
+    },
+    {
+      "id": "c05-2-e8",
+      "fromNode": "norm-9",
+      "toNode": "norm-5"
+    }
+  ]
 }

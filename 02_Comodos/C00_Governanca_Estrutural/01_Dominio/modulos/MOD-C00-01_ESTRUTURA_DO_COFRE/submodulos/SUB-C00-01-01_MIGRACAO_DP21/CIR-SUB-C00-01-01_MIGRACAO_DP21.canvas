@@ -1,4 +1,74 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "mig-1",
+      "type": "text",
+      "text": "### SUB-C00-01-01 MIGRACAO DP21\nRegras e orquestracao da migracao para o padrao Down Plant 2.1 sem legado ativo.",
+      "x": 400,
+      "y": 0,
+      "width": 440,
+      "height": 120
+    },
+    {
+      "id": "mig-2",
+      "type": "text",
+      "text": "### Alvo do manifesto\nmanifest DP-VAULT-1 | version 2.1 | profile P1 | owner SYNTHEON | trigger Manual/Linter.",
+      "x": 0,
+      "y": 210,
+      "width": 330,
+      "height": 120
+    },
+    {
+      "id": "mig-3",
+      "type": "text",
+      "text": "### Vocabulario proibido no cofre\nPrefixo M com dois digitos, marcador de tarefa legada, raiz antiga de planta e URI de arquivo local - varridos em todo .md e .canvas dos diretorios de documentacao.",
+      "x": 350,
+      "y": 210,
+      "width": 350,
+      "height": 130,
+      "color": "1"
+    },
+    {
+      "id": "mig-4",
+      "type": "text",
+      "text": "### Estrutura alvo\n8 comodos ativos com 6 slots cada; C07_Efetivo permanece condicional e nao e' criado.",
+      "x": 720,
+      "y": 210,
+      "width": 330,
+      "height": 110
+    },
+    {
+      "id": "mig-5",
+      "type": "text",
+      "text": "### Sem legado ativo\nNenhum nome antigo de modulo sobrevive: modulo passa a MOD-CXX-NN e submodulo a SUB-CXX-NN-NN.",
+      "x": 350,
+      "y": 390,
+      "width": 350,
+      "height": 110,
+      "color": "3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "mig-e0",
+      "fromNode": "mig-1",
+      "toNode": "mig-2"
+    },
+    {
+      "id": "mig-e1",
+      "fromNode": "mig-1",
+      "toNode": "mig-3"
+    },
+    {
+      "id": "mig-e2",
+      "fromNode": "mig-1",
+      "toNode": "mig-4"
+    },
+    {
+      "id": "mig-e3",
+      "fromNode": "mig-3",
+      "toNode": "mig-5",
+      "label": "renomeia"
+    }
+  ]
 }

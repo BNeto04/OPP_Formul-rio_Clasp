@@ -1,4 +1,123 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "ocorr-1",
+      "type": "text",
+      "text": "### MOD-C03-01 MODELO DE OCORRENCIA\nRepresentacao canonica da ocorrencia (tunel) e das entidades do dominio. Read-only sobre a planilha.",
+      "x": 420,
+      "y": 0,
+      "width": 460,
+      "height": 130,
+      "color": "5"
+    },
+    {
+      "id": "ocorr-2",
+      "type": "text",
+      "text": "### Chave do tunel\nTripla `DATA | MIKE | BOE`, materializada na coluna AK `Chave Ocorrencia` por formula e repetida em TODAS as linhas do tunel.",
+      "x": 0,
+      "y": 210,
+      "width": 340,
+      "height": 120
+    },
+    {
+      "id": "ocorr-3",
+      "type": "text",
+      "text": "### Aba mensal - 37 colunas (A..AK)\nENTRADA: A..R, U..Y, AE..AH | FORMULA: S, T, W, Z, AA, AI, AJ, AK | VLOOKUP do EFETIVO: AB, AC, AD.",
+      "x": 360,
+      "y": 210,
+      "width": 350,
+      "height": 120
+    },
+    {
+      "id": "ocorr-4",
+      "type": "text",
+      "text": "### Formulas reais medidas\nS = Q*3+R | W = V+(U/4) | Z = (X+Y)+(V+(U/4)) | AI = ponto da Tabela PIP x quantidade | AJ = SUMIFS(AI)/4 | AK = DATA/MIKE/BOE",
+      "x": 730,
+      "y": 210,
+      "width": 360,
+      "height": 120
+    },
+    {
+      "id": "ocorr-5",
+      "type": "text",
+      "text": "### Rateio canonico\nDivisor fixo do PIP = 4 (`CONSTANTES_SYNTHEON.DIVISOR_RATEIO_PIP`).\n`Dividido mac` / `Dividido coc` = quantidade do tunel / numero de linhas (fracao ficticia, nao pontua).",
+      "x": 0,
+      "y": 380,
+      "width": 340,
+      "height": 130
+    },
+    {
+      "id": "ocorr-6",
+      "type": "text",
+      "text": "### Semantica arma x droga\n`ARMA` (coluna L) = arma fisica, uma por linha | `QDT ARMAS` (AF) = participacao do tunel, replicada e NUNCA somada | droga = total do tunel pontua, fracao individual e' declaradamente ficticia.",
+      "x": 360,
+      "y": 380,
+      "width": 350,
+      "height": 130
+    },
+    {
+      "id": "ocorr-7",
+      "type": "text",
+      "text": "### Entidades reais\n`Ocorrencia.js` + `OcorrenciaFactory.js` | `RegistroCanonico.js` | `Policial.js` | `Arma.js` | `Droga.js` | `Equipe.js` | `ValueObjects/ChaveOcorrencia.js`",
+      "x": 730,
+      "y": 380,
+      "width": 360,
+      "height": 130
+    },
+    {
+      "id": "ocorr-8",
+      "type": "text",
+      "text": "### Riscos classificados (8) - doc de cartografia\nChave derivada: se DATA ou MIKE faltar na linha, a chave fica vazia e o PONTOS FICCAO da linha tambem - vetor mais provavel de tunel fragmentado.",
+      "x": 420,
+      "y": 560,
+      "width": 460,
+      "height": 120,
+      "color": "1"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c03-1-e0",
+      "fromNode": "ocorr-1",
+      "toNode": "ocorr-2"
+    },
+    {
+      "id": "c03-1-e1",
+      "fromNode": "ocorr-1",
+      "toNode": "ocorr-3"
+    },
+    {
+      "id": "c03-1-e2",
+      "fromNode": "ocorr-1",
+      "toNode": "ocorr-6"
+    },
+    {
+      "id": "c03-1-e3",
+      "fromNode": "ocorr-1",
+      "toNode": "ocorr-7"
+    },
+    {
+      "id": "c03-1-e4",
+      "fromNode": "ocorr-3",
+      "toNode": "ocorr-4",
+      "label": "deriva"
+    },
+    {
+      "id": "c03-1-e5",
+      "fromNode": "ocorr-4",
+      "toNode": "ocorr-5",
+      "label": "rateio"
+    },
+    {
+      "id": "c03-1-e6",
+      "fromNode": "ocorr-2",
+      "toNode": "ocorr-8",
+      "label": "chave derivada"
+    },
+    {
+      "id": "c03-1-e7",
+      "fromNode": "ocorr-7",
+      "toNode": "ocorr-8"
+    }
+  ]
 }

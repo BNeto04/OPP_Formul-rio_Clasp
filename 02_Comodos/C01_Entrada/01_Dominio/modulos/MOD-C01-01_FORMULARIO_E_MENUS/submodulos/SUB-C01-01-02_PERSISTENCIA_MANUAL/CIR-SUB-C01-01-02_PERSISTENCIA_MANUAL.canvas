@@ -1,4 +1,79 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "pers-1",
+      "type": "text",
+      "text": "### SUB-C01-01-02 PERSISTENCIA MANUAL\nRecebe o payload ja conferido no formulario e grava na aba mensal com validacao. Nao decide pontuacao.",
+      "x": 420,
+      "y": 0,
+      "width": 460,
+      "height": 120
+    },
+    {
+      "id": "pers-2",
+      "type": "text",
+      "text": "### Artefatos reais\n`Entrada/EntradaManual.js` `processarEntradaManual` | `Entrada/EntradaManualHeadless.js` (mesma via sem interface) | `Testes/TestEntradaManualFormulario.js` | `Testes/TestEntradaManualDryRun.js`.",
+      "x": 0,
+      "y": 200,
+      "width": 370,
+      "height": 140
+    },
+    {
+      "id": "pers-3",
+      "type": "text",
+      "text": "### Gravacao real medida\nGrava os dados informados: POLICIAL na coluna AE e QDT ARMAS na coluna AF. As colunas PELOTAO (AB), GRAD (AC) e MATRICULA (AD) ficam intocadas para as formulas do EFETIVO operarem.",
+      "x": 390,
+      "y": 200,
+      "width": 380,
+      "height": 140
+    },
+    {
+      "id": "pers-4",
+      "type": "text",
+      "text": "### Travas\n`verificarDuplicidadeOcorrencia` bloqueia BOE/MIKE repetido; validacao de coluna rejeita valor fora da lista de NATUREZA.",
+      "x": 0,
+      "y": 380,
+      "width": 370,
+      "height": 120,
+      "color": "1"
+    },
+    {
+      "id": "pers-5",
+      "type": "text",
+      "text": "### Captura do BO\nO texto do BO e' capturado com regex de matricula tolerante a abreviacoes (Mat./Matr./PMPE) e o push nao injeta mais texto em AB, AC e AD.",
+      "x": 390,
+      "y": 380,
+      "width": 380,
+      "height": 130,
+      "color": "3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "pers-e0",
+      "fromNode": "pers-1",
+      "toNode": "pers-2"
+    },
+    {
+      "id": "pers-e2",
+      "fromNode": "pers-2",
+      "toNode": "pers-3"
+    },
+    {
+      "id": "pers-e3",
+      "fromNode": "pers-3",
+      "toNode": "pers-4"
+    },
+    {
+      "id": "pers-e4",
+      "fromNode": "pers-4",
+      "toNode": "pers-5"
+    },
+    {
+      "id": "pers-e5",
+      "fromNode": "pers-1",
+      "toNode": "pers-3",
+      "label": "payload do formulario"
+    }
+  ]
 }

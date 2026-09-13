@@ -1,4 +1,122 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "gxt-1",
+      "type": "text",
+      "text": "### MOD-C06-02 MERITO DE ARMAS GXT\nApuracao do merito de armas por GTAR x TROPA e montagem da aba de merito 2026.",
+      "x": 430,
+      "y": 0,
+      "width": 460,
+      "height": 120,
+      "color": "5"
+    },
+    {
+      "id": "gxt-2",
+      "type": "text",
+      "text": "### Compilador GXT\n`Features/CompiladorGxt.js` `compilar(fonte, meses, fontePeculio)`: localiza a aba por nome normalizado, consome o PECULIO para antiguidade e devolve resultado por mes + log de meses.",
+      "x": 0,
+      "y": 200,
+      "width": 360,
+      "height": 140
+    },
+    {
+      "id": "gxt-3",
+      "type": "text",
+      "text": "### Politica de merito\n`Motor/PoliticaMeritoArmas.js`: agrupa por tunel, separa arma de fogo de arma artesanal, monta os integrantes e escolhe o lider pelo menor N de antiguidade.",
+      "x": 380,
+      "y": 200,
+      "width": 360,
+      "height": 140
+    },
+    {
+      "id": "gxt-4",
+      "type": "text",
+      "text": "### Diagnostico deterministico\n`Motor/DiagnosticoDeterministicoGxt.js` `diagnosticarMes`: normaliza ocorrencias, formata DATA em DD/MM/AAAA, aplica a meta do PECULIO e reporta erro de fonte como PECULIO_SEM_REGISTROS_VALIDOS.",
+      "x": 760,
+      "y": 200,
+      "width": 380,
+      "height": 150
+    },
+    {
+      "id": "gxt-5",
+      "type": "text",
+      "text": "### Renderizacao\n`Render/RendererGxt.js`: `corPorArmas`, `obterEstiloPelotao`, paineis em blocos de 3 meses e grade de 18 colunas -> aba GTAR X TROPA ARMAS 2026.",
+      "x": 0,
+      "y": 400,
+      "width": 360,
+      "height": 140
+    },
+    {
+      "id": "gxt-6",
+      "type": "text",
+      "text": "### Build do artefato\n`scripts/build-gxt.js` consolida o artefato do GXT fora do runtime do Apps Script.",
+      "x": 380,
+      "y": 400,
+      "width": 340,
+      "height": 120
+    },
+    {
+      "id": "gxt-7",
+      "type": "text",
+      "text": "### Fechaduras reais\n`Testes/TestRelatorioGxt.js` | `Testes/DiagnosticoGxtTrimestral.js` | `Testes/TestMeritoEquipeArmas.js`.",
+      "x": 0,
+      "y": 580,
+      "width": 360,
+      "height": 120,
+      "color": "3"
+    },
+    {
+      "id": "gxt-8",
+      "type": "text",
+      "text": "### Origem externa\nO MERITO depende do mapa de antiguidade da planilha PECULIO (externa) - sem ele, o diagnostico declara a fonte invalida em vez de inferir.",
+      "x": 740,
+      "y": 400,
+      "width": 380,
+      "height": 140,
+      "color": "1"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c06-2-e0",
+      "fromNode": "gxt-1",
+      "toNode": "gxt-2"
+    },
+    {
+      "id": "c06-2-e1",
+      "fromNode": "gxt-2",
+      "toNode": "gxt-3"
+    },
+    {
+      "id": "c06-2-e2",
+      "fromNode": "gxt-2",
+      "toNode": "gxt-4"
+    },
+    {
+      "id": "c06-2-e3",
+      "fromNode": "gxt-3",
+      "toNode": "gxt-5"
+    },
+    {
+      "id": "c06-2-e4",
+      "fromNode": "gxt-4",
+      "toNode": "gxt-5"
+    },
+    {
+      "id": "c06-2-e5",
+      "fromNode": "gxt-5",
+      "toNode": "gxt-7"
+    },
+    {
+      "id": "c06-2-e6",
+      "fromNode": "gxt-6",
+      "toNode": "gxt-5",
+      "label": "artefato"
+    },
+    {
+      "id": "c06-2-e7",
+      "fromNode": "gxt-8",
+      "toNode": "gxt-4"
+    }
+  ]
 }

@@ -1,4 +1,73 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "lint-1",
+      "type": "text",
+      "text": "### SUB-C00-02-01 LINT\nLinter de integridade estatica, links, Canvas e taxonomia do cofre.",
+      "x": 400,
+      "y": 0,
+      "width": 440,
+      "height": 110
+    },
+    {
+      "id": "lint-2",
+      "type": "text",
+      "text": "### Artefato\n`scripts/downplant/lint-estrutura.mjs` - Node ESM, sem dependencia externa.",
+      "x": 0,
+      "y": 200,
+      "width": 340,
+      "height": 110
+    },
+    {
+      "id": "lint-3",
+      "type": "text",
+      "text": "### Escopo varrido\n00_Painel, 01_Planta, 02_Comodos, 03_Fundacao, 06_Inventario, 07_Codigo_Leitura, 08_Execucao_Ao_Vivo.",
+      "x": 360,
+      "y": 200,
+      "width": 350,
+      "height": 120
+    },
+    {
+      "id": "lint-4",
+      "type": "text",
+      "text": "### Como rodar\n`node scripts/downplant/lint-estrutura.mjs <base>` - aceita a raiz do repositorio ou a raiz do espelho.",
+      "x": 730,
+      "y": 200,
+      "width": 360,
+      "height": 120,
+      "color": "4"
+    },
+    {
+      "id": "lint-5",
+      "type": "text",
+      "text": "### Contrato de saida\n0 erro -> SUCESSO com exit code 0; 1 ou mais erros -> FALHA com exit code 1, listando arquivo e causa de cada erro.",
+      "x": 360,
+      "y": 360,
+      "width": 350,
+      "height": 120,
+      "color": "3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "lint-e0",
+      "fromNode": "lint-1",
+      "toNode": "lint-2"
+    },
+    {
+      "id": "lint-e1",
+      "fromNode": "lint-1",
+      "toNode": "lint-3"
+    },
+    {
+      "id": "lint-e2",
+      "fromNode": "lint-1",
+      "toNode": "lint-4"
+    },
+    {
+      "id": "lint-e3",
+      "fromNode": "lint-1",
+      "toNode": "lint-5"
+    }
+  ]
 }

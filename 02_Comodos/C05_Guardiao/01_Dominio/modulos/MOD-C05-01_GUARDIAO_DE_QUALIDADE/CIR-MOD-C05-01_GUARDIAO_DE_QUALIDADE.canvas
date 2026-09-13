@@ -1,4 +1,152 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "guard-1",
+      "type": "text",
+      "text": "### MOD-C05-01 GUARDIAO DE QUALIDADE\nAUDITA: detecta, classifica, explica e mede cobertura. Nunca corrige, apaga ou preenche dado operacional.",
+      "x": 430,
+      "y": 0,
+      "width": 470,
+      "height": 130,
+      "color": "5"
+    },
+    {
+      "id": "guard-2",
+      "type": "text",
+      "text": "### Seletor de meses\n`Entrada/SeletorMesesGuardiao.js`: `listarAbasMensais`, `nomeMensalValido`, `parseSelecao` (um mes, lista ou TODOS); abas auxiliares excluidas.",
+      "x": 0,
+      "y": 210,
+      "width": 330,
+      "height": 130
+    },
+    {
+      "id": "guard-3",
+      "type": "text",
+      "text": "### Motor canonico\n`Features/GuardiaoQualidade.js` `varrerAba` (mesmo motor para cada aba) + `Core/RegrasQualidade.js` `validarTunel` / `criarDiagnostico`.",
+      "x": 350,
+      "y": 210,
+      "width": 340,
+      "height": 130
+    },
+    {
+      "id": "guard-4",
+      "type": "text",
+      "text": "### Diagnosticos reais\nOCORRENCIA_ORFA (critico) | MIKE_SUSPEITO, MIKE_DATA_DIVERGENTE, MIKE_BOE_DIVERGENTE, MIKE_DATAS_DIVERGENTES, EVENTO_INCOMPLETO_AG, IMPUTADO_SEM_EVENTO_AH, RATEIO_PONTOS_INCOERENTE | EXCECAO_MANUAL_JUSTIFICADA | observacoes tecnicas.",
+      "x": 710,
+      "y": 210,
+      "width": 380,
+      "height": 150
+    },
+    {
+      "id": "guard-5",
+      "type": "text",
+      "text": "### Saude por tunel\n`Core/SaudeTuneis.js`: SAUDAVEL | ALERTA | CRITICO | INCOMPLETO | NAO_AUDITAVEL; detecta tunel orfao, duplicado e fragmentado.",
+      "x": 0,
+      "y": 400,
+      "width": 330,
+      "height": 130
+    },
+    {
+      "id": "guard-6",
+      "type": "text",
+      "text": "### Cobertura anti-falso-verde\n`Core/CoberturaAuditoria.js`: catalogo PIP ausente, fonte de antiguidade indisponivel e lacuna ARCA viram status COMPLETA | PARCIAL; ausencia de evidencia nunca vira verde.",
+      "x": 350,
+      "y": 400,
+      "width": 360,
+      "height": 130
+    },
+    {
+      "id": "guard-7",
+      "type": "text",
+      "text": "### Enriquecimento ARCA\n`Dominio/ARCA/AdaptadorConsultaArca.js` `enriquecerDiagnostico(codigo, contexto)` le o catalogo read-only, em fail-soft.",
+      "x": 730,
+      "y": 400,
+      "width": 360,
+      "height": 130
+    },
+    {
+      "id": "guard-8",
+      "type": "text",
+      "text": "### Painel e drill-down\n`Render/PainelSaude.js`: resumo por mes e global + hierarquia MES -> TUNEL -> LINHAS -> DIAGNOSTICO, com reescrita idempotente.",
+      "x": 0,
+      "y": 570,
+      "width": 340,
+      "height": 130
+    },
+    {
+      "id": "guard-9",
+      "type": "text",
+      "text": "### Coluna AM (alerta)\nUnica coluna escrita. As colunas operacionais A:AL nunca sao alteradas pelo Guardiao.",
+      "x": 360,
+      "y": 570,
+      "width": 340,
+      "height": 120,
+      "color": "1"
+    },
+    {
+      "id": "guard-10",
+      "type": "text",
+      "text": "### Modo headless\n`Features/GuardiaoHeadless.js` `executarGuardiaoHeadless` prova o mesmo fluxo sem interface.",
+      "x": 720,
+      "y": 570,
+      "width": 360,
+      "height": 110,
+      "color": "3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c05-e0",
+      "fromNode": "guard-1",
+      "toNode": "guard-2"
+    },
+    {
+      "id": "c05-e1",
+      "fromNode": "guard-2",
+      "toNode": "guard-3",
+      "label": "abas mensais validas"
+    },
+    {
+      "id": "c05-e2",
+      "fromNode": "guard-3",
+      "toNode": "guard-4"
+    },
+    {
+      "id": "c05-e3",
+      "fromNode": "guard-3",
+      "toNode": "guard-5"
+    },
+    {
+      "id": "c05-e4",
+      "fromNode": "guard-3",
+      "toNode": "guard-6"
+    },
+    {
+      "id": "c05-e5",
+      "fromNode": "guard-4",
+      "toNode": "guard-7",
+      "label": "codigoRegra -> rule_id"
+    },
+    {
+      "id": "c05-e6",
+      "fromNode": "guard-5",
+      "toNode": "guard-8"
+    },
+    {
+      "id": "c05-e7",
+      "fromNode": "guard-6",
+      "toNode": "guard-8"
+    },
+    {
+      "id": "c05-e8",
+      "fromNode": "guard-8",
+      "toNode": "guard-9",
+      "label": "escreve o alerta"
+    },
+    {
+      "id": "c05-e9",
+      "fromNode": "guard-8",
+      "toNode": "guard-10"
+    }
+  ]
 }

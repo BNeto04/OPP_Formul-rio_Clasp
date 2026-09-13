@@ -1,4 +1,108 @@
 {
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "valid-1",
+      "type": "text",
+      "text": "### MOD-C00-02 VALIDACAO ESTRUTURAL\nValidacao automatizada e deterministica do cofre.\nUnico artefato real: `scripts/downplant/lint-estrutura.mjs` (Node ESM, sem dependencia externa).",
+      "x": 400,
+      "y": 0,
+      "width": 480,
+      "height": 140,
+      "color": "5"
+    },
+    {
+      "id": "valid-2",
+      "type": "text",
+      "text": "### Verificacao 1 - Manifesto\n`03_Fundacao/ESTRUTURA_DO_COFRE.md` precisa conter manifest DP-VAULT-1 + version 2.1 + profile P1.",
+      "x": 0,
+      "y": 220,
+      "width": 340,
+      "height": 120
+    },
+    {
+      "id": "valid-3",
+      "type": "text",
+      "text": "### Verificacao 2 - Slots e nomenclatura\n6 slots obrigatorios com INDICE.md; 8 comodos esperados; MOD-* e SUB-* com prefixo valido.",
+      "x": 360,
+      "y": 220,
+      "width": 340,
+      "height": 120
+    },
+    {
+      "id": "valid-4",
+      "type": "text",
+      "text": "### Verificacao 3 - Varredura de legado\nProcura prefixo M com dois digitos, marcador de tarefa legada, raiz antiga de planta e URI de arquivo local em .md e .canvas.",
+      "x": 720,
+      "y": 220,
+      "width": 340,
+      "height": 120
+    },
+    {
+      "id": "valid-5",
+      "type": "text",
+      "text": "### Verificacao 4 - Links e Canvas\nLink markdown precisa resolver no disco; wikilink resolve por nome-base; Canvas precisa de JSON valido e no do tipo file precisa apontar para arquivo existente.",
+      "x": 1080,
+      "y": 220,
+      "width": 340,
+      "height": 120
+    },
+    {
+      "id": "valid-6",
+      "type": "text",
+      "text": "### Contrato de saida\n0 erro -> SUCESSO (exit code 0); 1 ou mais erros -> FALHA (exit code 1) listando arquivo e causa.\nNao corrige nada: apenas diagnostica.",
+      "x": 360,
+      "y": 400,
+      "width": 340,
+      "height": 120,
+      "color": "3"
+    },
+    {
+      "id": "valid-s1",
+      "type": "text",
+      "text": "### SUB-C00-02-01 LINT\nMesmo artefato; submodulo registra a responsabilidade do linter no cofre.",
+      "x": 720,
+      "y": 400,
+      "width": 340,
+      "height": 110,
+      "color": "3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c00m2-e0",
+      "fromNode": "valid-1",
+      "toNode": "valid-2"
+    },
+    {
+      "id": "c00m2-e1",
+      "fromNode": "valid-1",
+      "toNode": "valid-3"
+    },
+    {
+      "id": "c00m2-e2",
+      "fromNode": "valid-1",
+      "toNode": "valid-4"
+    },
+    {
+      "id": "c00m2-e3",
+      "fromNode": "valid-1",
+      "toNode": "valid-5"
+    },
+    {
+      "id": "c00m2-e4",
+      "fromNode": "valid-1",
+      "toNode": "valid-6"
+    },
+    {
+      "id": "c00m2-e5",
+      "fromNode": "valid-1",
+      "toNode": "valid-s1"
+    },
+    {
+      "id": "c00m2-e6",
+      "fromNode": "valid-6",
+      "toNode": "valid-1",
+      "label": "diagnostico"
+    }
+  ]
 }
