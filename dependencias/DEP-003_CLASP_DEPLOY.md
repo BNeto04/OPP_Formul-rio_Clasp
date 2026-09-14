@@ -7,7 +7,7 @@ estado: ativo
 comodos: [C00, C08]
 cards: ["#140", "#141", "#142", "#144", "#152", "#153", "#167"]
 data_registro: "2026-09-13"
-versao:   <!-- instalada, provada por `clasp --version` em 14/09/2026 -->
+versao: "NAO_COMPROVADA"  <!-- `clasp --version` retornou VAZIO neste ambiente (14/09/2026); registro prematuro do commit 53684b7 corrigido por commit novo, §3.7 -->
 fonte: "https://registry.npmjs.org/@google/clasp (dist-tags.latest) + https://github.com/google/clasp/releases"
 data_decisao: "2026-09-14"
 decisao: "DEC-DEP-003"
