@@ -1,0 +1,2089 @@
+# ESPELHO — Formulario.html
+
+> [!NOTE] Espelho rico de código (Metodo §46.15) — gerado por `scripts/downplant/espelho-rico.mjs`
+> Somente leitura. Não editar à mão: qualquer edição é sobrescrita na próxima geração.
+> O código abaixo é cópia verbatim do arquivo de origem no commit declarado; divergência entre o embutido e a origem é deriva (§18.1).
+> Regra do sha256 declarado: sha256 do conteúdo **normalizado para LF** (igual ao blob do Git). Em arquivo CRLF com terminador final diferente, ele difere do `sha256sum` dos bytes crus — a comparação de deriva é feita conteúdo-contra-conteúdo.
+> Papel desta cópia: CANÔNICA (repositório). O derivado navegável no vault é gerado com as mesmas entradas.
+
+- **Endereço Down Plant:** `C01_Entrada / MOD-C01-01_FORMULARIO_E_MENUS` — [NOTA_DE_RESPONSABILIDADE.md](../../02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/NOTA_DE_RESPONSABILIDADE.md)
+- **Arquivo de origem (link para o disco):** [`Entrada/Formulario.html`](../../Entrada/Formulario.html)
+- **Commit de referência:** `fbb0608e7b98144533628c7f9b773a10505b800d` (`fbb0608`)
+- **Data da última sincronização:** 2026-09-13T21:45:27-03:00
+
+## Código-fonte embutido
+
+Verbatim de `Entrada/Formulario.html` em `fbb0608`. sha256 do bloco (LF): `8fecf32eb0bd0176adc89acb6b6c4e72147a7209e1489b6637e56a2fb7b55f20` — 2023 linhas.
+
+```html
+<!-- ARQUIVO: Entrada/Formulario.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYNTHÉON - Registro Inteligente com OCR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Tesseract.js: OCR 100% no navegador, sem servidor externo -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <!-- PDF.js: renderizar PDF para canvas para o Tesseract ler -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #060913;
+      --card-bg: #0d1323;
+      --border-color: #1e293b;
+      --border-focus: #00d2ff;
+      --accent-color: #00ff9d;
+      --accent-glow: rgba(0, 255, 157, 0.35);
+      --secondary-color: #00d2ff;
+      --secondary-glow: rgba(0, 210, 255, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-terminal: #00ff9d;
+      --danger-color: #f43f5e;
+      --input-bg: #10172d;
+      --font-family: 'Outfit', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 16px;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .container { display: flex; flex: 1; gap: 16px; align-items: stretch; overflow: hidden; }
+    .panel-left { flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; }
+    .panel-right { flex: 1.2; display: flex; flex-direction: column; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; overflow: hidden; }
+    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 14px; }
+    header h1 { font-size: 1.2rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; background: linear-gradient(135deg, var(--accent-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .badge { background-color: rgba(0, 255, 157, 0.1); border: 1px solid var(--accent-color); color: var(--accent-color); font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 9999px; }
+    .upload-zone {
+      background-color: var(--card-bg);
+      border: 2px dashed rgba(0, 210, 255, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+    }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--secondary-color); background-color: rgba(0, 210, 255, 0.04); box-shadow: 0 0 20px var(--secondary-glow); }
+    .upload-zone svg { width: 40px; height: 40px; fill: var(--secondary-color); margin-bottom: 8px; filter: drop-shadow(0 0 6px var(--secondary-glow)); }
+    .upload-zone h3 { font-size: 0.9rem; font-weight: 700; color: var(--secondary-color); margin-bottom: 3px; }
+    .upload-zone p { font-size: 0.7rem; color: var(--text-muted); }
+    .progress-wrap { width: 100%; }
+    .progress-label { font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; display: none; }
+    .progress-bar-container { width: 100%; height: 5px; background: #050811; border-radius: 3px; overflow: hidden; display: none; }
+    .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--secondary-color), var(--accent-color)); box-shadow: 0 0 8px var(--accent-color); transition: width 0.2s ease; }
+    .terminal-box { flex: 1; background-color: #04060b; border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 200px; }
+    .terminal-header { background-color: #0b0f1a; padding: 7px 14px; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; letter-spacing: 1px; }
+    .terminal-dots { display: flex; gap: 5px; }
+    .terminal-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .terminal-dot.red { background-color: #ef4444; }
+    .terminal-dot.yellow { background-color: #eab308; }
+    .terminal-dot.green { background-color: #22c55e; }
+    .terminal-content { flex: 1; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-terminal); overflow-y: auto; white-space: pre-wrap; line-height: 1.6; }
+    .form-scroll { flex: 1; overflow-y: auto; padding-right: 8px; display: flex; flex-direction: column; gap: 12px; }
+    .card { background-color: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; }
+    .card-title { font-size: 0.78rem; font-weight: 700; color: var(--secondary-color); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; border-bottom: 1px solid rgba(0, 210, 255, 0.1); padding-bottom: 5px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .form-group { display: flex; flex-direction: column; gap: 3px; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    label { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    input, select { background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 6px 10px; font-size: 0.82rem; font-family: var(--font-family); outline: none; transition: all 0.2s; width: 100%; }
+    input:focus, select:focus { border-color: var(--border-focus); box-shadow: 0 0 8px var(--secondary-glow); }
+    .police-input-wrapper { display: flex; gap: 8px; margin-bottom: 7px; align-items: center; }
+    .police-input-wrapper input { flex: 1; }
+    .btn-add-tag { background-color: var(--secondary-color); color: #060913; font-weight: 700; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; white-space: nowrap; }
+    .police-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+    .police-table thead th { background-color: #0a0e1a; color: var(--secondary-color); font-weight: 700; text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border-color); font-size: 0.68rem; letter-spacing: 0.5px; text-transform: uppercase; }
+    .police-table tbody tr { border-bottom: 1px solid rgba(30,41,59,0.5); transition: background 0.15s; }
+    .police-table tbody tr:hover { background-color: rgba(0,210,255,0.04); }
+    .police-table tbody tr.police-draggable { cursor: grab; }
+    .police-table tbody tr.police-draggable.dragging { opacity: 0.45; background-color: rgba(0, 255, 157, 0.08); cursor: grabbing; }
+    .police-table tbody.drag-active { outline: 1px dashed rgba(0, 255, 157, 0.45); outline-offset: -2px; }
+    .police-table td { padding: 5px 8px; color: var(--text-main); vertical-align: middle; }
+    .police-table td.td-pelotao { color: var(--secondary-color); font-weight: 700; white-space: nowrap; }
+    .police-table td.td-posto { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+    .police-table td.td-mat { font-family: 'JetBrains Mono', monospace; color: var(--accent-color); }
+    .police-table td.td-remove { text-align: center; }
+    .police-table-wrap { background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; margin-bottom: 7px; min-height: 36px; }
+    .police-empty-msg { color: var(--text-muted); font-size: 0.72rem; text-align: center; padding: 10px; font-style: italic; }
+    .dynamic-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 7px; }
+    .dynamic-item { display: flex; gap: 7px; align-items: center; }
+    .dynamic-item select, .dynamic-item input { padding: 5px 8px; font-size: 0.78rem; }
+    .btn-remove-item { background: transparent; border: 1px solid rgba(244, 63, 94, 0.3); color: var(--danger-color); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; transition: all 0.2s; flex-shrink: 0; }
+    .btn-remove-item:hover { background-color: var(--danger-color); color: white; }
+    .btn-add-item { background: transparent; border: 1px dashed var(--secondary-color); color: var(--secondary-color); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 0.72rem; font-weight: 600; transition: all 0.2s; }
+    .btn-add-item:hover { background-color: rgba(0, 210, 255, 0.05); }
+    .footer-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; align-items: center; background: var(--card-bg); flex-shrink: 0; }
+    .status-msg-box { flex: 1; padding: 6px 10px; background-color: #0a0e1a; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.68rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); min-height: 28px; display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .btn-action { padding: 8px 20px; font-size: 0.8rem; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.3s; outline: none; border: none; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+    .btn-cancel { background-color: #1e293b; color: #e2e8f0; border: 1px solid var(--border-color); }
+    .btn-save { background: linear-gradient(135deg, var(--accent-color), #059669); color: #060913; box-shadow: 0 0 12px rgba(0, 255, 157, 0.15); }
+    .btn-save:hover { box-shadow: 0 0 22px var(--accent-color); transform: translateY(-1px); }
+    .btn-save:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); box-shadow: none; transform: none; pointer-events: none; }
+    .btn-toggle-ocr { background: rgba(0, 210, 255, 0.1); border: 1px solid var(--secondary-color); color: var(--secondary-color); border-radius: 6px; padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 600; font-family: var(--font-family); transition: all 0.2s; outline: none; }
+    .btn-toggle-ocr:hover { background: rgba(0, 210, 255, 0.2); }
+    .btn-toggle-ocr svg { transition: transform 0.3s; }
+    .btn-toggle-ocr.collapsed svg { transform: rotate(180deg); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>SYNTHÉON :: Entrada Inteligente</h1>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button type="button" class="btn-toggle-ocr" onclick="toggleOCR()" id="btnToggleOCR" title="Ocultar/Mostrar OCR">
+        <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24"><path d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z" /></svg>
+        <span>Ocultar OCR</span>
+      </button>
+      <span class="badge">OCR In-Browser</span>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Painel Esquerdo: OCR -->
+    <div class="panel-left">
+
+      <!-- Drop Zone -->
+      <div id="dropZone" class="upload-zone">
+        <svg viewBox="0 0 24 24">
+          <path d="M14,13V17H10V13H7L12,8L17,13M19.35,10.03C18.67,6.59 15.64,4 12,4C9.11,4 6.6,5.64 5.35,8.03C2.34,8.36 0,10.9 0,14A6,6 0 0,0 6,20H19A5,5 0 0,0 24,15C24,12.36 21.95,10.22 19.35,10.03Z" />
+        </svg>
+        <h3>Solte o Documento Aqui</h3>
+        <p>Arraste PDF ou Imagem (Foto) ou clique para selecionar</p>
+        <input type="file" id="fileInput" hidden accept="application/pdf,image/png,image/jpeg,image/webp,image/bmp">
+      </div>
+
+      <!-- Progresso -->
+      <div class="progress-wrap">
+        <div class="progress-label" id="progressLabel">Inicializando OCR...</div>
+        <div class="progress-bar-container" id="progressContainer">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+      </div>
+
+      <!-- Terminal do OCR -->
+      <div class="terminal-box">
+        <div class="terminal-header">
+          <span>CONSOLE DE TEXTO OCR</span>
+          <div class="terminal-dots">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+          </div>
+        </div>
+        <div class="terminal-content" id="ocrTerminal">Aguardando documento para processar...</div>
+      </div>
+
+    </div>
+
+    <!-- Painel Direito: Formulário -->
+    <div class="panel-right">
+      <div class="form-scroll">
+
+        <!-- Fatos -->
+        <div class="card">
+          <div class="card-title">Dados do Fato</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="data">DATA</label>
+              <input type="text" id="data" placeholder="DD/MM/AAAA">
+            </div>
+            <div class="form-group">
+              <label for="hora">HORA</label>
+              <input type="text" id="hora" placeholder="HH:MM">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="qtd_o">QTD O</label>
+              <input type="number" id="qtd_o" placeholder="01" value="01" min="1" onblur="normalizarQtdO()">
+            </div>
+            <div class="form-group">
+              <label for="mike">MIKE</label>
+              <input type="text" id="mike" placeholder="Ex: 12345678">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label for="natureza">NATUREZA DA OCORRÊNCIA</label>
+              <input type="text" id="natureza" list="naturezasList" placeholder="Selecione ou digite a natureza...">
+              <datalist id="naturezasList"></datalist>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="boe">BOE</label>
+              <input type="text" id="boe" placeholder="Ex: 2026/12345">
+            </div>
+            <div class="form-group">
+              <label for="ais">AIS <span id="aisBadge" style="display:none; font-size:11px; padding:2px 6px; border-radius:4px; margin-left:6px; font-weight:normal;"></span></label>
+              <input type="number" id="ais" placeholder="Ex: 3" min="1">
+              <small id="aisFeedback" style="display:none; font-size:11px; margin-top:3px;"></small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cidade">CIDADE</label>
+              <input type="text" id="cidade" placeholder="Ex: RECIFE">
+            </div>
+            <div class="form-group">
+              <label for="bairro">BAIRRO</label>
+              <input type="text" id="bairro" placeholder="Ex: BOA VIAGEM">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="detidos">DETIDOS (Facultativo)</label>
+              <input type="text" id="detidos" list="detidosList" placeholder="TCO" value="TCO" title="Resultado processual (lista suspensa) — padrão TCO">
+              <datalist id="detidosList">
+                <option value="APFD"></option>
+                <option value="TCO"></option>
+                <option value="BOC"></option>
+                <option value="AAFAI"></option>
+              </datalist>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conferência OCR -->
+        <div class="card" id="ocrConferenceCard" style="display: none;">
+          <div class="card-title" style="color: var(--accent-color); border-bottom-color: rgba(0, 255, 157, 0.1);">Conferência OCR</div>
+          <div id="ocrConferenceContent" style="font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; line-height: 1.5;">
+          </div>
+        </div>
+
+        <!-- Equipe -->
+        <div class="card">
+          <div class="card-title">Equipe / Policiais</div>
+          <div class="police-input-wrapper">
+            <input type="text" id="policeInput" placeholder="Matrícula manual (ex: 1021400)" onkeydown="if(event.key==='Enter')adicionarPolicialManual()">
+            <button type="button" class="btn-add-tag" onclick="adicionarPolicialManual()">+ Adicionar</button>
+          </div>
+          <div class="police-table-wrap">
+            <table class="police-table">
+              <thead>
+                <tr>
+                  <th>Pelotão</th>
+                  <th>Posto</th>
+                  <th>Matrícula</th>
+                  <th>Nome</th>
+                  <th>Qtd Armas</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="policeTableBody">
+                <tr id="police-empty-row"><td colspan="6" class="police-empty-msg">Nenhum policial adicionado</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Armas -->
+        <div class="card">
+          <div class="card-title">Armas Apreendidas</div>
+          <div class="dynamic-list" id="armasList"></div>
+          <button type="button" class="btn-add-item" onclick="adicionarArmaField()">+ Adicionar Arma</button>
+        </div>
+
+        
+        <!-- Drogas -->
+        <div class="card">
+          <div class="card-title">Drogas Apreendidas</div>
+          <div class="dynamic-list" id="drogasList"></div>
+          <button type="button" class="btn-add-item" onclick="adicionarDrogaField()">+ Adicionar Droga</button>
+        </div>
+
+        <!-- Pontuação -->
+        <div class="card">
+          <div class="card-title">Ocorrências PIP</div>
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label for="imputado">HOUVE IMPUTADO NA OCORRÊNCIA?</label>
+              <select id="imputado">
+                <option value="SEM IMPUTADO">SEM IMPUTADO</option>
+                <option value="COM IMPUTADO">COM IMPUTADO</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>ITENS DA OCORRÊNCIA (Tabela PIP)</label>
+            <div class="dynamic-list" id="pipList"></div>
+            <button type="button" class="btn-add-item" onclick="adicionarPipField()">+ Adicionar Título PIP</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="footer-actions">
+        <div class="status-msg-box" id="statusMessage">> Pronto para registro.</div>
+        <button type="button" class="btn-action btn-cancel" onclick="google.script.host.close()">Cancelar</button>
+        <button type="button" class="btn-action btn-save" onclick="salvarDados()">Salvar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Configura PDF.js worker (CDN)
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const dropZone      = document.getElementById('dropZone');
+    const fileInput     = document.getElementById('fileInput');
+    const progressCont  = document.getElementById('progressContainer');
+    const progressBar   = document.getElementById('progressBar');
+    const progressLabel = document.getElementById('progressLabel');
+    const ocrTerminal   = document.getElementById('ocrTerminal');
+    const statusMsg     = document.getElementById('statusMessage');
+    const policiaisSet  = new Set();
+    let policialArrastado = null;
+    let execucaoOcrId = 0;
+
+    // ── DRAG & DROP ──────────────────────────────────────────────
+    // Bloqueia abertura de arquivo pela janela inteira
+    ['dragenter','dragover','dragleave','drop'].forEach(ev => {
+      window.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
+    });
+
+    dropZone.addEventListener('dragover',  () => dropZone.classList.add('dragover'));
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) iniciarOCR(file);
+    });
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) iniciarOCR(file);
+    });
+
+    // ── MOTOR OCR (Tesseract.js + PDF.js) ────────────────────────
+    async function iniciarOCR(file) {
+        carregarMetadadosArcaVeiculo_(); // fail-soft: metadados da ARCA em paralelo com o OCR
+      const ocrId = ++execucaoOcrId;
+      limparDadosDocumentoAnterior();
+      log('>> Arquivo recebido: ' + file.name);
+      setStatus('Processando...', 'var(--secondary-color)');
+      mostrarProgresso('Preparando OCR...', 0);
+
+      const isPDF = file.type === 'application/pdf';
+
+      try {
+        let textoFinal = '';
+
+        if (isPDF) {
+          textoFinal = await extrairTextoPDF(file);
+        } else {
+          textoFinal = await rodarTesseract(file, null);
+        }
+
+        if (ocrId !== execucaoOcrId) return;
+
+        ocrTerminal.innerText = textoFinal || '>> Nenhum texto detectado no documento.';
+        log('\n>> Extração concluída. Auto-preenchendo campos...');
+        esconderProgresso();
+        setStatus('OCR concluído!', 'var(--accent-color)');
+        parseAndFill(textoFinal, ocrId);
+
+      } catch (err) {
+        if (ocrId !== execucaoOcrId) return;
+        esconderProgresso();
+        ocrTerminal.innerText = '>> ERRO: ' + err.message;
+        setStatus('Falha no OCR: ' + err.message, 'var(--danger-color)');
+      } finally {
+        if (ocrId === execucaoOcrId) fileInput.value = '';
+      }
+    }
+
+    async function extrairTextoPDF(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const totalPaginas = pdf.numPages;
+      let textoTotal = '';
+
+      log(`>> PDF detectado: ${totalPaginas} página(s).`);
+
+      for (let i = 1; i <= totalPaginas; i++) {
+        mostrarProgresso(`Processando página ${i} de ${totalPaginas}...`, Math.round((i / totalPaginas) * 50));
+        log(`>> Renderizando página ${i}...`);
+
+        const pagina = await pdf.getPage(i);
+
+        // 1. Tenta extrair texto nativo (PDF digital)
+        const conteudo = await pagina.getTextContent();
+        const textoNativo = conteudo.items.map(s => s.str).join(' ').trim();
+
+        if (textoNativo.length > 30) {
+          log(`   [Texto nativo detectado na página ${i}]`);
+          textoTotal += textoNativo + '\n\n';
+        } else {
+          // 2. Renderiza para Canvas e roda Tesseract (PDF escaneado)
+          log(`   [Renderizando para OCR visual - página ${i}]`);
+          const scale = 2.0;
+          const viewport = pagina.getViewport({ scale });
+          const canvas = document.createElement('canvas');
+          canvas.width  = viewport.width;
+          canvas.height = viewport.height;
+          await pagina.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+          const textoOCR = await rodarTesseract(null, canvas, i, totalPaginas);
+          textoTotal += textoOCR + '\n\n';
+        }
+      }
+
+      return textoTotal;
+    }
+
+    async function rodarTesseract(file, canvas, paginaAtual = 1, totalPaginas = 1) {
+      const worker = await Tesseract.createWorker('por', 1, {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            const base = Math.round((paginaAtual - 1) / totalPaginas * 50);
+            const inc  = Math.round(m.progress * 50 / totalPaginas);
+            mostrarProgresso(
+              `OCR página ${paginaAtual}/${totalPaginas}: ${Math.round(m.progress * 100)}%`,
+              base + inc
+            );
+          }
+        }
+      });
+
+      const origem = canvas || file;
+      const { data: { text } } = await worker.recognize(origem);
+      await worker.terminate();
+      return text;
+    }
+
+    function montarConferenciaOcrHtml(dados) {
+      return `
+        <div style="font-size: 0.82rem; line-height: 1.45;">
+          <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:6px 14px;">
+            <div><span style="color:var(--text-muted);">DATA / HORA</span><br><strong>${dados.data} ${dados.hora}</strong></div>
+            <div><span style="color:var(--text-muted);">MIKE / BOE</span><br><strong>${dados.mike} / ${dados.boe}</strong></div>
+            <div><span style="color:var(--text-muted);">CIDADE / BAIRRO</span><br><strong>${dados.cidade} / ${dados.bairro}</strong></div>
+            <div><span style="color:var(--text-muted);">AIS PREVISTA</span><br><strong>${dados.ais || 'Pendente de conferência'}</strong></div>
+            <div><span style="color:var(--text-muted);">EQUIPE DETECTADA</span><br><strong>${dados.totalEquipe} policial(is)</strong></div>
+          </div>
+          <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--border-color);">
+            <div style="color:var(--accent-color); font-weight:700; margin-bottom:3px;">LEITURA DO OCR</div>
+            <div><strong>Apreensões:</strong> ${dados.totalArmas} arma(s), ${dados.totalDrogas} droga(s)</div>
+            <div style="margin-top:4px;">${dados.statusNatureza}</div>
+            ${dados.avisoOpcoes ? `<div style="margin-top:4px; color:var(--secondary-color);">${dados.avisoOpcoes}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * Extrai { cidade, bairro } do texto bruto do BO.
+     * Card #140 (OCR-P3-006) - nucleo exportavel para teste isolado.
+     * Regras: rotulo explicito "Bairro:" (com " - cidade", " / cidade" e "bairro-cidade"), rotulo
+     * "Municipio:/Cidade:" (precedencia sobre cidade) e fallback no bloco de Endereco/Local do Fato.
+     */
+    function extrairEnderecoOcr_(text) {
+      let cidadeDetectada = '';
+      let bairroDetectado = '';
+
+      // 1. Contexto explicito de Bairro (ex: "Bairro: SANTA MONICA - CAMARAGIBE" ou "Bairro: BOA VIAGEM")
+      const bairroMatch = text.match(/Bairro[:\s]+([^\n\r,;]+)/i);
+      if (bairroMatch) {
+        const rawBairro = bairroMatch[1].trim();
+        if (rawBairro.includes(' - ')) {
+          const parts = rawBairro.split(' - ');
+          bairroDetectado = parts[0].trim();
+          cidadeDetectada = parts.slice(1).join(' - ').trim();
+        } else if (rawBairro.includes(' / ')) {
+          const parts = rawBairro.split(' / ');
+          bairroDetectado = parts[0].trim();
+          cidadeDetectada = parts.slice(1).join(' / ').trim();
+        } else if (rawBairro.includes('-') && !rawBairro.includes(' ')) {
+          const parts = rawBairro.split('-');
+          bairroDetectado = parts[0].trim();
+          cidadeDetectada = parts.slice(1).join('-').trim();
+        } else {
+          bairroDetectado = rawBairro;
+        }
+      }
+
+      // 2. Contexto explicito de Cidade / Municipio (precedencia maxima para cidade)
+      const cidadeMatch = text.match(/(?:Munic[íi]pio|Cidade)[:\s]+([^\n\r,;]+)/i);
+      if (cidadeMatch) {
+        cidadeDetectada = cidadeMatch[1].trim();
+      }
+
+      // 3. Fallback contextual em bloco de Endereco / Local do Fato
+      if (!bairroDetectado || !cidadeDetectada) {
+        const localMatch = text.match(/(?:Local(?:\s+do\s+Fato)?|Endere[çc]o(?:\s+do\s+Fato)?)[:\s]+([^\n\r]+)/i);
+        if (localMatch) {
+          const localStr = localMatch[1];
+          if (!bairroDetectado) {
+            const bSub = localStr.match(/Bairro[:\s]+([^\n\r,;\-]+)/i);
+            if (bSub) bairroDetectado = bSub[1].trim();
+          }
+          if (!cidadeDetectada) {
+            const cSub = localStr.match(/(?:Munic[íi]pio|Cidade)[:\s]+([^\n\r,;\-]+)/i);
+            if (cSub) cidadeDetectada = cSub[1].trim();
+          }
+        }
+      }
+
+      // 4. Layout SEI/CIODS: endereco segmentado por ';' sem rotulos (card #140 OCR-P3-006).
+      //    Formato observado nos BOs reais: "logradouro; COMPLEMENTO...;NUMERO...;CEP...; BAIRRO;CIDADE;UF; BRASIL"
+      //    Lido do fim para o comeco, tolerando 'CEP NAO INFORMADO'/'NUMERO NAO INFORMADO' no meio.
+      //    Complemento (print do BO 04/09): o PDF quebra o endereco em duas linhas e a colagem costuma
+      //    trocar a quebra por ESPACO - o bloco entao "engole" o campo seguinte ("Local Principal: VIA PUBLICA").
+      if (!bairroDetectado || !cidadeDetectada) {
+        const blocoEnd = text.match(/(?:Local(?:\s+do\s+Fato)?|Endere[çc]o(?:\s+do\s+Fato)?)[:\s]+([^\n\r]+)/i);
+        let endBruto = blocoEnd ? blocoEnd[1] : (/;/.test(text) ? text : '');
+
+        // (a) se o endereco ficou incompleto (menos de 4 segmentos), junta a linha seguinte do PDF.
+        const contarSegmentos = function (s) {
+          return String(s).split(';').map(function (p) { return p.trim(); })
+            .filter(function (p) { return p.length > 0; }).length;
+        };
+        if (blocoEnd && contarSegmentos(endBruto) < 4) {
+          const depois = text.slice(blocoEnd.index + blocoEnd[0].length);
+          const prox = depois.match(/^\s*([^\n\r]+)/);
+          if (prox && /;/.test(prox[1]) &&
+              !/^\s*(?:Local Principal|Local do Fato|Envolvidos|Objeto|Naturezas?|Data do Fato|Dados Complementares)\b/i.test(prox[1])) {
+            endBruto += '; ' + prox[1].trim();
+          }
+        }
+
+        // (b) corta no proximo rotulo de campo (protege contra a quebra virar espaco na colagem).
+        endBruto = String(endBruto).split(/\s(?=(?:Local Principal|Local do Fato|Ponto de Refer[êe]ncia|Naturezas?|Data do Fato|Hora do Fato|Unidade Operacional|Prefixo da Viatura|Envolvidos|Objeto\(s\)|Dados Complementares)\b)/i)[0];
+
+        const partes = String(endBruto).split(';').map(function (p) { return p.trim(); })
+          .filter(function (p) { return p.length > 0; });
+        const ignorarValor = function (v) {
+          if (!v) return true;
+          if (/^N[ÃA]O INFORMADO/i.test(v)) return true;
+          if (/^CEP\s/i.test(v)) return true;
+          if (/^\d{5}-?\d{3}$/.test(v)) return true;
+          if (/^(BRASIL|BRASILIA)$/i.test(v)) return true;
+          if (/:/.test(v)) return true;                 // rotulo vazado para o campo
+          if (String(v).length > 40) return true;       // valor absurdo (frase inteira)
+          if (/[.!?]$/.test(v)) return true;            // fim de frase (texto corrido)
+          return false;
+        };
+        if (partes.length >= 4) {
+          const fim = partes.slice();
+          if (/^BRASIL$/i.test(fim[fim.length - 1])) { fim.pop(); }
+          if (/^[A-Za-z]{2}$/.test(fim[fim.length - 1])) { fim.pop(); }
+          if (fim.length >= 2) {
+            const cidadeSei = fim[fim.length - 1];
+            const bairroSei = fim[fim.length - 2];
+            if (!ignorarValor(cidadeSei)) { cidadeDetectada = cidadeSei; }
+            if (!ignorarValor(bairroSei)) { bairroDetectado = bairroSei; }
+          }
+        }
+      }
+
+      // Ultima barreira: cidade/bairro nunca podem sair com rotulo colado, frase ou UF.
+      if (cidadeDetectada && /[:]/.test(cidadeDetectada)) { cidadeDetectada = ''; }
+      if (bairroDetectado && /[:]/.test(bairroDetectado)) { bairroDetectado = ''; }
+      if (bairroDetectado && /^[A-Za-z]{2}$/.test(bairroDetectado)) { bairroDetectado = ''; }
+
+      // Normaliza espacos (a colagem do PDF costuma duplicar espacos, ex.: "DOIS  UNIDOS").
+      cidadeDetectada = cidadeDetectada.replace(/\s+/g, ' ').trim();
+      bairroDetectado = bairroDetectado.replace(/\s+/g, ' ').trim();
+
+      return { cidade: cidadeDetectada, bairro: bairroDetectado };
+    }
+
+    /**
+     * Extrai as drogas do texto do BO (card #144 OCR-P3-010 - nucleo testavel).
+     * Preserva os 5 padroes historicos; a DEDUPLICACAO e por substancia+unidade (nao so substancia),
+     * senao uma entrada em GRAMAS some quando existe outra maior em UNIDADES (ex.: CRACK 10 GRAMA x 20 PEDRA).
+     */
+    function extrairDrogasOcr_(text) {
+      const drogasDetectadas = [];
+      const textoDrogas = String(text).toUpperCase();
+      const padroesDrogas = [
+        /(MACONHA|CRACK|COCA[ÍI]NA)[\s\S]{0,120}?UNIDADE DE MEDIDA:\s*([A-ZÂÁÉÍÓÚÇÃÕ]+)\s*QUANTIDADE:\s*(\d+(?:[.,]\d+)?)/g,
+        /(MACONHA|CRACK|COCA[ÍI]NA)\s*,\s*(\d+(?:[.,]\d+)?)\s*UNIDADE/g,
+        /(\d+(?:[.,]\d+)?)\s*(G|KG|GRAMAS?|QUILOS?)\s*(?:DE\s*)?(MACONHA|CRACK|COCA[ÍI]NA)/g,
+        /(\d+)\s*(ZIPLOCKS?|PAPELOTES?|PEDRAS?|INV[ÓO]LUCROS?|UNIDADES?|ENVOLT[ÓO]RIOS?|POR[ÇC][ÕO]ES)\s*(?:DE\s*)?(MACONHA|CRACK|COCA[ÍI]NA)/g,
+        /(MACONHA|CRACK|COCA[ÍI]NA)[\s\S]{0,30}?(?<!\d\d\/\d\d\/\d\d\d\d\s)(\d+(?:[.,]\d+)?)\s*(G|KG|GRAMAS?|QUILOS?)\b/g
+      ];
+
+      const drogasMap = new Map();
+      padroesDrogas.forEach((regex, index) => {
+        let m;
+        while ((m = regex.exec(textoDrogas)) !== null) {
+          let tipoRaw, valStr, undRaw;
+          if (index === 0) {
+            tipoRaw = m[1]; undRaw = m[2]; valStr = m[3];
+          } else if (index === 1) {
+            tipoRaw = m[1]; valStr = m[2]; undRaw = 'UNIDADES';
+          } else if (index === 2) {
+            valStr = m[1]; undRaw = m[2]; tipoRaw = m[3];
+          } else if (index === 3) {
+            valStr = m[1]; undRaw = 'UNIDADES'; tipoRaw = m[3];
+          } else if (index === 4) {
+            tipoRaw = m[1]; valStr = m[2]; undRaw = m[3];
+          }
+
+          let tipoNorm = String(tipoRaw).replace('I', 'Í');
+          if (tipoNorm === 'COCAÍNA' || tipoNorm === 'COCAINA') tipoNorm = 'COCAÍNA';
+
+          const qtd = parseFloat(String(valStr).replace(',', '.'));
+          let unidadeNorm = 'GRAMAS';
+          const undUp = String(undRaw).toUpperCase();
+          if (undUp.includes('KG') || undUp.includes('QUILO')) unidadeNorm = 'QUILOGRAMAS';
+          else if (undUp.includes('UNIDADE') || undUp.includes('PEDRA') || undUp.includes('PINO') || undUp.includes('DOLAR') || undUp.includes('DÓLAR')) unidadeNorm = 'UNIDADES';
+
+          // Card #144: deduplicacao por SUBSTANCIA + UNIDADE. Antes era so por substancia, guardando a
+          // maior quantidade: uma entrada em GRAMAS era engolida quando havia outra maior em UNIDADES
+          // (caso real: CRACK 10 GRAMA(S) perdido por causa de CRACK 20 UNIDADE(S)).
+          const chaveDroga = tipoNorm + '|' + unidadeNorm;
+          if (!drogasMap.has(chaveDroga) || drogasMap.get(chaveDroga).quantidade < qtd) {
+            drogasMap.set(chaveDroga, { tipo: tipoNorm, quantidade: qtd, unidadeMedida: unidadeNorm });
+          }
+        }
+      });
+
+      drogasMap.forEach(v => drogasDetectadas.push(v));
+      return drogasDetectadas;
+    }
+
+    /**
+     * DETIDOS e um indicador processual (APFD/TCO/BOC/AAFAI) - nunca inferido automaticamente (card #144).
+     * Retorna true quando ha evidencia estruturada de autor/autuado no BO E o campo esta vazio
+     * (ou seja: o operador precisa conferir explicitamente).
+     */
+    function detidosPendentesOcr_(text, valorAtual) {
+      if (String(valorAtual === undefined || valorAtual === null ? '' : valorAtual).trim()) return false;
+      const t = String(text);
+      const evidencias = [
+        /TIPO DE ENVOLVIMENTO:\s*AUTOR/i,
+        /AUTUA[ÇC][ÃA]O:\s*ENTORPECENTES/i,
+        /AUTO DE PRIS[ÃA]O EM FLAGRANTE/i,
+        /PRESO EM FLAGRANTE/i
+      ].filter(function (re) { return re.test(t); }).length;
+      return evidencias > 0;
+    }
+
+    /**
+     * QTD O (quantidade de ocorrencias do tunel): por padrao e SEMPRE 01 (regra do proprietario, 11/09/2026).
+     * O OCR NUNCA infere este campo. O operador pode digitar outro valor, mas vazio/0/1 voltam para '01'.
+     */
+    function normalizarQtdO_(valor) {
+      const v = String(valor === undefined || valor === null ? '' : valor).trim();
+      if (!v || v === '0' || v === '1' || v === '01') return '01';
+      return v;
+    }
+
+    /** Aplica o padrao 01 ao campo QTD O do formulario. */
+    function normalizarQtdO() {
+      const el = document.getElementById('qtd_o');
+      if (el) el.value = normalizarQtdO_(el.value);
+    }
+
+    function parseAndFill(text, ocrId = execucaoOcrId) {
+      if (!text || ocrId !== execucaoOcrId) return;
+      const upper = text.toUpperCase();
+
+      // 1. MIKE = Número do Boletim de Ocorrência (PM)
+      // Geralmente é uma longa sequência de números, procuramos após os rótulos comuns
+      const mikeMatch = text.match(/BOLETIM\s+DE\s+OCORR[ÊE]NCIA\s+N[º°\.\s]*[:\s]*(\d{10,20})/i)
+                     || text.match(/MIKE\s*[:\-]?\s*(\d{5,20})/i)
+                     || text.match(/BOEPM\s*[:\-]?\s*(\d{5,20})/i);
+      if (mikeMatch) {
+          document.getElementById('mike').value = mikeMatch[1].replace(/[\s]/g, '');
+      }
+
+      // 2. BOE = Boletim de Ocorrência da Polícia Civil
+      // Regra estrita: 2 dígitos + 'E' + vários dígitos (ex: 26E1174010335)
+      const boeMatch = text.match(/\b(\d{2}E\d{8,15})\b/i);
+      if (boeMatch) {
+          document.getElementById('boe').value = boeMatch[1].toUpperCase();
+      }
+
+      // Natureza
+      let natSelecionada = '';
+      const naturezaMatch = text.match(/(?:Natureza\s+da\s+Ocorr[êe]ncia|Tipo\s+de\s+Ocorr[êe]ncia|Naturezas?)[\s:]*(.*?)(?=\s*Data do Fato:|\n|$)/i);
+      if (naturezaMatch) {
+          natSelecionada = naturezaMatch[1].trim();
+          document.getElementById('natureza').value = natSelecionada;
+      }
+
+      // Data e Hora
+      const dataHoraMatch = text.match(/Data do Fato:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/i);
+      if (dataHoraMatch) {
+          document.getElementById('data').value = dataHoraMatch[1];
+          document.getElementById('hora').value = dataHoraMatch[2];
+      } else {
+          const dataMatch = text.match(/\b(\d{2}\/\d{2}\/\d{4})\b/);
+          if (dataMatch) document.getElementById('data').value = dataMatch[1];
+      }
+
+      // Cidade e Bairro (Parser Contextual Par Semântico - TASK: FORMULARIO-CIDADE-BAIRRO-OCR-001)
+      // Nucleo extraido para `extrairEnderecoOcr_` (card #140) para ser testavel de forma isolada.
+      const enderecoOcr_ = extrairEnderecoOcr_(text);
+      let cidadeDetectada = enderecoOcr_.cidade;
+      let bairroDetectado = enderecoOcr_.bairro;
+
+      // (regras 1-3 movidas para `extrairEnderecoOcr_` no card #140)
+
+      // Função de higienização segura (preserva nomes próprios, remove pontuação residual e UF)
+      function limparLocalFato_(str) {
+        if (!str) return '';
+        let s = str.trim().replace(/[\.,;\/\-]+$/, '').trim();
+        s = s.replace(/\s*[\/\-]\s*PE$/i, '').trim();
+        return s.toUpperCase();
+      }
+
+      const bairroFinal = limparLocalFato_(bairroDetectado);
+      const cidadeFinal = limparLocalFato_(cidadeDetectada);
+
+      if (bairroFinal) {
+        document.getElementById('bairro').value = bairroFinal;
+      }
+      if (cidadeFinal) {
+        document.getElementById('cidade').value = cidadeFinal;
+      }
+
+      // Determinação Territorial de AIS (TASK: FORMULARIO-AIS-TERRITORIAL-001)
+      if (typeof aisEditadaManualmente !== 'undefined') {
+        aisEditadaManualmente = false;
+      }
+      if (typeof recalcularAisFormulario === 'function') {
+        recalcularAisFormulario(true);
+      }
+
+      // Armas
+      const linhas = text.split('\n');
+      const armasDetectadas = [];
+
+      linhas.forEach(l => {
+        const u = l.toUpperCase();
+        if (u.includes('MUNIÇÃO') || u.includes('MUNICAO') || u.includes('PEÇAS PARA ARMAS')) return; // Pula munições e acessórios
+
+        let modelo = null;
+        if (u.includes('REVÓLVER') || u.includes('REVOLVER')) modelo = 'REVÓLVER';
+        else if (u.includes('PISTOLA')) modelo = 'PISTOLA';
+        else if (u.includes('ESPINGARDA')) modelo = 'ESPINGARDA';
+        else if (u.includes('FUZIL')) modelo = 'FUZIL';
+        
+        if (modelo) {
+          const tipo = (u.includes('CASEIRA')||u.includes('ARTESANAL')) ? 'FABRICAÇÃO CASEIRA' : 'INDUSTRIAL';
+          const chave = tipo + '|' + modelo;
+          if (!armasDetectadas.find(a => a.chave === chave)) {
+            armasDetectadas.push({ chave, tipo, modelo, quantidade: 1 });
+          }
+        }
+      });
+
+      // Calibre e munição ficam na linha "Caracteristicas Adicionais" (separada do objeto da arma).
+      // (calibragem 09/09) o formulario nao preenchia CALIBRE/MUNIÇÃO -> coluna P vazia.
+      const calibreBOMatch = String(text || '').match(/Calibre\s*[:.]\s*(\.?\d+(?:[.,]\d+)?)/i);
+      const municaoBOMatch = String(text || '').match(/Quantidade de Muni[çc][õo]es\s*[:.]\s*(\d+)/i);
+      armasDetectadas.forEach(function (a) {
+        if (!a.calibre && calibreBOMatch) a.calibre = calibreBOMatch[1].replace(/[.,]/g, '');
+        if (!a.municao && municaoBOMatch) a.municao = parseInt(municaoBOMatch[1], 10);
+      });
+
+      // As armas serão criadas apenas após as opções carregarem,
+      // para não falharem por falta da lista.
+
+      // Policiais: lê especificamente o campo "Matrícula:" do BO
+      // Ex: "Matrícula: 1240765" ou "Matricula: 9901612"
+      // Depois cruza com o efetivo carregado para buscar pelotão, posto e nome
+      const matRegex = /Matr[íi]cula[:\s]+(\d{5,8})/gi;
+      const matsEncontradas = [...new Set([...text.matchAll(matRegex)].map(m => m[1]))];
+      // Ordem de antiguidade na TELA e no payload: patente primeiro, empate pela matricula mais antiga.
+      ordenarMatriculasPorAntiguidade_(matsEncontradas).forEach(m => {
+        if (!policiaisSet.has(m)) adicionarPolicialLinha(m);
+      });
+
+      // Drogas: Extração contextual inteligente (nucleo movido para `extrairDrogasOcr_` - card #144)
+      const drogasDetectadas = extrairDrogasOcr_(text);
+
+      if (drogasDetectadas.length) {
+        document.getElementById('drogasList').innerHTML = '';
+        drogasDetectadas.forEach(d => adicionarDrogaField(d.tipo, d.quantidade, d.unidadeMedida));
+      }
+
+      // DETIDOS (card #144): indicador processual (APFD/TCO/BOC/AAFAI) - NUNCA inferido automaticamente.
+      // Quando o BO traz evidencia estruturada de autor/autuado e o campo esta vazio, sinaliza conferencia
+      // explicita (nao preenche: preserva a soberania do operador e nao inventa detido).
+      try {
+        if (detidosPendentesOcr_(text, document.getElementById('detidos').value) === true) {
+          setStatus('⚠ DETIDOS vazio, mas o BO indica autor/autuado - confira se cabe APFD/TCO/BOC/AAFAI. Nao foi inferido automaticamente.', 'var(--danger-color)');
+        }
+      } catch (e) { /* fail-soft: nunca bloqueia o OCR */ }
+
+      const dataExtraida = document.getElementById('data').value;
+      if (dataExtraida) {
+        setStatus('> Carregando validações da data extraída...', 'var(--secondary-color)');
+        carregarOpcoesValidacao(dataExtraida)
+          .then(() => {
+            if (ocrId !== execucaoOcrId) return;
+            if (armasDetectadas.length) {
+              document.getElementById('armasList').innerHTML = '';
+              armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, a.calibre || '', a.municao || 0, a.quantidade));
+            }
+            const confOCR = document.getElementById('ocrConferenceCard');
+            const confContent = document.getElementById('ocrConferenceContent');
+            if (confOCR) confOCR.style.display = 'block';
+
+            const dataVal = document.getElementById('data').value || '-';
+            const horaVal = document.getElementById('hora').value || '-';
+            const boeVal = document.getElementById('boe').value || '-';
+            const mikeVal = document.getElementById('mike').value || '-';
+            const cidadeVal = document.getElementById('cidade').value || '-';
+            const bairroVal = document.getElementById('bairro').value || '-';
+            
+            let statusNat = `<span style="color: var(--text-muted)">Nenhuma natureza extraída pelo OCR.</span>`;
+
+            if (natSelecionada) {
+              const normalizeStr = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+              const nCandidata = normalizeStr(natSelecionada);
+              const opcoesNats = (window.opcoesFormulario && window.opcoesFormulario.naturezas) ? window.opcoesFormulario.naturezas : [];
+              let matchedOpt = "";
+              for (let opt of opcoesNats) {
+                if (normalizeStr(opt) === nCandidata) {
+                  matchedOpt = opt;
+                  break;
+                }
+              }
+              
+              if (matchedOpt) {
+                document.getElementById('natureza').value = matchedOpt;
+                statusNat = `<span style="color: var(--accent-color); font-weight: 600;">[OK] Natureza:</span> ${matchedOpt}`;
+              } else {
+                document.getElementById('natureza').value = natSelecionada;
+                statusNat = `<span style="color: var(--secondary-color); font-weight: 600;">[OCR] Natureza:</span> ${natSelecionada}<br><span style="font-size:0.75rem; color: var(--text-muted)">(Sugestão OCR mantida no campo; confira ou selecione da lista)</span>`;
+              }
+            }
+
+            // Conciliação Determinística de Títulos PIP pela Tabela de Regras de Negócio
+            const titulosConciliados = conciliarTitulosPipOcr(text, armasDetectadas, drogasDetectadas, natSelecionada);
+            document.getElementById('pipList').innerHTML = '';
+            if (titulosConciliados.length > 0) {
+              titulosConciliados.forEach(t => adicionarPipField(t));
+            }
+
+            // Auto-preenchimento do Imputado (Coluna AH)
+            const upperAll = text.toUpperCase();
+            const selectImp = document.getElementById('imputado');
+            if (selectImp) {
+               const detVal = document.getElementById('detidos').value;
+               const numDet = parseInt(detVal) || 0;
+               if (numDet > 0 || upperAll.includes('FLAGRANTE') || upperAll.includes('PRESO') || upperAll.includes('CONDUZIDO') || upperAll.includes('AUTUADO')) {
+                  selectImp.value = 'COM IMPUTADO';
+               } else {
+                  selectImp.value = 'SEM IMPUTADO';
+               }
+            }
+
+            const aisVal = document.getElementById('ais').value ? ('AIS ' + document.getElementById('ais').value) : ((document.getElementById('aisBadge') && document.getElementById('aisBadge').innerText) || 'Pendente de conferência');
+            if (confContent) {
+              confContent.innerHTML = montarConferenciaOcrHtml({
+                data: dataVal, hora: horaVal, mike: mikeVal, boe: boeVal,
+                cidade: cidadeVal, bairro: bairroVal, ais: aisVal, totalEquipe: matsEncontradas.length,
+                totalArmas: armasDetectadas.length, totalDrogas: drogasDetectadas.length,
+                statusNatureza: statusNat
+              });
+            }
+            setStatus(
+              `>> Auto-preenchimento concluído | ${matsEncontradas.length} pol | ${armasDetectadas.length} arm | ${drogasDetectadas.length} drog`,
+              'var(--accent-color)'
+            );
+          })
+          .catch(err => {
+            if (ocrId !== execucaoOcrId) return;
+            if (err.message === "Resposta obsoleta ignorada.") return;
+            const confOCR = document.getElementById('ocrConferenceCard');
+            const confContent = document.getElementById('ocrConferenceContent');
+            if (confOCR) confOCR.style.display = 'block';
+            if (confContent) {
+              const dataVal = document.getElementById('data').value || '-';
+              const horaVal = document.getElementById('hora').value || '-';
+              const boeVal = document.getElementById('boe').value || '-';
+              const mikeVal = document.getElementById('mike').value || '-';
+              const cidadeVal = document.getElementById('cidade').value || '-';
+              const bairroVal = document.getElementById('bairro').value || '-';
+              const aisVal = document.getElementById('ais').value ? ('AIS ' + document.getElementById('ais').value) : ((document.getElementById('aisBadge') && document.getElementById('aisBadge').innerText) || 'Pendente de conferência');
+              confContent.innerHTML = montarConferenciaOcrHtml({
+                data: dataVal, hora: horaVal, mike: mikeVal, boe: boeVal,
+                cidade: cidadeVal, bairro: bairroVal, ais: aisVal, totalEquipe: matsEncontradas.length,
+                totalArmas: armasDetectadas.length, totalDrogas: drogasDetectadas.length,
+                statusNatureza: `<span style="color: var(--secondary-color); font-weight: 600;">[OCR] Natureza:</span> ${natSelecionada || 'Não identificada'}`,
+                avisoOpcoes: 'Lista de validação indisponível; confira os campos antes de salvar.'
+              });
+            }
+            if (armasDetectadas.length) {
+               document.getElementById('armasList').innerHTML = '';
+               armasDetectadas.slice(0,3).forEach(a => adicionarArmaField(a.tipo, a.modelo, a.calibre || '', a.municao || 0, a.quantidade));
+            }
+            log('>> AVISO: ' + (err.message || 'Opções da aba não carregadas.'));
+            setStatus(
+              `>> Auto-preenchimento concluído | ${matsEncontradas.length} pol | ${armasDetectadas.length} arm | ${drogasDetectadas.length} drog`,
+              'var(--accent-color)'
+            );
+          });
+      } else {
+        if (armasDetectadas.length) {
+           log('>> AVISO: Armas detectadas, mas não há data para carregar os modelos.');
+        }
+        setStatus(
+          `>> Auto-preenchimento concluído (sem data) | 0 arm | ${drogasDetectadas.length} drog`,
+          'var(--accent-color)'
+        );
+      }
+    }
+
+    // ── EFETIVO: carregado do Sheets no init ─────────────────────
+    let efetivo = []; // [{pelotao, posto, matricula, nome}]
+    let efetivoPorMat = {};
+
+    window.opcoesFormulario = null;
+    let requisicaoValidacaoId = 0;
+
+    function carregarOpcoesValidacao(dataStr) {
+      const reqId = ++requisicaoValidacaoId;
+
+      if(!dataStr) {
+         setStatus('Informe a data da ocorrência para carregar as opções.', 'var(--secondary-color)');
+         window.opcoesFormulario = null;
+         return Promise.reject(new Error("Data não informada"));
+      }
+      setStatus('> Carregando opções da aba ' + dataStr + '...', 'var(--secondary-color)');
+      
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(res => {
+             if (reqId !== requisicaoValidacaoId || document.getElementById('data').value !== dataStr) {
+                 return reject(new Error("Resposta obsoleta ignorada."));
+             }
+             window.opcoesFormulario = res;
+             atualizarDataLists();
+             setStatus('> Opções atualizadas para ' + dataStr, 'var(--accent-color)');
+             resolve(res);
+          })
+          .withFailureHandler(err => {
+             if (reqId !== requisicaoValidacaoId || document.getElementById('data').value !== dataStr) {
+                 return reject(new Error("Resposta obsoleta ignorada."));
+             }
+             window.opcoesFormulario = null;
+             setStatus('Aviso: Não foi possível carregar sugestões da aba (' + err.message + ')', 'var(--danger-color)');
+             reject(err);
+          })
+          .obterOpcoesValidacao(dataStr);
+      });
+    }
+
+    function atualizarDataLists() {
+      const datalistNat = document.getElementById('naturezasList');
+      if (datalistNat && window.opcoesFormulario && window.opcoesFormulario.naturezas) {
+          datalistNat.innerHTML = window.opcoesFormulario.naturezas.map(n => `<option value="${n}">`).join('');
+      }
+      const selectDetidos = document.getElementById('detidos');
+      if (selectDetidos) {
+          if (window.opcoesFormulario && window.opcoesFormulario.detidos && window.opcoesFormulario.detidos.length > 0) {
+              const valorAnterior = selectDetidos.value;
+              const novoSelect = document.createElement('select');
+              novoSelect.id = 'detidos';
+              novoSelect.name = 'detidos';
+              novoSelect.className = 'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]';
+              novoSelect.innerHTML = `<option value="">Selecione...</option>` + window.opcoesFormulario.detidos.map(d => `<option value="${d}">${d}</option>`).join('');
+              novoSelect.value = valorAnterior || 'TCO'; // DETIDOS tem padrao TCO (regra do proprietario)
+              selectDetidos.parentNode.replaceChild(novoSelect, selectDetidos);
+          } else {
+              if (selectDetidos.tagName === 'SELECT') {
+                  const valorAnterior = selectDetidos.value;
+                  const novoInput = document.createElement('input');
+                  novoInput.type = 'number';
+                  novoInput.id = 'detidos';
+                  novoInput.name = 'detidos';
+                  novoInput.min = '0';
+                  novoInput.className = 'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]';
+                  novoInput.value = valorAnterior;
+                  selectDetidos.parentNode.replaceChild(novoInput, selectDetidos);
+              }
+          }
+      }
+      applyDetidosListener();
+    }
+
+    // ------------------------------------------------------------------
+    // Porta canonica ARCA (card #138 OCR-ARCA-004).
+    // O servidor entrega os METADADOS da regra por rule_id; o parser continua lendo o BO e fazendo a
+    // casagem lexical. Fail-soft: sem resposta valida, usa o rotulo local (identico) e registra a ausencia.
+    // ------------------------------------------------------------------
+    const ROTULO_VEICULO_LOCAL = 'Apreensão de veículo furtado ou roubado';
+    window.metadadosArcaVeiculoOcr = window.metadadosArcaVeiculoOcr || { ok: false, motivo: 'NAO_CONSULTADO' };
+
+    function registrarOcr_(mensagem) {
+      try {
+        const terminal = document.getElementById('ocrTerminal');
+        if (terminal && typeof terminal.innerText === 'string') terminal.innerText += '\n' + mensagem;
+      } catch (e) { /* log e opcional, nunca bloqueia */ }
+    }
+
+    function tituloCanonicoVeiculoArca_() {
+      const m = window.metadadosArcaVeiculoOcr;
+      return (m && m.ok && m.titulo_pip) ? m.titulo_pip : ROTULO_VEICULO_LOCAL;
+    }
+
+    function carregarMetadadosArcaVeiculo_() {
+      try {
+        if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+        if (window.metadadosArcaVeiculoOcr && window.metadadosArcaVeiculoOcr.ok) return;
+        google.script.run
+          .withSuccessHandler(function (dados) {
+            window.metadadosArcaVeiculoOcr = dados || { ok: false, motivo: 'RESPOSTA_VAZIA' };
+            registrarOcr_(dados && dados.ok
+              ? '>> ARCA-VEICULO-001 carregada (' + dados.rule_id + ')'
+              : '>> ARCA-VEICULO-001 indisponivel (' + ((dados && dados.motivo) || 'sem resposta') + ') - rotulo local');
+          })
+          .withFailureHandler(function (erro) {
+            window.metadadosArcaVeiculoOcr = { ok: false, motivo: 'FALHA: ' + (erro && erro.message ? erro.message : erro) };
+            registrarOcr_('>> ARCA-VEICULO-001 indisponivel (fail-soft) - rotulo local');
+          })
+          .obterMetadadosArcaVeiculo();
+      } catch (e) { /* fail-soft: nunca bloqueia o preenchimento */ }
+    }
+
+    function conciliarTitulosPipOcr(text, armasDetectadas, drogasDetectadas, natSelecionada) {
+      const upper = (text || '').toUpperCase();
+      const titulos = [];
+      const opcoesPip = (window.opcoesFormulario && window.opcoesFormulario.ocorrenciasPip && window.opcoesFormulario.ocorrenciasPip.length > 0)
+        ? window.opcoesFormulario.ocorrenciasPip
+        : [];
+
+      function encontrarOpcaoValida(termoChave) {
+        const norm = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+        const termoNorm = norm(termoChave);
+        if (opcoesPip.length > 0) {
+          const exata = opcoesPip.find(op => norm(op) === termoNorm);
+          if (exata) return exata;
+          const contem = opcoesPip.find(op => norm(op).includes(termoNorm) || termoNorm.includes(norm(op)));
+          if (contem) return contem;
+        }
+        return termoChave;
+      }
+
+      // 1. Conciliação de Armas
+      if (armasDetectadas && armasDetectadas.length > 0) {
+        armasDetectadas.forEach(a => {
+          const modelo = (a.modelo || '').toUpperCase();
+          const tipo = (a.tipo || '').toUpperCase();
+          if (tipo.includes('CASEIRA') || tipo.includes('ARTESANAL')) {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma de fogo artesanal'));
+          } else if (modelo.includes('REVÓLVER') || modelo.includes('REVOLVER')) {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma de fogo revólver'));
+          } else if (modelo.includes('PISTOLA')) {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma de fogo pistola'));
+          } else if (modelo.includes('ESPINGARDA') || modelo.includes('12')) {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma longa (12 industrial)'));
+          } else if (modelo.includes('FUZIL')) {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma longa (fuzil)'));
+          } else {
+            titulos.push(encontrarOpcaoValida('Apreensão de arma de fogo revólver'));
+          }
+        });
+      }
+
+      // 2. Conciliação de Munições
+      // Correcao (12/09/2026, pedido do proprietario): dois defeitos.
+      //  (a) a deteccao antiga procurava o literal 'MUNIÇÃO' e o BO do SEI escreve "Munições" (plural) ->
+      //      a municao NUNCA era reconhecida pelo parser (so na mao do operador);
+      //  (b) o calibre estava chumbado em '.12' e era decidido por uma busca da substring "12" no texto
+      //      INTEIRO do BO - que aparece na viatura (RC1210) e nas matriculas (1129210, 1210939) -> municao
+      //      de revolver .32 era classificada como calibre .12 (30 pts em vez de 15).
+      // Agora: deteccao sem acento/plural e calibre lido do PROPRIO objeto da arma.
+      const upperSemAcento = String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+      const mencionaMunicao = /(MUNICAO|MUNICOES|CARTUCHO|CARTUCHOS)/.test(upperSemAcento)
+        && !/(?:MUNICAO|MUNICOES)\s*:\s*NAO\s*INFORMADA/.test(upperSemAcento);
+
+      function normalizarAlvo(v) {
+        return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+      }
+      // Classe de calibre -> rotulo do catalogo. Regra do proprietario (12/09/2026): um MESMO BO pode ter
+      // arma e municoes de calibres diferentes (ex.: um .38 com 5 municoes MAIS 10 municoes de .12) — logo
+      // o correto e gerar UM titulo por CLASSE de calibre identificada, nunca um so.
+      function classeDeCalibre(calibreTexto) {
+        const t = normalizarAlvo(calibreTexto);
+        if (/FUZIL|7[.,]62|5[.,]56|762|556/.test(t)) return 'fuzil';
+        // Espingarda / arma longa (nao fuzil): municao de cartucho -> classe calibre .12 (12 industrial).
+        if (/ESPINGARDA|ARMA\s+LONGA|(^|[^0-9])\.?12([^0-9]|$)|12\s*GA|CALIBRE\s*12/.test(t)) return 'calibre12';
+        return 'revolverPistola';
+      }
+      const ROTULO_CLASSE_MUNICAO = {
+        fuzil: 'Apreensão de munição fuzil',
+        calibre12: 'Apreensão de munição calibre .12',
+        revolverPistola: 'Apreensão de munição revólver/pistola'
+      };
+      const classesMunicao = [];
+      function registrarClasseMunicao(classe) {
+        if (classesMunicao.indexOf(classe) === -1) classesMunicao.push(classe);
+      }
+
+      // (a) armas apreendidas que trazem municao
+      (armasDetectadas || []).forEach(function (a) {
+        if (Number(a && a.municao) > 0) {
+          registrarClasseMunicao(classeDeCalibre([a.tipo, a.modelo, a.calibre].join(' ')));
+        }
+      });
+
+      // (b) calibres citados no texto (municao apreendida separada da arma / de outro calibre)
+      if (mencionaMunicao) {
+        const tokens = String(text || '').match(/(?:\.(?:12|20|22|25|32|38|380|40|45|357|44|9))|(?:7[.,]62)|(?:5[.,]56)|\b\d{2}\s*(?:GA|MM)\b/g) || [];
+        tokens.forEach(function (tk) { registrarClasseMunicao(classeDeCalibre(tk)); });
+        if (!classesMunicao.length) registrarClasseMunicao('revolverPistola');
+      }
+
+      classesMunicao.forEach(function (c) {
+        const alvo = encontrarOpcaoValida(ROTULO_CLASSE_MUNICAO[c]);
+        if (titulos.indexOf(alvo) === -1) titulos.push(alvo);
+      });
+
+      // 3. Conciliação de Drogas (Gramas vs. Quilos)
+      if (drogasDetectadas && drogasDetectadas.length > 0) {
+        drogasDetectadas.forEach(d => {
+          const tipo = (d.tipo || '').toUpperCase();
+          const qtd = Number(d.quantidade) || 0;
+          const und = (d.unidadeMedida || '').toUpperCase();
+          const isKg = (und === 'QUILOGRAMAS' || und.includes('KG') || qtd >= 1000);
+
+          if (tipo.includes('MACONHA')) {
+            if (isKg) {
+              titulos.push(encontrarOpcaoValida('Apreensão de maconha (1Kg)'));
+            } else {
+              titulos.push(encontrarOpcaoValida('Apreensão de maconha por grama (invólucro ou papelote)'));
+            }
+          } else if (tipo.includes('COCAINA') || tipo.includes('COCAÍNA')) {
+            if (isKg) {
+              titulos.push(encontrarOpcaoValida('Apreensão de cocaína por grama (kg)'));
+            } else {
+              titulos.push(encontrarOpcaoValida('Apreensão de cocaína por grama (invólucro)'));
+            }
+          } else if (tipo.includes('CRACK')) {
+            if (isKg) {
+              titulos.push(encontrarOpcaoValida('Apreensão de crack (1Kg)'));
+            } else {
+              titulos.push(encontrarOpcaoValida('Apreensão de crack por grama'));
+            }
+          } else {
+            if (isKg) {
+              titulos.push(encontrarOpcaoValida('Apreensão de outras (por kg): haxixe (kg); êxtase ou sintéticas (por comprimido)'));
+            } else {
+              titulos.push(encontrarOpcaoValida('Apreensão de outras (por grama): haxixe (grama); êxtase ou sintéticas (por comprimido)'));
+            }
+          }
+        });
+      }
+
+      // 4. Veículos e mandados só podem virar PIP quando confirmados na natureza.
+      // Palavras soltas no histórico do BO geram falsos positivos (ex.: "roubo" ou
+      // "não foram encontrados mandados de prisão").
+      //
+      // Correcao #138 (OCR-ARCA-004) — a CONDICAO de dominio e da regra canonica ARCA-VEICULO-001
+      // (recuperacao/apreensao/localizacao + veiculo + crime patrimonial NA MESMA natureza, nunca na
+      // narrativa). A ARCA rege a condicao; a casagem lexical abaixo e heuristica DESTE parser (o BO e
+      // lido aqui), agora cobrindo substantivo (ROUBO/FURTO), adjetivo (ROUBADO/FURTADO) e participio
+      // (RECUPERADO/APREENDIDO/LOCALIZADO), e tolerando quebra de linha no PDF.
+      const naturezaPip = String(natSelecionada || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase(); // sem acento, maiusculo
+      const TERMO_RECUPERACAO_VEICULO = /(RECUPERACAO|RECUPERAD[OA]S?|APREENSAO|APREENDID[OA]S?|LOCALIZACAO|LOCALIZAD[OA]S?)/;
+      const TERMO_VEICULO = /(VEICULO|MOTO|CARRO)/;
+      const TERMO_CRIME_VEICULO = /(ROUBAD[OA]S?|FURTAD[OA]S?|ROUBO|FURTO)/;
+      const recuperacaoPertoDoVeiculo = /(RECUPERACAO|RECUPERAD[OA]S?|APREENSAO|APREENDID[OA]S?|LOCALIZACAO|LOCALIZAD[OA]S?)[\s\S]{0,40}?(VEICULO|MOTO|CARRO)/
+        .test(naturezaPip)
+        || /(VEICULO|MOTO|CARRO)[\s\S]{0,40}?(RECUPERACAO|RECUPERAD[OA]S?|APREENSAO|APREENDID[OA]S?|LOCALIZACAO|LOCALIZAD[OA]S?)/.test(naturezaPip);
+      const naturezaVeiculoRecuperado = !!naturezaPip
+        && TERMO_RECUPERACAO_VEICULO.test(naturezaPip)
+        && TERMO_VEICULO.test(naturezaPip)
+        && TERMO_CRIME_VEICULO.test(naturezaPip)
+        && recuperacaoPertoDoVeiculo;
+      if (naturezaVeiculoRecuperado) {
+        titulos.push(encontrarOpcaoValida(tituloCanonicoVeiculoArca_()));
+      }
+
+      // 5. Mandado de Prisão
+      const naturezaMandado = /MANDADO\s+DE\s+PRIS[ÃA]O|CUMPRIMENTO\s+DE\s+MANDADO/.test(naturezaPip);
+      if (naturezaMandado) {
+        titulos.push(encontrarOpcaoValida('Prisão por mandado'));
+      }
+
+      // 6. Fallback se não detectou nenhum item específico, mas a natureza é tráfico/entorpecentes/arma/veículo
+      if (titulos.length === 0 && natSelecionada) {
+        const natUpper = natSelecionada.toUpperCase();
+        if (natUpper.includes('TRÁFICO') || natUpper.includes('ENTORPECENTE') || natUpper.includes('DROGA')) {
+          titulos.push(encontrarOpcaoValida('Apreensão de cocaína por grama (invólucro)'));
+        } else if (natUpper.includes('ARMA')) {
+          titulos.push(encontrarOpcaoValida('Apreensão de arma de fogo revólver'));
+        }
+      }
+
+      return [...new Set(titulos.filter(Boolean))];
+    }
+
+    document.getElementById('data').addEventListener('change', (e) => {
+        carregarOpcoesValidacao(e.target.value);
+    });
+
+    function adicionarPipField(valorSelecionado = '') {
+        const id = 'pip-' + Date.now() + Math.random().toString(36).substr(2, 5);
+        const div = document.createElement('div');
+        div.className = 'dynamic-item';
+        div.id = id;
+        
+        const opcoes = (window.opcoesFormulario && window.opcoesFormulario.ocorrenciasPip && window.opcoesFormulario.ocorrenciasPip.length > 0) 
+            ? window.opcoesFormulario.ocorrenciasPip 
+            : ((window.opcoesFormulario && window.opcoesFormulario.naturezas && window.opcoesFormulario.naturezas.length > 0) ? window.opcoesFormulario.naturezas : []);
+        
+        const norm = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+        const target = norm(valorSelecionado);
+
+        let selectHtml = `<select style="flex:1" class="pip-tipo">`;
+        if (opcoes.length > 0) {
+          let foundMatch = false;
+          opcoes.forEach(op => {
+            const isMatch = norm(op) === target;
+            if (isMatch) foundMatch = true;
+            selectHtml += `<option value="${op}" ${isMatch ? 'selected' : ''}>${op}</option>`;
+          });
+          if (!foundMatch && valorSelecionado) {
+            selectHtml = `<option value="${valorSelecionado}" selected>${valorSelecionado}</option>` + selectHtml;
+          }
+        } else {
+          selectHtml += `<option value="${valorSelecionado}" selected>${valorSelecionado || 'Selecione o Título PIP...'}</option>`;
+        }
+        selectHtml += `</select>`;
+
+        div.innerHTML = selectHtml + `
+          <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove()">&times;</button>`;
+        document.getElementById('pipList').appendChild(div);
+      }
+
+ // matricula => objeto
+
+    function carregarEfetivo() {
+      google.script.run
+        .withSuccessHandler(lista => {
+          efetivo = lista || [];
+          efetivoPorMat = {};
+          efetivo.forEach(p => { efetivoPorMat[String(p.matricula).trim()] = p; });
+          log(`>> Efetivo carregado: ${efetivo.length} policiais.`);
+
+          // Atualiza dados na tabela caso o OCR tenha processado antes da resposta
+          document.querySelectorAll('#policeTableBody tr[data-mat]').forEach(tr => {
+            const mat = tr.dataset.mat;
+            const p = efetivoPorMat[mat];
+            if (p) {
+              const tdPel = tr.querySelector('.td-pelotao');
+              const tdPosto = tr.querySelector('.td-posto');
+              const tdNome = tr.children[3];
+              if (tdPel && tdPel.textContent === '—') tdPel.textContent = p.pelotao;
+              if (tdPosto && tdPosto.textContent === '—') tdPosto.textContent = p.posto;
+              if (tdNome && tdNome.textContent === '(não encontrado)') tdNome.textContent = p.nome;
+            }
+          });
+        })
+        .withFailureHandler(err => log('>> AVISO: não carregou efetivo: ' + err.message))
+        .getEfetivo();
+    }
+
+    // ── ELEMENTOS DINÂMICOS ───────────────────────────────────────
+    function adicionarPolicialManual() {
+      const input = document.getElementById('policeInput');
+      const mat = input.value.trim();
+      if (!mat) { alert('Por favor, digite a matrícula no campo de texto antes de clicar em Adicionar.'); return; }
+      if (!/^\d+$/.test(mat)) { alert('Digite apenas números na matrícula.'); return; }
+      if (policiaisSet.has(mat)) { 
+          alert('Esta matrícula já foi adicionada na lista abaixo!'); 
+          input.value = '';
+          return; 
+      }
+      adicionarPolicialLinha(mat);
+      input.value = '';
+    }
+
+
+/**
+ * Ordem canonica (copia identica do servidor de antiguidade por posto/graduacao (mais ANTIGO primeiro) - regra do proprietario, 11/09/2026.
+ * Empate de graduacao e resolvido por MATRICULA: a mais antiga (menor numero) vem primeiro.
+ * A MESMA logica existe no cliente (Entrada/Formulario.html) e nao pode divergir dela.
+ */
+var ORDEM_POSTOS_ANTIGUIDADE_ = [
+  [/^(CEL|CORONEL)/, 1],
+  [/^(TENCEL|TENENTECORONEL)/, 2],
+  [/^(MAJ|MAJOR)/, 3],
+  [/^(CAP|CAPITAO)/, 4],
+  [/^(1TEN|1TENENTE|TEN|TENENTE)/, 5],
+  [/^(2TEN|2TENENTE)/, 6],
+  [/^(ASP|ASPIRANTE)/, 7],
+  [/^(SUBTEN|SUBTENENTE)/, 8],
+  [/^(1SGT|1SARGENTO|SARGENTO1)/, 9],
+  [/^(2SGT|2SARGENTO|SARGENTO2)/, 10],
+  [/^(3SGT|3SARGENTO|SARGENTO3)/, 11],
+  [/^(CB|CABO)/, 12],
+  [/^(SD|SOLDADO)/, 13]
+];
+
+/** Normaliza a graduacao para comparacao (sem acento, pontuacao e espaco). */
+function normalizarGraduacaoAntiguidade_(grad) {
+  return String(grad === undefined || grad === null ? '' : grad)
+    .replace(/[ºª°]/g, '')   // "1º TEN" / "3ºSGT" nao podem virar "1OTEN" / "3OSGT"
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/** Indice de antiguidade do posto (1 = mais antigo). Graduacao desconhecida vai para o fim. */
+function indiceAntiguidadePosto_(grad) {
+  const g = normalizarGraduacaoAntiguidade_(grad);
+  for (let i = 0; i < ORDEM_POSTOS_ANTIGUIDADE_.length; i++) {
+    if (ORDEM_POSTOS_ANTIGUIDADE_[i][0].test(g)) return ORDEM_POSTOS_ANTIGUIDADE_[i][1];
+  }
+  return 99;
+}
+
+/** Matricula como numero (desempate de antiguidade). */
+function matriculaNumerica_(mat) {
+  const n = parseInt(String(mat === undefined || mat === null ? '' : mat).replace(/\D/g, ''), 10);
+  return isNaN(n) ? Number.MAX_SAFE_INTEGER : n;
+}
+
+/**
+ * Ordena a equipe na ordem correta de antiguidade: primeiro a PATENTE (mais antigo primeiro) e, em caso
+ * de empate de graduacao, a MATRICULA mais antiga (menor) primeiro. Ordenacao estavel.
+ */
+function ordenarEquipePorAntiguidade_(lista) {
+  return (Array.isArray(lista) ? lista.slice() : []).map(function (p, i) { return { p: p, i: i }; })
+    .sort(function (a, b) {
+      const dg = indiceAntiguidadePosto_(a.p && (a.p.posto || a.p.graduacao)) - indiceAntiguidadePosto_(b.p && (b.p.posto || b.p.graduacao));
+      if (dg !== 0) return dg;
+      const dm = matriculaNumerica_(a.p && a.p.matricula) - matriculaNumerica_(b.p && b.p.matricula);
+      if (dm !== 0) return dm;
+      return a.i - b.i;
+    })
+    .map(function (x) { return x.p; });
+}
+
+    // FIM-ORDEM-ANTIGUIDADE
+
+    /** Ordena as matriculas do OCR usando o efetivo carregado (posto -> matricula mais antiga). */
+    function ordenarMatriculasPorAntiguidade_(mats) {
+      return (Array.isArray(mats) ? mats.slice() : []).sort(function (a, b) {
+        const pa = (typeof efetivoPorMat !== 'undefined' && efetivoPorMat[a]) || {};
+        const pb = (typeof efetivoPorMat !== 'undefined' && efetivoPorMat[b]) || {};
+        const dg = indiceAntiguidadePosto_(pa.posto) - indiceAntiguidadePosto_(pb.posto);
+        if (dg !== 0) return dg;
+        return matriculaNumerica_(a) - matriculaNumerica_(b);
+      });
+    }
+
+    function adicionarPolicialLinha(mat) {
+      policiaisSet.add(mat);
+      const p = efetivoPorMat[mat] || { pelotao: '—', posto: '—', matricula: mat, nome: '(não encontrado)' };
+
+      // Remove mensagem de "vazio" se existir
+      const emptyRow = document.getElementById('police-empty-row');
+      if (emptyRow) emptyRow.remove();
+      
+      // Quantas armas temos na tela agora?
+      let totalArmasNaTela = 0;
+      const inputsQtdArmas = document.querySelectorAll('.arma-qtd');
+      inputsQtdArmas.forEach(input => totalArmasNaTela += (parseInt(input.value) || 0));
+
+      const tbody = document.getElementById('policeTableBody');
+      const tr = document.createElement('tr');
+      tr.id = 'prow_' + mat;
+      tr.dataset.mat = mat;
+      tr.className = 'police-draggable';
+      tr.draggable = true;
+      tr.title = 'Arraste para reorganizar a equipe';
+      tr.innerHTML = `
+        <td class="td-pelotao">${p.pelotao}</td>
+        <td class="td-posto">${p.posto}</td>
+        <td class="td-mat">${p.matricula}</td>
+        <td>${p.nome}</td>
+        <td class="td-armas"><input type="number" class="qtd-armas-policial" value="${totalArmasNaTela}" min="0" style="width: 50px; text-align: center; padding: 4px; font-size: 0.75rem;"></td>
+        <td class="td-remove"><button type="button" class="btn-remove-item" onclick="removerPolicial('${mat}')">&times;</button></td>
+      `;
+      ativarArrastePolicial(tr);
+      tbody.appendChild(tr);
+    }
+
+    function ativarArrastePolicial(tr) {
+      tr.addEventListener('dragstart', e => {
+        if (e.target.closest('input, button, select')) {
+          e.preventDefault();
+          return;
+        }
+        policialArrastado = tr;
+        tr.classList.add('dragging');
+        document.getElementById('policeTableBody').classList.add('drag-active');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', tr.dataset.mat || '');
+      });
+
+      tr.addEventListener('dragend', () => {
+        tr.classList.remove('dragging');
+        document.getElementById('policeTableBody').classList.remove('drag-active');
+        policialArrastado = null;
+      });
+    }
+
+    document.getElementById('policeTableBody').addEventListener('dragover', e => {
+      if (!policialArrastado) return;
+      e.preventDefault();
+      const tbody = document.getElementById('policeTableBody');
+      const proximaLinha = obterProximaLinhaPolicial(tbody, e.clientY);
+      if (proximaLinha) tbody.insertBefore(policialArrastado, proximaLinha);
+      else tbody.appendChild(policialArrastado);
+    });
+
+    document.getElementById('policeTableBody').addEventListener('drop', e => {
+      if (!policialArrastado) return;
+      e.preventDefault();
+      setStatus('> Ordem da equipe ajustada.', 'var(--accent-color)');
+    });
+
+    function obterProximaLinhaPolicial(tbody, y) {
+      const linhas = [...tbody.querySelectorAll('tr.police-draggable:not(.dragging)')];
+      return linhas.find(linha => {
+        const box = linha.getBoundingClientRect();
+        return y < box.top + (box.height / 2);
+      }) || null;
+    }
+
+    function removerPolicial(mat) {
+      policiaisSet.delete(mat);
+      const el = document.getElementById('prow_' + mat);
+      if (el) el.remove();
+      if (document.getElementById('policeTableBody').children.length === 0) {
+        const tbody = document.getElementById('policeTableBody');
+        tbody.innerHTML = '<tr id="police-empty-row"><td colspan="6" class="police-empty-msg">Nenhum policial adicionado</td></tr>';
+      }
+    }
+
+    function adicionarArmaField(tipo = 'INDUSTRIAL', modelo = 'REVÓLVER', calibre = '', municao = 0, quantidade = 1) {
+      const id = 'arma_' + Date.now();
+      const div = document.createElement('div');
+      div.className = 'dynamic-item';
+      div.id = id;
+
+      // Regra do dono (12/09): arma artesanal (CASEIRA) NAO entra na quantidade fisica (ARMA)
+      // -> campo vai a 0 e fica desabilitado; a participacao (QDT ARMAS) segue normalmente.
+      const ehArtesanal = String(tipo || '').toUpperCase().includes('CASEIRA') || String(tipo || '').toUpperCase().includes('ARTESANAL');
+      const qtdValue = ehArtesanal ? 0 : quantidade;
+      const qtdDisabled = ehArtesanal ? 'disabled' : '';
+
+      let htmlTipos = '';
+      // Fallback (calibragem 09/09): colunas TIPO/MODELO podem não ter validação na planilha —
+      // sem isso o dropdown ficava vazio e a arma era DROPADA silenciosamente do payload.
+      const tList = (window.opcoesFormulario && window.opcoesFormulario.armasTipos && window.opcoesFormulario.armasTipos.length)
+        ? window.opcoesFormulario.armasTipos
+        : ['INDUSTRIAL', 'FABRICAÇÃO CASEIRA'];
+      tList.forEach(t => {
+         htmlTipos += `<option value="${t}" ${tipo===t?'selected':''}>${t}</option>`;
+      });
+      let htmlModelos = '';
+      const mList = (window.opcoesFormulario && window.opcoesFormulario.armasModelos && window.opcoesFormulario.armasModelos.length)
+        ? window.opcoesFormulario.armasModelos
+        : ['REVÓLVER', 'PISTOLA', 'ESPINGARDA', 'FUZIL'];
+      mList.forEach(m => {
+         htmlModelos += `<option value="${m}" ${modelo===m?'selected':''}>${m}</option>`;
+      });
+
+      div.innerHTML = `
+        <select style="flex:1" class="arma-tipo">
+          ${htmlTipos}
+        </select>
+        <select style="flex:1" class="arma-modelo">
+          ${htmlModelos}
+        </select>
+        <input type="text" style="flex:0.6" class="arma-calibre" placeholder="Calibre" value="${calibre}">
+        <input type="number" style="flex:0.6" class="arma-municao" placeholder="Munição" value="${municao}" min="0">
+        <input type="number" style="flex:0.6" class="arma-qtd" placeholder="Qtd" value="${qtdValue}" min="1" ${qtdDisabled}>
+        <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove();">&times;</button>`;
+      document.getElementById('armasList').appendChild(div);
+    }
+
+    function adicionarDrogaField(tipoRaw = 'MACONHA', quantidade = 0, unidade = 'GRAMAS') {
+      const id = 'droga_' + Date.now();
+      const div = document.createElement('div');
+      div.className = 'dynamic-item';
+      div.id = id;
+
+      // Match do select
+      let selectValue = 'MACONHA GRAMA'; // default
+      if (tipoRaw.includes('MACONHA')) {
+          selectValue = (unidade === 'UNIDADES' || unidade === 'DÓLAR') ? 'MACONHA DOLAR' : 'MACONHA GRAMA';
+      } else if (tipoRaw.includes('CRACK')) {
+          selectValue = (unidade === 'UNIDADES' || unidade === 'PEDRAS') ? 'CRACK PEDRA' : 'CRACK GRAMA';
+      } else if (tipoRaw.includes('COCA')) {
+          selectValue = (unidade === 'UNIDADES' || unidade === 'PINO') ? 'COCAINA PINO' : 'COCAINA GRAMA';
+      }
+
+      div.innerHTML = `
+        <select style="flex:2" class="droga-tipo">
+          <option value="MACONHA DOLAR" ${selectValue==='MACONHA DOLAR'?'selected':''}>MACONHA DÓLAR</option>
+          <option value="MACONHA GRAMA" ${selectValue==='MACONHA GRAMA'?'selected':''}>MACONHA GRAMA</option>
+          <option value="CRACK PEDRA" ${selectValue==='CRACK PEDRA'?'selected':''}>CRACK PEDRA</option>
+          <option value="CRACK GRAMA" ${selectValue==='CRACK GRAMA'?'selected':''}>CRACK GRAMA</option>
+          <option value="COCAINA PINO" ${selectValue==='COCAINA PINO'?'selected':''}>COCAÍNA PINO</option>
+          <option value="COCAINA GRAMA" ${selectValue==='COCAINA GRAMA'?'selected':''}>COCAÍNA GRAMA</option>
+        </select>
+        <input type="number" style="flex:1;min-width:60px" class="droga-qtd" value="${quantidade}" min="0" step="0.01">
+        <button type="button" class="btn-remove-item" onclick="document.getElementById('${id}').remove()">&times;</button>`;
+      document.getElementById('drogasList').appendChild(div);
+    }
+
+    function obterPip() {
+      return [...document.querySelectorAll('#pipList .dynamic-item')].map(el => el.querySelector('.pip-tipo').value);
+    }
+
+    function obterArmas() {
+      return [...document.querySelectorAll('#armasList .dynamic-item')].map(el => ({
+        tipo:      el.querySelector('.arma-tipo').value,
+        modelo:    el.querySelector('.arma-modelo').value,
+        calibre:   el.querySelector('.arma-calibre').value || '',
+        municao:   parseInt(el.querySelector('.arma-municao').value) || 0,
+        quantidade: parseInt(el.querySelector('.arma-qtd').value) || 0
+      })).filter(a => a.quantidade > 0 || String(a.tipo || '').toUpperCase().includes('CASEIRA') || String(a.tipo || '').toUpperCase().includes('ARTESANAL'));
+    }
+
+    function obterDrogas() {
+      return [...document.querySelectorAll('#drogasList .dynamic-item')].map(el => ({
+        tipo: el.querySelector('.droga-tipo').value,
+        quantidade: parseFloat(el.querySelector('.droga-qtd').value) || 0
+      })).filter(d => d.quantidade > 0);
+    }
+
+    // ── SALVAR ────────────────────────────────────────────────────
+    function salvarDados() {
+      const dataVal = document.getElementById('data').value.trim();
+      const naturezaVal = document.getElementById('natureza').value.trim();
+
+      if (!dataVal || !naturezaVal) {
+          setStatus('>> ERRO: Preencha DATA e NATUREZA antes de salvar.', 'var(--danger-color)');
+          return;
+      }
+
+      setStatus('> Enviando para o Sheets...', 'var(--secondary-color)');
+      // Monta lista de policiais com dados completos para o backend
+      const ordemPoliciais = [...document.querySelectorAll('#policeTableBody tr[data-mat]')]
+        .map(tr => tr.dataset.mat)
+        .filter(mat => policiaisSet.has(mat));
+      const efetivoSelecionados = ordemPoliciais.map(mat => {
+        const p = efetivoPorMat[mat];
+        const tr = document.getElementById('prow_' + mat);
+        let qtdArmas = 0;
+        if (tr) {
+            const inputArmas = tr.querySelector('.qtd-armas-policial');
+            if (inputArmas) qtdArmas = parseInt(inputArmas.value) || 0;
+        }
+        return p ? { pelotao: p.pelotao, posto: p.posto, matricula: mat, nome: p.nome, qtd_armas: qtdArmas }
+                 : { pelotao: '', posto: '', matricula: mat, nome: '', qtd_armas: qtdArmas };
+      });
+
+      const payload = {
+        origem:   'FORMULARIO',
+        mike:     document.getElementById('mike').value.trim(),
+        boe:      document.getElementById('boe').value.trim(),
+        ais:      document.getElementById('ais').value.trim(),
+        data:     dataVal,
+        hora:     document.getElementById('hora').value.trim(),
+        cidade:   document.getElementById('cidade').value.trim(),
+        bairro:   document.getElementById('bairro').value.trim(),
+        natureza: naturezaVal,
+        qtd_o:    document.getElementById('qtd_o').value.trim(),
+        detidos:  document.getElementById('detidos').value.trim(),
+        imputado: document.getElementById('imputado').value,
+        ocorrenciasPip: obterPip(),
+        policiais: ordenarEquipePorAntiguidade_(efetivoSelecionados),
+        armas:    obterArmas(),
+        drogas:   obterDrogas()
+      };
+
+      google.script.run
+        .withSuccessHandler(res => {
+          const texto = String(res == null ? '' : res);
+          // O backend e' best-effort: uma falha chega como TEXTO de sucesso (nunca como
+          // excecao). Sem esta checagem o formulario era LIMPO mesmo sem gravar nada,
+          // e o operador perdia o BO achando que havia salvado (defeito do BO 04/09).
+          const falhou = /N[ÃA]O GRAVADO|NAO_GRAVADO/i.test(texto);
+          setStatus('>> ' + texto, falhou ? 'var(--danger-color)' : 'var(--accent-color)');
+          if (!falhou) limparFormulario();
+        })
+        .withFailureHandler(err => setStatus('>> ERRO: ' + err.message, 'var(--danger-color)'))
+        .processarEntradaManual(payload);
+    }
+
+    function limparDadosDocumentoAnterior() {
+      // Novo BO nunca herda campos, listas ou respostas de validação do documento anterior.
+      requisicaoValidacaoId++;
+      window.opcoesFormulario = null;
+      ['mike','boe','data','hora','cidade','bairro','natureza','qtd_o','ais','detidos'].forEach(id => {
+          if (document.getElementById(id)) document.getElementById(id).value = '';
+      });
+      // QTD O nao fica vazio: o padrao da ocorrencia e sempre 01 (regra do proprietario).
+      const elQtdO = document.getElementById('qtd_o');
+      if (elQtdO) elQtdO.value = '01';
+      // DETIDOS volta ao padrao TCO (o operador escolhe outro na lista suspensa).
+      const elDetidos = document.getElementById('detidos');
+      if (elDetidos) elDetidos.value = 'TCO';
+      const datalistNat = document.getElementById('naturezasList');
+      if (datalistNat) datalistNat.innerHTML = '';
+      policiaisSet.clear();
+      document.getElementById('policeTableBody').innerHTML =
+        '<tr id="police-empty-row"><td colspan="6" class="police-empty-msg">Nenhum policial adicionado</td></tr>';
+      document.getElementById('armasList').innerHTML = '';
+      document.getElementById('drogasList').innerHTML = '';
+      document.getElementById('pipList').innerHTML = '';
+      const imputado = document.getElementById('imputado');
+      if (imputado) imputado.value = 'SEM IMPUTADO';
+      aisEditadaManualmente = false;
+      const aisBadge = document.getElementById('aisBadge');
+      if (aisBadge) {
+        aisBadge.style.display = 'none';
+        aisBadge.innerText = '';
+      }
+      const aisFeedback = document.getElementById('aisFeedback');
+      if (aisFeedback) {
+        aisFeedback.style.display = 'none';
+        aisFeedback.innerText = '';
+      }
+      const conferencia = document.getElementById('ocrConferenceCard');
+      const conteudoConferencia = document.getElementById('ocrConferenceContent');
+      if (conferencia) conferencia.style.display = 'none';
+      if (conteudoConferencia) conteudoConferencia.innerHTML = '';
+      ocrTerminal.innerText = 'Aguardando documento para processar...';
+    }
+
+    function limparFormulario() {
+      limparDadosDocumentoAnterior();
+    }
+
+    // =========================================================================
+    // DETERMINAÇÃO TERRITORIAL CANÔNICA DE AIS (TASK: FORMULARIO-AIS-TERRITORIAL-001)
+    // =========================================================================
+    let tabelaTerritorialAisCliente = null;
+    let aisEditadaManualmente = false;
+
+    function normalizarTextoTerritorialCliente(txt) {
+      if (!txt || typeof txt !== 'string') return '';
+      return txt
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^A-Z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function resolverAISCliente(municipio, bairro, tabela) {
+      const tab = tabela || tabelaTerritorialAisCliente;
+      if (!tab) {
+        return {
+          ais: null,
+          sucesso: false,
+          criterio: 'TABELA_AUSENTE',
+          status: 'PENDENTE_CONFERENCIA',
+          observacao: 'Tabela territorial não carregada.'
+        };
+      }
+
+      let mNorm = normalizarTextoTerritorialCliente(municipio);
+      const bNorm = normalizarTextoTerritorialCliente(bairro);
+
+      if (!mNorm && !bNorm) {
+        return {
+          ais: null,
+          sucesso: false,
+          criterio: 'VAZIO',
+          status: 'DADOS_INSUFICIENTES',
+          observacao: 'Município e Bairro não informados.'
+        };
+      }
+
+      if (mNorm === 'RECIFE PE' || mNorm === 'CIDADE DO RECIFE') mNorm = 'RECIFE';
+      if (mNorm === 'JABOATAO' || mNorm === 'JABOATAO DOS GUARARAPES PE') mNorm = 'JABOATAO DOS GUARARAPES';
+      if (mNorm === 'CABO' || mNorm === 'CABO DE STO AGOSTINHO') mNorm = 'CABO DE SANTO AGOSTINHO';
+      if (mNorm === 'S LOURENCO DA MATA' || mNorm === 'SAO LOURENCO') mNorm = 'SAO LOURENCO DA MATA';
+
+      // 1. Município Multi-AIS (Recife)
+      if (mNorm && tab.municipiosMultiAis && tab.municipiosMultiAis[mNorm]) {
+        const configMulti = tab.municipiosMultiAis[mNorm];
+        if (bNorm) {
+          if (configMulti.bairros && configMulti.bairros[bNorm]) {
+            return {
+              ais: configMulti.bairros[bNorm],
+              sucesso: true,
+              criterio: 'MULTI_AIS_BAIRRO_EXATO',
+              status: 'DETERMINADO',
+              observacao: 'Determinado pelo bairro ' + bNorm + ' em ' + mNorm + '.'
+            };
+          }
+          const bChaves = Object.keys(configMulti.bairros || {});
+          for (let i = 0; i < bChaves.length; i++) {
+            const chave = bChaves[i];
+            if (bNorm.indexOf(chave) !== -1 || chave.indexOf(bNorm) !== -1) {
+              if (bNorm.length >= 5 && chave.length >= 5) {
+                return {
+                  ais: configMulti.bairros[chave],
+                  sucesso: true,
+                  criterio: 'MULTI_AIS_BAIRRO_APROXIMADO',
+                  status: 'DETERMINADO',
+                  observacao: 'Determinado por correspondência aproximada do bairro ' + bNorm + ' (' + chave + ').'
+                };
+              }
+            }
+          }
+          return {
+            ais: null,
+            sucesso: false,
+            criterio: 'MULTI_AIS_BAIRRO_NAO_RECONHECIDO',
+            status: 'PENDENTE_CONFERENCIA',
+            observacao: 'Município ' + mNorm + ' possui múltiplas AIS (1 a 5) e o bairro ' + bNorm + ' requer conferência.'
+          };
+        } else {
+          return {
+            ais: null,
+            sucesso: false,
+            criterio: 'MULTI_AIS_SEM_BAIRRO',
+            status: 'PENDENTE_CONFERENCIA',
+            observacao: 'Município ' + mNorm + ' possui múltiplas AIS (1 a 5). Bairro necessário.'
+          };
+        }
+      }
+
+      // 2. Município Mono-AIS
+      if (mNorm && tab.municipiosMonoAis && tab.municipiosMonoAis[mNorm]) {
+        const aisMono = tab.municipiosMonoAis[mNorm];
+        return {
+          ais: aisMono,
+          sucesso: true,
+          criterio: 'MONO_AIS_MUNICIPIO_DIRETO',
+          status: 'DETERMINADO',
+          observacao: 'Determinado pelo município ' + mNorm + ' (100% circunscrito à ' + aisMono + ').'
+        };
+      }
+
+      // 3. Sem município ou não mapeado: testar bairros notórios e bairros de Recife
+      if (bNorm) {
+        if (tab.bairrosMonoAisConhecidos && tab.bairrosMonoAisConhecidos[bNorm]) {
+          const aisB = tab.bairrosMonoAisConhecidos[bNorm];
+          return {
+            ais: aisB,
+            sucesso: true,
+            criterio: 'MONO_AIS_BAIRRO_NOTORIO',
+            status: 'DETERMINADO',
+            observacao: 'Bairro notório ' + bNorm + ' circunscrito à ' + aisB + '.'
+          };
+        }
+        if (!mNorm && tab.municipiosMultiAis && tab.municipiosMultiAis['RECIFE'] && tab.municipiosMultiAis['RECIFE'].bairros[bNorm]) {
+          const aisRec = tab.municipiosMultiAis['RECIFE'].bairros[bNorm];
+          return {
+            ais: aisRec,
+            sucesso: true,
+            criterio: 'MULTI_AIS_BAIRRO_RECIFE_IMPLICITO',
+            status: 'DETERMINADO',
+            observacao: 'Bairro ' + bNorm + ' identificado em Recife (' + aisRec + ').'
+          };
+        }
+      }
+
+      return {
+        ais: null,
+        sucesso: false,
+        criterio: 'NAO_IDENTIFICADO',
+        status: 'PENDENTE_CONFERENCIA',
+        observacao: 'Município e Bairro informados não permitiram resolução inequívoca.'
+      };
+    }
+
+    function recalcularAisFormulario(forcarAtualizacao) {
+      const elAis = document.getElementById('ais');
+      const elCidade = document.getElementById('cidade');
+      const elBairro = document.getElementById('bairro');
+      const elBadge = document.getElementById('aisBadge');
+      const elFeedback = document.getElementById('aisFeedback');
+
+      if (!elAis || !elCidade || !elBairro) return;
+
+      if (aisEditadaManualmente && !forcarAtualizacao) {
+        return;
+      }
+
+      const cidade = elCidade.value.trim();
+      const bairro = elBairro.value.trim();
+
+      if (!cidade && !bairro) {
+        if (!aisEditadaManualmente) {
+          elAis.value = '';
+          if (elBadge) elBadge.style.display = 'none';
+          if (elFeedback) elFeedback.style.display = 'none';
+        }
+        return;
+      }
+
+      function aplicarResultadoAis(res) {
+        if (res && res.sucesso && res.ais) {
+          const numAis = res.ais.replace(/\D/g, '');
+          if (!aisEditadaManualmente || forcarAtualizacao) {
+            elAis.value = numAis || res.ais;
+          }
+          if (elBadge) {
+            elBadge.style.display = 'inline-block';
+            elBadge.style.background = 'rgba(46, 204, 113, 0.2)';
+            elBadge.style.color = '#2ecc71';
+            elBadge.innerText = '✓ ' + res.ais;
+          }
+          if (elFeedback) {
+            elFeedback.style.display = 'block';
+            elFeedback.style.color = '#2ecc71';
+            elFeedback.innerText = res.observacao || ('Identificado por ' + res.criterio);
+          }
+        } else {
+          if (!aisEditadaManualmente || forcarAtualizacao) {
+            if (!aisEditadaManualmente) {
+              elAis.value = '';
+            }
+          }
+          if (elBadge) {
+            elBadge.style.display = 'inline-block';
+            elBadge.style.background = 'rgba(241, 196, 15, 0.2)';
+            elBadge.style.color = '#f1c40f';
+            elBadge.innerText = '⚠️ Conferir AIS';
+          }
+          if (elFeedback) {
+            elFeedback.style.display = 'block';
+            elFeedback.style.color = '#f1c40f';
+            elFeedback.innerText = (res && res.observacao) ? res.observacao : 'Município/Bairro requer conferência de AIS.';
+          }
+        }
+      }
+
+      if (tabelaTerritorialAisCliente) {
+        const res = resolverAISCliente(cidade, bairro, tabelaTerritorialAisCliente);
+        aplicarResultadoAis(res);
+        return;
+      }
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        try {
+          var runner = google.script.run
+            .withSuccessHandler(aplicarResultadoAis)
+            .withFailureHandler(function(err) {
+              aplicarResultadoAis({
+                sucesso: false,
+                status: 'PENDENTE_CONFERENCIA',
+                observacao: 'Falha ao consultar AIS territorial: ' + err.message
+              });
+            });
+          if (typeof runner.resolverAISTerritorial === 'function') {
+            runner.resolverAISTerritorial(cidade, bairro);
+            return;
+          }
+        } catch (e) {}
+      }
+
+      const res = resolverAISCliente(cidade, bairro, null);
+      aplicarResultadoAis(res);
+    }
+
+    function carregarTabelaTerritorial() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        try {
+          var runner = google.script.run
+            .withSuccessHandler(function(tab) {
+              if (tab) {
+                tabelaTerritorialAisCliente = tab;
+                log('>> Tabela territorial AIS carregada.');
+                recalcularAisFormulario(false);
+              }
+            })
+            .withFailureHandler(function(err) {
+              log('>> AVISO: Não foi possível carregar tabela AIS remota: ' + err.message);
+            });
+          if (typeof runner.obterTabelaTerritorialAIS === 'function') {
+            runner.obterTabelaTerritorialAIS();
+          }
+        } catch (e) {
+          log('>> AVISO: Falha ao invocar obterTabelaTerritorialAIS: ' + e.message);
+        }
+      }
+    }
+
+    function inicializarListenersAIS() {
+      const elAis = document.getElementById('ais');
+      if (elAis) {
+        elAis.addEventListener('input', function() {
+          aisEditadaManualmente = (this.value.trim() !== '');
+          const elBadge = document.getElementById('aisBadge');
+          const elFeedback = document.getElementById('aisFeedback');
+          if (aisEditadaManualmente) {
+            if (elBadge) {
+              elBadge.style.display = 'inline-block';
+              elBadge.style.background = 'rgba(52, 152, 219, 0.2)';
+              elBadge.style.color = '#3498db';
+              elBadge.innerText = '✎ Manual';
+            }
+            if (elFeedback) {
+              elFeedback.style.display = 'none';
+            }
+          } else {
+            recalcularAisFormulario(true);
+          }
+        });
+      }
+
+      ['cidade', 'bairro'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', function() {
+            if (!aisEditadaManualmente) {
+              recalcularAisFormulario(false);
+            }
+          });
+          el.addEventListener('change', function() {
+            if (!aisEditadaManualmente) {
+              recalcularAisFormulario(false);
+            }
+          });
+        }
+      });
+    }
+
+    // Carrega o efetivo e tabela territorial assim que o modal abre. Opções só carregam após digitar data.
+    carregarEfetivo();
+    carregarTabelaTerritorial();
+    inicializarListenersAIS();
+    const inputData = document.getElementById('data').value;
+    if (inputData) carregarOpcoesValidacao(inputData);
+
+        // Listeners pontuacao
+        function applyDetidosListener() {
+            const el = document.getElementById('detidos');
+            if (!el) return;
+            el.removeEventListener('change', detidosChangeHandler);
+            el.addEventListener('change', detidosChangeHandler);
+        }
+        function detidosChangeHandler() {
+            const v = this.value.toUpperCase();
+            if(v.includes('APFD') || v.includes('TCO') || v.includes('BOC') || v.includes('AAFAI')) {
+               document.getElementById('imputado').value = 'COM IMPUTADO';
+            }
+        }
+        applyDetidosListener();
+
+    // ── HELPERS ───────────────────────────────────────────────────
+    function log(msg) {
+      ocrTerminal.innerText = (ocrTerminal.innerText === 'Aguardando documento para processar...' ? '' : ocrTerminal.innerText)
+        + msg + '\n';
+      ocrTerminal.scrollTop = ocrTerminal.scrollHeight;
+    }
+
+    function setStatus(msg, color) {
+      statusMsg.innerText = msg;
+      statusMsg.style.color = color;
+    }
+
+    function mostrarProgresso(label, pct) {
+      progressLabel.style.display = 'block';
+      progressCont.style.display  = 'block';
+      progressLabel.innerText = label;
+      progressBar.style.width = pct + '%';
+    }
+
+    function esconderProgresso() {
+      setTimeout(() => {
+        progressLabel.style.display = 'none';
+        progressCont.style.display  = 'none';
+        progressBar.style.width = '0%';
+      }, 600);
+    }
+    // ==========================================
+    // Alternar Painel OCR
+    // ==========================================
+    function toggleOCR() {
+      const panelLeft = document.querySelector('.panel-left');
+      const btn = document.getElementById('btnToggleOCR');
+      if (panelLeft.style.display === 'none') {
+        panelLeft.style.display = 'flex';
+        btn.classList.remove('collapsed');
+        btn.querySelector('span').innerText = 'Ocultar OCR';
+      } else {
+        panelLeft.style.display = 'none';
+        btn.classList.add('collapsed');
+        btn.querySelector('span').innerText = 'Mostrar OCR';
+      }
+    }
+  </script>
+</body>
+</html>
+```
+
+## Responsabilidade observada
+
+Fonte: `02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/MOD-C01-01_FORMULARIO_E_MENUS.md` — CAPSULA do modulo (formato 46.2), "## Responsabilidade".
+
+Receber o texto do BO (colagem/OCR), transformá-lo em **payload conferível** e entregá-lo à persistência (`SUB-C01-01-02_PERSISTENCIA_MANUAL`). Não decide pontuação, não corrige dado: **sugere e deixa conferir**. Também expõe a **porta única de navegação P3** do produto.
+
+Fonte: `02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/MOD-C01-01_FORMULARIO_E_MENUS.md` — CAPSULA do modulo (formato 46.2), "## Limites".
+
+- **Não** grava direto na aba mensal: o payload passa por `Entrada/EntradaManual.js` (validação de coluna, anti-duplicidade, fórmula).
+- **Não** decide imputado (`IMPUTADO?` é escolha do operador; DETIDOS nunca é inferido).
+- **Não** aplica regra de domínio nova por heurística: consulta a ARCA quando a regra existe (fail-soft).
+- **Não** inventa valor: campo sem evidência fica pendente e **explícito** (ex.: alerta `CONFERIR AIS`).
+
+## Portas expostas (se aplicável)
+
+- Superfície exposta no nível do arquivo (nível global): `normalizarGraduacaoAntiguidade_`, `indiceAntiguidadePosto_`, `matriculaNumerica_`, `ordenarEquipePorAntiguidade_`
+- Membros públicos observados: `carregarEfetivo`, `carregarTabelaTerritorial`, `inicializarListenersAIS`
+
+_Extraído por heurística do gerador (globais de nível arquivo + métodos/accessors de 1º–2º nível). Não substitui a declaração de porta da Planta: confirme no endereço acima._
+
+## Divergência com a Planta declarada
+
+Testes mecânicos executados na geração (commit `fbb0608`, 2026-09-13T21:45:27-03:00):
+
+- OK — T1 endereco existe: NOTA_DE_RESPONSABILIDADE.md do modulo presente
+- OK — T2 artefato declarado no endereco: "Entrada/Formulario.html" aparece na Planta
+- OK — T3 arquivo presente no commit de referencia (fbb0608:Entrada/Formulario.html)
+- OK — T4 conteudo em disco identico ao do commit de referencia (sha256 LF)
+- OK — T5 espelho anterior sem deriva de codigo (sha256 do bloco == origem)
+- OK — T6 endereco declarado no espelho anterior corresponde ao endereco canonico atual
+- OK — T7 sem duplicidade: exatamente 1 espelho de leitura declara "Entrada/Formulario.html" como origem
+
+Veredito mecânico: **nenhuma divergência detectada pelos testes acima**.
+
+Declaração verificada a mão por humano/agente (não derivável automaticamente):
+
+- **Como o endereco foi derivado (nao inventado):** secao Artefatos; fonte `02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/MOD-C01-01_FORMULARIO_E_MENUS.md`:57.
+- **Enderecos concorrentes declarados na Planta (1):** `C01_Entrada/MOD-C01-01_FORMULARIO_E_MENUS/SUB-C01-01-01_OCR_E_CONFERENCIA`. O artefato e referenciado em mais de um endereco; o campo acima registra o endereco PRIMARIO. Nao e erro de endereco — e declaracao concorrente na propria Planta.
+- **Divergencia com o espelho anterior:** o espelho antigo declarava o modulo `SUB-C01-01-01`; a derivacao atual chega a `C01_Entrada/MOD-C01-01_FORMULARIO_E_MENUS`. Divergencia declarada, nao sobrescrita em silencio.
+- **Nada foi corrigido no artefato:** o gerador nao altera codigo de produto; o arquivo de origem permanece byte a byte como estava.
+
+## Última verificação (data/commit)
+
+- 2026-09-13T21:45:27-03:00 · commit `fbb0608` · sha256 da origem (LF): `8fecf32eb0bd0176adc89acb6b6c4e72147a7209e1489b6637e56a2fb7b55f20`
+- Reexecutar: `node scripts/downplant/espelho-rico.mjs gerar --endereco C01_Entrada/MOD-C01-01_FORMULARIO_E_MENUS --origem Entrada/Formulario.html --saida <caminho>`
+- Verificar deriva sem regravar: `node scripts/downplant/espelho-rico.mjs verificar --espelho <caminho>`

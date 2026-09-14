@@ -1,0 +1,3052 @@
+# ESPELHO — arca_regras_dominio.json
+
+> [!NOTE] Espelho rico de código (Metodo §46.15) — gerado por `scripts/downplant/espelho-rico.mjs`
+> Somente leitura. Não editar à mão: qualquer edição é sobrescrita na próxima geração.
+> O código abaixo é cópia verbatim do arquivo de origem no commit declarado; divergência entre o embutido e a origem é deriva (§18.1).
+> Regra do sha256 declarado: sha256 do conteúdo **normalizado para LF** (igual ao blob do Git). Em arquivo CRLF com terminador final diferente, ele difere do `sha256sum` dos bytes crus — a comparação de deriva é feita conteúdo-contra-conteúdo.
+> Papel desta cópia: CANÔNICA (repositório). O derivado navegável no vault é gerado com as mesmas entradas.
+
+- **Endereço Down Plant:** `C03_Dominio / MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO / SUB-C03-02-01_CATALOGO_DE_REGRAS` — [NOTA_DE_RESPONSABILIDADE.md](../../../02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/submodulos/SUB-C03-02-01_CATALOGO_DE_REGRAS/NOTA_DE_RESPONSABILIDADE.md)
+- **Arquivo de origem (link para o disco):** [`Dominio/ARCA/arca_regras_dominio.json`](../../../Dominio/ARCA/arca_regras_dominio.json)
+- **Commit de referência:** `fbb0608e7b98144533628c7f9b773a10505b800d` (`fbb0608`)
+- **Data da última sincronização:** 2026-09-13T21:45:16-03:00
+
+## Código-fonte embutido
+
+Verbatim de `Dominio/ARCA/arca_regras_dominio.json` em `fbb0608`. sha256 do bloco (LF): `f805e1c815ac275e26d0701ba6b9ca36954df1bb792ecc3e6262a498fba9f186` — 2991 linhas.
+
+```json
+{
+  "meta": {
+    "projeto": "OPP_Formul-rio_Clasp / Syntheon",
+    "modulo": "ARCA - Catalogo Canonico de Regras de Dominio",
+    "gerado_em": "2026-09-04T03:17:16.476Z",
+    "versao": "1.0.0",
+    "estatisticas": {
+      "files_discovered_total": 3413,
+      "files_scanned_total": 127,
+      "files_excluded_total": 3286,
+      "business_rules_total": 30,
+      "technical_rules_total": 2,
+      "rules_with_canonical_source_total": 11,
+      "rules_with_unknown_source_total": 2,
+      "hardcoded_rules_total": 27,
+      "conflicting_rules_total": 0,
+      "rules_not_used_by_guardian_total": 8,
+      "arquivos_dominio_com_regra_arca": 32
+    },
+    "consumidores_reconciliacao": {
+      "metodo": "classificacao factual: REAL_CODE_CONSUMER = implementa e/ou recebe metadados ARCA via Core/RegrasQualidade (hub); INDIRECT_CONSUMER = recebe por propagacao (cobertura/painel/renderer); DECLARED_CONSUMER = lista original preservada (sem lastro de codigo); PLANNED_CONSUMER = integracao prevista em card corretivo.",
+      "base_evidencia": "evidencia_codigo de cada regra + mapeamento da porta AdaptadorConsultaArca + leitura de codigo (auditoria #123)",
+      "data": "2026-09-10",
+      "card": "#125 ARCA-FIX-002",
+      "regras_reconciliadas": 31
+    },
+    "cobertura_reconciliacao": {
+      "card": "#126 ARCA-FIX-003",
+      "data": "2026-09-10",
+      "metodo": "cada codigo emitido no codigo recebe regra ARCA (existente ou nova) OU classificacao explicita NAO_AUDITAVEL com motivo; novas regras sao INTERNAL_OPERATIONAL_RULE/TECHNICAL_RULE com fonte interna confirmada (nenhuma heuristica promovida a oficial).",
+      "regras_adicionadas": [
+        "ARCA-MIKE-004",
+        "ARCA-EFETIVO-003",
+        "ARCA-MATRICULA-003",
+        "ARCA-AUDITORIA-001",
+        "ARCA-AUDITORIA-002",
+        "ARCA-VEICULO-001",
+        "ARCA-ANTIGUIDADE-002",
+        "ARCA-QTD-O-001",
+        "ARCA-DETIDOS-001",
+        "ARCA-OCORRENCIA-007"
+      ],
+      "regras_mapeadas": 33,
+      "regras_nao_auditaveis": 0,
+      "regras_adicionadas_total": [
+        "ARCA-MIKE-004",
+        "ARCA-EFETIVO-003",
+        "ARCA-MATRICULA-003",
+        "ARCA-AUDITORIA-001",
+        "ARCA-AUDITORIA-002",
+        "ARCA-OCORRENCIA-005",
+        "ARCA-METRICAS-001",
+        "ARCA-GXT-001",
+        "ARCA-TECNICA-005",
+        "ARCA-VEICULO-001",
+        "ARCA-ANTIGUIDADE-002",
+        "ARCA-QTD-O-001",
+        "ARCA-DETIDOS-001",
+        "ARCA-OCORRENCIA-007"
+      ],
+      "card_137": "#137 OCR-ARCA-003: reconciliacao de veiculo (ARCA-VEICULO-001) - regra de dominio; heuristica lexical permanece no parser.",
+      "regras_integradas": 8,
+      "regras_nao_aplicaveis": 8,
+      "statuses": [
+        "MAPEADO",
+        "INTEGRADO",
+        "NAO_APLICAVEL"
+      ],
+      "fluid_flow": "2026-09-12: 17 NAO_AUDITAVEL reclassificadas em INTEGRADO(7)/NAO_APLICAVEL(9)/MAPEADO(1, QDT_ARMAS_DIVERGENTE_NO_TUNEL). Zero regras cegas. 2026-09-12 (#145): +3 regras canonicas registradas (ANTIGUIDADE-002, QTD-O-001, DETIDOS-001), todas INTEGRADO. 2026-09-12 (#149): ARCA-TERRITORIO-001 promovida a MAPEADO - bloco ARCA-GUARD completo.",
+      "card_145": "#145 ARCA-GUARD-001: 3 regras canonicas registradas (antiguidade da equipe, QTD O = 01, DETIDOS) - todas INTEGRADO (aplicadas na entrada/normalizacao); diagnosticos previstos em #146/#147.",
+      "card_146_147": "#146/#147 ARCA-GUARD-002/003: diagnosticos ORDEM_ANTIGUIDADE_EQUIPE (ARCA-ANTIGUIDADE-002) e QTD_O_DIVERGENTE (ARCA-QTD-O-001) implementados no Guardiao; regras promovidas de INTEGRADO para MAPEADO.",
+      "card_149": "#149 ARCA-GUARD-005: diagnostico de AIS (AIS_AUSENTE/AIS_DIVERGENTE) implementado no Guardiao; ARCA-TERRITORIO-001 promovida de NAO_APLICAVEL para MAPEADO; bloco ARCA-GUARD fechado.",
+      "card_160": "#160 GUARD-D7-001: ARCA-OCORRENCIA-007 registra a identidade unitaria da ocorrencia ('1 ocorrencia = 1 MIKE', chave DATA|MIKE|BOE) e promove-a a MAPEADO com os diagnosticos OCORRENCIA_FRAGMENTADA_POR_DATA e MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO. D7 A/B/C = NAO_APLICAVEL."
+    },
+    "normalizador_integracao": {
+      "card": "#127 ARCA-FIX-004",
+      "data": "2026-09-10",
+      "metodo": "NormalizadorEfetivo.obterMetadadosArca() consome ARCA-EFETIVO-001/002, ARCA-MATRICULA-001 e ARCA-ANTIGUIDADE-001 pela porta canonica (AdaptadorConsultaArca.consultarPorRuleId), fail-soft, sem duplicar regra; os IDs aplicados sao registrados na aba [AUDITORIA] Efetivo.",
+      "regras": [
+        "ARCA-EFETIVO-001",
+        "ARCA-EFETIVO-002",
+        "ARCA-MATRICULA-001",
+        "ARCA-ANTIGUIDADE-001"
+      ]
+    },
+    "varredura_exaustiva": {
+      "card": "#128 ARCA-FIX-005",
+      "data": "2026-09-10",
+      "metodo": "varredura recursiva do repositorio (scripts/varredura_dominio.js) sobre o universo de dominio JS; exclusoes registradas por motivo.",
+      "universo": {
+        "arquivos_totais_repo": 3413,
+        "arquivos_varridos_dominio_js": 127,
+        "arquivos_excluidos": 3286,
+        "excluidos_por_motivo": {
+          "controle de versao": 2943,
+          "infraestrutura das pontes": 117,
+          "documentacao Down Plant": 95,
+          "camada de desenvolvimento agentic": 63,
+          "nao-JS de dominio (catalogos/estado/docs)": 31,
+          "saida de homologacao": 12,
+          "extensoes de navegador (infra)": 10,
+          "ferramentas de desenvolvimento": 9,
+          "nao-JS raiz": 2,
+          "canvas/planta": 2,
+          "documentacao": 2
+        }
+      },
+      "lacunas_detectadas": 6,
+      "lacunas_resolvidas": 6,
+      "lacunas_aceitas": 0,
+      "regras_adicionadas": [
+        "ARCA-OCORRENCIA-005",
+        "ARCA-METRICAS-001",
+        "ARCA-GXT-001",
+        "ARCA-TECNICA-005"
+      ],
+      "citacoes_adicionadas": [
+        "Entrada/SeletorMesesGuardiao.js",
+        "Render/RendererAuditoriaSaude.js"
+      ]
+    }
+  },
+  "regras": [
+    {
+      "rule_id": "ARCA-OCORRENCIA-001",
+      "titulo": "Conceito e Unicidade do Túnel Operacional",
+      "descricao_humana": "A ocorrência é agregada deterministicamente pelo túnel composto pela tupla DATA | MIKE | BOE. Múltiplas linhas na planilha que compartilham essa mesma tupla pertencem ao mesmo fato operacional integrado.",
+      "categoria": "AGREGACAO",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Padrão Túnel Syntheon",
+          "localizacao": "Core/RegrasQualidade.js:624-635",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:624",
+        "Features/GuardiaoQualidade.js:164",
+        "Motor/PoliticaMeritoArmas.js:31"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js:12-15",
+        "Testes/TestMeritoEquipeArmas.js"
+      ],
+      "condicao": "Linhas operacionais que possuem data, número MIKE e BOE idênticos.",
+      "resultado_esperado": "Geração de chave única UPPERCASE no formato DATA|MIKE|BOE para agregação de apreensões e equipe.",
+      "excecoes": [
+        "Quando BOE não estiver preenchido, o túnel é composto por DATA|MIKE|."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js",
+          "Motor/PoliticaMeritoArmas.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade",
+          "CompiladorGxt",
+          "MotorAnaliticoV2",
+          "PoliticaMeritoArmas"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": "Inconsistência de formato de data (Date vs String) pode fragmentar túneis.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Pilar estrutural para prevenir contagem duplicada de apreensões.",
+      "auditabilidade_guardiao": {
+        "status": "NAO_APLICAVEL",
+        "codigos": [],
+        "motivo": "Conceito estrutural de agregacao (chave DATA|MIKE|BOE); nao e regra de auditoria. Integridade coberta por ARCA-MIKE-004, ARCA-BOE-001 e ARCA-MIKE-002."
+      }
+    },
+    {
+      "rule_id": "ARCA-OCORRENCIA-002",
+      "titulo": "Ocorrência Órfã (Linha sem Identificação do Despacho)",
+      "descricao_humana": "Qualquer linha da planilha que contenha policiais, apreensões ou indicadores PIP deve obrigatoriamente possuir o número do MIKE vinculado.",
+      "categoria": "VALIDACAO",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Regra de Imputação Syntheon",
+          "localizacao": "Features/GuardiaoQualidade.js:174-187",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Features/GuardiaoQualidade.js:174-187"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js:linha 33 (ocorrência órfã)"
+      ],
+      "condicao": "Linha sem MIKE contendo matrícula, policial, indicador, imputado ou apreensões físicas.",
+      "resultado_esperado": "Diagnóstico CRÍTICO OCORRENCIA_ORFA.",
+      "excecoes": [
+        "Linhas de plantão tranquilo onde apenas a DATA está preenchida."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Perda de rastreabilidade do fato operacional junto ao CIODS.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Garante que nenhuma apreensão fique sem vínculo com despacho oficial.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "OCORRENCIA_ORFA"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-OCORRENCIA-003",
+      "titulo": "Imputação Funcional Obrigatória da Ocorrência",
+      "descricao_humana": "Uma ocorrência com apreensões físicas ou indicadores PIP não pode existir sem guarnição (policiais com matrícula válida).",
+      "categoria": "VALIDACAO",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_OPERACIONAL",
+          "nome": "Imputação de Equipe PMPE",
+          "localizacao": "Core/RegrasQualidade.js:192-204",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:192-204"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (Homologação E2E cenário sem equipe)"
+      ],
+      "condicao": "Túnel com fatos > 0 ou eventos > 0 e nenhuma matrícula vinculada.",
+      "resultado_esperado": "Diagnóstico CRÍTICO TUNEL_SEM_EQUIPE e status INVALIDO_SEM_EQUIPE.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Apreensões ficarem sem destinatário de produtividade.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Exige pelo menos um policial com matrícula cadastrada.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "TUNEL_SEM_EQUIPE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-OCORRENCIA-004",
+      "titulo": "Justificativa de Ocorrência sem Fatos Físicos",
+      "descricao_humana": "Linhas operacionais com policiais alocados mas sem apreensão material ou indicador PIP devem ser sinalizadas para confirmação de policiamento preventivo.",
+      "categoria": "VALIDACAO",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_OPERACIONAL",
+          "nome": "Classificação de Turno Sem Apreensão",
+          "localizacao": "Core/RegrasQualidade.js:205-217",
+          "autoridade": "Media"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:205-217"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (Homologação E2E)"
+      ],
+      "condicao": "Túnel com policiais e zero fatos físicos e zero eventos PIP.",
+      "resultado_esperado": "Diagnóstico ALERTA TUNEL_SEM_FATOS com status INVALIDO_SEM_FATOS.",
+      "excecoes": [
+        "Plantões tranquilos devidamente justificados."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Falso alarme em ocorrências de apoio ou patrulhamento sem flagrante.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Permite ao operador confirmar a natureza preventiva do serviço.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "TUNEL_SEM_FATOS"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-QTD-O-001",
+      "titulo": "QTD O = 01 por Túnel (primeira linha do fato)",
+      "descricao_humana": "A coluna QTD O (quantidade de ocorrências do túnel) é padrão fixo 01 e deve constar na primeira linha (fato) do túnel; as linhas filhas ficam vazias. Valores vazio, 0 ou 1 são normalizados para 01. O OCR não infere este campo.",
+      "categoria": "OBRIGATORIEDADE",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_OPERACIONAL",
+          "nome": "Regra do proprietário (11/09/2026): QTD O padrão fixo 01",
+          "localizacao": "Entrada/EntradaManual.js:6-14",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Entrada/EntradaManual.js:6-14",
+        "Entrada/EntradaManual.js:261"
+      ],
+      "evidencia_testes": [
+        "Testes/TestEntradaManualFormulario.js"
+      ],
+      "condicao": "Gravação de ocorrência: a coluna QTD O (D) deve valer 01 na primeira linha do túnel.",
+      "resultado_esperado": "QTD O = '01' na primeira linha; vazio nas linhas filhas; vazio/0/1 normalizados para 01.",
+      "excecoes": [
+        "Valor diferente de 01 é preservado (não sobrescrito) para sinalização."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Entrada/EntradaManual.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js"
+        ],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra promovida de INTEGRADO para MAPEADO no #146/#147 (diagnostico implementado no Guardiao)."
+      },
+      "alcance": "MODULO_ENTRADA",
+      "riscos": "QTD O ausente ou divergente quebra a leitura da quantidade de ocorrências do túnel.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Regra de entrada; o Guardiao passa a diagnosticar a divergencia no card #147.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "QTD_O_DIVERGENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao (invariante do tunel) com metadados ARCA via porta - cards #146/#147."
+      }
+    },
+    {
+      "rule_id": "ARCA-DETIDOS-001",
+      "titulo": "DETIDOS: Conjunto Canônico e Gravação no Fato (primeira linha)",
+      "descricao_humana": "A coluna DETIDOS (K) registra os detidos/conduzidos do túnel na primeira linha (fato); as linhas filhas ficam vazias. O cabeçalho canônico aceita os aliases DETIDOS, PRESOS e CONDUZIDOS. O conjunto é regra de domínio de dados — distinto do comportamento visual da lista suspensa no formulário.",
+      "categoria": "CONSISTENCIA_CAMPOS",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "ESQUEMA_DADOS",
+          "nome": "Dicionário de Colunas (aliases DETIDOS|PRESOS|CONDUZIDOS)",
+          "localizacao": "Core/Constantes.js:60",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/Constantes.js:60",
+        "Entrada/EntradaManual.js:268",
+        "Entrada/EntradaManual.js:754-768"
+      ],
+      "evidencia_testes": [
+        "Testes/TestEntradaManualFormulario.js"
+      ],
+      "condicao": "Túnel operacional com detidos/conduzidos informados no fato.",
+      "resultado_esperado": "DETIDOS gravado na primeira linha (fato) do túnel; linhas filhas vazias; cabeçalho aceito por alias canônico.",
+      "excecoes": [
+        "Correção pontual via corrigirDetidos(mike, valor) quando o operador deixou o padrão indevido."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/Constantes.js",
+          "Entrada/EntradaManual.js",
+          "Core/LeitorPlanilhas.js",
+          "Leitura/Adaptador2026.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra de esquema/semantica de campo operacional aplicada na entrada; nao gera diagnostico automatico."
+      },
+      "alcance": "MODULO_ENTRADA",
+      "riscos": "Valor de DETIDOS em linha filha (ou ausente no fato) distorce a contagem de detidos do túnel.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Distingue a regra de domínio (conjunto + primeira linha) do comportamento visual da lista suspensa do formulário.",
+      "auditabilidade_guardiao": {
+        "status": "INTEGRADO",
+        "codigos": [],
+        "motivo": "Conjunto canonico e gravacao no fato aplicados na entrada (Constantes + EntradaManual); nao e regra de auditoria automatica do Guardiao."
+      }
+    },
+    {
+      "rule_id": "ARCA-MIKE-001",
+      "titulo": "Conformidade Temporal do Código MIKE (PMPE/CIODS)",
+      "descricao_humana": "O código MIKE é o protocolo gerado pelo despacho CIODS e codifica a data nos 8 primeiros dígitos numéricos (YYYYMMDD). A data da planilha deve ser compatível com essa data embutida.",
+      "categoria": "INTEGRIDADE_TEMPORAL",
+      "subdominio": "mike",
+      "tipo_regra": "OFFICIAL_BUSINESS_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "NORMA_CIODS",
+          "nome": "Padrão de Protocolo de Despacho PMPE/CIODS",
+          "localizacao": "COOM/CIODS",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:356-396"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (validarDataMike / divergência temporal)"
+      ],
+      "condicao": "MIKE numérico >= 8 dígitos na faixa de anos 2020 a 2030 onde ano, mês ou dia divergem da coluna DATA.",
+      "resultado_esperado": "Diagnóstico ALERTA MIKE_DATA_DIVERGENTE.",
+      "excecoes": [
+        "MIKEs históricos fora da faixa 2020-2030 são ignorados."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Janela hardcoded 2020-2030 expirará em 2031.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Detecta erro material de digitação ou reutilização de MIKE.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "MIKE_DATA_DIVERGENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-MIKE-002",
+      "titulo": "Unicidade de Datas por MIKE",
+      "descricao_humana": "O mesmo código MIKE não pode ser empregado para fatos ocorridos em datas calendárias distintas dentro do mesmo período.",
+      "categoria": "VALIDACAO_CRUZADA",
+      "subdominio": "mike",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "REGRA_OPERACIONAL",
+          "nome": "Invariante de Despacho Único",
+          "localizacao": "Core/RegrasQualidade.js:415-427",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:415-427"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (mesmo MIKE com datas diferentes)"
+      ],
+      "condicao": "Mapeamento cruzado encontrar mais de uma data distinta associada ao mesmo número MIKE.",
+      "resultado_esperado": "Diagnóstico ALERTA MIKE_DATAS_DIVERGENTES em todas as linhas envolvidas.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Ocorrências que ultrapassam a meia-noite podem acionar falso alarme se não unificadas.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Previne reaproveitamento indevido de protocolo.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "MIKE_DATAS_DIVERGENTES"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-MIKE-003",
+      "titulo": "Detecção de MIKE Incompleto ou Sinteticamente Suspeito",
+      "descricao_humana": "Códigos de ocorrência MIKE com dígitos insuficientes (< 8 dígitos) ou preenchidos com o ano corrente isolado (ex: \"2026\") são rejeitados como suspeitos.",
+      "categoria": "SINTAXE",
+      "subdominio": "mike",
+      "tipo_regra": "HEURISTIC",
+      "fonte_status": "DOMAIN_RULE_SOURCE_UNKNOWN",
+      "fontes": [],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:637-640",
+        "Features/GuardiaoQualidade.js:199-211"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (MIKE suspeito)"
+      ],
+      "condicao": "MIKE sanitizado possuir apenas 2026 ou entre 1 e 7 dígitos.",
+      "resultado_esperado": "Diagnóstico ALERTA MIKE_SUSPEITO sem interrupção da varredura.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "MEDIA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "MIKEs curtos de anos anteriores a 2020 podem gerar falso alarme.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Heurística adotada para capturar digitação incompleta durante o plantão.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "MIKE_SUSPEITO"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-BOE-001",
+      "titulo": "Unicidade de BOE por MIKE (Consistência PCPE x PMPE)",
+      "descricao_humana": "Um mesmo despacho operacional MIKE da PMPE não pode estar vinculado a múltiplos Boletins de Ocorrência Policial (BOE) diferentes da Polícia Civil.",
+      "categoria": "VALIDACAO_CRUZADA",
+      "subdominio": "boe",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_INTEGRACAO",
+          "nome": "Unicidade do Fato Policial PMPE/PCPE",
+          "localizacao": "Core/RegrasQualidade.js:401-413",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:401-413"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (mesmo MIKE com BOEs diferentes)"
+      ],
+      "condicao": "Mapeamento cruzado detectar mais de um BOE associado ao mesmo MIKE.",
+      "resultado_esperado": "Diagnóstico ALERTA MIKE_BOE_DIVERGENTE.",
+      "excecoes": [
+        "Desmembramento formal de inquérito na delegacia (justificado em relatório)."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Casos legítimos de desdobramento em flagrantes múltiplos.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Preserva a integridade relacional entre o despacho militar e o inquérito civil.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "MIKE_BOE_DIVERGENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-BOE-002",
+      "titulo": "Obrigatoriedade do BOE (Número da Polícia Civil)",
+      "descricao_humana": "Todo despacho operacional MIKE da PMPE deve possuir um número de Boletim de Ocorrência (BOE) da Polícia Civil. Ausência de BOE em todas as linhas do túnel é um erro que exige a coleta do número junto à Polícia Civil.",
+      "categoria": "OBRIGATORIEDADE",
+      "subdominio": "boe",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_OPERACIONAL",
+          "nome": "Regra do proprietário (12/09/2026): BOE sempre obrigatório",
+          "localizacao": "Core/RegrasQualidade.js:437-451",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:437-451"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (MIKE sem BOE em nenhuma linha)"
+      ],
+      "condicao": "MIKE presente com BOE vazio em todas as linhas do túnel.",
+      "resultado_esperado": "Diagnóstico ALERTA BOE_AUSENTE.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Túnel sem BOE perde o vínculo formal com o inquérito civil (chave do túnel fica incompleta).",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Complementa ARCA-OCORRENCIA-001: quando BOE está vazio, a agregação cai para DATA|MIKE, mas a ausência deve ser sinalizada para o operador coletar o número junto à Polícia Civil.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "BOE_AUSENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-PIP-001",
+      "titulo": "Divisor Regulamentar Fixo de Rateio PIP (Quotas /4)",
+      "descricao_humana": "O cálculo regulamentar de PONTOS FICÇÃO individuais para cada policial militar participante do túnel é obtido dividindo a soma de pontos brutos do túnel pelo DIVISOR FIXO 4, independentemente do número de policiais na guarnição (seja 1, 4, 5 ou 10 policiais).",
+      "categoria": "CALCULO_PRODUTIVIDADE",
+      "subdominio": "pip",
+      "tipo_regra": "OFFICIAL_BUSINESS_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "PORTARIA_REGULAMENTAR",
+          "nome": "Regulamento de Produtividade PIP / Batalhão",
+          "localizacao": "Core/Constantes.js:10",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/Constantes.js:10",
+        "Core/RegrasQualidade.js:139-185"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js:12-15 (rateio com 4, 5 e 10 policiais)"
+      ],
+      "condicao": "Túnel com pontos totais > 0 e policiais com matrícula cadastrada.",
+      "resultado_esperado": "Pontos Ficção lidos = Total Pontos / 4. Diferença > 0.01 ou valor zerado emite ALERTA RATEIO_PONTOS_INCOERENTE.",
+      "excecoes": [
+        "Ajuste manual com nota iniciada por EXCECAO: na célula."
+      ],
+      "parametros": [
+        {
+          "nome": "DIVISOR_RATEIO_PIP",
+          "padrao": 4,
+          "configuravel": "CONSTANTES_SYNTHEON.DIVISOR_RATEIO_PIP"
+        }
+      ],
+      "hardcoded": false,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade",
+          "PluginPontuacao",
+          "CompiladorProdutividade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": "Operadores desacostumados tentarem ratear dividindo pelo número real de militares.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Regra de ouro da portaria de pontuação do PIP.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "RATEIO_PONTOS_INCOERENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-PIP-002",
+      "titulo": "Acúmulo Máximo de Pontos por Atuação no Mês",
+      "descricao_humana": "Ao consolidar a pontuação mensal do policial em múltiplas linhas da mesma atuação/ocorrência, prevalece o valor máximo auferido para evitar inflação cumulativa de frações da mesma ocorrência.",
+      "categoria": "AGREGACAO_METRICA",
+      "subdominio": "pip",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "MOTOR_METRICA",
+          "nome": "Lógica de Pontuação Consolidada",
+          "localizacao": "Plugins/Metricas/PluginPontuacao.js:32",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Plugins/Metricas/PluginPontuacao.js:32"
+      ],
+      "evidencia_testes": [
+        "Testes/TestPlugins.js",
+        "Testes/TestRelatoriosPipCpm.js"
+      ],
+      "condicao": "Consolidação de pontos por matrícula e chave de atuação.",
+      "resultado_esperado": "mapaPontos.set(chavePonto, Math.max(atual, pontosLidos)).",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Plugins/Metricas/PluginPontuacao.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "PluginPontuacao",
+          "CompiladorProdutividade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+      },
+      "alcance": "MODULO_METRICAS",
+      "riscos": "Nenhum identificado; comportamento determinístico.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Garante que o policial receba exatamente sua quota daquela ocorrência.",
+      "auditabilidade_guardiao": {
+        "status": "INTEGRADO",
+        "codigos": [],
+        "motivo": "Aplicada em Plugins/Metricas/PluginPontuacao.js; o Guardiao audita os insumos (rateio) via ARCA-PIP-001, nao o acumulo final."
+      }
+    },
+    {
+      "rule_id": "ARCA-PIP-003",
+      "titulo": "Catálogo Oficial de Indicadores PIP (Tabela PIP Dinâmica)",
+      "descricao_humana": "A relação de indicadores de ocorrência PIP válidos é fornecida pela aba \"Tabela PIP\" da planilha do Batalhão. O sistema consome esse catálogo dinamicamente para validar a nomenclatura do evento.",
+      "categoria": "CATALOGO",
+      "subdominio": "pip",
+      "tipo_regra": "OFFICIAL_BUSINESS_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "TABELA_PLANILHA",
+          "nome": "Aba Tabela PIP",
+          "localizacao": "Planilha Mensal / Tabela PIP",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Features/GuardiaoQualidade.js:37-96",
+        "Core/RegrasQualidade.js:436-451"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js:16-18"
+      ],
+      "condicao": "Indicador preenchido na coluna AG confrontado com catálogo.",
+      "resultado_esperado": "Se não mapeado, emite OBSERVACAO INDICADOR_DESCONHECIDO; se aba ausente, emite MODO_LIMITADO_CATALOGO_PIP.",
+      "excecoes": [
+        "Quando a aba Tabela PIP não existir, opera em modo tolerante para não travar auditoria."
+      ],
+      "parametros": [
+        {
+          "nome": "aliasesAbaPIP",
+          "valores": [
+            "TABELA PIP",
+            "PIP",
+            "TABELA DE INDICADORES"
+          ]
+        }
+      ],
+      "hardcoded": false,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Variações ortográficas em novos tipos de ocorrência criados sem atualizar a aba PIP.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Design desacoplado: o catálogo não fica engessado no código.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "INDICADOR_DESCONHECIDO",
+          "MODO_LIMITADO_CATALOGO_PIP"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-IMPUTACAO-001",
+      "titulo": "Preenchimento Obrigatório da Situação de Imputação (AG x AH)",
+      "descricao_humana": "Toda linha que declarar um indicador OCORRÊNCIA PIP (coluna AG) deve obrigatoriamente classificar a situação do flagrante como \"COM IMPUTADO\" ou \"SEM IMPUTADO\" (coluna AH).",
+      "categoria": "CONSISTENCIA_CAMPOS",
+      "subdominio": "imputacao",
+      "tipo_regra": "OFFICIAL_BUSINESS_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "PADRAO_ESTATISTICA",
+          "nome": "Diretriz de Registro Estatístico PMPE",
+          "localizacao": "Core/RegrasQualidade.js:591",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:642-645",
+        "Features/GuardiaoQualidade.js:218-259"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js:8-9"
+      ],
+      "condicao": "AG preenchido sem AH -> EVENTO_INCOMPLETO_AG; AH preenchido sem AG -> IMPUTADO_SEM_EVENTO_AH; AH diferente de COM/SEM IMPUTADO -> IMPUTADO_INVALIDO.",
+      "resultado_esperado": "Diagnóstico ALERTA nas linhas divergentes.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Distorção nas estatísticas criminais se a imputação for omitida.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Campo indispensável para apuração de prisões em flagrante.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "EVENTO_INCOMPLETO_AG",
+          "IMPUTADO_INVALIDO",
+          "IMPUTADO_SEM_EVENTO_AH"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-IMPUTACAO-002",
+      "titulo": "Contabilização de Procedimentos Legais (APFD, TCO, BOC, AAFAI)",
+      "descricao_humana": "A quantidade de procedimentos policiais lavrados (Auto de Prisão em Flagrante Delito, Termo Circunstanciado de Ocorrência, Boletim de Ocorrência Circunstanciado, Auto de Apreensão de Flagrante de Ato Infracional) é somada no consolidado individual do militar.",
+      "categoria": "AGREGACAO_METRICA",
+      "subdominio": "imputacao",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "ESQUEMA_DADOS",
+          "nome": "Dicionário de Colunas de Procedimento",
+          "localizacao": "Core/Constantes.js:44-48",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Plugins/Metricas/PluginPrisoes.js:15-18"
+      ],
+      "evidencia_testes": [
+        "Testes/TestPlugins.js"
+      ],
+      "condicao": "Valores numéricos preenchidos nas colunas de procedimentos da linha do militar.",
+      "resultado_esperado": "Incremento nos contadores de detidos, apfd, tco e boc do policial.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Plugins/Metricas/PluginPrisoes.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "PluginPrisoes",
+          "CompiladorProdutividade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+      },
+      "alcance": "MODULO_METRICAS",
+      "riscos": "Preenchimento textual em vez de contagem numérica.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Espelha o desfecho formal do inquérito na delegacia de plantão.",
+      "auditabilidade_guardiao": {
+        "status": "INTEGRADO",
+        "codigos": [],
+        "motivo": "Aplicada em Plugins/Metricas/PluginPrisoes.js; contabilizacao de procedimentos legais fora do caminho de auditoria do Guardiao."
+      }
+    },
+    {
+      "rule_id": "ARCA-EFETIVO-001",
+      "titulo": "Padronização Canônica de Graduações Policiais Militares",
+      "descricao_humana": "Todas as graduações militares (de Soldado a Coronel) são normalizadas para siglas canônicas uniformes (SD, CB, 3ºSGT, 2ºSGT, 1ºSGT, SUBTEN, ASP, 2ºTEN, 1ºTEN, CAP, MAJ, TC, CEL).",
+      "categoria": "PADRONIZACAO",
+      "subdominio": "efetivo",
+      "tipo_regra": "OFFICIAL_BUSINESS_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "ESTATUTO_MILITAR",
+          "nome": "Estatuto dos Policiais Militares de Pernambuco",
+          "localizacao": "Core/Constantes.js:55-74",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/Constantes.js:55-74",
+        "Core/Utils.js:normalizarGraduacao",
+        "Features/NormalizadorEfetivo.js:83"
+      ],
+      "evidencia_testes": [
+        "Testes/TestNormalizadorEfetivo.js",
+        "Testes/TestDominio.js"
+      ],
+      "condicao": "Entrada de postos/graduações com grafia por extenso, abreviações com ponto ou variações.",
+      "resultado_esperado": "Mapeamento determinístico para a sigla oficial PMPE.",
+      "excecoes": [
+        "Valores desconhecidos são preservados como N/I ou string limpa original."
+      ],
+      "parametros": [
+        {
+          "nome": "GRADUACOES",
+          "tipo": "MAPA_ESTATICO",
+          "configuravel": "CONSTANTES_SYNTHEON.GRADUACOES"
+        }
+      ],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/Utils.js",
+          "Features/NormalizadorEfetivo.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "NormalizadorEfetivo",
+          "CompiladorProdutividade",
+          "RendererCA"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Consumo real pelo NormalizadorEfetivo (obterMetadadosArca via AdaptadorConsultaArca) desde #127; o Guardiao nao audita esta regra diretamente (auditabilidade NAO_AUDITAVEL mantida com motivo)."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": "Patentes inexistentes no mapa caírem em N/I.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Base para ordenamento hierárquico em relatórios.",
+      "auditabilidade_guardiao": {
+        "status": "INTEGRADO",
+        "codigos": [],
+        "motivo": "Aplicada pelo NormalizadorEfetivo (Features/NormalizadorEfetivo.js) via porta ARCA (#127); transformacao de dados, nao auditoria de planilha."
+      }
+    },
+    {
+      "rule_id": "ARCA-EFETIVO-002",
+      "titulo": "Desambiguação Automática de Nomes de Guerra por Antiguidade N",
+      "descricao_humana": "Quando múltiplos policiais do efetivo compartilham o mesmo nome de guerra e mesma graduação, o sistema desambigua numerando por ordem de antiguidade (1º NOME, 2º NOME., 3º NOME:).",
+      "categoria": "DESAMBIGUACAO",
+      "subdominio": "efetivo",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "TRADICAO_OPERACIONAL",
+          "nome": "Padrão de Nome de Guerra da Seção de Pessoal PMPE",
+          "localizacao": "Features/NormalizadorEfetivo.js:32",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Features/NormalizadorEfetivo.js:140-190 (desambiguarNomesGuerra)"
+      ],
+      "evidencia_testes": [
+        "Testes/TestNormalizadorEfetivo.js:test 5 (desambiguação)"
+      ],
+      "condicao": "Dois ou mais registros com mesma graduação e mesmo nome de guerra.",
+      "resultado_esperado": "Ordenação crescente por antiguidade N e prefixação ordenada.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Features/NormalizadorEfetivo.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "NormalizadorEfetivo"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Consumo real pelo NormalizadorEfetivo (obterMetadadosArca via AdaptadorConsultaArca) desde #127; o Guardiao nao audita esta regra diretamente (auditabilidade NAO_AUDITAVEL mantida com motivo)."
+      },
+      "alcance": "MODULO_EFETIVO",
+      "riscos": "Mudança de antiguidade no boletim geral alterar o prefixo do nome de guerra.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Evita homônimos em escalas de serviço e relatórios estatísticos.",
+      "auditabilidade_guardiao": {
+        "status": "INTEGRADO",
+        "codigos": [],
+        "motivo": "Aplicada pelo NormalizadorEfetivo (desambiguacao de nomes de guerra por menor N) via porta ARCA (#127)."
+      }
+    },
+    {
+      "rule_id": "ARCA-MATRICULA-001",
+      "titulo": "Higienização e Validação da Matrícula Funcional",
+      "descricao_humana": "A matrícula do policial é o identificador único institucional. Caracteres não numéricos (hífens, pontos, dígitos verificadores separados) devem ser expurgados, retendo apenas a sequência numérica estrita.",
+      "categoria": "IDENTIFICADOR_UNICO",
+      "subdominio": "matricula",
+      "tipo_regra": "OFFICIAL_BUSINESS_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "SISTEMA_RH",
+          "nome": "Padrão de Matrícula do Estado de Pernambuco / SIRH",
+          "localizacao": "Dominio/Policial.js:13",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Dominio/Policial.js:13",
+        "Core/Utils.js:limparMatricula",
+        "Core/RegrasQualidade.js:557"
+      ],
+      "evidencia_testes": [
+        "Testes/TestDominio.js",
+        "Testes/TestNormalizadorEfetivo.js"
+      ],
+      "condicao": "String de matrícula com formatações diversas.",
+      "resultado_esperado": "String contendo unicamente dígitos numéricos. Se vazia, rejeita a instância.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Core/Utils.js",
+          "Dominio/Policial.js",
+          "Features/NormalizadorEfetivo.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "Policial",
+          "NormalizadorEfetivo",
+          "CompiladorProdutividade",
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Consumo real pelo NormalizadorEfetivo (obterMetadadosArca via AdaptadorConsultaArca) desde #127; o Guardiao nao audita esta regra diretamente (auditabilidade NAO_AUDITAVEL mantida com motivo)."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": "Matrículas de outras forças que contenham letras.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Chave primária para joins entre ocorrências, pecúlio e produtividade.",
+      "auditabilidade_guardiao": {
+        "status": "INTEGRADO",
+        "codigos": [],
+        "motivo": "Higienizacao de formato aplicada pelo NormalizadorEfetivo; o Guardiao audita apenas a ausencia (ARCA-MATRICULA-002)."
+      }
+    },
+    {
+      "rule_id": "ARCA-MATRICULA-002",
+      "titulo": "Obrigatoriedade de Matrícula para Policial com Nome Declarado",
+      "descricao_humana": "Não é permitido registrar policial apenas pelo nome de guerra sem fornecer a matrícula funcional correspondente.",
+      "categoria": "INTEGRIDADE_CADASTRO",
+      "subdominio": "matricula",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_AUDITORIA",
+          "nome": "Consistência de Efetivo Participante",
+          "localizacao": "Features/GuardiaoQualidade.js:274-286",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Features/GuardiaoQualidade.js:274-286"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (matrícula ausente)"
+      ],
+      "condicao": "Linha operacional com nome de policial preenchido e coluna matrícula em branco.",
+      "resultado_esperado": "Diagnóstico ALERTA MATRICULA_AUSENTE.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Policial atuar na ocorrência e não pontuar na produtividade.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Garante que todo militar participante seja pontuado.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "MATRICULA_AUSENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-ANTIGUIDADE-001",
+      "titulo": "Precedência Hierárquica Militar por Menor Número N",
+      "descricao_humana": "Na hierarquia militar da PMPE, a precedência é inversamente proporcional ao número N de antiguidade: quanto menor o número N, mais antigo é o militar e maior é sua autoridade/precedência na guarnição.",
+      "categoria": "HIERARQUIA",
+      "subdominio": "antiguidade",
+      "tipo_regra": "OFFICIAL_BUSINESS_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "ESTATUTO_MILITAR",
+          "nome": "Estatuto dos Policiais Militares de Pernambuco (Critério de Antiguidade)",
+          "localizacao": "Motor/PoliticaMeritoArmas.js:8",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Motor/PoliticaMeritoArmas.js:140-160",
+        "Features/NormalizadorEfetivo.js:94-97"
+      ],
+      "evidencia_testes": [
+        "Testes/TestMeritoEquipeArmas.js",
+        "Testes/TestGuardiao.js:28-37"
+      ],
+      "condicao": "Dois ou mais militares na mesma guarnição.",
+      "resultado_esperado": "Identificação do militar com menor valor numérico N como líder hierárquico.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Features/NormalizadorEfetivo.js",
+          "Motor/PoliticaMeritoArmas.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "PoliticaMeritoArmas",
+          "CompiladorGxt",
+          "NormalizadorEfetivo"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Consumo real pelo NormalizadorEfetivo (obterMetadadosArca via AdaptadorConsultaArca) desde #127; o Guardiao nao audita esta regra diretamente (auditabilidade NAO_AUDITAVEL mantida com motivo)."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": "Confusão com conceitos civis onde número maior indica maior tempo.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Base de todos os critérios de desempate e liderança de equipe.",
+      "auditabilidade_guardiao": {
+        "status": "INTEGRADO",
+        "codigos": [],
+        "motivo": "Precedencia por menor N aplicada em Motor/PoliticaMeritoArmas.js e NormalizadorEfetivo (#127); no Guardiao aparece via merito de armas."
+      }
+    },
+    {
+      "rule_id": "ARCA-ANTIGUIDADE-002",
+      "titulo": "Ordem de Antiguidade da Equipe no Túnel (Posto/Graduação, mais antigo primeiro)",
+      "descricao_humana": "A equipe de um tunel operacional e ordenada pela antiguidade militar: primeiro pelo posto/graduacao (o mais antigo primeiro) e, em caso de mesma graduacao, pela MATRICULA mais antiga (menor numero). A ordem define quem lidera a ocorrencia. A MESMA logica existe no formulario (Entrada/Formulario.html) e nao pode divergir.",
+      "categoria": "HIERARQUIA",
+      "subdominio": "antiguidade",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_OPERACIONAL",
+          "nome": "Regra do proprietário (11/09/2026): ordem canônica da equipe por posto/graduação",
+          "localizacao": "Core/Policiais.js:94,138",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/Policiais.js:94",
+        "Core/Policiais.js:138",
+        "Motor/PoliticaMeritoArmas.js"
+      ],
+      "evidencia_testes": [
+        "Testes/TestMeritoEquipeArmas.js"
+      ],
+      "condicao": "Tunel operacional com dois ou mais policiais vinculados.",
+      "resultado_esperado": "Equipe ordenada por posto/graduacao (mais antigo primeiro) e, no empate, pela matricula mais antiga (menor numero).",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/Policiais.js",
+          "Motor/PoliticaMeritoArmas.js",
+          "Features/NormalizadorEfetivo.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js"
+        ],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra promovida de INTEGRADO para MAPEADO no #146/#147 (diagnostico implementado no Guardiao)."
+      },
+      "alcance": "MODULO_ENTRADA_E_AUDITORIA",
+      "riscos": "Ordem incorreta da equipe distorce a atribuição de mérito de armas (líder errado) e a leitura do túnel.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Complementa ARCA-ANTIGUIDADE-001 (precedencia por menor N, criterio de MERITO): aqui a regra e a ORDEM da equipe no tunel - graduacao primeiro, MATRICULA mais antiga como desempate (mesma logica de Core/Policiais.js:141-151).",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "ORDEM_ANTIGUIDADE_EQUIPE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao (invariante do tunel) com metadados ARCA via porta - cards #146/#147."
+      }
+    },
+    {
+      "rule_id": "ARCA-MERITO-001",
+      "titulo": "Atribuição Exclusiva do Mérito de Armas ao Líder mais Antigo (Menor N)",
+      "descricao_humana": "O reconhecimento institucional e bônus de mérito de equipe por apreensão de armas é atribuído integralmente ao líder da guarnição (o militar de menor N entre todos os participantes do túnel, mesmo que o líder esteja em linha sem arma).",
+      "categoria": "ATRIBUICAO_MERITO",
+      "subdominio": "merito_armas",
+      "tipo_regra": "OFFICIAL_BUSINESS_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_COMANDO",
+          "nome": "Política de Mérito de Equipe por Armas / Gxt",
+          "localizacao": "Motor/PoliticaMeritoArmas.js:1-9",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Motor/PoliticaMeritoArmas.js:140-185",
+        "Features/CompiladorGxt.js:1-10"
+      ],
+      "evidencia_testes": [
+        "Testes/TestMeritoEquipeArmas.js",
+        "Testes/TestGuardiao.js:34"
+      ],
+      "condicao": "Ocorrência com apreensão de arma de fogo ou artesanal física > 0.",
+      "resultado_esperado": "Atribuição de todas as armas da ocorrência ao líder identificado pelo menor N da equipe.",
+      "excecoes": [
+        "Túneis sem armas apreendidas não participam da política."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/CompiladorGxt.js",
+          "Features/GuardiaoQualidade.js",
+          "Motor/PoliticaMeritoArmas.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "PoliticaMeritoArmas",
+          "CompiladorGxt",
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": "Falta do cadastro de N no Pecúlio bloqueia a atribuição.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "O líder responde pelo mérito da apreensão da equipe.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "MERITO_ARMAS_ANTIGUIDADE_AUSENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-MERITO-002",
+      "titulo": "Bloqueio Crítico por Empate de Antiguidade N na Ocorrência Armada",
+      "descricao_humana": "Se dois ou mais integrantes da ocorrência armada apresentarem rigorosamente o mesmo menor número N no Pecúlio, o sistema não pode arbitrar e deve sinalizar pendência crítica para desempate pelo comando.",
+      "categoria": "BLOQUEIO_AUDITORIA",
+      "subdominio": "merito_armas",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CRITERIO_EQUIDADE",
+          "nome": "Vedação ao Arbitramento Automático em Empate de Antiguidade",
+          "localizacao": "Core/RegrasQualidade.js:336-351",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:336-351",
+        "Motor/PoliticaMeritoArmas.js:165-175"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js:30 (empate no menor N)"
+      ],
+      "condicao": "Dois integrantes empatados no menor valor N.",
+      "resultado_esperado": "Diagnóstico CRÍTICO MERITO_ARMAS_EMPATE_ANTIGUIDADE e status PENDENTE.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js",
+          "Motor/PoliticaMeritoArmas.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade",
+          "PoliticaMeritoArmas"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Líder não ser computado até retificação cadastral.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Resguarda a integridade do mérito militar sem favoritismo algorítmico.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "MERITO_ARMAS_EMPATE_ANTIGUIDADE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-MERITO-003",
+      "titulo": "Isolamento da Fonte Pecúlio Externo (Proibição de Fallback)",
+      "descricao_humana": "A antiguidade N oficial deve ser lida exclusivamente da planilha externa configurada do Pecúlio. É proibido usar a planilha de ocorrências (sheet.getParent) como fallback para evitar corrupção de dados.",
+      "categoria": "SEGURANCA_DADOS",
+      "subdominio": "merito_armas",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Diretriz de Isolamento de Fontes Sensíveis",
+          "localizacao": "Features/GuardiaoQualidade.js:318",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Features/GuardiaoQualidade.js:318",
+        "Testes/TestGuardiao.js:37"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js:36-37"
+      ],
+      "condicao": "Tentativa de leitura de antiguidade N.",
+      "resultado_esperado": "Consumo via CONFIG_SYNTHEON.obterIdPeculio(); se inacessível, emite OBSERVACAO única sem ler dados locais espúrios.",
+      "excecoes": [],
+      "parametros": [
+        {
+          "nome": "PECULIO_ID",
+          "configuravel": "CONFIG_SYNTHEON.PLANILHAS.PECULIO_ID"
+        }
+      ],
+      "hardcoded": false,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade",
+          "CompiladorGxt"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": "Falta de permissão de acesso à planilha externa gera modo limitado.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Blindagem de governança e separação de responsabilidades.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "ANTIGUIDADE_FONTE_NAO_LOCALIZADA"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-ARMAS-001",
+      "titulo": "Fonte Exclusiva de Arma Física (Coluna ARMA x Exclusão de QDT ARMAS)",
+      "descricao_humana": "A quantidade de armas de fogo físicas apreendidas decorre unicamente da coluna ARMA (coluna 12, numérica, uma arma por linha). A coluna QDT ARMAS (coluna 32) não é quantidade física: é a participação por policial, replicada para todos os participantes do túnel, e jamais entra na soma dos relatórios executivos (somá-la multiplicaria o resultado pelo número de policiais).",
+      "categoria": "DEFINICAO_METRICA",
+      "subdominio": "armas",
+      "tipo_regra": "OFFICIAL_BUSINESS_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "REGRA_DE_OURO_GXT",
+          "nome": "Regra de Ouro do Relatório Trimestral Gxt",
+          "localizacao": "Features/CompiladorGxt.js:4-8",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Features/CompiladorGxt.js:4-8",
+        "Motor/PoliticaMeritoArmas.js:4-6",
+        "Core/Constantes.js:33-37",
+        "Core/LeitorPlanilhas.js:150,242,267",
+        "Features/GuardiaoQualidade.js:178-179",
+        "Features/GuardiaoQualidade.js:486-509"
+      ],
+      "evidencia_testes": [
+        "Testes/TestRelatorioArmas.js",
+        "Testes/TestRelatorioGxt.js",
+        "Testes/TestSemanticaArmasQdt.js"
+      ],
+      "condicao": "Cálculo e totalização de armas apreendidas no mês/trimestre.",
+      "resultado_esperado": "Total de armas = soma da coluna ARMA (col 12); QDT ARMAS ignorada em somas; QDT ARMAS deve ser idêntico para todos os participantes do túnel e igual à soma de ARMA do túnel (invariante de participação).",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Features/CompiladorGxt.js",
+          "Motor/PoliticaMeritoArmas.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "CompiladorGxt",
+          "PoliticaMeritoArmas",
+          "PluginArmas"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (QDT_ARMAS_DIVERGENTE_NO_TUNEL mapeado na porta)."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": "Se um operador preencher apenas QDT ARMAS, a arma não entra na soma oficial.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Resolução consolidada para sanar antigas divergências em fechamentos mensais. Card #141: o alias ARMAS de Core/Constantes.js listava QDT ARMAS antes de ARMA, fazendo Guardião/Leitor somarem participação como arma física (no túnel real de 4 policiais: 8 em vez de 2). Corrigido no menor ponto responsável.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "QDT_ARMAS_DIVERGENTE_NO_TUNEL"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao (QDT_ARMAS_DIVERGENTE_NO_TUNEL) com metadados ARCA via porta. Invariante definida no card #141: QDT ARMAS identico entre participantes e igual a soma de ARMA do tunel."
+      }
+    },
+    {
+      "rule_id": "ARCA-ARMAS-002",
+      "titulo": "Reconhecimento Textual de Arma Artesanal",
+      "descricao_humana": "Armas artesanais/caseiras NÃO entram na quantidade física de armas de fogo (coluna ARMA) — não aceitas pelos escalões superiores na estatística oficial. PORÉM contam a participação (QDT ARMAS) e recebem a MESMA recompensa de mérito que uma arma industrial (risco operacional idêntico). Identificação exclusivamente por indicadores textuais (\"ARTESANAL\") nos campos de tipo ou modelo.",
+      "categoria": "CLASSIFICACAO",
+      "subdominio": "armas",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_GXT",
+          "nome": "Classificação de Armas Artesanais",
+          "localizacao": "Motor/PoliticaMeritoArmas.js:50-52",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Motor/PoliticaMeritoArmas.js:50-52",
+        "Features/CompiladorGxt.js:6"
+      ],
+      "evidencia_testes": [
+        "Testes/TestMeritoEquipeArmas.js"
+      ],
+      "condicao": "Presença do termo ARTESANAL nas colunas de tipo, modelo, descrição ou natureza.",
+      "resultado_esperado": "Contabilização na métrica armasArtesanais e segregação das armas de fogo industriais.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Features/CompiladorGxt.js",
+          "Motor/PoliticaMeritoArmas.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "PoliticaMeritoArmas",
+          "CompiladorGxt"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_ARMAS",
+      "riscos": "Erro de grafia (ex: \"arma caseira\" sem o termo artesanal).",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Atende às tabelas de diferenciação balística da corporação (quantidade física). Participação e recompensa seguem o mérito por desempenho individual, idênticas à arma industrial — determinado pelo proprietário em 12/09/2026.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "ARMA_ARTESANAL_INCONSISTENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta (regra do proprietario 12/09: artesanal nao entra na quantidade fisica ARMA)."
+      }
+    },
+    {
+      "rule_id": "ARCA-ARMAS-003",
+      "titulo": "Consistência de Indicador PIP de Arma vs Apreensão Física",
+      "descricao_humana": "Ocorrência com indicador PIP de arma de fogo exige registro de quantidade de armas > 0 no túnel.",
+      "categoria": "CONSISTENCIA_MATERIAL",
+      "subdominio": "armas",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "AUDITORIA_INTEGRIDADE",
+          "nome": "Validação Fato Arma vs Indicador",
+          "localizacao": "Core/RegrasQualidade.js:94-106",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:94-106"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (Homologação E2E)"
+      ],
+      "condicao": "Indicador inclui \"ARMA DE FOGO\" ou \"ARMA LONGA\" e armas <= 0.",
+      "resultado_esperado": "Diagnóstico ALERTA FATO_ARMA_AUSENTE.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Tentativa de porte sem apreensão efetiva da arma.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Exige coerência entre o texto e a quantidade física apreendida.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "FATO_ARMA_AUSENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-MUNICOES-001",
+      "titulo": "Consistência de Indicador PIP de Munição vs Quantidade Física",
+      "descricao_humana": "Indicador PIP contendo \"MUNICAO\" exige quantidade numérica de munições > 0 registrada na ocorrência.",
+      "categoria": "CONSISTENCIA_MATERIAL",
+      "subdominio": "municoes",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "AUDITORIA_INTEGRIDADE",
+          "nome": "Validação Fato Munição vs Indicador",
+          "localizacao": "Core/RegrasQualidade.js:108-120",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:108-120"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (Homologação E2E)"
+      ],
+      "condicao": "Indicador inclui \"MUNICAO\" e municoes <= 0.",
+      "resultado_esperado": "Diagnóstico ALERTA FATO_MUNICAO_AUSENTE.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Nenhum identificado.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Previne lançamento de indicadores de munição sem comprovação na carga.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "FATO_MUNICAO_AUSENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-DROGAS-001",
+      "titulo": "Validação Material Obrigatória por Tipo de Entorpecente",
+      "descricao_humana": "Indicadores PIP específicos de maconha, crack ou cocaína exigem comprovação de quantidade física > 0 nas respectivas colunas de pesagem/unidades.",
+      "categoria": "CONSISTENCIA_MATERIAL",
+      "subdominio": "drogas",
+      "tipo_regra": "HEURISTIC",
+      "fonte_status": "DOMAIN_RULE_SOURCE_UNKNOWN",
+      "fontes": [],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:52-92"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (Homologação E2E)"
+      ],
+      "condicao": "Indicador contém MACONHA/CRACK/COCAINA com fato correspondente <= 0.",
+      "resultado_esperado": "Diagnóstico ALERTA FATO_MACONHA_AUSENTE / FATO_CRACK_AUSENTE / FATO_COCAINA_AUSENTE.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "MEDIA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Indicadores genéricos (ex: \"TRÁFICO DE DROGAS\") sem especificar a substância não são capturados.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Heurística desenvolvida internamente com base no padrão dos relatórios.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "FATO_COCAINA_AUSENTE",
+          "FATO_CRACK_AUSENTE",
+          "FATO_MACONHA_AUSENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-DROGAS-002",
+      "titulo": "Consolidação Cumulativa de Apreensão de Drogas por Militar",
+      "descricao_humana": "O total individual de drogas é a soma de gramas de maconha, crack e cocaína atribuídos ao militar na planilha de ocorrências.",
+      "categoria": "AGREGACAO_METRICA",
+      "subdominio": "drogas",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "METRICA_PRODUTIVIDADE",
+          "nome": "Totalizador de Entorpecentes",
+          "localizacao": "Plugins/Metricas/PluginEntorpecentes.js:27",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Plugins/Metricas/PluginEntorpecentes.js:27"
+      ],
+      "evidencia_testes": [
+        "Testes/TestPlugins.js",
+        "Testes/TestRelatorioDrogas.js"
+      ],
+      "condicao": "Linhas do policial com apreensão de entorpecentes.",
+      "resultado_esperado": "Incremento das métricas individuais e contagem de ocorrências com droga.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Plugins/Metricas/PluginEntorpecentes.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "PluginEntorpecentes",
+          "CompiladorProdutividade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "SEM codigo mapeado na porta ARCA: implementacao existe, mas nao recebe metadados ARCA (cobertura pendente - #126)."
+      },
+      "alcance": "MODULO_METRICAS",
+      "riscos": "Soma de unidades de medida heterogêneas se houver comprimidos/unidades misturadas com gramas.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Expressa o volume total apreendido pelo militar no período.",
+      "auditabilidade_guardiao": {
+        "status": "INTEGRADO",
+        "codigos": [],
+        "motivo": "Aplicada em Plugins/Metricas/PluginEntorpecentes.js; consolidacao cumulativa de drogas fora do caminho de auditoria do Guardiao."
+      }
+    },
+    {
+      "rule_id": "ARCA-NUMERARIO-001",
+      "titulo": "Resguardo da Não Auditabilidade Automática de Numerário",
+      "descricao_humana": "Apreensões de dinheiro/numerário sem valor registrado em reais não podem ser recalculadas ou rejeitadas por máquina; o sistema classifica como NÃO AUDITÁVEL AUTOMATICAMENTE e preserva a intervenção humana.",
+      "categoria": "DISCRICIONARIEDADE_HUMANA",
+      "subdominio": "numerario",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_GOVERNANCA",
+          "nome": "Resguardo de Discricionariedade Humana em Numerário",
+          "localizacao": "Core/RegrasQualidade.js:122-136",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:122-136"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js:11 (numerário sem valor em reais)"
+      ],
+      "condicao": "Indicador PIP contendo NUMERARIO ou DINHEIRO com valor lido <= 0.",
+      "resultado_esperado": "Emissão de diagnóstico OBSERVACAO com código FATO_NAO_AUDITAVEL_AUTOMATICAMENTE.",
+      "excecoes": [
+        "Nenhum bloqueio ou alerta impeditivo gerado."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Nenhum; previne arbitrariedade automatizada.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Garante que o auditor humano decida sobre valores retidos para perícia.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "FATO_NAO_AUDITAVEL_AUTOMATICAMENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-TECNICA-001",
+      "titulo": "Detecção de Erros Sintáticos e de Referência em Fórmulas",
+      "descricao_humana": "Células calculadas não podem apresentar erros sintáticos típicos de planilha (#NOME?, #REF!, #VALOR!, #DIV/0!, #N/D).",
+      "categoria": "INTEGRIDADE_PLANILHA",
+      "subdominio": "formulas",
+      "tipo_regra": "TECHNICAL_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "MOTOR_SPREADSHEET",
+          "nome": "Padrão Google Sheets / Excel",
+          "localizacao": "Core/RegrasQualidade.js:482",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:482-504"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (Homologação E2E)"
+      ],
+      "condicao": "Fórmula ou valor contendo erros de planilha.",
+      "resultado_esperado": "Diagnóstico CRÍTICO FORMULA_CORROMPIDA_ERRO_SINTAXE com recomendação de restauração da linha 2.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Corrupção de totais e rateios em cascata.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Regra estritamente técnica de higienização de planilha.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "FORMULA_AUSENTE",
+          "FORMULA_CORROMPIDA_ERRO_SINTAXE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-TECNICA-002",
+      "titulo": "Reconhecimento de Exceção Manual Justificada por Nota",
+      "descricao_humana": "Célula calculada sem fórmula é aceita sem erro caso o operador registre uma nota na célula iniciando por \"EXCECAO: [motivo]\".",
+      "categoria": "GOVERNANCA_HUMANA",
+      "subdominio": "formulas",
+      "tipo_regra": "TECHNICAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "PROTOCOLO_AUDITORIA",
+          "nome": "Protocolo de Exceção Manual Syntheon",
+          "localizacao": "Core/RegrasQualidade.js:508-521",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:508-521"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js:10 (célula sem fórmula com nota EXCECAO:)"
+      ],
+      "condicao": "Coluna calculada sem fórmula com nota iniciada por EXCECAO:.",
+      "resultado_esperado": "Classificação como EXCECAO MANUAL (EXCECAO_MANUAL_JUSTIFICADA) sem erro.",
+      "excecoes": [
+        "Se não houver nota, gera ALERTA FORMULA_AUSENTE."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "GuardiaoQualidade"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra no caminho enriquecido pela ARCA (codigo mapeado na porta)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Uso abusivo de exceções para burlar regras de rateio.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Mecanismo canônico de intervenção e justificativa humana.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "EXCECAO_MANUAL_JUSTIFICADA"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-TERRITORIO-001",
+      "titulo": "Determinação Territorial Canônica de AIS por Município e Bairro",
+      "descricao_humana": "A determinação da Área Integrada de Segurança (AIS) em Pernambuco é estritamente canônica baseada nas 26 AIS instituídas por lei e portarias da SDS. Municípios 100% mono-AIS determinam a AIS diretamente sem ambiguidade. Municípios multi-AIS (ex: Recife) exigem o bairro para desambiguação entre AIS 1 a 5. Se os dados forem insuficientes ou não possuírem correlação inequívoca, o sistema não inventa AIS e sinaliza necessidade de conferência humana.",
+      "categoria": "TERRITORIALIDADE",
+      "subdominio": "territorio",
+      "tipo_regra": "CANONICAL_NORMATIVE_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "PORTARIA_ESTADUAL",
+          "nome": "Portaria SDS nº 1197 de 11/06/2010 (DOE 15/06/2010)",
+          "localizacao": "Dominio/TabelaTerritorialAIS.js",
+          "autoridade": "Oficial"
+        },
+        {
+          "tipo": "LEI_ESTADUAL",
+          "nome": "Lei Estadual nº 14.320/2011 (alterada pela Lei nº 14.890/2012)",
+          "localizacao": "ALEPE Legis - Anexo Único",
+          "autoridade": "Oficial"
+        },
+        {
+          "tipo": "PORTARIA_ESTADUAL",
+          "nome": "Portaria SDS nº 129/2008 e Decreto Estadual nº 26.868/2004",
+          "localizacao": "Normas de Compatibilização Territorial de Segurança Pública",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Dominio/TabelaTerritorialAIS.js",
+        "Dominio/ResolverAIS.js",
+        "Entrada/EntradaManual.js:578-620",
+        "Entrada/Formulario.html:1320-1550"
+      ],
+      "evidencia_testes": [
+        "Testes/TestFormularioAis.js",
+        "Testes/TestIntegracaoArca.js"
+      ],
+      "condicao": "Preenchimento ou extração de Município e/ou Bairro no formulário ou ocorrência.",
+      "resultado_esperado": "Atribuição automática e segura da AIS correspondente ou sinalização de pendência de conferência quando inconclusivo.",
+      "excecoes": [
+        "Se o operador editar manualmente o campo AIS no formulário, a vontade humana tem precedência soberana sobre o automatismo."
+      ],
+      "parametros": [
+        "TABELA_TERRITORIAL_AIS"
+      ],
+      "hardcoded": false,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Dominio/ResolverAIS.js",
+          "Dominio/TabelaTerritorialAIS.js",
+          "Entrada/EntradaManual.js",
+          "Entrada/Formulario.html"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js"
+        ],
+        "DECLARED_CONSUMER": [
+          "FormularioHtml",
+          "EntradaManual",
+          "GuardiaoQualidade",
+          "MotorAnaliticoV2"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Promovida de NAO_APLICAVEL para MAPEADO no #149: o Guardiao passou a auditar o AIS gravado contra a base territorial."
+      },
+      "impacto_se_violada": "Inconsistência estatística na apuração por AIS e atribuição indevida de competência territorial.",
+      "auditavel_automaticamente": true,
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "AIS_AUSENTE",
+          "AIS_DIVERGENTE"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao (invariante AIS gravado x base territorial canonica cidade+bairro) com metadados ARCA via porta - card #149."
+      },
+      "status_cobertura": "COBERTO"
+    },
+    {
+      "rule_id": "ARCA-MIKE-004",
+      "titulo": "Fragmentacao de Tunel por Chave Inconsistente",
+      "descricao_humana": "O mesmo MIKE deve pertencer a UMA unica chave de tunel (DATA|MIKE|BOE). Quando representacoes de data divergentes (Date vs texto) dividem o MIKE em varias chaves, a ocorrencia fica fragmentada e a agregacao por tunel fica incorreta.",
+      "categoria": "INTEGRIDADE_CHAVE",
+      "subdominio": "mike",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "RISCO_DOCUMENTADO",
+          "nome": "ARCA_REGRAS_DOMINIO.md (risco de fragmentacao por formato de data)",
+          "localizacao": "Dominio/ARCA/ARCA_REGRAS_DOMINIO.md",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/SaudeTuneis.js:detectarFragmentados",
+        "Features/GuardiaoQualidade.js (bloco TUNEL_FRAGMENTADO)"
+      ],
+      "evidencia_testes": [
+        "Testes/TestSaudeTuneis.js (detecta tunel fragmentado)"
+      ],
+      "condicao": "MIKE com mesmas datas e BOE, porem presente em mais de uma chave de tunel.",
+      "resultado_esperado": "Diagnostico ALERTA TUNEL_FRAGMENTADO com as chaves e linhas envolvidas.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/SaudeTuneis.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Mapeado no Guardiao em 10/09/2026 (G01); antes disso o codigo emitia o diagnostico sem regra ARCA (LACUNA_ARCA)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": [
+        "Diagnostico depende da qualidade do preenchimento da aba mensal."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Regra registrada na reconciliacao de cobertura (#126 ARCA-FIX-003) com base em codigo e teste existentes.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "TUNEL_FRAGMENTADO"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-EFETIVO-003",
+      "titulo": "Matricula sem Nome de Policial Vinculado",
+      "descricao_humana": "Linha operacional com matricula preenchida e sem nome de policial compromete a rastreabilidade do efetivo; deve ser sinalizada como observacao, nunca como dado valido silencioso.",
+      "categoria": "EFETIVO",
+      "subdominio": "efetivo",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_OPERACIONAL",
+          "nome": "Implementacao no Guardiao (G01)",
+          "localizacao": "Features/GuardiaoQualidade.js (bloco POLICIAL_SEM_NOME)",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Features/GuardiaoQualidade.js (bloco POLICIAL_SEM_NOME)"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js (regressao de cenarios operacionais)"
+      ],
+      "condicao": "Linha de tunel com matricula preenchida e coluna de policial vazia.",
+      "resultado_esperado": "Diagnostico OBSERVACAO POLICIAL_SEM_NOME pedindo confirmacao do nome vinculado.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Mapeado no Guardiao em 10/09/2026 (G01)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": [
+        "Diagnostico depende da qualidade do preenchimento da aba mensal."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Regra registrada na reconciliacao de cobertura (#126 ARCA-FIX-003) com base em codigo e teste existentes.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "POLICIAL_SEM_NOME"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-MATRICULA-003",
+      "titulo": "Matricula em Multiplas Ocorrencias na Mesma Data",
+      "descricao_humana": "A mesma matricula vinculada a mais de um MIKE na mesma data exige confirmacao humana (participacao real em duas ocorrencias) ou indica erro de preenchimento.",
+      "categoria": "EFETIVO",
+      "subdominio": "matricula",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_OPERACIONAL",
+          "nome": "Implementacao no Guardiao (G01)",
+          "localizacao": "Core/CoberturaAuditoria.js:detectarMatriculaMultiplaNaMesmaData",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/CoberturaAuditoria.js:detectarMatriculaMultiplaNaMesmaData",
+        "Features/GuardiaoQualidade.js (matriculasOcorrencias)"
+      ],
+      "evidencia_testes": [
+        "Testes/TestCoberturaAuditoria.js (detecta matricula em 2 MIKEs na mesma data)"
+      ],
+      "condicao": "Mesma matricula presente em 2 ou mais MIKEs com a mesma data.",
+      "resultado_esperado": "Diagnostico OBSERVACAO MATRICULA_MULTIPLAS_OCORRENCIAS_MESMA_DATA com os MIKEs envolvidos.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Mapeado no Guardiao em 10/09/2026 (G01)."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": [
+        "Diagnostico depende da qualidade do preenchimento da aba mensal."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Regra registrada na reconciliacao de cobertura (#126 ARCA-FIX-003) com base em codigo e teste existentes.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "MATRICULA_MULTIPLAS_OCORRENCIAS_MESMA_DATA"
+        ],
+        "motivo": "Codigo de diagnostico emitido pelo Guardiao com metadados ARCA via porta."
+      }
+    },
+    {
+      "rule_id": "ARCA-AUDITORIA-001",
+      "titulo": "Classificacao de Saude por Tunel",
+      "descricao_humana": "Cada tunel auditado recebe UM dos cinco estados: SAUDAVEL | ALERTA | CRITICO | INCOMPLETO | NAO_AUDITAVEL, por precedencia explicita, sem permitir verde quando houver lacuna de verificacao.",
+      "categoria": "SAUDE_AUDITORIA",
+      "subdominio": "auditoria",
+      "tipo_regra": "TECHNICAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_OPERACIONAL",
+          "nome": "Implementacao no Guardiao (G01)",
+          "localizacao": "Core/SaudeTuneis.js:classificarTunel",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/SaudeTuneis.js:classificarTunel",
+        "Entrada/SeletorMesesGuardiao.js:auditarMeses",
+        "Features/GuardiaoQualidade.js (retorno .saude)"
+      ],
+      "evidencia_testes": [
+        "Testes/TestSaudeTuneis.js (18 testes de classificacao)"
+      ],
+      "condicao": "Tunel com diagnosticos e/ou estrutura incompleta.",
+      "resultado_esperado": "Contagem de tuneis saudaveis/alerta/critico/incompleto/nao auditavel por mes e por tunel.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/SaudeTuneis.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra tecnica de auditoria (nao e regra de negocio); registrada para nao deixar saida do Guardiao sem endereco na ARCA."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": [
+        "Diagnostico depende da qualidade do preenchimento da aba mensal."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Regra registrada na reconciliacao de cobertura (#126 ARCA-FIX-003) com base em codigo e teste existentes.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [],
+        "motivo": "Regra tecnica do proprio auditor: nao gera diagnostico; descreve comportamento da varredura (classificacao de saude / cobertura) e por isso nao tem codigo associado."
+      }
+    },
+    {
+      "rule_id": "ARCA-AUDITORIA-002",
+      "titulo": "Cobertura de Auditoria e Declaracao de NAO_AUDITADO",
+      "descricao_humana": "O Guardiao deve declarar explicitamente o que NAO conseguiu verificar (catalogo PIP ausente, fonte de antiguidade indisponivel, metadados ARCA ausentes). Ausencia de evidencia nunca vira aprovacao.",
+      "categoria": "COBERTURA",
+      "subdominio": "auditoria",
+      "tipo_regra": "TECHNICAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_OPERACIONAL",
+          "nome": "Implementacao no Guardiao (G01)",
+          "localizacao": "Core/CoberturaAuditoria.js:montarCobertura",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/CoberturaAuditoria.js:montarCobertura",
+        "Core/SaudeTuneis.js (classificacao NAO_AUDITAVEL)",
+        "Entrada/SeletorMesesGuardiao.js:montarPainel",
+        "Render/RendererAuditoriaSaude.js:renderizarLog"
+      ],
+      "evidencia_testes": [
+        "Testes/TestCoberturaAuditoria.js (10 testes; catalogo ausente -> PARCIAL)"
+      ],
+      "condicao": "Varredura concluida com dependencia ausente ou diagnostico sem metadados ARCA.",
+      "resultado_esperado": "Status COMPLETA|PARCIAL e lista de regras NAO_AUDITADAS com motivo.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra tecnica anti-falso-verde; cobre tambem o MODO_LIMITADO de catalogo PIP."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": [
+        "Diagnostico depende da qualidade do preenchimento da aba mensal."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Regra registrada na reconciliacao de cobertura (#126 ARCA-FIX-003) com base em codigo e teste existentes.",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [],
+        "motivo": "Regra tecnica do proprio auditor: nao gera diagnostico; descreve comportamento da varredura (classificacao de saude / cobertura) e por isso nao tem codigo associado."
+      }
+    },
+    {
+      "rule_id": "ARCA-OCORRENCIA-005",
+      "titulo": "Validacao de Construcao da Ocorrencia (Aggregate Root)",
+      "descricao_humana": "A ocorrencia so existe como agregado valido quando construida pela fabrica com chave (MIKE+BOE) valida; entradas nulas ou chave invalida devem falhar explicitamente, nunca gerar registro silencioso.",
+      "categoria": "CRIACAO_AGREGADO",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Codigo de dominio Syntheon",
+          "localizacao": "Dominio/OcorrenciaFactory.js:criar",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Dominio/OcorrenciaFactory.js:criar",
+        "Dominio/OcorrenciaFactory.js:validar",
+        "Dominio/ValueObjects/ChaveOcorrencia.js"
+      ],
+      "evidencia_testes": [
+        "Testes/TestDominio.js"
+      ],
+      "condicao": "Chamada de criacao de ocorrencia com dados nulos ou chave incompleta.",
+      "resultado_esperado": "Excecao de validacao de dominio (ErroValidacaoDominio) em vez de objeto invalido.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Dominio/OcorrenciaFactory.js",
+          "Dominio/ValueObjects/ChaveOcorrencia.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Varredura exaustiva #128: consumidores derivados da evidencia de codigo; sem propagacao pelo Guardiao."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": [
+        "Regra estrutural do dominio; mudanca exige revisao de testes."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Registrada na varredura exaustiva (#128 ARCA-FIX-005).",
+      "auditabilidade_guardiao": {
+        "status": "NAO_APLICAVEL",
+        "codigos": [],
+        "motivo": "Validacao de construcao do agregado (fabrica); garantia de integridade interna do modelo, nao gera diagnostico de planilha."
+      }
+    },
+    {
+      "rule_id": "ARCA-METRICAS-001",
+      "titulo": "Consolidacao Analitica por Orquestracao de Plugins",
+      "descricao_humana": "A produtividade por policial e consolidada por um orquestrador que dispara o ciclo de vida dos plugins de metrica (inicializar -> processar -> finalizar) e agrega o registro analitico, sem regra matematica duplicada no motor.",
+      "categoria": "CONSOLIDACAO_METRICAS",
+      "subdominio": "metricas",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Codigo de dominio Syntheon",
+          "localizacao": "Motor/MotorAnaliticoV2.js:processarProdutividadePolicial",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Motor/MotorAnaliticoV2.js:processarProdutividadePolicial",
+        "Plugins/Metricas/PluginPontuacao.js",
+        "Plugins/Metricas/PluginOcorrencias.js"
+      ],
+      "evidencia_testes": [
+        "Testes/TestMotorAnaliticoRegressao.js",
+        "Testes/TestPlugins.js"
+      ],
+      "condicao": "Fatos canonicos disponiveis e plugins registrados.",
+      "resultado_esperado": "Registro analitico consolidado (pontos PIP/CPM, ocorrencias, fatos) por policial.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Motor/MotorAnaliticoV2.js",
+          "Plugins/Metricas/PluginOcorrencias.js",
+          "Plugins/Metricas/PluginPontuacao.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Varredura exaustiva #128: consumidores derivados da evidencia de codigo; sem propagacao pelo Guardiao."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": [
+        "Regra estrutural do dominio; mudanca exige revisao de testes."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Registrada na varredura exaustiva (#128 ARCA-FIX-005).",
+      "auditabilidade_guardiao": {
+        "status": "NAO_APLICAVEL",
+        "codigos": [],
+        "motivo": "Consolidacao analitica por orquestracao de plugins; o Guardiao audita insumos e rateios, nao o calculo final."
+      }
+    },
+    {
+      "rule_id": "ARCA-GXT-001",
+      "titulo": "Diagnostico Deterministico de Tuneis do GXT",
+      "descricao_humana": "O diagnostico do relatorio GXT converte linhas fisicas em registro canonico (sem fallback para QDT ARMAS) e aplica a politica de merito por armas, mantendo duas colecoes separadas: fatos fisicos (exibicao/reconciliacao) e ocorrencias normalizadas.",
+      "categoria": "DIAGNOSTICO_RELATORIO",
+      "subdominio": "gxt",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Codigo de dominio Syntheon",
+          "localizacao": "Motor/DiagnosticoDeterministicoGxt.js:diagnosticarMes",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Motor/DiagnosticoDeterministicoGxt.js:diagnosticarMes",
+        "Motor/DiagnosticoDeterministicoGxt.js:montarMatrizDiagnostico",
+        "Leitura/Adaptador2026.js:extrairFatos"
+      ],
+      "evidencia_testes": [
+        "Testes/TestRelatorioGxt.js"
+      ],
+      "condicao": "Execucao do diagnostico determinista sobre um mes.",
+      "resultado_esperado": "Matriz de diagnostico por tunel com fatos e ocorrencias normalizadas rastreaveis.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Leitura/Adaptador2026.js",
+          "Motor/DiagnosticoDeterministicoGxt.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Varredura exaustiva #128: consumidores derivados da evidencia de codigo; sem propagacao pelo Guardiao."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": [
+        "Regra estrutural do dominio; mudanca exige revisao de testes."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Registrada na varredura exaustiva (#128 ARCA-FIX-005).",
+      "auditabilidade_guardiao": {
+        "status": "NAO_APLICAVEL",
+        "codigos": [],
+        "motivo": "Diagnostico deterministico do relatorio GXT (saida); nao e regra de auditoria de planilha."
+      }
+    },
+    {
+      "rule_id": "ARCA-TECNICA-005",
+      "titulo": "Porta Canonica de Consulta da ARCA",
+      "descricao_humana": "Toda consulta a ARCA passa por uma unica porta read-only (AdaptadorConsultaArca): enriquecerDiagnostico(codigoRegra) para diagnosticos e consultarPorRuleId(rule_id) para consumidores diretos; codigo sem mapeamento devolve ARCA_RULE_NOT_MAPPED e o consumidor deve reportar LACUNA_ARCA.",
+      "categoria": "INTERFACE_CATALOGO",
+      "subdominio": "auditoria",
+      "tipo_regra": "TECHNICAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Codigo de dominio Syntheon",
+          "localizacao": "Dominio/ARCA/AdaptadorConsultaArca.js:enriquecerDiagnostico",
+          "autoridade": "Interna"
+        }
+      ],
+      "evidencia_codigo": [
+        "Dominio/ARCA/AdaptadorConsultaArca.js:enriquecerDiagnostico",
+        "Dominio/ARCA/AdaptadorConsultaArca.js:consultarPorRuleId",
+        "Dominio/ARCA/AdaptadorConsultaArca.js:carregarArca"
+      ],
+      "evidencia_testes": [
+        "Testes/TestIntegracaoArca.js",
+        "Testes/TestArcaMapaCobertura.js"
+      ],
+      "condicao": "Qualquer consumidor (Guardiao, NormalizadorEfetivo, cobertura) consultando a ARCA.",
+      "resultado_esperado": "Metadados de regra (rule_id, tipo, fonte, excecoes) ou status explicito de ausencia.",
+      "excecoes": [],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Dominio/ARCA/AdaptadorConsultaArca.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Varredura exaustiva #128: consumidores derivados da evidencia de codigo; sem propagacao pelo Guardiao."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": [
+        "Regra estrutural do dominio; mudanca exige revisao de testes."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Registrada na varredura exaustiva (#128 ARCA-FIX-005).",
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [],
+        "motivo": "Regra tecnica da porta de consulta do proprio catalogo (nao gera diagnostico)."
+      }
+    },
+    {
+      "rule_id": "ARCA-VEICULO-001",
+      "titulo": "Autorizacao Canonica do Titulo PIP de Veiculo (Recuperacao de Veiculo Roubado/Furtado)",
+      "descricao_humana": "O titulo PIP 'Apreensao de veiculo furtado ou roubado' so e autorizado quando a NATUREZA da ocorrencia declarar recuperacao/apreensao/localizacao de veiculo roubado ou furtado na MESMA declaracao. Mencao a roubo/furto na narrativa/historico do BO, ou natureza sem termo de recuperacao, NAO autoriza o titulo. O OCR sugere; a conferencia humana decide.",
+      "categoria": "PIP",
+      "subdominio": "veiculo",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DOCUMENTACAO_INTERNA",
+          "nome": "Regra de veiculo do Formulario/OCR (documentada)",
+          "localizacao": "02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/submodulos/SUB-C01-01-01_OCR_E_CONFERENCIA/AUDITORIA_OCR_ARCA.md (card #135)",
+          "autoridade": "Media"
+        },
+        {
+          "tipo": "CATALOGO_OFICIAL",
+          "nome": "Tabela PIP - rotulo 'Apreensao de veiculo furtado ou roubado'",
+          "localizacao": "Entrada/Formulario.html:963",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Entrada/Formulario.html:957-965",
+        "Entrada/Formulario.html:963"
+      ],
+      "evidencia_testes": [
+        "Testes/TestOcrVeiculoRoubado.js",
+        "Testes/TestEntradaManualFormulario.js:749-761",
+        "Testes/TestArcaVeiculoOcr.js"
+      ],
+      "condicao": "A natureza normalizada (campo NATUREZA DA OCORRENCIA) contem, na MESMA string: (1) termo de recuperacao [RECUPERACAO | APREENSAO | LOCALIZACAO]; (2) termo de veiculo [VEICULO | MOTO | CARRO]; (3) termo de crime patrimonial contra veiculo, admitidas a forma substantiva [ROUBO | FURTO] e a adjetiva [ROUBADO/ROUBADA | FURTADO/FURTADA].",
+      "resultado_esperado": "Titulo 'Apreensao de veiculo furtado ou roubado' sugerido uma unica vez, sujeito a conferencia humana antes da gravacao.",
+      "excecoes": [
+        "Natureza sem termo de recuperacao (ex. 'ROUBO DE VEICULO', 'FURTO DE VEICULO') NAO autoriza titulo, ainda que a narrativa descreva roubo.",
+        "Mencao solta a 'vitima de roubo' na narrativa/historico NAO autoriza titulo.",
+        "O titulo sugerido permanece removivel/editavel pelo operador na conferencia.",
+        "A realizacao lexical (variantes de escrita, quebra de linha no PDF) e detalhe de implementacao do PARSER (heuristica OCR) e NAO regra de dominio."
+      ],
+      "parametros": {
+        "titulo_pip": "Apreensão de veículo furtado ou roubado",
+        "campo_avaliado": "natureza",
+        "campo_proibido_para_inferencia": "narrativa_historico_do_bo",
+        "fronteira": "ARCA rege a condicao de dominio; o parser le o BO e realiza a casagem lexical"
+      },
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Entrada/Formulario.html",
+          "Entrada/EntradaManual.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Integrado no #138: `Entrada/EntradaManual.js` expoe `obterMetadadosArcaVeiculo()` (porta `AdaptadorConsultaArca.consultarPorRuleId('ARCA-VEICULO-001')`, fail-soft) e `Entrada/Formulario.html` consome o rotulo canonico (`tituloCanonicoVeiculoArca_`, com fallback local). A ARCA entrega METADADOS; a leitura do BO e a casagem lexical permanecem no PARSER (heuristica OCR)."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": [
+        "Se a ARCA passar a reivindicar a realizacao lexical, a heuristica de OCR vira regra oficial - o que este catalogo proibe."
+      ],
+      "status_cobertura": "COBERTO",
+      "observacoes": "Reconciliacao do lote OCR-ARCA (#135-#139). Origem: defeito real reproduzido (#136) - nenhum titulo gerado para naturezas com substantivo (ROUBO/FURTO) e para natureza quebrada em duas linhas. NAO promove heuristica de OCR a regra oficial e NAO reintroduz GXT/Central Analitica.",
+      "auditabilidade_guardiao": {
+        "status": "NAO_APLICAVEL",
+        "codigos": [],
+        "motivo": "Consumidor e o formulario (cliente, Entrada/Formulario.html), nao a planilha auditada."
+      }
+    },
+    {
+      "rule_id": "ARCA-CONVERSAO-001",
+      "titulo": "Conversao de formas de apreensao de drogas em quantidade total (gramas)",
+      "descricao_humana": "O tunel registra as formas de apreensao em colunas proprias (pedra de crack, papelote/big de maconha, pino/ziplock de cocaina) e a aba mensal consolida tudo em quantidade total em gramas. Medidas canonicas: 1 pedra de crack = 0,25 g; 1 papelote/big de maconha = 3 g; 1 pino/ziplock de cocaina = 1 g. Para os escaloes superiores o crack entra no somatorio geral da cocaina (derivado direto dela), embora a unidade mantenha as duas contabilidades separadas para fins proprios.",
+      "categoria": "DEFINICAO_METRICA",
+      "subdominio": "drogas",
+      "tipo_regra": "OFFICIAL_BUSINESS_RULE",
+      "fonte_status": "CANONICAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DETERMINACAO_DO_PROPRIETARIO",
+          "nome": "Medidas informadas pelo proprietario do dominio (11/09/2026)",
+          "localizacao": "issue #139 / cards #142 e #144",
+          "autoridade": "Oficial"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/Constantes.js:CONVERSOES_DROGAS"
+      ],
+      "evidencia_testes": [
+        "Testes/TestConversaoDrogas.js"
+      ],
+      "condicao": "Registro de apreensao de droga em forma unitaria (pedra, papelote/big, pino/ziplock) ou ja em gramas.",
+      "resultado_esperado": "Consolidacao em total de gramas conforme as medidas canonicas. Formulas da aba mensal: TOTAL DE MACONHA = MACONHA DOLAR*3 + MACONHA GRAMA; Total CRACK (gr) = CRACK GRAMA + CRACK PEDRA/4; TOTAL DE COCAINA = (COCAINA PINO + COCAINA GRAMA) + (CRACK GRAMA + CRACK PEDRA/4).",
+      "excecoes": [],
+      "parametros": [
+        {
+          "nome": "CRACK_PEDRA_GRAMA",
+          "valor": 0.25
+        },
+        {
+          "nome": "MACONHA_PAPELOTE_GRAMA",
+          "valor": 3
+        },
+        {
+          "nome": "COCAINA_PINO_GRAMA",
+          "valor": 1
+        }
+      ],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/Constantes.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "A consolidacao efetiva acontece nas formulas da propria aba mensal (colunas S, W e Z). As medidas canonicas tambem ficam expostas em Core/Constantes.js (CONVERSOES_DROGAS) para uso do codigo e dos testes."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": "Se as medidas oficiais mudarem sem atualizar simultaneamente a planilha e as constantes, os totais divergem. Substancias sem coluna na aba (ex.: ANABOLIZANTES) nao tem consolidacao possivel hoje.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Registrado por determinacao literal do proprietario (11/09/2026): 1 pedra de crack = 0,25 g; 1 papelote/big de maconha = 3 g; 1 pino/ziplock de cocaina = 1 g; e o crack, embora separado da cocaina na contabilidade da unidade, entra no somatorio geral da cocaina nos escaloes superiores por ser derivado direto dela. Resolve o risco R2 do mapa do tunel (card #142): a formula que inclui o crack no TOTAL DE COCAINA e intencional, nao defeito.",
+      "auditabilidade_guardiao": {
+        "status": "NAO_APLICAVEL",
+        "codigos": [],
+        "motivo": "Conversao de drogas em gramas aplicada nas formulas da aba mensal; nao e auditoria do Guardiao."
+      }
+    },
+    {
+      "rule_id": "ARCA-IMPUTACAO-003",
+      "titulo": "Instrumento Mais Gravoso no Preenchimento (APFD / AAFAI para Menor)",
+      "descricao_humana": "Quando uma mesma ocorrencia envolve multiplas pessoas e/ou instrumentos legais, registra-se o INSTRUMENTO MAIS GRAVOSO: APFD (auto de prisao em flagrante) para adultos; AAFAI (auto de apreensao de adolescente infrator) quando ha menor de idade envolvido. Se o BO nao trouxer o instrumento, o campo fica em branco para preenchimento manual.",
+      "categoria": "DISCRICIONARIEDADE_HUMANA",
+      "subdominio": "imputacao",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DIRETRIZ_OPERACIONAL",
+          "nome": "Orientacao do Proprietario (calibragem de BOs, 12/09/2026)",
+          "localizacao": "sessao de calibragem",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Entrada/EntradaManual.js (coluna DETIDOS, preenchimento orientado)"
+      ],
+      "evidencia_testes": [],
+      "condicao": "Preenchimento do campo DETIDOS (coluna K) na entrada de uma ocorrencia.",
+      "resultado_esperado": "Menor envolvido -> AAFAI; somente adultos -> APFD; ausente no BO -> em branco (manual).",
+      "excecoes": [
+        "Numerario e demais campos ausentes do BO ficam em branco para preenchimento manual (numerario permanece discricionario, conforme ARCA-NUMERARIO-001)."
+      ],
+      "parametros": [],
+      "hardcoded": false,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Entrada/EntradaManual.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "EntradaManual"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra de preenchimento orientado; ainda nao automatizada no formulario (decisao humana na entrada)."
+      },
+      "alcance": "MODULO_ENTRADA",
+      "riscos": "Perda de padronizacao do instrumento se cada operador aplicar criterio proprio.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Dirime qual instrumento registrar quando ha varios; complementa ARCA-IMPUTACAO-002.",
+      "auditabilidade_guardiao": {
+        "status": "NAO_APLICAVEL",
+        "codigos": [],
+        "motivo": "Criterio discricionario de preenchimento (instrumento mais gravoso); sem fonte canonica no BO para auditar automaticamente."
+      }
+    },
+    {
+      "rule_id": "ARCA-OCORRENCIA-006",
+      "titulo": "Contiguidade Física do Bloco do Túnel",
+      "descricao_humana": "As linhas de um mesmo túnel (mesma chave DATA | MIKE | BOE) formam um bloco contíguo na aba mensal. Uma linha em branco separa um túnel do próximo. Linhas do mesmo túnel separadas por outro túnel ou linha em branco configuram fragmentação física do bloco.",
+      "categoria": "INTEGRIDADE_ESTRUTURAL",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Mapa do Túnel e Auditoria das Fórmulas (MOD-C03-01)",
+          "localizacao": "02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-01_MODELO_DE_OCORRENCIA/MAPA_DO_TUNEL_E_FORMULAS.md",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/SaudeTuneis.js:detectarFragmentados",
+        "Features/GuardiaoQualidade.js (bloco TUNEL_FRAGMENTADO)"
+      ],
+      "evidencia_testes": [
+        "Testes/TestSaudeTuneis.js"
+      ],
+      "condicao": "Mesma chave DATA|MIKE|BOE presente em blocos não-adjacentes (separados por linha em branco ou por outro túnel).",
+      "resultado_esperado": "Bloco contíguo por túnel; fragmentação física detectável quando a chave reaparece em bloco separado.",
+      "excecoes": [
+        "Linha em branco entre túneis distintos é fronteira intencional, não fragmentação."
+      ],
+      "parametros": [],
+      "hardcoded": false,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/SaudeTuneis.js"
+        ],
+        "INDIRECT_CONSUMER": [],
+        "DECLARED_CONSUMER": [
+          "CorretorTuneis"
+        ],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Especificação canônica do layout físico; consumida de fato por Core/SaudeTuneis.js (detecção de fragmentação) e planejada para o CorretorTuneis."
+      },
+      "alcance": "GLOBAL_PROJETO",
+      "riscos": "Reagrupar blocos sem respeitar a fronteira de linha em branco pode fundir túneis distintos.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Define o layout físico (bloco contíguo + linha em branco) que o corretor de TUNEL_FRAGMENTADO usa para reagrupar; complementa ARCA-MIKE-004 (fragmentação por chave).",
+      "auditabilidade_guardiao": {
+        "status": "NAO_APLICAVEL",
+        "codigos": [],
+        "motivo": "Especificacao estrutural de layout fisico; a fragmentacao detectavel e coberta por ARCA-MIKE-004 (TUNEL_FRAGMENTADO). Consumida pelo corretor de tuneis."
+      }
+    },
+    {
+      "rule_id": "ARCA-OCORRENCIA-007",
+      "titulo": "Identidade Unitária da Ocorrência: 1 Ocorrência = 1 MIKE",
+      "descricao_humana": "Cada ocorrência operacional é identificada por UM ÚNICO MIKE. Não existe ocorrência legítima dividida entre MIKEs distintos, nem a mesma ocorrência repetida em datas diferentes: a chave canônica do túnel é DATA|MIKE|BOE e ela é única por ocorrência. Por consequência, (a) a mesma ocorrência (mesmo MIKE + mesmo BOE) só pode ter UMA DATA; e (b) um mesmo BOE não pode carregar MIKEs em grafias diferentes, porque os DÍGITOS — e não a pontuação — definem a identidade. O Guardião detecta e aponta (não corrige); a normalização do dado é do MOD-C05-02 sob CONFIRM_AUTO/dry-run. A decisão D7 A/B/C é NÃO_APLICÁVEL porque não há divisão legítima a arbitrar.",
+      "categoria": "IDENTIDADE_OCORRENCIA",
+      "subdominio": "ocorrencia",
+      "tipo_regra": "INTERNAL_OPERATIONAL_RULE",
+      "fonte_status": "INTERNAL_SOURCE_CONFIRMED",
+      "fontes": [
+        {
+          "tipo": "DETERMINACAO_DO_PROPRIETARIO",
+          "nome": "Decisão do proprietário (13/09/2026): 1 ocorrência = 1 MIKE (não existe ocorrência dividida entre MIKEs); D7 A/B/C = NÃO_APLICÁVEL",
+          "localizacao": "card #160 (GUARD-D7-001)",
+          "autoridade": "Alta"
+        },
+        {
+          "tipo": "CONTRATO_ARQUITETURAL",
+          "nome": "Chave canônica do túnel DATA|MIKE|BOE (coluna Chave Ocorrência)",
+          "localizacao": "Core/RegrasQualidade.js:chaveTunel",
+          "autoridade": "Alta"
+        }
+      ],
+      "evidencia_codigo": [
+        "Core/RegrasQualidade.js:validarIdentidadeOcorrencia",
+        "Core/RegrasQualidade.js:chaveTunel",
+        "Features/GuardiaoQualidade.js"
+      ],
+      "evidencia_testes": [
+        "Testes/TestGuardiao.js",
+        "Testes/TestArcaMapaCobertura.js"
+      ],
+      "condicao": "A mesma identidade de ocorrência (MIKE canônico = apenas dígitos + BOE) aparece em mais de uma DATA, ou o mesmo BOE aparece com o MIKE em mais de uma grafia.",
+      "resultado_esperado": "Diagnóstico ALERTA OCORRENCIA_FRAGMENTADA_POR_DATA em cada linha da mesma identidade com datas distintas; e ALERTA MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO em cada linha do mesmo BOE com grafias divergentes de MIKE. Nenhum dado é corrigido automaticamente pelo Guardião.",
+      "excecoes": [
+        "Sem BOE a identidade da ocorrência está incompleta: a regra não se aplica (a ausência tem código próprio, ARCA-BOE-002 / BOE_AUSENTE).",
+        "Mesmo MIKE em datas distintas com BOEs diferentes não é fragmentação por DATA desta regra (permanece coberto por ARCA-MIKE-002 e ARCA-BOE-001)."
+      ],
+      "parametros": [],
+      "hardcoded": true,
+      "vigencia": "VIGENTE_PERMANENTE",
+      "confianca": "ALTA",
+      "consumidores": {
+        "REAL_CODE_CONSUMER": [
+          "Core/RegrasQualidade.js",
+          "Features/GuardiaoQualidade.js"
+        ],
+        "INDIRECT_CONSUMER": [
+          "Core/CoberturaAuditoria.js",
+          "Render/PainelSaude.js",
+          "Render/RendererAuditoriaSaude.js"
+        ],
+        "DECLARED_CONSUMER": [],
+        "PLANNED_CONSUMER": [],
+        "OBSERVACAO": "Regra nova registrada no #160 a partir de decisão do proprietário + código existente: o Guardião emite os dois códigos e os enriquece via porta ARCA. A correção do dado é do MOD-C05-02 (Normalizador) sob CONFIRM_AUTO/dry-run; o Guardião só detecta, explica e aponta."
+      },
+      "alcance": "MODULO_AUDITORIA",
+      "riscos": "Fusão automática de ocorrências (reagrupar blocos, escolher uma DATA, reescrever o MIKE) destruiria a proveniência do dado; quem consolida chave é o Corretor/Normalizador sob confirmação humana.",
+      "status_cobertura": "COBERTO",
+      "observacoes": "Regra positiva de identidade que fecha o D7: a chave DATA|MIKE|BOE é única por ocorrência, logo não há divisão legítima a arbitrar (D7 A/B/C = NÃO_APLICÁVEL). Casos reais medidos: JUN2026 BOE 26E0321002656 (mesmo MIKE/BOE em 23/06 e 24/06) e JAN2026 BOE 26E0127000512 (mesmo dia, MIKE em duas grafias).",
+      "impacto_se_violada": "A mesma ocorrência conta duas vezes (duas chaves distintas) na produtividade e na estatística, ou se perde a rastreabilidade do BO quando a grafia do MIKE muda.",
+      "auditavel_automaticamente": true,
+      "auditabilidade_guardiao": {
+        "status": "MAPEADO",
+        "codigos": [
+          "OCORRENCIA_FRAGMENTADA_POR_DATA",
+          "MIKE_FORMATO_NAO_CANONICO_OU_DUPLICADO"
+        ],
+        "motivo": "Códigos de diagnóstico emitidos pelo Guardião (invariante de identidade unitária da ocorrência) com metadados ARCA via porta - card #160."
+      }
+    }
+  ]
+}
+```
+
+## Responsabilidade observada
+
+Fonte: `02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/submodulos/SUB-C03-02-01_CATALOGO_DE_REGRAS/NOTA_DE_RESPONSABILIDADE.md` — NOTA_DE_RESPONSABILIDADE.md do submodulo, "## Papel".
+
+Mantem o catalogo canonico legivel por maquina (JSON) e humano (MD). 49 regras com 23 campos por regra (uniao de campos: 25): rule_id, titulo, descricao_humana, categoria, subdominio, tipo_regra, fonte_status, fontes, evidencia_codigo, evidencia_testes, condicao, resultado_esperado, excecoes, parametros, hardcoded, vigencia, confianca, consumidores, alcance, riscos, status_cobertura, observacoes.
+
+Fonte: `02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/submodulos/SUB-C03-02-01_CATALOGO_DE_REGRAS/NOTA_DE_RESPONSABILIDADE.md` — NOTA_DE_RESPONSABILIDADE.md do submodulo, "## Limites".
+
+- Nao cria regra nova; nao altera regra vigente; nao promove heuristica.
+- Read-only sobre dados operacionais; nenhum acesso a planilha.
+
+## Portas expostas (se aplicável)
+
+Não aplicável: nenhuma superfície exportada reconhecida no arquivo.
+
+## Divergência com a Planta declarada
+
+Testes mecânicos executados na geração (commit `fbb0608`, 2026-09-13T21:45:16-03:00):
+
+- OK — T1 endereco existe: NOTA_DE_RESPONSABILIDADE.md do modulo presente
+- OK — T1b endereco existe: NOTA_DE_RESPONSABILIDADE.md do submodulo presente
+- OK — T2 artefato declarado no endereco: "Dominio/ARCA/arca_regras_dominio.json" aparece na Planta
+- OK — T3 arquivo presente no commit de referencia (fbb0608:Dominio/ARCA/arca_regras_dominio.json)
+- OK — T4 conteudo em disco identico ao do commit de referencia (sha256 LF)
+- OK — T5 espelho anterior sem deriva de codigo (sha256 do bloco == origem)
+- OK — T6 endereco declarado no espelho anterior corresponde ao endereco canonico atual
+- OK — T7 sem duplicidade: exatamente 1 espelho de leitura declara "Dominio/ARCA/arca_regras_dominio.json" como origem
+
+Veredito mecânico: **nenhuma divergência detectada pelos testes acima**.
+
+Declaração verificada a mão por humano/agente (não derivável automaticamente):
+
+- **Como o endereco foi derivado (nao inventado):** tabela de artefatos; fonte `02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/NOTA_DE_RESPONSABILIDADE.md`:23.
+- **Enderecos concorrentes declarados na Planta (1):** `C03_Dominio/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO`. O artefato e referenciado em mais de um endereco; o campo acima registra o endereco PRIMARIO. Nao e erro de endereco — e declaracao concorrente na propria Planta.
+- **Nada foi corrigido no artefato:** o gerador nao altera codigo de produto; o arquivo de origem permanece byte a byte como estava.
+
+## Última verificação (data/commit)
+
+- 2026-09-13T21:45:16-03:00 · commit `fbb0608` · sha256 da origem (LF): `f805e1c815ac275e26d0701ba6b9ca36954df1bb792ecc3e6262a498fba9f186`
+- Reexecutar: `node scripts/downplant/espelho-rico.mjs gerar --endereco C03_Dominio/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/SUB-C03-02-01_CATALOGO_DE_REGRAS --origem Dominio/ARCA/arca_regras_dominio.json --saida <caminho>`
+- Verificar deriva sem regravar: `node scripts/downplant/espelho-rico.mjs verificar --espelho <caminho>`

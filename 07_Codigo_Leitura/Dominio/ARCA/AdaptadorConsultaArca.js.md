@@ -3,16 +3,17 @@
 > [!NOTE] Espelho rico de código (Metodo §46.15) — gerado por `scripts/downplant/espelho-rico.mjs`
 > Somente leitura. Não editar à mão: qualquer edição é sobrescrita na próxima geração.
 > O código abaixo é cópia verbatim do arquivo de origem no commit declarado; divergência entre o embutido e a origem é deriva (§18.1).
+> Regra do sha256 declarado: sha256 do conteúdo **normalizado para LF** (igual ao blob do Git). Em arquivo CRLF com terminador final diferente, ele difere do `sha256sum` dos bytes crus — a comparação de deriva é feita conteúdo-contra-conteúdo.
 > Papel desta cópia: CANÔNICA (repositório). O derivado navegável no vault é gerado com as mesmas entradas.
 
 - **Endereço Down Plant:** `C03_Dominio / MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO / SUB-C03-02-04_ADAPTADOR_PORTA_DE_CONSULTA` — [NOTA_DE_RESPONSABILIDADE.md](../../../02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/submodulos/SUB-C03-02-04_ADAPTADOR_PORTA_DE_CONSULTA/NOTA_DE_RESPONSABILIDADE.md)
 - **Arquivo de origem (link para o disco):** [`Dominio/ARCA/AdaptadorConsultaArca.js`](../../../Dominio/ARCA/AdaptadorConsultaArca.js)
-- **Commit de referência:** `ca87280ac99dee798d598453ef94708894008a3d` (`ca87280`)
-- **Data da última sincronização:** 2026-09-13T20:45:20-03:00
+- **Commit de referência:** `fbb0608e7b98144533628c7f9b773a10505b800d` (`fbb0608`)
+- **Data da última sincronização:** 2026-09-13T21:45:15-03:00
 
 ## Código-fonte embutido
 
-Verbatim de `Dominio/ARCA/AdaptadorConsultaArca.js` em `ca87280`. sha256 do bloco (LF): `99f8c7e2fb8a44e708aaff9490307d0a154c9897a3a6b512c4b0bbb1522a5338` — 273 linhas.
+Verbatim de `Dominio/ARCA/AdaptadorConsultaArca.js` em `fbb0608`. sha256 do bloco (LF): `99f8c7e2fb8a44e708aaff9490307d0a154c9897a3a6b512c4b0bbb1522a5338` — 273 linhas.
 
 ```javascript
 /**
@@ -292,11 +293,11 @@ AdaptadorConsultaArca._caminhoCustomizado = null;
 
 ## Responsabilidade observada
 
-Fonte: `02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/submodulos/SUB-C03-02-04_ADAPTADOR_PORTA_DE_CONSULTA/NOTA_DE_RESPONSABILIDADE.md` — NOTA_DE_RESPONSABILIDADE.md do submodulo, secao "## Papel".
+Fonte: `02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/submodulos/SUB-C03-02-04_ADAPTADOR_PORTA_DE_CONSULTA/NOTA_DE_RESPONSABILIDADE.md` — NOTA_DE_RESPONSABILIDADE.md do submodulo, "## Papel".
 
 PORTA DE SAIDA read-only da ARCA: enriquecerDiagnostico(codigoRegra, contexto) devolve metadados (rule_id, fonte, tipo, excecoes, human_action). Mapeia 38 codigos -> 30 das 49 regras; codigo sem mapeamento retorna ARCA_RULE_NOT_MAPPED (o consumidor deve reportar LACUNA_ARCA, nunca assumir verde).
 
-Fonte: `02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/submodulos/SUB-C03-02-04_ADAPTADOR_PORTA_DE_CONSULTA/NOTA_DE_RESPONSABILIDADE.md` — NOTA_DE_RESPONSABILIDADE.md do submodulo, secao "## Limites".
+Fonte: `02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/submodulos/SUB-C03-02-04_ADAPTADOR_PORTA_DE_CONSULTA/NOTA_DE_RESPONSABILIDADE.md` — NOTA_DE_RESPONSABILIDADE.md do submodulo, "## Limites".
 
 - Nao altera diagnostico; nao decide severidade; nao fecha lacuna por omissao.
 - Read-only sobre dados operacionais; nenhum acesso a planilha.
@@ -310,12 +311,12 @@ _Extraído por heurística do gerador (globais de nível arquivo + métodos/acce
 
 ## Divergência com a Planta declarada
 
-Testes mecânicos executados na geração (commit `ca87280`, 2026-09-13T20:45:20-03:00):
+Testes mecânicos executados na geração (commit `fbb0608`, 2026-09-13T21:45:15-03:00):
 
 - OK — T1 endereco existe: NOTA_DE_RESPONSABILIDADE.md do modulo presente
 - OK — T1b endereco existe: NOTA_DE_RESPONSABILIDADE.md do submodulo presente
 - OK — T2 artefato declarado no endereco: "Dominio/ARCA/AdaptadorConsultaArca.js" aparece na Planta
-- OK — T3 arquivo presente no commit de referencia (ca87280:Dominio/ARCA/AdaptadorConsultaArca.js)
+- OK — T3 arquivo presente no commit de referencia (fbb0608:Dominio/ARCA/AdaptadorConsultaArca.js)
 - OK — T4 conteudo em disco identico ao do commit de referencia (sha256 LF)
 - OK — T5 espelho anterior sem deriva de codigo (sha256 do bloco == origem)
 - OK — T6 endereco declarado no espelho anterior corresponde ao endereco canonico atual
@@ -325,15 +326,12 @@ Veredito mecânico: **nenhuma divergência detectada pelos testes acima**.
 
 Declaração verificada a mão por humano/agente (não derivável automaticamente):
 
-- **Correcao de endereco:** o espelho anterior (formato antigo) apontava apenas para o MODULO (MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO). Este artefato e declarado no SUBMODULO SUB-C03-02-04_ADAPTADOR_PORTA_DE_CONSULTA, e o campo Endereco Down Plant passa a apontar para a NOTA do submodulo. Nao era uma declaracao falsa, era imprecisa: nao descia ao endereco real do artefato.
-- **Deriva real do espelho anterior (medida antes da primeira regravacao deste piloto):** o codigo embutido no espelho antigo vinha incompleto — 252 linhas contra 273 na origem, com a primeira divergencia na linha 21 — e o sha256 do bloco antigo era `398221b6c520...` contra `99f8c7e2fb8a...` da origem. O formato antigo nao declarava sha de bloco nem commit de referencia, portanto essa deriva era indetectavel por inspecao. E exatamente a lacuna que os campos Commit de referencia, sha256 do bloco e Ultima verificacao fecham.
-- **Como ler os testes mecanicos:** o teste T5 compara o espelho corrente com o que estava em disco imediatamente antes da geracao; por isso, depois da primeira regravacao, ele passa a reportar OK. A deriva historica fica registrada nesta declaracao, com os numeros medidos antes da regravacao.
-- **Portas:** a superficie extraida do codigo confere com a PORTA declarada no submodulo (enriquecerDiagnostico). Nada a declarar como divergente.
-- **Nada foi corrigido no artefato:** o gerador nao altera codigo de produto; o arquivo de origem permanece byte a byte como estava. O delta desta fatia e o espelho e o gerador.
-- **Duplicidade:** apenas 1 espelho de leitura declara este arquivo como sua origem (teste T7).
+- **Como o endereco foi derivado (nao inventado):** tabela de artefatos; fonte `02_Comodos/C03_Dominio/01_Dominio/modulos/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/NOTA_DE_RESPONSABILIDADE.md`:27.
+- **Enderecos concorrentes declarados na Planta (2):** `C03_Dominio/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO`, `C05_Guardiao/MOD-C05-01_GUARDIAO_DE_QUALIDADE`. O artefato e referenciado em mais de um endereco; o campo acima registra o endereco PRIMARIO. Nao e erro de endereco — e declaracao concorrente na propria Planta.
+- **Nada foi corrigido no artefato:** o gerador nao altera codigo de produto; o arquivo de origem permanece byte a byte como estava.
 
 ## Última verificação (data/commit)
 
-- 2026-09-13T20:45:20-03:00 · commit `ca87280` · sha256 da origem (LF): `99f8c7e2fb8a44e708aaff9490307d0a154c9897a3a6b512c4b0bbb1522a5338`
+- 2026-09-13T21:45:15-03:00 · commit `fbb0608` · sha256 da origem (LF): `99f8c7e2fb8a44e708aaff9490307d0a154c9897a3a6b512c4b0bbb1522a5338`
 - Reexecutar: `node scripts/downplant/espelho-rico.mjs gerar --endereco C03_Dominio/MOD-C03-02_ARCA_DE_REGRAS_DE_DOMINIO/SUB-C03-02-04_ADAPTADOR_PORTA_DE_CONSULTA --origem Dominio/ARCA/AdaptadorConsultaArca.js --saida <caminho>`
 - Verificar deriva sem regravar: `node scripts/downplant/espelho-rico.mjs verificar --espelho <caminho>`

@@ -119,16 +119,55 @@ const legacyPattern = /(M[0-9]{2}|TASK-M[0-9]*|planta\/|file:\/\/\/)/g;
 const mdLinkPattern = /\[.*?\]\((.*?)\)/g;
 const wikiLinkPattern = /\[\[(.*?)\]\]/g;
 
+// ---------------------------------------------------------------------------
+// DECISAO DO PLANNER (card #162, rota b): a varredura de CONTEUDO AUTORAL/LEGADO
+// nao se aplica ao conteudo ESPELHADO de 07_Codigo_Leitura/.
+//
+// Porque: o espelho rico (§46.15) tem obrigacao de reproduzir o codigo de origem
+// VERBATIM. Token interno da copia nao e prosa autoral — tratar como legado e
+// falso positivo estrutural (o espelho nao pode nem documentar a colisao, porque
+// o texto de documentacao tambem e varrido).
+//
+// Escopo da exclusao: SOMENTE a varredura de legado/conteudo autoral desta camada.
+// O espelho permanece submetido a TRES portoes proprios:
+//   (1) ESTE lint estrutural — links markdown, wikilinks e nos de canvas continuam
+//       validados para os arquivos de 07_Codigo_Leitura (blocos abaixo, intactos);
+//   (2) o verificador §46.15 (scripts/downplant/espelho-rico.mjs verificar) — 9/9 campos;
+//   (3) a prova de frescor — commit + sha256 + codigo embutido == origem real.
+const ARVORE_ESPELHO = path.join(baseDir, '07_Codigo_Leitura') + path.sep;
+const ehConteudoEspelhado = (arquivo) => arquivo.startsWith(ARVORE_ESPELHO);
+
+// ---------------------------------------------------------------------------
+// SEGUNDO FALSO POSITIVO DA MESMA RAIZ (medido, card #162).
+// Ao materializar o codigo VERBATIM no repo, o validador de links passa a interpretar
+// CONTEUDO DE CODIGO como markup documental: arrays JS aninhados (`[[...]]`) viram
+// "WikiLink quebrado" e trechos de codigo viram "Link quebrado".
+// Correcao: os validadores de LINK (markdown e wiki) ignoram o interior de blocos
+// cercados. Codigo nao e markup de documento.
+// Isto NAO afrouxa o portao: link quebrado em PROSA continua sendo reportado, inclusive
+// dentro de 07_Codigo_Leitura (era o pedido do Planner). Medicao antes da mudanca:
+// a arvore tinha 0 (zero) erros de link — logo a exclusao remove 0 erro real hoje.
+// O portao de CANVAS (nos de arquivo + JSON) e o de ESTRUTURA seguem 100% intactos.
+const blocosCercados = /(^|\n)(?:```|~~~)[^\n]*\n[\s\S]*?\n(?:```|~~~)[ \t]*(?=\n|$)/g;
+function semBlocosCercados(conteudo) {
+  return conteudo.replace(blocosCercados, '\n');
+}
+
 allFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
-  const match = content.match(legacyPattern);
-  if (match) {
-    reportError(`Legado encontrado em ${file}: ${[...new Set(match)].join(', ')}`);
+  if (!ehConteudoEspelhado(file)) {
+    const match = content.match(legacyPattern);
+    if (match) {
+      reportError(`Legado encontrado em ${file}: ${[...new Set(match)].join(', ')}`);
+    }
   }
+
+  // Validacao de links: apenas o texto do documento, fora dos blocos cercados.
+  const textoDocumental = semBlocosCercados(content);
 
   // Validate Markdown Links
   let m;
-  while ((m = mdLinkPattern.exec(content)) !== null) {
+  while ((m = mdLinkPattern.exec(textoDocumental)) !== null) {
     let link = m[1].split('#')[0];
     if (link && !link.startsWith('http') && !link.startsWith('mailto:') && !link.startsWith('#')) {
       let target = path.resolve(path.dirname(file), link);
@@ -140,7 +179,7 @@ allFiles.forEach(file => {
 
   // Validate WikiLinks
   let w;
-  while ((w = wikiLinkPattern.exec(content)) !== null) {
+  while ((w = wikiLinkPattern.exec(textoDocumental)) !== null) {
     let link = w[1].split('|')[0].split('#')[0].trim();
     if (link) {
       let found = false;

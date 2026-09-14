@@ -1,0 +1,569 @@
+# ESPELHO — NormalizadorEfetivo.js
+
+> [!NOTE] Espelho rico de código (Metodo §46.15) — gerado por `scripts/downplant/espelho-rico.mjs`
+> Somente leitura. Não editar à mão: qualquer edição é sobrescrita na próxima geração.
+> O código abaixo é cópia verbatim do arquivo de origem no commit declarado; divergência entre o embutido e a origem é deriva (§18.1).
+> Regra do sha256 declarado: sha256 do conteúdo **normalizado para LF** (igual ao blob do Git). Em arquivo CRLF com terminador final diferente, ele difere do `sha256sum` dos bytes crus — a comparação de deriva é feita conteúdo-contra-conteúdo.
+> Papel desta cópia: CANÔNICA (repositório). O derivado navegável no vault é gerado com as mesmas entradas.
+
+- **Endereço Down Plant:** `C01_Entrada / MOD-C01-02_NORMALIZADOR_DE_EFETIVO` — [NOTA_DE_RESPONSABILIDADE.md](../../02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/NOTA_DE_RESPONSABILIDADE.md)
+- **Arquivo de origem (link para o disco):** [`Features/NormalizadorEfetivo.js`](../../Features/NormalizadorEfetivo.js)
+- **Commit de referência:** `fbb0608e7b98144533628c7f9b773a10505b800d` (`fbb0608`)
+- **Data da última sincronização:** 2026-09-13T21:45:33-03:00
+
+## Código-fonte embutido
+
+Verbatim de `Features/NormalizadorEfetivo.js` em `fbb0608`. sha256 do bloco (LF): `8e7738fa4929e8b47452651e36949934fa420a64f3f4d651a72453a72d7a86ca` — 504 linhas.
+
+```javascript
+/**
+ * ARQUIVO: Features/NormalizadorEfetivo.js
+ * DESCRICAO: Sincroniza a aba EFETIVO a partir do QO/PECULIO sem apagar registros extras.
+ */
+class NormalizadorEfetivo {
+  static executar(opcoes) {
+    opcoes = opcoes || {};
+    const abaDestino = opcoes.abaDestino || CONSTANTES_SYNTHEON.ABA_EFETIVO;
+    const abaLog = opcoes.abaLog || '[AUDITORIA] Efetivo';
+    const abaFonteExistentes = opcoes.abaFonteExistentes || abaDestino;
+    const abaLegado = opcoes.abaLegado || 'EFETIVO_LEGADO';
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const peculioId = CONFIG_SYNTHEON.PLANILHAS && CONFIG_SYNTHEON.PLANILHAS.PECULIO_ID;
+    if (!peculioId) throw new Error('ID da planilha do PECULIO nao configurado.');
+
+    const sheetEfetivo = ss.getSheetByName(abaDestino) || ss.insertSheet(abaDestino);
+    const sheetFonte = (abaFonteExistentes !== abaDestino) ? (ss.getSheetByName(abaFonteExistentes) || null) : sheetEfetivo;
+    const existentes = NormalizadorEfetivo.lerEfetivoAtual(sheetFonte || sheetEfetivo);
+
+    // G01 #127: metadados da ARCA que sustentam as decisoes deste modulo (consumo real, fail-soft)
+    const arcaMetadados = NormalizadorEfetivo.obterMetadadosArca();
+
+    NormalizadorEfetivo.renderizarLog(ss, {
+      status: 'INICIADO',
+      peculio: 0,
+      mantidos: 0,
+      alertas: 0,
+      linhas: existentes.registros.length,
+      arca: arcaMetadados,
+      log: [['SISTEMA', '-', 'INICIADO', 'Sincronizacao iniciada; se falhar, o erro sera registrado nesta aba.']]
+    }, abaLog);
+
+    const ssPeculio = SpreadsheetApp.openById(peculioId);
+    const sheetPeculio = NormalizadorEfetivo.localizarAba(ssPeculio, 'PECULIO');
+    if (!sheetPeculio) throw new Error('Aba PECULIO nao encontrada na planilha QO/PECULIO.');
+
+    const peculio = NormalizadorEfetivo.lerPeculio(sheetPeculio, existentes.porMatricula);
+    const matriculasPeculio = {};
+    const saida = [];
+    const log = [];
+
+    // Desambiguação automática por antiguidade N (1º NOME, 2º NOME., 3º NOME:)
+    NormalizadorEfetivo.desambiguarNomesGuerra(peculio, log);
+
+    peculio.forEach(reg => {
+      if (matriculasPeculio[reg.matricula]) {
+        log.push(['PECULIO', reg.linhaOrigem, 'CRITICO', `Matricula duplicada no PECULIO: ${reg.matricula}.`]);
+        return;
+      }
+      matriculasPeculio[reg.matricula] = true;
+      saida.push(NormalizadorEfetivo.linhaEfetivo(reg));
+    });
+
+    // Regra do proprietário: "fora do PECULIO" = legado, NÃO entra na referência (EFETIVO).
+    // Em vez de manter ao final, arquiva na aba de legado (EFETIVO_LEGADO).
+    const legado = [];
+    existentes.registros.forEach(reg => {
+      if (!reg.matricula) {
+        legado.push(reg.valores);
+        log.push(['EFETIVO', reg.linhaOrigem, 'LEGADO', 'Registro sem matricula (legado) removido da referencia.']);
+        return;
+      }
+      if (!matriculasPeculio[reg.matricula]) {
+        legado.push(reg.valores);
+        log.push(['EFETIVO', reg.linhaOrigem, 'LEGADO', `Fora do PECULIO (legado): ${reg.matricula}.`]);
+      }
+    });
+
+    NormalizadorEfetivo.escreverEfetivo(sheetEfetivo, saida);
+    NormalizadorEfetivo.escreverLegado(ss, legado, abaLegado);
+    NormalizadorEfetivo.renderizarLog(ss, {
+      peculio: peculio.length,
+      legado: legado.length,
+      alertas: log.length,
+      linhas: saida.length,
+      arca: arcaMetadados,
+      log
+    }, abaLog);
+
+    return {
+      peculio: peculio.length,
+      legado: legado.length,
+      alertas: log.length,
+      linhas: saida.length,
+      arca: arcaMetadados
+    };
+  }
+
+  static lerPeculio(sheet, existentesPorMatricula) {
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 12) return [];
+
+    const dados = sheet.getRange(12, 1, lastRow - 11, Math.max(sheet.getLastColumn(), 13)).getValues();
+    const registros = [];
+
+    dados.forEach((row, index) => {
+      const matricula = SyntheonUtils.limparMatricula(row[4]);
+      const nomeGuerra = NormalizadorEfetivo.texto(row[5]).toUpperCase();
+      const nomeCompleto = NormalizadorEfetivo.texto(row[12]).toUpperCase();
+      const grad = NormalizadorEfetivo.normalizarGraduacao(row[3]);
+      const subunidadePeculio = NormalizadorEfetivo.texto(row[6]).toUpperCase();
+
+      if (!matricula || (!nomeGuerra && !nomeCompleto)) return;
+
+      const existente = existentesPorMatricula[matricula] || null;
+      const subunidadeProdutividade = NormalizadorEfetivo.definirSubunidadeProdutividade({
+        subunidadePeculio,
+        subunidadeExistente: existente ? existente.subunidadeProdutividade : ''
+      });
+
+      const antiguidadeN = parseInt(row[2], 10); // col C = ORD (a col A é 'O'/'P' e a B é 'SIM'/'NAO' — nunca numéricas)
+      registros.push({
+        linhaOrigem: index + 12,
+        antiguidadeN: !isNaN(antiguidadeN) ? antiguidadeN : (index + 1),
+        nomeGuerra,
+        grad,
+        matricula,
+        gradMat: NormalizadorEfetivo.montarGradMat(grad, matricula, existente ? existente.gradMat : ''),
+        nomeCompleto,
+        subunidadeProdutividade,
+        subunidadePeculio
+      });
+    });
+
+    return registros;
+  }
+
+  static lerEfetivoAtual(sheet) {
+    const lastRow = sheet.getLastRow();
+    const lastCol = Math.max(sheet.getLastColumn(), 7);
+    const registros = [];
+    const porMatricula = {};
+    if (lastRow < 1) return { registros, porMatricula };
+
+    const dados = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    dados.forEach((row, index) => {
+      if (NormalizadorEfetivo.ehCabecalho(row)) return;
+      const valores = NormalizadorEfetivo.normalizarLinhaExistente(row);
+      const matricula = SyntheonUtils.limparMatricula(valores[4]);
+      const reg = {
+        linhaOrigem: index + 1,
+        valores,
+        matricula,
+        gradMat: NormalizadorEfetivo.texto(valores[1]),
+        subunidadeProdutividade: NormalizadorEfetivo.texto(valores[5])
+      };
+      if (!valores.some(valor => NormalizadorEfetivo.texto(valor))) return;
+      registros.push(reg);
+      if (matricula && !porMatricula[matricula]) porMatricula[matricula] = reg;
+    });
+
+    return { registros, porMatricula };
+  }
+
+  static escreverEfetivo(sheet, saida) {
+    const linhasParaLimpar = Math.max(sheet.getLastRow(), saida.length, 1);
+    sheet.getRange(1, 1, linhasParaLimpar, 7).clearContent();
+    if (saida.length > 0) {
+      sheet.getRange(1, 1, saida.length, 7).setValues(saida);
+    }
+    sheet.setFrozenRows(0);
+    sheet.autoResizeColumns(1, 7);
+  }
+
+  static escreverLegado(ss, legado, nomeAba) {
+    let sheet = ss.getSheetByName(nomeAba) || ss.insertSheet(nomeAba);
+    const linhasParaLimpar = Math.max(sheet.getLastRow(), legado.length, 1);
+    sheet.getRange(1, 1, linhasParaLimpar, 7).clearContent();
+    if (legado.length > 0) {
+      sheet.getRange(1, 1, legado.length, 7).setValues(legado);
+    }
+    sheet.autoResizeColumns(1, 7);
+  }
+
+  static linhaEfetivo(reg) {
+    return [
+      reg.nomeGuerra,
+      reg.gradMat,
+      reg.nomeCompleto,
+      reg.grad,
+      reg.matricula,
+      reg.subunidadeProdutividade,
+      reg.subunidadePeculio
+    ];
+  }
+
+  static normalizarLinhaExistente(row) {
+    const valores = row.slice(0, 7);
+    while (valores.length < 7) valores.push('');
+    valores[0] = NormalizadorEfetivo.texto(valores[0]).toUpperCase();
+    valores[2] = NormalizadorEfetivo.texto(valores[2]).toUpperCase();
+    valores[3] = NormalizadorEfetivo.normalizarGraduacao(valores[3]);
+    valores[4] = SyntheonUtils.limparMatricula(valores[4]);
+    valores[5] = NormalizadorEfetivo.normalizarSubunidadeProdutividade(valores[5]);
+    valores[6] = NormalizadorEfetivo.texto(valores[6]).toUpperCase();
+    return valores;
+  }
+
+  static definirSubunidadeProdutividade(dados) {
+    const existente = NormalizadorEfetivo.normalizarSubunidadeProdutividade(dados.subunidadeExistente);
+    if (existente.includes('GTAR')) return existente;
+
+    const peculio = SyntheonUtils.normalizarTexto(dados.subunidadePeculio);
+    if (peculio.includes('GTAR') && peculio.includes('1')) return '1º PEL GTAR';
+    if (peculio.includes('GTAR') && peculio.includes('2')) return '2º PEL GTAR';
+    if (peculio.includes('1') && peculio.includes('PEL')) return '1º PEL';
+    if (peculio.includes('2') && peculio.includes('PEL')) return '2º PEL';
+    return '3º PEL';
+  }
+
+  static normalizarSubunidadeProdutividade(valor) {
+    const texto = SyntheonUtils.normalizarTexto(valor);
+    if (!texto) return '';
+    if (texto.includes('GTAR') && texto.includes('1')) return '1º PEL GTAR';
+    if (texto.includes('GTAR') && texto.includes('2')) return '2º PEL GTAR';
+    if (texto.includes('1') && texto.includes('PEL')) return '1º PEL';
+    if (texto.includes('2') && texto.includes('PEL')) return '2º PEL';
+    if (texto.includes('3') && texto.includes('PEL')) return '3º PEL';
+    return texto;
+  }
+
+  static montarGradMat(grad, matricula, existente) {
+    if (existente) return existente;
+    const gradCompacta = NormalizadorEfetivo.texto(grad).replace(/\s+/g, '');
+    if (!gradCompacta || !matricula) return `${gradCompacta}${matricula}`;
+    if (gradCompacta.length <= 3) return `${gradCompacta}${matricula}`;
+    return `${gradCompacta} ${matricula}`;
+  }
+
+  static normalizarGraduacao(valor) {
+    return SyntheonNormalizador.normalizarGraduacao(NormalizadorEfetivo.texto(valor));
+  }
+
+  static ehCabecalho(row) {
+    const joined = row.slice(0, 7).map(valor => SyntheonUtils.normalizarTexto(valor)).join('|');
+    return joined.includes('NOME') && joined.includes('MATRICULA');
+  }
+
+  static localizarAba(ss, nomeNormalizado) {
+    return ss.getSheets().find(sheet => SyntheonUtils.normalizarTexto(sheet.getName()) === nomeNormalizado) || null;
+  }
+
+  /**
+   * Regras ARCA aplicaveis ao Normalizador de Efetivo (G01 #127 - integracao factual).
+   * Nao duplica regra: apenas declara quais regras canonicas sustentam as decisoes deste modulo.
+   */
+  static regrasArcaAplicaveis() {
+    return ['ARCA-EFETIVO-001', 'ARCA-EFETIVO-002', 'ARCA-MATRICULA-001', 'ARCA-ANTIGUIDADE-001'];
+  }
+
+  /**
+   * Consome metadados da ARCA pela porta canonica (AdaptadorConsultaArca), fail-soft:
+   * se a ARCA nao estiver disponivel devolve disponivel=false e o modulo segue funcionando.
+   */
+  static obterMetadadosArca(ruleIds) {
+    const ids = ruleIds || NormalizadorEfetivo.regrasArcaAplicaveis();
+    let Adapt = typeof AdaptadorConsultaArca !== 'undefined' ? AdaptadorConsultaArca : null;
+    if (!Adapt && typeof require !== 'undefined') {
+      try { Adapt = require('../Dominio/ARCA/AdaptadorConsultaArca'); } catch (e) {}
+    }
+    if (!Adapt || typeof Adapt.consultarPorRuleId !== 'function') {
+      return { disponivel: false, motivo: 'ARCA_METADATA_UNAVAILABLE', regras: [] };
+    }
+    const regras = [];
+    ids.forEach(id => {
+      try {
+        const meta = Adapt.consultarPorRuleId(id);
+        if (meta && meta.status === 'MAPPED') {
+          regras.push({ rule_id: id, titulo: meta.titulo, tipo_regra: meta.tipo_regra, fonte_status: meta.fonte_status });
+        }
+      } catch (e) { /* fail-soft: ARCA nunca bloqueia a sincronizacao */ }
+    });
+    return { disponivel: regras.length > 0, regras };
+  }
+
+  static renderizarLog(ss, resultado, nomeLog) {
+    nomeLog = nomeLog || '[AUDITORIA] Efetivo';
+    let logSheet = ss.getSheetByName(nomeLog);
+    if (!logSheet) logSheet = ss.insertSheet(nomeLog);
+
+    const agora = Utilities.formatDate(
+      new Date(),
+      Session.getScriptTimeZone() || 'America/Sao_Paulo',
+      'dd/MM/yyyy HH:mm:ss'
+    );
+
+    const dados = [
+      ['Sincronizacao do EFETIVO pelo PECULIO', agora, resultado.status || (resultado.alertas ? 'COM OBSERVACOES' : 'APROVADO'), ''],
+      ['Registros do PECULIO', resultado.peculio, 'Registros legados (removidos)', (resultado.legado !== undefined ? resultado.legado : resultado.mantidos)],
+      ['Linhas finais do EFETIVO', resultado.linhas, 'Observacoes', resultado.alertas],
+      ['', '', '', '']
+    ];
+
+    // G01 #127: rastreabilidade da dependencia ARCA (regras canonicas que sustentam as decisoes)
+    if (resultado.arca) {
+      const ids = (resultado.arca.regras || []).map(r => r.rule_id).join(', ');
+      dados.push(['REGRAS ARCA', resultado.arca.disponivel ? 'DISPONIVEL' : 'INDISPONIVEL', 'Regras aplicadas',
+        ids || (resultado.arca.motivo || 'ARCA_METADATA_UNAVAILABLE')]);
+      dados.push(['', '', '', '']);
+    }
+
+    dados.push(['ORIGEM', 'LINHA', 'STATUS', 'DIAGNOSTICO']);
+
+    if (resultado.log.length > 0) {
+      resultado.log.forEach(item => dados.push(item));
+    } else {
+      dados.push(['-', '-', 'OK', 'Nenhuma observacao na sincronizacao.']);
+    }
+
+    logSheet.clear();
+    logSheet.getRange(1, 1, dados.length, 4).setValues(dados);
+    logSheet.getRange(1, 1, 5, 4).setFontWeight('bold');
+    logSheet.autoResizeColumns(1, 4);
+  }
+
+  static renderizarErro(ss, erro) {
+    const mensagem = erro && erro.stack ? erro.stack : String(erro);
+    NormalizadorEfetivo.renderizarLog(ss, {
+      status: 'ERRO',
+      peculio: 0,
+      mantidos: 0,
+      alertas: 1,
+      linhas: 0,
+      log: [['SISTEMA', '-', 'ERRO', mensagem]]
+    });
+  }
+
+  /**
+   * Desambigua policiais com o mesmo nome de guerra com base na antiguidade N.
+   * Regra militar:
+   * - 1º Mais antigo (menor N): Nome limpo (ex: 'SILVA')
+   * - 2º Intermediário / Mais recruta (sem intermediário): 'SILVA.' (adiciona ponto '.')
+   * - 3º Mais recruta (havendo intermediário): 'SILVA:' (adiciona dois pontos ':')
+   * @param {Array<Object>} registros
+   * @param {Array<Array>} log
+   * @returns {Array<Object>}
+   */
+  static desambiguarNomesGuerra(registros, log = []) {
+    if (!Array.isArray(registros)) return registros;
+
+    const grupos = {};
+    registros.forEach(reg => {
+      const nomeBase = String(reg.nomeGuerra || '').replace(/[.:]+$/g, '').trim().toUpperCase();
+      if (!nomeBase) return;
+      if (!grupos[nomeBase]) grupos[nomeBase] = [];
+      grupos[nomeBase].push(reg);
+    });
+
+    Object.keys(grupos).forEach(nomeBase => {
+      const grupo = grupos[nomeBase];
+      if (grupo.length > 1) {
+        // Ordena por antiguidadeN crescente (menor N = mais antigo)
+        grupo.sort((a, b) => {
+          const nA = (a.antiguidadeN !== undefined && a.antiguidadeN !== null && !isNaN(a.antiguidadeN)) ? Number(a.antiguidadeN) : Number(a.linhaOrigem || 0);
+          const nB = (b.antiguidadeN !== undefined && b.antiguidadeN !== null && !isNaN(b.antiguidadeN)) ? Number(b.antiguidadeN) : Number(b.linhaOrigem || 0);
+          return nA - nB;
+        });
+
+        grupo.forEach((reg, idx) => {
+          let sufixo = '';
+          if (idx === 1) {
+            sufixo = '.'; // 2º (ou único recruta se grupo de 2)
+          } else if (idx >= 2) {
+            sufixo = ':'; // 3º mais recruta (ou superior)
+          }
+
+          reg.nomeGuerra = nomeBase + sufixo;
+
+          if (idx > 0 && Array.isArray(log)) {
+            const rotulo = idx === 1 ? '2º (Mais recruta / Intermediário)' : `${idx + 1}º (Mais recruta)`;
+            log.push([
+              'DESAMBIGUACAO',
+              reg.linhaOrigem || '-',
+              'INFO',
+              `Homônimo detectado para '${nomeBase}': militar matrícula ${reg.matricula} (${rotulo}, N=${reg.antiguidadeN || reg.linhaOrigem}) normalizado para '${reg.nomeGuerra}'.`
+            ]);
+          }
+        });
+      }
+    });
+
+    return registros;
+  }
+
+  static texto(valor) {
+    return String(valor || '').trim();
+  }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = NormalizadorEfetivo;
+}
+
+function normalizarEfetivo() {
+  const ui = SpreadsheetApp.getUi();
+  try {
+    const resultado = NormalizadorEfetivo.executar();
+    ui.alert(
+      'Sincronizacao do EFETIVO',
+      `Auditoria atualizada.\nRegistros do PECULIO: ${resultado.peculio}\nLegados (removidos): ${resultado.legado !== undefined ? resultado.legado : resultado.mantidos}\nLinhas finais: ${resultado.linhas}\nObservacoes: ${resultado.alertas}`,
+      ui.ButtonSet.OK
+    );
+    return resultado;
+  } catch (erro) {
+    const mensagem = erro && erro.stack ? erro.stack : String(erro);
+    Logger.log(mensagem);
+    try {
+      NormalizadorEfetivo.renderizarErro(SpreadsheetApp.getActiveSpreadsheet(), erro);
+    } catch (erroLog) {
+      Logger.log(`Falha ao registrar auditoria do erro: ${erroLog}`);
+    }
+    ui.alert('Erro na Sincronizacao do EFETIVO', mensagem, ui.ButtonSet.OK);
+    throw erro;
+  }
+}
+
+/**
+ * Porta HEADLESS de teste: sincroniza na aba EFETIVO_TESTE (mesmas regras), sem tocar no canônico.
+ * Log vai para '[AUDITORIA] Efetivo TESTE'. Rode com: clasp run normalizarEfetivoTeste
+ */
+function normalizarEfetivoTeste() {
+  return NormalizadorEfetivo.executar({
+    abaDestino: 'EFETIVO_TESTE',
+    abaLog: '[AUDITORIA] Efetivo TESTE',
+    abaFonteExistentes: CONSTANTES_SYNTHEON.ABA_EFETIVO,
+    abaLegado: 'EFETIVO_LEGADO_TESTE'
+  });
+}
+
+function normalizarEfetivoHeadless() {
+  return NormalizadorEfetivo.executar();
+}
+
+// Migra os nomes dos policiais já gravados nos BOs (abas mensais) para o novo
+// EFETIVO, usando a MATRICULA (col AD) como fonte de verdade:
+// - matricula esta no EFETIVO novo -> renomeia o nome de guerra (col AE);
+// - matricula NAO esta (legado) -> pinta a celula do nome de amarelo.
+function migrarNomesBosEfetivo() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const efetivo = ss.getSheetByName(CONSTANTES_SYNTHEON.ABA_EFETIVO);
+  if (!efetivo) throw new Error('Aba EFETIVO nao encontrada.');
+
+  const normMat = v => String(v).trim().replace(/^0+/, '');
+  const mapa = {};
+  efetivo.getRange(1, 1, Math.max(efetivo.getLastRow(), 1), 7).getValues().forEach(row => {
+    const mat = normMat(row[4]);
+    const nome = String(row[0] || '').trim();
+    if (mat && mat !== 'MATRICULA' && mat !== 'MAT.') mapa[mat] = nome;
+  });
+
+  const AMARELO = '#FFF2CC';
+  const resumo = { meses: 0, renomeados: 0, destacados: 0, inalterados: 0 };
+
+  ss.getSheets().forEach(sheet => {
+    const nomeAba = sheet.getName();
+    if (!/^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\d{4}$/.test(nomeAba)) return;
+    const ult = sheet.getLastRow();
+    if (ult < 2) return;
+    resumo.meses++;
+
+    const mats = sheet.getRange(2, 30, ult - 1, 1).getValues();   // AD = matricula
+    const nomes = sheet.getRange(2, 31, ult - 1, 1).getValues();  // AE = nome de guerra
+    mats.forEach((row, i) => {
+      const mat = normMat(row[0]);
+      if (!mat || mat === 'MATRICULA' || mat === 'MAT.') return;
+      const nomeAtual = String(nomes[i][0] || '').trim();
+      const linha = i + 2;
+      const novoNome = mapa[mat];
+      if (novoNome) {
+        if (novoNome !== nomeAtual) {
+          sheet.getRange(linha, 31).setValue(novoNome);
+          resumo.renomeados++;
+        } else {
+          resumo.inalterados++;
+        }
+      } else {
+        sheet.getRange(linha, 31).setBackground(AMARELO);
+        resumo.destacados++;
+      }
+    });
+  });
+
+  return resumo;
+}
+
+// Adiciona CRAVEIRO (apagado manualmente do EFETIVO) ao arquivo de legado,
+// preservando a referencia para nao sumir, sem reentrar na validacao.
+function adicionarCraveiroAoLegado() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const legado = ss.getSheetByName('EFETIVO_LEGADO');
+  if (!legado) throw new Error('Aba EFETIVO_LEGADO nao encontrada.');
+  const linha = legado.getLastRow() + 1;
+  legado.getRange(linha, 1, 1, 7).setValues([[
+    'CRAVEIRO',       // A: nome de guerra
+    '1ºTEN 1127950',  // B: gradMat
+    '',               // C: nome completo (nao localizado)
+    '1ºTEN',          // D: grad
+    '1127950',        // E: matricula
+    '3º PEL',         // F: subunidade produtividade
+    '3º PEL'          // G: subunidade peculio
+  ]]);
+  return { linha: linha, nomeGuerra: 'CRAVEIRO', matricula: '1127950' };
+}
+```
+
+## Responsabilidade observada
+
+Fonte: `02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/NOTA_DE_RESPONSABILIDADE.md` — NOTA_DE_RESPONSABILIDADE.md do modulo, "## Papel".
+
+Sincronizar a aba EFETIVO a partir do QO/PECULIO sem apagar registros extras, normalizando graduacao,
+matricula, nome de guerra (desambiguacao por antiguidade N) e subunidade de produtividade.
+Acionado pelo menu (Produtividade > "Sincronizar efetivo pelo peculio").
+
+Fonte: `02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/NOTA_DE_RESPONSABILIDADE.md` — NOTA_DE_RESPONSABILIDADE.md do modulo, "## Limites".
+
+- Nao audita dados; nao corrige valores operacionais fora das colunas do EFETIVO.
+- Nao promove heuristica a regra oficial.
+
+## Portas expostas (se aplicável)
+
+- Superfície exposta no nível do arquivo (nível global): `NormalizadorEfetivo`, `normalizarEfetivo`, `normalizarEfetivoTeste`, `normalizarEfetivoHeadless`, `migrarNomesBosEfetivo`, `adicionarCraveiroAoLegado`
+- Membros públicos observados: `executar`, `lerPeculio`, `lerEfetivoAtual`, `escreverEfetivo`, `escreverLegado`, `linhaEfetivo`, `normalizarLinhaExistente`, `definirSubunidadeProdutividade`, `normalizarSubunidadeProdutividade`, `montarGradMat`, `normalizarGraduacao`, `ehCabecalho`, `localizarAba`, `regrasArcaAplicaveis`, `obterMetadadosArca`, `renderizarLog`, `renderizarErro`, `desambiguarNomesGuerra`, `texto`
+
+_Extraído por heurística do gerador (globais de nível arquivo + métodos/accessors de 1º–2º nível). Não substitui a declaração de porta da Planta: confirme no endereço acima._
+
+## Divergência com a Planta declarada
+
+Testes mecânicos executados na geração (commit `fbb0608`, 2026-09-13T21:45:33-03:00):
+
+- OK — T1 endereco existe: NOTA_DE_RESPONSABILIDADE.md do modulo presente
+- OK — T2 artefato declarado no endereco: "Features/NormalizadorEfetivo.js" aparece na Planta
+- OK — T3 arquivo presente no commit de referencia (fbb0608:Features/NormalizadorEfetivo.js)
+- OK — T4 conteudo em disco identico ao do commit de referencia (sha256 LF)
+- OK — T5 espelho anterior sem deriva de codigo (sha256 do bloco == origem)
+- OK — T6 endereco declarado no espelho anterior corresponde ao endereco canonico atual
+- OK — T7 sem duplicidade: exatamente 1 espelho de leitura declara "Features/NormalizadorEfetivo.js" como origem
+
+Veredito mecânico: **nenhuma divergência detectada pelos testes acima**.
+
+Declaração verificada a mão por humano/agente (não derivável automaticamente):
+
+- **Como o endereco foi derivado (nao inventado):** secao Artefatos; fonte `02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/NOTA_DE_RESPONSABILIDADE.md`:18.
+- **Enderecos concorrentes declarados na Planta (3):** `C01_Entrada/MOD-C01-01_FORMULARIO_E_MENUS`, `C01_Entrada/MOD-C01-01_FORMULARIO_E_MENUS/SUB-C01-01-01_OCR_E_CONFERENCIA`, `C08_Homologacao/MOD-C08-01_HOMOLOGACAO_OFFLINE`. O artefato e referenciado em mais de um endereco; o campo acima registra o endereco PRIMARIO. Nao e erro de endereco — e declaracao concorrente na propria Planta.
+- **Nada foi corrigido no artefato:** o gerador nao altera codigo de produto; o arquivo de origem permanece byte a byte como estava.
+
+## Última verificação (data/commit)
+
+- 2026-09-13T21:45:33-03:00 · commit `fbb0608` · sha256 da origem (LF): `8e7738fa4929e8b47452651e36949934fa420a64f3f4d651a72453a72d7a86ca`
+- Reexecutar: `node scripts/downplant/espelho-rico.mjs gerar --endereco C01_Entrada/MOD-C01-02_NORMALIZADOR_DE_EFETIVO --origem Features/NormalizadorEfetivo.js --saida <caminho>`
+- Verificar deriva sem regravar: `node scripts/downplant/espelho-rico.mjs verificar --espelho <caminho>`
