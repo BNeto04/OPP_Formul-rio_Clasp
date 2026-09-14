@@ -1,0 +1,105 @@
+{
+  "version": "1.0.0",
+  "updated_at": 1789352079753,
+  "sessions": {
+    "100": {
+      "subject": "ANTIGRAVITY",
+      "current_issue_number": 43,
+      "current_task_id": "TASK-43",
+      "previous_intent": "ANTIGRAVITY_CONTINUE_REQUEST",
+      "last_factual_snapshot_ref": null,
+      "history": [
+        {
+          "role": "user",
+          "text": "Olá, voltou?",
+          "timestamp": 1789352079736
+        },
+        {
+          "role": "user",
+          "text": "você entende que o \"v\" é um comando para verificar as issues no repo do git?",
+          "timestamp": 1789352079745
+        },
+        {
+          "role": "assistant",
+          "text": "Sim, compreendo perfeitamente. O comando \"v\" é o acionamento canônico para verificar o repositório Git, inspecionar as Issues e o GitHub Project, e retomar o ciclo de execução operacional do Antigravity.",
+          "timestamp": 1789352079747
+        },
+        {
+          "role": "user",
+          "text": "vamos continuar",
+          "timestamp": 1789352079750
+        },
+        {
+          "role": "assistant",
+          "text": "Estou ativo e pronto para continuar o fluxo. Tarefa atual: Issue #43 (TASK-43).",
+          "timestamp": 1789352079752
+        }
+      ],
+      "created_at": 1789351780414,
+      "updated_at": 1789352079752,
+      "expires_at": 1789352379752,
+      "confidence": "HIGH"
+    },
+    "888777": {
+      "subject": "ANTIGRAVITY",
+      "current_issue_number": null,
+      "current_task_id": null,
+      "previous_intent": "ANTIGRAVITY_DURATION_QUERY",
+      "last_factual_snapshot_ref": null,
+      "history": [
+        {
+          "role": "assistant",
+          "text": "O processo Antigravity está fechado no momento. A API do GitHub está indisponível para sincronização.",
+          "timestamp": 1789352071537
+        },
+        {
+          "role": "user",
+          "text": "deu erro?",
+          "timestamp": 1789352071905
+        },
+        {
+          "role": "assistant",
+          "text": "Nenhum erro reportado na tarefa ativa Issue #desconhecida.",
+          "timestamp": 1789352071909
+        },
+        {
+          "role": "user",
+          "text": "por quanto tempo?",
+          "timestamp": 1789352072281
+        },
+        {
+          "role": "assistant",
+          "text": "Não há registro recente de duração ou atividade na tarefa Issue #ativa.",
+          "timestamp": 1789352072284
+        }
+      ],
+      "created_at": 1789351774171,
+      "updated_at": 1789352072284,
+      "expires_at": 1789352372284,
+      "confidence": "HIGH"
+    },
+    "999111": {
+      "subject": null,
+      "current_issue_number": null,
+      "current_task_id": null,
+      "previous_intent": "UNKNOWN_OR_UNSUPPORTED",
+      "last_factual_snapshot_ref": null,
+      "history": [
+        {
+          "role": "user",
+          "text": "e antes disso?",
+          "timestamp": 1789352072292
+        },
+        {
+          "role": "assistant",
+          "text": "Mensagem acolhida pelo Antigravity: \"e antes disso?\". Processando no fluxo operacional.",
+          "timestamp": 1789352072295
+        }
+      ],
+      "created_at": 1789352072292,
+      "updated_at": 1789352072295,
+      "expires_at": 1789352372295,
+      "confidence": "HIGH"
+    }
+  }
+}

@@ -105,6 +105,13 @@ async function main() {
     }
   }
   console.log('');
+  {
+    const testPortas12_6 = require('./TestValidarChecklistProducaoPortas');
+    if (typeof testPortas12_6 === 'function') {
+      await testPortas12_6();
+    }
+  }
+  console.log('');
   console.log('');
   require('./TestVigiaPonte');
   console.log('');
