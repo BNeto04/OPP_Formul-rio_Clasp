@@ -4,9 +4,14 @@ nome: "Google Apps Script"
 tipo: dependencia-externa
 vinculo: "runtime de execucao do produto"
 estado: ativo
-comodos: [C01, C02, C03, C04, C05, C06, C08]
-cards: ["#140", "#141", "#142", "#144", "#152", "#150", "#153"]
+comodos: [C00, C01, C02, C03, C04, C05, C06, C08]
+cards: ["#140", "#141", "#142", "#144", "#152", "#150", "#153", "#167"]
 data_registro: "2026-09-13"
+versao: "V8"
+fonte: "https://developers.google.com/apps-script/release-notes (feed oficial: https://developers.google.com/feeds/apps-script-release-notes.xml)"
+data_decisao: "2026-09-14"
+decisao: "DEC-DEP-001"
+vigia: "dependencias/vigia/UPSTREAM_OBSERVADO.json"
 ---
 
 # DEP-001 - Google Apps Script (runtime do produto)
@@ -20,6 +25,41 @@ data_registro: "2026-09-13"
 ## Vinculo
 O produto **roda dentro do Google Apps Script**: as funcoes de menu, os compiladores, o Guardiao e as portas
 headless sao carregadas no runtime do projeto vinculado a planilha. Nao ha servidor proprio.
+
+## Vinculo estrutural (§31.4 / §31.6) - o que esta dependencia cobre
+
+Ligacao de cada dependencia ao **Modulo / Circuito / Porta** cuja funcao ela cobre (§31.2: a dependencia
+deixa de ser lista solta e passa a apontar a responsabilidade estrutural que sustenta). `Circuito` e o canvas
+do Modulo dono; `AUSENTE_DECLARADO` = alvo que **nao existe** hoje e fica declarado como ausencia, nunca
+suprido por inferencia. `Vinculo` e `arquivo:linha`; `SEM_ARQUIVO_46.3` marca Porta declarada apenas na
+capsula (nao elegivel ao §12.6), e nesse caso o vinculo cita a linha da capsula. Verificado por
+`scripts/downplant/validar-dependencias.mjs`.
+
+| Modulo | Circuito | Porta | Papel da dependencia na Porta | Vinculo (arquivo:linha) |
+|---|---|---|---|---|
+| MOD-C00-03_INFRAESTRUTURA_CORE | AUSENTE_DECLARADO | PORTA-C00-03-P01 | grava a aba de log/auditoria dentro do runtime | 02_Comodos/C00_Governanca_Estrutural/01_Dominio/modulos/MOD-C00-03_INFRAESTRUTURA_CORE/portas/PORTA-C00-03-P01_LOG_DE_AUDITORIA.md:1 |
+| MOD-C01-01_FORMULARIO_E_MENUS | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/CIR-MOD-C01-01_FORMULARIO_E_MENUS.canvas | PORTA-C01-01-P01 | ponto de entrada do operador no runtime (menu P3) | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/portas/PORTA-C01-01-P01_MENU_P3.md:1 |
+| MOD-C01-01_FORMULARIO_E_MENUS | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/CIR-MOD-C01-01_FORMULARIO_E_MENUS.canvas | PORTA-C01-01-P05 | chamador externo `clasp run` - o runtime e o alvo remoto | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/portas/PORTA-C01-01-P05_ENTRADA_MANUAL_HEADLESS.md:1 |
+| MOD-C01-02_NORMALIZADOR_DE_EFETIVO | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/CIR-MOD-C01-02_NORMALIZADOR_DE_EFETIVO.canvas | PORTA-C01-02-P03 | prova headless do normalizador | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/portas/PORTA-C01-02-P03_NORMALIZADOR_HEADLESS.md:1 |
+| MOD-C02-01_LEITURA_E_ADAPTACAO | 02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/CIR-MOD-C02-01_LEITURA_E_ADAPTACAO.canvas | PORTA-C02-01-P03 | prova headless binaria das abas | 02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/portas/PORTA-C02-01-P03_PROVA_HEADLESS.md:1 |
+| MOD-C05-01_GUARDIAO_DE_QUALIDADE | 02_Comodos/C05_Guardiao/01_Dominio/modulos/MOD-C05-01_GUARDIAO_DE_QUALIDADE/CIR-MOD-C05-01_GUARDIAO_DE_QUALIDADE.canvas | PORTA-C05-01-P04 | menu do Sheets abre o dialogo do Guardiao no runtime | 02_Comodos/C05_Guardiao/01_Dominio/modulos/MOD-C05-01_GUARDIAO_DE_QUALIDADE/portas/PORTA-C05-01-P04_MENU_PARA_GUARDIAO.md:1 |
+| MOD-C05-01_GUARDIAO_DE_QUALIDADE | 02_Comodos/C05_Guardiao/01_Dominio/modulos/MOD-C05-01_GUARDIAO_DE_QUALIDADE/CIR-MOD-C05-01_GUARDIAO_DE_QUALIDADE.canvas | PORTA-C05-01-P05 | prova headless do Guardiao | 02_Comodos/C05_Guardiao/01_Dominio/modulos/MOD-C05-01_GUARDIAO_DE_QUALIDADE/portas/PORTA-C05-01-P05_GUARDIAO_HEADLESS.md:1 |
+| MOD-C06-01_RELATORIOS_OFICIAIS | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/CIR-MOD-C06-01_RELATORIOS_OFICIAIS.canvas | PORTA-C06-01-P01 | menu do Sheets dispara o comparativo | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/portas/PORTA-C06-01-P01_MENU_COMPARATIVO.md:1 |
+| MOD-C06-01_RELATORIOS_OFICIAIS | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/CIR-MOD-C06-01_RELATORIOS_OFICIAIS.canvas | PORTA-C06-01-P02 | prova headless do comparativo | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/portas/PORTA-C06-01-P02_COMPARATIVO_HEADLESS.md:1 |
+| MOD-C06-02_MERITO_DE_ARMAS_GXT | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/CIR-MOD-C06-02_MERITO_DE_ARMAS_GXT.canvas | PORTA-C06-02-P01 | menu `Armas` -> selecao livre | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/portas/PORTA-C06-02-P01_MENU_SELECAO_LIVRE.md:1 |
+| MOD-C06-02_MERITO_DE_ARMAS_GXT | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/CIR-MOD-C06-02_MERITO_DE_ARMAS_GXT.canvas | PORTA-C06-02-P02 | menu `Armas` -> anual | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/portas/PORTA-C06-02-P02_MENU_ANUAL.md:1 |
+| MOD-C06-02_MERITO_DE_ARMAS_GXT | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/CIR-MOD-C06-02_MERITO_DE_ARMAS_GXT.canvas | PORTA-C06-02-P03 | prova headless do compilador de armas | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/portas/PORTA-C06-02-P03_ARMAS_HEADLESS.md:1 |
+
+## Vigia (§7.8 / §46.14)
+- **Fonte observada upstream:** campo `fonte` do cabecalho deste registro - e o que o Vigia le fora do projeto
+  (release notes / changelog / advisory).
+- **Mecanismo:** `scripts/downplant/vigia-dependencias.mjs` - le este registro, **compara** com a observacao
+  upstream registrada em `dependencias/vigia/UPSTREAM_OBSERVADO.json` e **reporta** no formato da secao
+  `46.14 Relatorio do Vigia de dependencias` do metodo (`SINCRONIZADO | DEFASADO | NENHUMA AÇÃO`).
+- **Limite contratual (§7.8):** o Vigia **observa, compara e reporta**; **nao decide**, **nao troca** a
+  dependencia e **nao aplica** a atualizacao. Recusa `--aplicar`, `--atualizar`, `--fix` e `--auto` com
+  codigo de saida != 0; sem `--out` explicito **nao escreve em arquivo nenhum**.
+- **Ultimo relatorio:** `dependencias/vigia/RELATORIO_VIGIA_2026-09-14.md`.
 
 ## Evidencia no repo
 | Evidencia | Onde |

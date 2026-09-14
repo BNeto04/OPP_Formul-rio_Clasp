@@ -5,8 +5,13 @@ tipo: dependencia-de-dados
 vinculo: "bases de dominio consultadas pela entrada, pela ARCA e pelo Guardiao"
 estado: ativo
 comodos: [C01, C03, C05]
-cards: ["#140", "#141", "#144", "#146", "#147", "#149", "#152"]
+cards: ["#140", "#141", "#144", "#146", "#147", "#149", "#152", "#167"]
 data_registro: "2026-09-13"
+versao: "1.0.0 (AIS)"
+fonte: "Dominio/tabela_territorial_ais.json (versao + fontesOficiais declaradas) + abas vivas EFETIVO/PIP na planilha"
+data_decisao: "2026-09-14"
+decisao: "DEC-DEP-004"
+vigia: "dependencias/vigia/UPSTREAM_OBSERVADO.json"
 ---
 
 # DEP-004 - Abas e bases canonicas (EFETIVO . catalogo PIP . base territorial AIS)
@@ -20,6 +25,36 @@ data_registro: "2026-09-13"
 ## Vinculo
 Tres bases de dados governam o dominio e sao **consultadas, nunca copiadas**: `EFETIVO` (pessoas e antiguidade),
 o **catalogo PIP** (pontuacao por indicador) e a **base territorial AIS** (cidade/bairro -> Area Integrada).
+
+## Vinculo estrutural (§31.4 / §31.6) - o que esta dependencia cobre
+
+Ligacao de cada dependencia ao **Modulo / Circuito / Porta** cuja funcao ela cobre (§31.2: a dependencia
+deixa de ser lista solta e passa a apontar a responsabilidade estrutural que sustenta). `Circuito` e o canvas
+do Modulo dono; `AUSENTE_DECLARADO` = alvo que **nao existe** hoje e fica declarado como ausencia, nunca
+suprido por inferencia. `Vinculo` e `arquivo:linha`; `SEM_ARQUIVO_46.3` marca Porta declarada apenas na
+capsula (nao elegivel ao §12.6), e nesse caso o vinculo cita a linha da capsula. Verificado por
+`scripts/downplant/validar-dependencias.mjs`.
+
+| Modulo | Circuito | Porta | Papel da dependencia na Porta | Vinculo (arquivo:linha) |
+|---|---|---|---|---|
+| MOD-C01-01_FORMULARIO_E_MENUS | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/CIR-MOD-C01-01_FORMULARIO_E_MENUS.canvas | PORTA-C01-01-P04 | resolve cidade/bairro -> AIS pela base territorial | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/portas/PORTA-C01-01-P04_AIS_TERRITORIAL.md:1 |
+| MOD-C01-01_FORMULARIO_E_MENUS | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/CIR-MOD-C01-01_FORMULARIO_E_MENUS.canvas | PORTA-C01-01-P06 | autocomplete consulta `EFETIVO`/PECULIO | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/portas/PORTA-C01-01-P06_EFETIVO_AUTOCOMPLETE.md:1 |
+| MOD-C01-02_NORMALIZADOR_DE_EFETIVO | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/CIR-MOD-C01-02_NORMALIZADOR_DE_EFETIVO.canvas | PORTA-C01-02-P02 | releitura e reescrita da referencia `EFETIVO` | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/portas/PORTA-C01-02-P02_ESCRITA_EFETIVO.md:1 |
+| MOD-C02-01_LEITURA_E_ADAPTACAO | 02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/CIR-MOD-C02-01_LEITURA_E_ADAPTACAO.canvas | PORTA-C02-01-P01 | le `EFETIVO` e a fonte de antiguidade (PECULIO) | 02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/portas/PORTA-C02-01-P01_LEITURA_DE_PLANILHA.md:1 |
+| MOD-C04-01_MOTOR_ANALITICO | 02_Comodos/C04_Motor/01_Dominio/modulos/MOD-C04-01_MOTOR_ANALITICO/CIR-MOD-C04-01_MOTOR_ANALITICO.canvas | PORTA-C04-01-P01 | recebe fatos enriquecidos com antiguidade do PECULIO | 02_Comodos/C04_Motor/01_Dominio/modulos/MOD-C04-01_MOTOR_ANALITICO/portas/PORTA-C04-01-P01_FATOS_PARA_MOTOR.md:1 |
+| MOD-C05-01_GUARDIAO_DE_QUALIDADE | 02_Comodos/C05_Guardiao/01_Dominio/modulos/MOD-C05-01_GUARDIAO_DE_QUALIDADE/CIR-MOD-C05-01_GUARDIAO_DE_QUALIDADE.canvas | PORTA-C05-01-P01 | consome catalogo PIP e base AIS via ARCA (enriquecimento) | 02_Comodos/C05_Guardiao/01_Dominio/modulos/MOD-C05-01_GUARDIAO_DE_QUALIDADE/portas/PORTA-C05-01-P01_GUARDIAO_ARCA.md:1 |
+| MOD-C06-02_MERITO_DE_ARMAS_GXT | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/CIR-MOD-C06-02_MERITO_DE_ARMAS_GXT.canvas | PORTA-C06-02-P01 | selecao livre depende de `EFETIVO`/antiguidade (PECULIO) | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/portas/PORTA-C06-02-P01_MENU_SELECAO_LIVRE.md:1 |
+
+## Vigia (§7.8 / §46.14)
+- **Fonte observada upstream:** campo `fonte` do cabecalho deste registro - e o que o Vigia le fora do projeto
+  (release notes / changelog / advisory).
+- **Mecanismo:** `scripts/downplant/vigia-dependencias.mjs` - le este registro, **compara** com a observacao
+  upstream registrada em `dependencias/vigia/UPSTREAM_OBSERVADO.json` e **reporta** no formato da secao
+  `46.14 Relatorio do Vigia de dependencias` do metodo (`SINCRONIZADO | DEFASADO | NENHUMA AÇÃO`).
+- **Limite contratual (§7.8):** o Vigia **observa, compara e reporta**; **nao decide**, **nao troca** a
+  dependencia e **nao aplica** a atualizacao. Recusa `--aplicar`, `--atualizar`, `--fix` e `--auto` com
+  codigo de saida != 0; sem `--out` explicito **nao escreve em arquivo nenhum**.
+- **Ultimo relatorio:** `dependencias/vigia/RELATORIO_VIGIA_2026-09-14.md`.
 
 ## Evidencia no repo
 | Base | Evidencia | Detalhe |

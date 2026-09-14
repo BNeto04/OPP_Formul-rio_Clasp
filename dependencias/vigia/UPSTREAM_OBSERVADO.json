@@ -1,0 +1,39 @@
+{
+  "_formato": "observacao upstream do Vigia de dependencias (§7.8 / §46.14) - entrada do relatorio",
+  "_declaracao": "Este arquivo NAO e escrito pelo Vigia. Ele e o insumo de observacao: quem observa e um agente/humano sob card autorizado. Sem observacao registrada, o item sai como NENHUMA AÇÃO - o Vigia nao inventa dado upstream.",
+  "observado_em": "2026-09-14",
+  "observador": "Executor (card #167) - observacao assistida, uma rodada, sem automatizacao de rede",
+  "escopo": "dependencias/ (4 registros §31.6) - fontes declaradas no campo `fonte` de cada registro",
+  "observacoes": [
+    {
+      "id": "DEP-001",
+      "observado": true,
+      "versao_observada": "V8",
+      "origem": "https://developers.google.com/apps-script/release-notes",
+      "evidencia": "release notes oficiais consultadas em 2026-09-14: ultima entrada observada 2026-08-03 (Gemini no editor); 2026-06-22 GA como core service do Workspace; a deprecacao anunciada e a do runtime Rhino, NAO a do V8",
+      "risco": "baixo"
+    },
+    {
+      "id": "DEP-002",
+      "observado": false,
+      "motivo": "fonte viva (conteudo da planilha + Google Workspace Updates) nao consultada nesta rodada: nao ha leitura remota autorizada nesta fatia",
+      "risco": "nao estimado - sem observacao"
+    },
+    {
+      "id": "DEP-003",
+      "observado": true,
+      "versao_observada": "3.4.1",
+      "origem": "https://registry.npmjs.org/@google/clasp (dist-tags.latest) + https://github.com/google/clasp/releases",
+      "evidencia": "npm dist-tags.latest = 3.4.1; releases do GitHub param em v3.3.0 (2026-03-12) - as duas fontes do mesmo projeto divergem entre si",
+      "risco": "medio - a versao instalada nunca foi registrada no repositorio, embora o §31.6 exija versao no vinculo"
+    },
+    {
+      "id": "DEP-004",
+      "observado": true,
+      "versao_observada": "1.0.0",
+      "origem": "Dominio/tabela_territorial_ais.json:3-4 (versao + publicacao)",
+      "evidencia": "a copia versionada no repo declara versao 1.0.0 publicada em 2026-09-04; o estado vivo da base na planilha NAO foi observado",
+      "risco": "baixo - a observacao cobre a copia versionada, nao a base viva"
+    }
+  ]
+}

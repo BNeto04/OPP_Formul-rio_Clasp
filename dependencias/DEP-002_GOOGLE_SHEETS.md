@@ -4,9 +4,14 @@ nome: "Google Sheets (planilha operacional)"
 tipo: dependencia-externa
 vinculo: "fonte e destino operacional do produto"
 estado: ativo
-comodos: [C01, C02, C03, C04, C05, C06]
-cards: ["#140", "#142", "#143", "#144", "#152"]
+comodos: [C00, C01, C02, C03, C04, C05, C06]
+cards: ["#140", "#142", "#143", "#144", "#152", "#167"]
 data_registro: "2026-09-13"
+versao: "NAO_PINADA"
+fonte: "planilha viva (abas mensais/EFETIVO) + Google Workspace Updates (https://workspaceupdates.googleblog.com/)"
+data_decisao: "2026-09-14"
+decisao: "DEC-DEP-002"
+vigia: "dependencias/vigia/UPSTREAM_OBSERVADO.json"
 ---
 
 # DEP-002 - Google Sheets (planilha operacional)
@@ -20,6 +25,39 @@ data_registro: "2026-09-13"
 ## Vinculo
 A planilha e **fonte e destino**: as abas mensais guardam o fato (tunel `DATA | MIKE | BOE`), o `EFETIVO` guarda
 as pessoas, e os relatorios (comparativo, armas, drogas, CPM, PIP) sao **escritos de volta** na propria planilha.
+
+## Vinculo estrutural (§31.4 / §31.6) - o que esta dependencia cobre
+
+Ligacao de cada dependencia ao **Modulo / Circuito / Porta** cuja funcao ela cobre (§31.2: a dependencia
+deixa de ser lista solta e passa a apontar a responsabilidade estrutural que sustenta). `Circuito` e o canvas
+do Modulo dono; `AUSENTE_DECLARADO` = alvo que **nao existe** hoje e fica declarado como ausencia, nunca
+suprido por inferencia. `Vinculo` e `arquivo:linha`; `SEM_ARQUIVO_46.3` marca Porta declarada apenas na
+capsula (nao elegivel ao §12.6), e nesse caso o vinculo cita a linha da capsula. Verificado por
+`scripts/downplant/validar-dependencias.mjs`.
+
+| Modulo | Circuito | Porta | Papel da dependencia na Porta | Vinculo (arquivo:linha) |
+|---|---|---|---|---|
+| MOD-C00-03_INFRAESTRUTURA_CORE | AUSENTE_DECLARADO | PORTA-C00-03-P01 | grava a aba de log/auditoria na propria planilha | 02_Comodos/C00_Governanca_Estrutural/01_Dominio/modulos/MOD-C00-03_INFRAESTRUTURA_CORE/portas/PORTA-C00-03-P01_LOG_DE_AUDITORIA.md:1 |
+| MOD-C01-01_FORMULARIO_E_MENUS | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/CIR-MOD-C01-01_FORMULARIO_E_MENUS.canvas | PORTA-C01-01-P03 | grava a linha do BO na aba mensal (fonte e destino) | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/portas/PORTA-C01-01-P03_ENTRADA_MANUAL_BO.md:1 |
+| MOD-C01-02_NORMALIZADOR_DE_EFETIVO | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/CIR-MOD-C01-02_NORMALIZADOR_DE_EFETIVO.canvas | PORTA-C01-02-P02 | reescreve a referencia `EFETIVO` no Sheets | 02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/portas/PORTA-C01-02-P02_ESCRITA_EFETIVO.md:1 |
+| MOD-C02-01_LEITURA_E_ADAPTACAO | 02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/CIR-MOD-C02-01_LEITURA_E_ADAPTACAO.canvas | PORTA-C02-01-P01 | le abas mensais e `EFETIVO` (fonte do fato) | 02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/portas/PORTA-C02-01-P01_LEITURA_DE_PLANILHA.md:1 |
+| MOD-C05-01_GUARDIAO_DE_QUALIDADE | 02_Comodos/C05_Guardiao/01_Dominio/modulos/MOD-C05-01_GUARDIAO_DE_QUALIDADE/CIR-MOD-C05-01_GUARDIAO_DE_QUALIDADE.canvas | PORTA-C05-01-P02 | grava `[AUDITORIA]`/`[HISTORICO]` na planilha | 02_Comodos/C05_Guardiao/01_Dominio/modulos/MOD-C05-01_GUARDIAO_DE_QUALIDADE/portas/PORTA-C05-01-P02_ABAS_DE_AUDITORIA.md:1 |
+| MOD-C05-01_GUARDIAO_DE_QUALIDADE | 02_Comodos/C05_Guardiao/01_Dominio/modulos/MOD-C05-01_GUARDIAO_DE_QUALIDADE/CIR-MOD-C05-01_GUARDIAO_DE_QUALIDADE.canvas | PORTA-C05-01-P03 | grava a coluna `AM` da aba auditada | 02_Comodos/C05_Guardiao/01_Dominio/modulos/MOD-C05-01_GUARDIAO_DE_QUALIDADE/portas/PORTA-C05-01-P03_COLUNA_ALERTA_AM.md:1 |
+| MOD-C06-01_RELATORIOS_OFICIAIS | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/CIR-MOD-C06-01_RELATORIOS_OFICIAIS.canvas | PORTA-C06-01-P01 | escreve a aba `COMPARATIVO_2026` | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/portas/PORTA-C06-01-P01_MENU_COMPARATIVO.md:1 |
+| MOD-C06-01_RELATORIOS_OFICIAIS | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/CIR-MOD-C06-01_RELATORIOS_OFICIAIS.canvas | PORTA-C06-01-P02 | mesma escrita da aba `COMPARATIVO_2026`, por rota headless | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/portas/PORTA-C06-01-P02_COMPARATIVO_HEADLESS.md:1 |
+| MOD-C06-02_MERITO_DE_ARMAS_GXT | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/CIR-MOD-C06-02_MERITO_DE_ARMAS_GXT.canvas | PORTA-C06-02-P01 | escreve o relatorio de armas em aba | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/portas/PORTA-C06-02-P01_MENU_SELECAO_LIVRE.md:1 |
+| MOD-C06-02_MERITO_DE_ARMAS_GXT | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/CIR-MOD-C06-02_MERITO_DE_ARMAS_GXT.canvas | PORTA-C06-02-P03 | mesma escrita por rota headless | 02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/portas/PORTA-C06-02-P03_ARMAS_HEADLESS.md:1 |
+
+## Vigia (§7.8 / §46.14)
+- **Fonte observada upstream:** campo `fonte` do cabecalho deste registro - e o que o Vigia le fora do projeto
+  (release notes / changelog / advisory).
+- **Mecanismo:** `scripts/downplant/vigia-dependencias.mjs` - le este registro, **compara** com a observacao
+  upstream registrada em `dependencias/vigia/UPSTREAM_OBSERVADO.json` e **reporta** no formato da secao
+  `46.14 Relatorio do Vigia de dependencias` do metodo (`SINCRONIZADO | DEFASADO | NENHUMA AÇÃO`).
+- **Limite contratual (§7.8):** o Vigia **observa, compara e reporta**; **nao decide**, **nao troca** a
+  dependencia e **nao aplica** a atualizacao. Recusa `--aplicar`, `--atualizar`, `--fix` e `--auto` com
+  codigo de saida != 0; sem `--out` explicito **nao escreve em arquivo nenhum**.
+- **Ultimo relatorio:** `dependencias/vigia/RELATORIO_VIGIA_2026-09-14.md`.
 
 ## Evidencia no repo
 | Evidencia | Onde |

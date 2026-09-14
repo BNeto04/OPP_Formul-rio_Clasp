@@ -116,6 +116,14 @@ async function main() {
   console.log('');
   require('./TestSerializacaoEscrita');
   console.log('');
+  {
+    // #167 [DP24-004] - fechadura do vinculo §31.6 (tecnologia existente) + Vigia de dependencias §7.8
+    const testVigiaDependencias = require('./TestVigiaDependencias');
+    if (typeof testVigiaDependencias === 'function') {
+      testVigiaDependencias();
+    }
+  }
+  console.log('');
   console.log('');
   require('./TestVigiaPonte');
   console.log('');
