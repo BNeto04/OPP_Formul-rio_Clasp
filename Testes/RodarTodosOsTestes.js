@@ -98,6 +98,13 @@ async function main() {
   console.log('');
   require('./TestOrdemAntiguidadeEquipe');
   console.log('');
+  {
+    const testHandoff32_14 = require('./TestValidarHandoffContrato32_14');
+    if (typeof testHandoff32_14 === 'function') {
+      await testHandoff32_14();
+    }
+  }
+  console.log('');
   console.log('');
   require('./TestVigiaPonte');
   console.log('');

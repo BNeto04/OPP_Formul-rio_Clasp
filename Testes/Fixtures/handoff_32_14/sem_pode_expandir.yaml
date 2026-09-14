@@ -1,0 +1,21 @@
+downplant:
+  terreno: SYN
+  comodo: C00
+  modulo: MOD-C00-01
+  submodulo: null
+  escala: modulo
+  circuito: CIR-MOD-C00-01_AUTH
+  porta: P00
+
+task:
+  id: TASK-C00-044
+  acao: corrigir
+  alvo: comportamento definido
+
+escopo:
+  arquivos:
+    - arquivo-a
+
+estado:
+  portao_atual: G4
+  portao_destino: G7

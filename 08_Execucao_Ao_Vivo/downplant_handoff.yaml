@@ -40,6 +40,28 @@ contexto_de_task:
     sheets_id: "1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY"
     github_repo: "BNeto04/OPP_Formul-rio_Clasp"
 
+# --- Contrato de entrada §32.14 (#163 DP24-002) ------------------------------
+# Campos do require que o schema DP-HANDOFF-1 ainda nao declarava. O restante do
+# require JA existe neste objeto e NAO e duplicado aqui — o mapa da projecao esta
+# em scripts/downplant/validar-handoff.mjs (secao 8) e nao ha segundo validador:
+#   downplant.comodo    <- contexto_de_task.comodo
+#   downplant.modulo    <- contexto_de_task.modulo_ativo
+#   escopo.arquivos     <- contexto_de_task.arquivos_permitidos
+#   estado.portao_atual <- contexto_de_task.portao_atual
+downplant:
+  escala: modulo            # submodulo | modulo | comodo (§40.4) — o modulo ativo esta em contexto_de_task
+
+task:
+  id: "TASK-C00-163"        # Task do card #163 (DP24-002), padrao TASK-<COMODO>-<n> (§46.12)
+  acao: alterar
+  alvo: "scripts/downplant/validar-handoff.mjs"
+
+escopo:
+  pode_expandir: false      # explicito: nunca ausente (§32.14)
+
+estado:
+  portao_destino: "Conferidor -> Publicacao (apos auditoria)"
+
 quatro_pontas:
   CODE_STATE: ALINHADO
   DOC_STATE: ALINHADO

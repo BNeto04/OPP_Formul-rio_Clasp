@@ -1,0 +1,26 @@
+downplant:
+  terreno: SYN
+  comodo: C00
+  modulo: MOD-C00-01
+  submodulo: null            # preencher quando escala = submodulo
+  escala: modulo             # submodulo | modulo | comodo
+  circuito: CIR-MOD-C00-01_AUTH
+  porta: P00
+
+task:
+  id: TASK-C00-042
+  acao: corrigir
+  alvo: comportamento definido
+
+escopo:
+  arquivos:
+    - arquivo-a
+    - arquivo-b
+  pode_expandir: false
+
+estado:
+  portao_atual: G4
+  portao_destino: G7
+
+fora_do_escopo:
+  acao: REPORTAR_AO_PLANEJADOR

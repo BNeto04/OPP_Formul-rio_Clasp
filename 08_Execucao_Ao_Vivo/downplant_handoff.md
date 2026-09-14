@@ -65,6 +65,21 @@
 | Sheets ID | `1S05sTbd3otgjGjrC-YrzHk7dXp7mzzaw_J2lyQ86hOY` |
 | Repositório GitHub | `BNeto04/OPP_Formul-rio_Clasp` |
 
+## 3.1 Contrato de entrada §32.14 (campos declarados — #163 DP24-002)
+
+> Campos do require da §32.14 que o objeto declara explicitamente. Os demais campos do require **não são duplicados aqui**: `downplant.comodo` ← Cômodo (§3), `downplant.modulo` ← Módulo ativo (§3), `escopo.arquivos` ← Arquivos permitidos (§3), `estado.portao_atual` ← Portão atual (§3). O mapa completo (e a projeção) está em `scripts/downplant/validar-handoff.mjs`, seção 8 — validador único, sem segundo validador.
+
+| Campo §32.14 | Valor declarado |
+|---|---|
+| `downplant.escala` | `modulo` (`submodulo` \| `modulo` \| `comodo` — §40.4) |
+| `task.id` | `TASK-C00-163` (padrão `TASK-<COMODO>-<n>`, §46.12; Task do card #163) |
+| `task.acao` | `alterar` |
+| `task.alvo` | `scripts/downplant/validar-handoff.mjs` |
+| `escopo.pode_expandir` | `false` (explícito, nunca ausente) |
+| `estado.portao_destino` | Conferidor → Publicação (após auditoria) |
+
+Verificação: `node scripts/downplant/validar-handoff.mjs .` (seção 8 — require/ensure/invariant §32.14; 40 PASS / 0 FAIL, exit 0).
+
 ## 4. Quatro pontas
 
 | Ponta | Estado | Justificativa |
@@ -94,10 +109,4 @@
 
 ## 7. Nota de formato (honestidade normativa)
 
-O método disponível no disco (`Skill Packages/down-plant-progressivo-2.1/references/metodo-down-plant-progressivo-v2.1.md`) define os modelos de §46.1 a §46.10 e a governança de agentes de §32.1 a §32.4; **não** contém as seções §46.12 / §32.14 citadas no card #156. O objeto acima foi construído a partir do que o método **de fato** define:
-
-- §32.1 **Contexto mínimo obrigatório** (projeto, pasta, repositório, branch, módulo ativo, arquivos permitidos, ambiente, IDs remotos, proibições, estado de Git, portão atual) — é o conteúdo do handoff;
-- a família de modelos §46.8 (manifesto com frontmatter YAML) e §46.9 (índice derivado) — é a forma do par YAML canônico + espelho derivado;
-- a regra das quatro pontas já materializada no repositório (card #57: `CODE_STATE`/`DOC_STATE`/`CANVAS_STATE`/`GIT_STATE`).
-
-A referência de seção do card é **divergência registrada**, não fonte inventada. O mesmo critério foi usado no registro `EV-C00-001` (formato derivado e declarado, quando o método não traz template).
+O objeto acima nasceu do que o método disponível no disco na época do #156 definia (§32.1 contexto mínimo obrigatório; família §46.8/§46.9 para o par YAML+espelho; as quatro pontas já materializadas no #57). **Atualização #163:** o texto canônico **2.4** passou a estar versionado no próprio repositório (`03_Fundacao/METODO_DOWN_PLANT_PROGRESSIVO_v2.4.md`, commit `42ca47e`) e **contém** as seções §46.11 (espelho Markdown derivado), §46.12 (objeto canônico de handoff Planner → Executor) e §32.14 (contrato de entrada require/ensure/invariant). A divergência registrada no #156 está, portanto, resolvida: os campos do require foram homologados neste objeto (§3.1) e o contrato passou a ser verificado pelo validador único deste repositório.
