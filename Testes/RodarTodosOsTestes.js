@@ -124,6 +124,15 @@ async function main() {
     }
   }
   console.log('');
+  {
+    // #168 [DP24-005] - fechadura do §46.11 (Markdown DERIVADO do YAML canonico) e do §46.13
+    // (relatorio do Curador estrutural). §46.14 entra como homologacao (implantado no #167).
+    const testCuradorEstrutural = require('./TestCuradorEstrutural');
+    if (typeof testCuradorEstrutural === 'function') {
+      testCuradorEstrutural();
+    }
+  }
+  console.log('');
   console.log('');
   require('./TestVigiaPonte');
   console.log('');

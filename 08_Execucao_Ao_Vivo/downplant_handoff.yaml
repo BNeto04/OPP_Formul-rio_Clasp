@@ -86,3 +86,14 @@ referencias:
   planta_mestra: "01_Planta/PLANTA_MESTRA.canvas"
   lint: "scripts/downplant/lint-estrutura.mjs"
   validador: "scripts/downplant/validar-handoff.mjs"
+
+# --- Notas do objeto (§46.11 / §46.13) — #168 DP24-005 -----------------------
+# Prosa NORMATIVA sobre o proprio handoff. Fica no YAML porque o espelho Markdown
+# (§46.11) so pode conter o que o YAML declara: prosa do espelho sem origem no YAML
+# e divergencia a reportar (§4.5), nunca campo. Antes do #168 essas notas viviam
+# SO no .md (derivado a mao) - eram exatamente a divergencia que o §46.11 proibe.
+notas:
+  projecao_32_14: "Campos do require da §32.14 que este objeto declara explicitamente. Os demais campos do require NAO sao duplicados aqui: downplant.comodo <- contexto_de_task.comodo; downplant.modulo <- contexto_de_task.modulo_ativo; escopo.arquivos <- contexto_de_task.arquivos_permitidos; estado.portao_atual <- contexto_de_task.portao_atual. O mapa completo (e a projecao) esta em scripts/downplant/validar-handoff.mjs, secao 8 - validador unico, sem segundo validador."
+  verificacao: "node scripts/downplant/validar-handoff.mjs . (secao 8 - require/ensure/invariant da §32.14; 40 PASS / 0 FAIL; exit 0) - medicao declarada na data de gerado_em deste objeto."
+  formato: "O objeto nasceu do que o metodo disponivel no disco na epoca do #156 definia (§32.1 contexto minimo obrigatorio; familia §46.8/§46.9 para o par YAML+espelho; as quatro pontas ja materializadas no #57). Atualizacao #163: o texto canonico 2.4 passou a estar versionado no proprio repositorio (03_Fundacao/METODO_DOWN_PLANT_PROGRESSIVO_v2.4.md, commit 42ca47e) e CONTEM as secoes §46.11 (espelho Markdown derivado), §46.12 (objeto canonico de handoff Planner -> Executor) e §32.14 (contrato de entrada require/ensure/invariant). A divergencia registrada no #156 esta, portanto, resolvida: os campos do require foram homologados neste objeto e o contrato passou a ser verificado pelo validador unico deste repositorio."
+  derivacao_do_espelho: "O espelho Markdown (08_Execucao_Ao_Vivo/downplant_handoff.md) e DERIVADO deste YAML por scripts/downplant/gerar-handoff-md.mjs (§46.11). Nao editar o .md: editar este YAML e regerar. Divergencia entre os dois e deriva a ser reportada pelo Curador (§4.5/§7.7)."
