@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | `DEP-001` | Google Apps Script | `V8` | `DEC-DEP-001` | https://developers.google.com/apps-script/release-notes (feed oficial: https://developers.google.com/feeds/apps-script-release-notes.xml) |
 | `DEP-002` | Google Sheets (planilha operacional) | `NAO_PINADA` | `DEC-DEP-002` | planilha viva (abas mensais/EFETIVO) + Google Workspace Updates (https://workspaceupdates.googleblog.com/) |
-| `DEP-003` | clasp (CLI de deploy) | `AUSENTE_DECLARADO` | `DEC-DEP-003` | https://registry.npmjs.org/@google/clasp (dist-tags.latest) + https://github.com/google/clasp/releases |
+| `DEP-003` | clasp (CLI de deploy) | `3.3.0` | `DEC-DEP-003` | https://registry.npmjs.org/@google/clasp (dist-tags.latest) + https://github.com/google/clasp/releases |
 | `DEP-004` | Abas e bases canonicas (EFETIVO, catalogo PIP, base territorial AIS) | `1.0.0 (AIS)` | `DEC-DEP-004` | Dominio/tabela_territorial_ais.json (versao + fontesOficiais declaradas) + abas vivas EFETIVO/PIP na planilha |
 
 ## Atualizações detectadas upstream
@@ -28,7 +28,7 @@
 |---|---|---|---|---|
 | `DEP-001` | `V8` | `V8` | **SINCRONIZADO** | versao registrada == versao observada (V8) |
 | `DEP-002` | `NAO_PINADA` | `-` | **NENHUMA AÇÃO** | fonte viva (conteudo da planilha + Google Workspace Updates) nao consultada nesta rodada: nao ha leitura remota autorizada nesta fatia |
-| `DEP-003` | `AUSENTE_DECLARADO` | `3.4.1` | **DEFASADO** | versao registrada ausente/nao pinada no vinculo, embora o §31.6 exija versao |
+| `DEP-003` | `3.3.0` | `3.4.1` | **DEFASADO** | divergencia de versao: registrada 3.3.0 x observada 3.4.1 |
 | `DEP-004` | `1.0.0 (AIS)` | `1.0.0` | **SINCRONIZADO** | versao registrada == versao observada (1.0.0) |
 
 ## Risco estimado da defasagem
@@ -42,7 +42,7 @@
 ## Recomendação
 - `DEP-001`: nenhuma acao; o vinculo continua valido
 - `DEP-002`: registrar observacao da fonte declarada (`fonte`) na proxima rodada do Vigia
-- `DEP-003`: registrar a versao instalada no campo `versao` do vinculo (dependencias/DEP-003) - nao ha aplicacao automatica: e registro de decisao, §31.6
+- `DEP-003`: avaliar a versao 3.4.1 como candidato a reconciliacao (decisao humana)
 - `DEP-004`: nenhuma acao; o vinculo continua valido
 
 ## Decisão humana necessária
@@ -50,7 +50,7 @@
 |---|---|---|
 | `DEP-001` | Não | nenhuma acao; o vinculo continua valido |
 | `DEP-002` | Não | registrar observacao da fonte declarada (`fonte`) na proxima rodada do Vigia |
-| `DEP-003` | Sim | registrar a versao instalada no campo `versao` do vinculo (dependencias/DEP-003) - nao ha aplicacao automatica: e registro de decisao, §31.6 |
+| `DEP-003` | Sim | avaliar a versao 3.4.1 como candidato a reconciliacao (decisao humana) |
 | `DEP-004` | Não | nenhuma acao; o vinculo continua valido |
 
 **Estado do Vigia (§46.14):** `DEFASADO`

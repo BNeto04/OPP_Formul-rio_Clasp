@@ -7,7 +7,7 @@ estado: ativo
 comodos: [C00, C08]
 cards: ["#140", "#141", "#142", "#144", "#152", "#153", "#167"]
 data_registro: "2026-09-13"
-versao: "3.3.0"  <!-- INSTALADA, provada: `clasp --version` e `clasp -v` => 3.3.0 (14/09/2026). Confere com a tag GitHub v3.3.0; npm publica 3.4.1 => estado DEFASADO em relação ao npm. Registros anteriores: 53684b7 (prematuro, corrigido) e a929f1e (NAO_COMPROVADA por leitura vazia transitória, corrigido aqui) — §3.7 preservação histórica -->
+versao: "3.3.0"
 fonte: "https://registry.npmjs.org/@google/clasp (dist-tags.latest) + https://github.com/google/clasp/releases"
 data_decisao: "2026-09-14"
 decisao: "DEC-DEP-003"
@@ -69,7 +69,7 @@ capsula (nao elegivel ao §12.6), e nesse caso o vinculo cita a linha da capsula
 ## Versao / estado
 | Item | Valor | Fonte |
 |---|---|---|
-| Versao do clasp | **nao registrada** no repo | ausencia declarada |
+| Versao do clasp | **3.3.0** — instalada e provada por `clasp --version` e `clasp -v` (14/09/2026) | `clasp --version` (14/09/2026) + tag GitHub v3.3.0; npm publica **3.4.1** -> estado DEFASADO em relacao ao npm. Registros anteriores: `53684b7` (prematuro, corrigido) e `a929f1e` (NAO_COMPROVADA por leitura vazia transitoria, corrigido em `f8f11b0`) — §3.7 preservacao historica |
 | Autenticacao | **nao documentada** no repo | ausencia declarada |
 | Estado | ativo | `push` + verificacao byte-a-byte nos cards |
 | Efeito na documentacao | `02_Comodos/**` esta no `.claspignore` -> escrever no cofre **nao** publica nada no Apps Script | #142 |
