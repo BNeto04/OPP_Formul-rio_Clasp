@@ -114,6 +114,8 @@ async function main() {
   console.log('');
   require('./TestGuardiaoHeadlessEfeitoDeclarado');
   console.log('');
+  require('./TestSerializacaoEscrita');
+  console.log('');
   console.log('');
   require('./TestVigiaPonte');
   console.log('');

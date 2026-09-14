@@ -32,6 +32,10 @@ global.Session = {
 };
 
 // Carrega o Compilador_Armas.js via vm.runInThisContext sem alterar o arquivo original
+// INST-SERIALIZACAO-001 (#164): a trava global de escrita e codigo de produto. No Apps Script ela
+// e global; aqui `vm.runInThisContext` executa fora do escopo do modulo, entao o helper e publicado
+// no global ANTES de carregar o compilador (sem ele a porta falha FECHADO e nada e compilado).
+global.SyntheonSerializacaoEscrita = require('../Core/SerializacaoEscrita');
 const codeArmas = fs.readFileSync(path.join(__dirname, '../Compilador_Armas.js'), 'utf8');
 vm.runInThisContext(codeArmas);
 

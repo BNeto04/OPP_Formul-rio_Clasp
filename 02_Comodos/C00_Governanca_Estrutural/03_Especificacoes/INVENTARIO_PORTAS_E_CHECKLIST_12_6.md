@@ -102,42 +102,46 @@ Totais: **45 Portas** declaradas hoje (**sem** as agregações do `INDICE.md` de
 repetem Portas já contadas) · **25 elegíveis** (§12.6 obriga) · **20 não elegíveis** (com motivo
 explícito acima).
 
-## 4. Itens `pendente` declarados por este card (bloqueiam a Porta em G7)
+## 4. Fechamento das 17 pendências (medido; decisão do Planner, 14/09/2026)
 
-Nenhum `pendente` existe sem justificativa escrita no próprio arquivo da Porta (**17 itens em 13
-Portas**). O mapa abaixo é o índice; o texto de cada justificativa está no arquivo da Porta.
+O card #164 **não fecha 17 pendências em aberto**: cada uma foi **(i)** resolvida por implementação
+(trava global de escrita / política de idempotência), **(ii)** resolvida por **existência real** do
+artefato, ou **(iii)** declarada `nao_aplicavel` com justificativa medida. O mapa abaixo é o
+`item → estado final → evidência`; o validador confere, item a item, que o arquivo da Porta diz
+exatamente isto (`Testes/TestValidarChecklistProducaoPortas.js` §5).
 
-| Porta | Item | Justificativa (resumo) | Correção exigida |
+| Porta | Item | Estado final | Evidência (implementação e teste) |
 |---|---|---|---|
-| C00/MOD-C00-03/P01 | race_condition | nome fixo de aba + `clear()`/`setValues` sem serialização: dois geradores de log se apagam | lock, nome por execução, ou declarar o log descartável |
-| C01/MOD-C01-01/P03 | idempotente | reentrega do mesmo payload grava novo bloco; a decisão declarada é **avisar** e triar no Guardião | chave de idempotência (MIKE+BOE) ou formalizar o aviso |
-| C01/MOD-C01-01/P03 | operacao_atomica | gravação por fases, coluna a coluna, sem transação nem rollback | bloco único ou rollback contratado |
-| C01/MOD-C01-01/P03 | race_condition | bloco modelo escolhido por ler-depois-escrever; sem `LockService` no codigo de produto (`Testes/TestMenuP3.js:80` e apenas um stub de sandbox) | lock + revalidação do bloco |
-| C01/MOD-C01-02/P02 | race_condition | `clearContent` + `setValues` na aba EFETIVO; as duas execuções reportariam sucesso | lock + escrita em uma chamada |
-| C01/MOD-C01-02/P03 | race_condition | é o **segundo chamador** (headless) do mesmo efeito | idem P02; proibido rodar em paralelo até a decisão |
-| C05/MOD-C05-01/P02 | race_condition | `[HISTORICO]` anexa por ler-depois-escrever; `[AUDITORIA]` é sobrescrita | lock no ciclo de auditoria |
-| C05/MOD-C05-01/P03 | race_condition | a auditoria lê a aba e escreve nela (coluna AM) sem lock | lock no ciclo de auditoria |
-| C05/MOD-C05-01/P05 | race_condition | prova headless é o segundo chamador do mesmo ciclo | idem P02/P03 |
-| C06/MOD-C06-01/P01 | race_condition | `COMPARATIVO_2026` tem nome fixo; duas gerações se misturam sem erro | lock na geração |
-| C06/MOD-C06-01/P02 | race_condition | prova headless é o segundo chamador da mesma aba | idem P01 |
-| C06/MOD-C06-02/P01 | idempotente | cada execução cria **aba nova versionada** (`.v1`, `.v2`, …) sem política de expurgo | decidir versionador (com expurgo) ou idempotente |
-| C06/MOD-C06-02/P02 | idempotente | idem P01, no modo anual | idem P01 |
-| C06/MOD-C06-02/P03 | idempotente | idem P01, na rota headless | idem P01 |
-| C06/MOD-C06-02/P04 | idempotente | Porta **declarada sem implementação**: não há comportamento a declarar | implementar a consulta à ARCA **ou** retirar a linha da cápsula |
-| C06/MOD-C06-02/P04 | deduplicacao | idem — não há consumo a deduplicar | idem |
-| C06/MOD-C06-02/P04 | validacao_entrada | idem — não há `rule_id` sendo validado | idem |
+| C00/MOD-C00-03/P01 | race_condition | aplicavel | trava global no gerador do log: `Core/Logger.js:57` adquire a trava antes de `RendererAuditoria.render` (`Render/RendererAuditoria.js:11,14`). Evidência: `Testes/TestSerializacaoEscrita.js` (corrida do item #1 + fail-closed) e `INST-SERIALIZACAO-001` |
+| C01/MOD-C01-01/P03 | idempotente | aplicavel | ENTRADA_OPERACIONAL: identidade `DATA/MIKE/BOE` (regra `ARCA-OCORRENCIA-007`) => reentrega e `REPLAY_RECUSADO` com zero escrita (`Entrada/EntradaManual.js:85`). Evidência: `TestSerializacaoEscrita` + `TestEntradaManualFormulario` (14.2/14.3/15.7) |
+| C01/MOD-C01-01/P03 | operacao_atomica | pendente | **PENDENTE_DECLARADA com MARCO** — residual declarado: colunas de FÓRMULA intercaladas impedem uma matriz única; foi feito agrupamento em runs contíguos (`Entrada/EntradaManual.js:604`) + trava global. Marco: `INST-SERIALIZACAO-001` §6 |
+| C01/MOD-C01-01/P03 | race_condition | aplicavel | trava global adquirida antes de ler a linha livre e gravar (`Entrada/EntradaManual.js:80`); o BO de nenhum operador se perde. Evidência: `TestSerializacaoEscrita` (caso RED->GREEN da corrida do §2.4 do diagnóstico) |
+| C01/MOD-C01-02/P02 | race_condition | aplicavel | trava global (`Features/NormalizadorEfetivo.js:27`) + escrita em UMA chamada (`:200`, sem `clearContent`). Evidência: `TestSerializacaoEscrita` (caso EFETIVO) |
+| C01/MOD-C01-02/P03 | race_condition | aplicavel | segunda trava do mesmo efeito (`Features/NormalizadorEfetivo.js:484`); menu e headless não se interleavam. Evidência: `TestSerializacaoEscrita` |
+| C05/MOD-C05-01/P02 | race_condition | aplicavel | trava global no ciclo de auditoria (`Features/GuardiaoQualidade.js:155`); `[AUDITORIA]` sobrescrita e `[HISTORICO]` append com leitura sob trava (`Render/RendererAuditoriaSaude.js:122,132`). Evidência: `TestSerializacaoEscrita` + `TestGuardiaoHeadlessEfeitoDeclarado` |
+| C05/MOD-C05-01/P03 | race_condition | aplicavel | mesma trava; coluna AM derivada da leitura da mesma aba dentro da seção crítica (`Features/GuardiaoQualidade.js:740,741`). Evidência: `TestSerializacaoEscrita` |
+| C05/MOD-C05-01/P05 | race_condition | aplicavel | segunda trava do ciclo (`Features/GuardiaoHeadless.js:70` e `:133`); fail-closed devolve `SERIALIZACAO_OCUPADA` em JSON. Evidência: `TestSerializacaoEscrita` |
+| C06/MOD-C06-01/P01 | race_condition | aplicavel | trava global na geração do `COMPARATIVO_2026` (`Features/CompiladorProdutividade.js:58`). Evidência: `TestSerializacaoEscrita` |
+| C06/MOD-C06-01/P02 | race_condition | aplicavel | segunda trava da mesma aba (`Features/CompiladorProdutividade.js:120`). Evidência: `TestSerializacaoEscrita` |
+| C06/MOD-C06-02/P01 | idempotente | aplicavel | efeito APPEND com chave de execução estável (`Compilador_Armas.js:35`) e rejeição de replay (`:367-375`). Evidência: `TestSerializacaoEscrita` (caso APPEND/chave estável) |
+| C06/MOD-C06-02/P02 | idempotente | aplicavel | idem P01, com o modo ANUAL compondo a chave. Evidência: `TestSerializacaoEscrita` |
+| C06/MOD-C06-02/P03 | idempotente | aplicavel | idem P01 na rota headless (`Compilador_Armas.js:491`). Evidência: `TestSerializacaoEscrita` |
+| C06/MOD-C06-02/P04 | idempotente | nao_aplicavel | consulta à ARCA **não existe** no runtime (0 ocorrências de `AdaptadorConsultaArca`/`consultarPorRuleId` em `Compilador_Armas.js` e `Motor/PoliticaMeritoArmas.js`): item sem objeto. Promessa retirada da cápsula de C06-02 |
+| C06/MOD-C06-02/P04 | deduplicacao | nao_aplicavel | idem: não há consumo a deduplicar (mesma medição) |
+| C06/MOD-C06-02/P04 | validacao_entrada | nao_aplicavel | idem: sem implementação não há `rule_id` de entrada a validar (divergência D-164-02 fechada por decisão factual) |
 
-**Este card NÃO silencia esses pendentes**: eles são o resultado principal da medição (antes, nenhuma
-Porta declarava nada). O método é explícito — um item `pendente` bloqueia a Porta em G7, com o mesmo peso
-de um `ensure` não satisfeito (§12.4).
+**Placar do fechamento** (medido por `node scripts/downplant/validar-portas.mjs .`, 14/09/2026):
+**25/25 Portas elegíveis verdes** · **224 itens PASS** · **1 PENDENTE_DECLARADA** (`operacao_atomica`
+de `C01/MOD-C01-01/P03`, com `MARCO:`) · **0 PENDENTE_BLOQUEANTE** · **0 FAIL** · exit 0.
 
-### 4.1 Duas causas-raiz (uma decisão cada, não nove)
+### 4.1 As duas causas-raiz do §6 (uma decisão cada) — e como foram resolvidas
 
-| Causa-raiz | Pendências que resolve | Forma prevista pelo método |
+| Causa-raiz | Pendências que resolvia | Resolução nesta fatia |
 |---|---|---|
-| **Não existe serialização no repositório.** O codigo de produto **nao** usa `LockService` (unica mencao no repositorio: stub de sandbox em `Testes/TestMenuP3.js:80`). Toda Porta que grava com nome fixo é vulnerável a execuções concorrentes (operador + agente headless sobre a mesma planilha). | 9 × `race_condition` | **Instalação transversal `INST-SERIALIZACAO-*`** (§8.11) — capacidade compartilhada de lock, com contrato/Portas/consumidores; cada Porta passa a **referenciar a instalação** em vez de reimplementar |
-| **Não existe política de idempotência para artefatos que se acumulam** (nova aba por execução, novo bloco por reentrega). | 5 × `idempotente` | decisão do Planner: chave de idempotência para a entrada manual e política de versionamento/expurgo para as abas geradas |
-| **(sem causa-raiz comum)** Porta declarada e não implementada em C06-02 (`Compilador → ARCA`) | 3 itens da P04 | implementar ou retirar a linha da cápsula (§17: mapa == realidade) |
+| **Não existia serialização no repositório** (0 `LockService` no produto) | 9 × `race_condition` | **Instalação transversal `INST-SERIALIZACAO-001`** (§8.11): helper único `Core/SerializacaoEscrita.js` (dono/órfão/corrompido/release-só-do-dono, molde `VigiaPonte/LockManager.js:28-106`), fail-closed, reentrância e release garantido, aplicado nos entrypoints mutantes (menu + headless) e coberto por `Testes/TestSerializacaoEscrita.js` |
+| **Não existia política de idempotência** para artefatos que se acumulam | 5 × `idempotente` | Política mínima verificável, item a item: ENTRADA_OPERACIONAL com identidade de operação (`DATA/MIKE/BOE`) e REPLAY recusado; APPEND (Armas) com chave de execução estável e rejeição de replay; os 3 itens de C06-02/P04 decididos por NÃO_APLICÁVEL medido |
+| **(sem causa-raiz comum)** Porta declarada e não implementada em C06-02 | 3 itens da P04 | Promessa **retirada da cápsula** + itens declarados `nao_aplicavel` com a medição (proibido implementar só para satisfazer documentação) |
+
 
 ## 5. Como este inventário é verificado
 

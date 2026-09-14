@@ -1,9 +1,35 @@
 /**
  * ARQUIVO: Features/NormalizadorEfetivo.js
  * DESCRICAO: Sincroniza a aba EFETIVO a partir do QO/PECULIO sem apagar registros extras.
+ *
+ * INST-SERIALIZACAO-001 (§8.11): a gravacao da referencia EFETIVO/LEGADO e a escolha das linhas
+ * acontecem sob a TRAVA GLOBAL de escrita (helper em `Core/SerializacaoEscrita.js`). A guarda de
+ * TOPO abaixo carrega o helper na bancada Node sem criar simbolo global novo (proibido por
+ * `Testes/TestSemRedefinicaoGlobal.js`); no runtime ele ja e global.
  */
+if (typeof SyntheonSerializacaoEscrita === 'undefined' && typeof require !== 'undefined') {
+  try { global.SyntheonSerializacaoEscrita = require('../Core/SerializacaoEscrita'); } catch (e) { /* fail-closed no uso */ }
+}
+
 class NormalizadorEfetivo {
+  /**
+   * Porta MUTANTE (INST-SERIALIZACAO-001): a sincronizacao le o PECULIO, escolhe as linhas,
+   * grava EFETIVO/EFETIVO_LEGADO e reescreve a aba de auditoria. Tudo isso sob a TRAVA GLOBAL de
+   * escrita — menu e headless nao interleavam mais (o EFETIVO ficava HIBRIDO com as duas
+   * execucoes reportando sucesso, `DIAGNOSTICO_164_CONCORRENCIA.md` §2.1). Sem trava: NAO executa
+   * e NAO escreve (fail-closed).
+   */
   static executar(opcoes) {
+    if (typeof SyntheonSerializacaoEscrita === 'undefined' || !SyntheonSerializacaoEscrita
+        || typeof SyntheonSerializacaoEscrita.executarComLock !== 'function') {
+      throw new Error('ESCRITA BLOQUEADA: mecanismo de serializacao de escrita indisponivel (INST-SERIALIZACAO-001). Nada foi gravado.');
+    }
+    return SyntheonSerializacaoEscrita.executarComLock('NormalizadorEfetivo.executar', function () {
+      return NormalizadorEfetivo._executarSobTrava_(opcoes);
+    });
+  }
+
+  static _executarSobTrava_(opcoes) {
     opcoes = opcoes || {};
     const abaDestino = opcoes.abaDestino || CONSTANTES_SYNTHEON.ABA_EFETIVO;
     const abaLog = opcoes.abaLog || '[AUDITORIA] Efetivo';
@@ -153,23 +179,39 @@ class NormalizadorEfetivo {
     return { registros, porMatricula };
   }
 
+  /**
+   * Grava a referencia EFETIVO em UMA unica chamada de API (operacao_atomica, §12.6).
+   *
+   * Antes: `clearContent` (`:158`) + `setValues` (`:160`) = DUAS chamadas de API separadas por
+   * latencia de rede; nessa janela, uma segunda execucao gravava e o EFETIVO terminava HIBRIDO
+   * (5 linhas de A + 7 de B), com as duas execucoes reportando sucesso
+   * (`DIAGNOSTICO_164_CONCORRENCIA.md` §2.1). Agora a matriz e dimensionada em memoria cobrindo
+   * `max(ultimaLinha, saida.length, 1)` linhas com `''` nas sobras e vai em UM `setValues`:
+   * o estado intermediario (aba vazia) deixa de existir e o efeito final e IDENTICO.
+   * Reexecutar com o mesmo PECULIO reconstroi exatamente a mesma referencia (REGERA/REPLACE).
+   */
   static escreverEfetivo(sheet, saida) {
     const linhasParaLimpar = Math.max(sheet.getLastRow(), saida.length, 1);
-    sheet.getRange(1, 1, linhasParaLimpar, 7).clearContent();
-    if (saida.length > 0) {
-      sheet.getRange(1, 1, saida.length, 7).setValues(saida);
+    const vazio = ['', '', '', '', '', '', ''];
+    const matriz = [];
+    for (let i = 0; i < linhasParaLimpar; i++) {
+      matriz.push(saida[i] ? saida[i] : vazio.slice());
     }
+    sheet.getRange(1, 1, linhasParaLimpar, 7).setValues(matriz);
     sheet.setFrozenRows(0);
     sheet.autoResizeColumns(1, 7);
   }
 
+  /** Idem `escreverEfetivo`: substituicao integral em UMA chamada (artefato derivado e regeneravel). */
   static escreverLegado(ss, legado, nomeAba) {
     let sheet = ss.getSheetByName(nomeAba) || ss.insertSheet(nomeAba);
     const linhasParaLimpar = Math.max(sheet.getLastRow(), legado.length, 1);
-    sheet.getRange(1, 1, linhasParaLimpar, 7).clearContent();
-    if (legado.length > 0) {
-      sheet.getRange(1, 1, legado.length, 7).setValues(legado);
+    const vazio = ['', '', '', '', '', '', ''];
+    const matriz = [];
+    for (let i = 0; i < linhasParaLimpar; i++) {
+      matriz.push(legado[i] ? legado[i] : vazio.slice());
     }
+    sheet.getRange(1, 1, linhasParaLimpar, 7).setValues(matriz);
     sheet.autoResizeColumns(1, 7);
   }
 
@@ -395,7 +437,9 @@ if (typeof module !== 'undefined' && module.exports) {
 function normalizarEfetivo() {
   const ui = SpreadsheetApp.getUi();
   try {
-    const resultado = NormalizadorEfetivo.executar();
+    const resultado = SyntheonSerializacaoEscrita.executarComLock('NormalizadorEfetivo.menu', function () {
+      return NormalizadorEfetivo.executar();
+    });
     ui.alert(
       'Sincronizacao do EFETIVO',
       `Auditoria atualizada.\nRegistros do PECULIO: ${resultado.peculio}\nLegados (removidos): ${resultado.legado !== undefined ? resultado.legado : resultado.mantidos}\nLinhas finais: ${resultado.linhas}\nObservacoes: ${resultado.alertas}`,
@@ -403,6 +447,11 @@ function normalizarEfetivo() {
     );
     return resultado;
   } catch (erro) {
+    if (SyntheonSerializacaoEscrita.ehOcupada(erro)) {
+      // Fail-closed visivel: nada foi gravado e o operador sabe por que.
+      ui.alert('Sincronizacao do EFETIVO', SyntheonSerializacaoEscrita.mensagemParaOperador(erro), ui.ButtonSet.OK);
+      return { linhas: 0, alertas: 0, naoExecutado: true, motivo: 'SERIALIZACAO_OCUPADA' };
+    }
     const mensagem = erro && erro.stack ? erro.stack : String(erro);
     Logger.log(mensagem);
     try {
@@ -420,16 +469,21 @@ function normalizarEfetivo() {
  * Log vai para '[AUDITORIA] Efetivo TESTE'. Rode com: clasp run normalizarEfetivoTeste
  */
 function normalizarEfetivoTeste() {
-  return NormalizadorEfetivo.executar({
-    abaDestino: 'EFETIVO_TESTE',
-    abaLog: '[AUDITORIA] Efetivo TESTE',
-    abaFonteExistentes: CONSTANTES_SYNTHEON.ABA_EFETIVO,
-    abaLegado: 'EFETIVO_LEGADO_TESTE'
+  return SyntheonSerializacaoEscrita.executarComLock('NormalizadorEfetivo.teste', function () {
+    return NormalizadorEfetivo.executar({
+      abaDestino: 'EFETIVO_TESTE',
+      abaLog: '[AUDITORIA] Efetivo TESTE',
+      abaFonteExistentes: CONSTANTES_SYNTHEON.ABA_EFETIVO,
+      abaLegado: 'EFETIVO_LEGADO_TESTE'
+    });
   });
 }
 
+/** Porta headless oficial (`clasp run normalizarEfetivoHeadless`): mesma trava global, mesmo efeito. */
 function normalizarEfetivoHeadless() {
-  return NormalizadorEfetivo.executar();
+  return SyntheonSerializacaoEscrita.executarComLock('NormalizadorEfetivo.headless', function () {
+    return NormalizadorEfetivo.executar();
+  });
 }
 
 // Migra os nomes dos policiais já gravados nos BOs (abas mensais) para o novo

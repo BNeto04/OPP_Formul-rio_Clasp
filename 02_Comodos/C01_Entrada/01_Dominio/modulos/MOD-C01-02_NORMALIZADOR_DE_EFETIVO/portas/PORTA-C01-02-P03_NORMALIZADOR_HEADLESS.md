@@ -5,7 +5,7 @@
 - **Origem:** chamador **fora da Planta**: `clasp run normalizarEfetivoHeadless` (`Features/NormalizadorEfetivo.js:431`) e a variante de teste `clasp run normalizarEfetivoTeste` (`:422`)
 - **Destino:** aba `EFETIVO` (variante real) ou `EFETIVO_TESTE` (variante de teste) — `Features/NormalizadorEfetivo.js:423-433`
 - **Elegibilidade (§12.6):** ELEGÍVEL — (A) cruza fronteira: o chamador esta **fora da Planta**; (B) e (C) o efeito e o mesmo da Porta C01/MOD-C01-02/P02 (escrita da referencia), com o mesmo par apagar/escrever
-- **Estado:** AMARELO — 1 item(ns) `pendente` declarado(s) (BLOQUEIA a Porta em G7, §12.6)
+- **Estado:** VERDE — 0 item `pendente`/0 bloqueante (§12.6); trava global herdada da P02 (mesma instalação transversal).
 
 ## Payload
 Sem payload de entrada (a variante de teste aceita somente opcoes internas: `abaDestino`, `abaLog`, `abaFonteExistentes`, `abaLegado` — `Features/NormalizadorEfetivo.js:422-429`). Retorno: objeto resumo `{peculio, legado, alertas, linhas, arca}` (`:81-87`).
@@ -32,7 +32,7 @@ Sem payload de entrada (a variante de teste aceita somente opcoes internas: `aba
 | paginacao | nao_aplicavel | a resposta e um resumo de contagens (`Features/NormalizadorEfetivo.js:81-87`). |
 | validacao_entrada | aplicavel | nao aceita entrada de origem externa: o unico parametro e de uso interno/teste (`Features/NormalizadorEfetivo.js:422-429`) e as pre-condicoes de fonte falham antes da escrita (`:14-36`). |
 | operacao_atomica | aplicavel | **Referencia:** mesma contratacao da P02 — substituicao integral de artefato derivado e regeneravel (a referencia e reconstruivel do PECULIO). |
-| race_condition | pendente | **Justificativa (herdada e agravada):** esta Porta e justamente o **segundo chamador** que torna o risco da P02 real — o card headless pode rodar enquanto o operador sincroniza pelo menu, sobre as mesmas abas, sem `LockService` em nenhum arquivo de produto (`Features/NormalizadorEfetivo.js:158,160`; unica mencao do repositorio: stub de sandbox em `Testes/TestMenuP3.js:80`). **Decisao exigida:** a mesma da P02 (lock no inicio de `executar()` ou Instalacao transversal de serializacao). **Ate a decisao, esta Porta nao deve ser executada em paralelo com o gatilho de menu.** |
+| race_condition | aplicavel | **Resolvido pela trava global (`INST-SERIALIZACAO-001` (§8.11)):** esta Porta (o segundo chamador) adquire a mesma trava em `Features/NormalizadorEfetivo.js:484` e o efeito e o da P02 em UMA chamada de API (`:200`). Operador pelo menu e prova headless nao interleavam: a segunda execucao falha RUIDOSAMENTE (`SERIALIZACAO_OCUPADA`) com ZERO escrita. **Helper da trava:** `Core/SerializacaoEscrita.js` (helper unico da `INST-SERIALIZACAO-001`). **Evidencia:** `Testes/TestSerializacaoEscrita.js` (corrida entre duas execucoes + fail-closed). A proibicao declarada antes ("nao executar em paralelo") deixa de depender de disciplina humana: agora e enforced. |
 | cache | nao_aplicavel | mesma razao da P02: a Porta escreve; a leitura do PECULIO e unica por execucao. |
 | retry_pelo_cliente | aplicavel | o chamador headless re- executa a prova por decisao do card; a reexecucao e segura por reconstrucao completa (mesma contratacao da P02), e a variante de teste e isolada da referencia. |
 
@@ -59,3 +59,4 @@ Leitura direta do codigo nesta sessao (13/09/2026): `Features/NormalizadorEfetiv
 
 ## Estado
 Contrato declarado. Checklist §12.6 herdado da Porta P02 onde o efeito e o mesmo (**referenciado, nao repetido**) e proprio nos itens de fronteira. **1 item `pendente`** (race_condition, herdado da escrita) — a Porta **bloqueia em G7**. Antes deste card a Porta nao estava descrita: existia apenas como funcao no arquivo.
+**Fechamento (#164, 14/09/2026):** o `race_condition` herdado saiu de `pendente` — a trava global cobre menu e headless com UMA trava de script (`clasp run` roda no mesmo projeto), com prova de fechadura.

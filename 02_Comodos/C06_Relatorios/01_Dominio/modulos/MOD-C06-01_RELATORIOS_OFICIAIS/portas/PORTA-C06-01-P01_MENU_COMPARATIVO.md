@@ -5,7 +5,7 @@
 - **Origem:** menu unico P3 (C01), item `Gerar produtividade / comparativo 2026` → `abrirMenuComparativo2026` (`Features/CompiladorProdutividade.js:14`); declarado em `Entrada/Menu.js:33-34`
 - **Destino:** aba `COMPARATIVO_2026` e aba de log `LOG_COMPARATIVO_2026` — `Features/CompiladorProdutividade.js:40,78` (`gerarComparativo2026Premium` → `RendererComparativo2026.render`)
 - **Elegibilidade (§12.6):** ELEGÍVEL — (A) cruza Comodo: origem no menu de C01, destino em C06; (B) expoe efeito externo: grava a aba do comparativo e o log; (C) lida com concorrencia: dois geradores escrevem a **mesma** aba
-- **Estado:** AMARELO — 1 item(ns) `pendente` declarado(s) (BLOQUEIA a Porta em G7, §12.6)
+- **Estado:** VERDE — 0 item `pendente`/0 bloqueante (§12.6); a geracao do comparativo esta serializada por `INST-SERIALIZACAO-001`.
 
 ## Payload
 Sem payload de entrada pela UI (o dialogo `Entrada/DialogComparativo2026` devolve as abas marcadas). Saida: resumo `{sucesso, aba, abasLidas, policiais, ocorrencias, tempo}` (`Features/CompiladorProdutividade.js:81-82`).
@@ -33,7 +33,7 @@ Sem payload de entrada pela UI (o dialogo `Entrada/DialogComparativo2026` devolv
 | paginacao | aplicavel | a leitura e por aba selecionada (`SyntheonLeitor.lerAbas(ss, abasAlvo, ...)`, `Features/CompiladorProdutividade.js:56`) e a escrita e uma matriz por geracao — o recorte e por mes, nunca o documento inteiro. |
 | validacao_entrada | aplicavel | a selecao e filtrada contra as abas reais (`:45-49`) e sem alvo a Porta recusa sem gravar (`:51-55`). |
 | operacao_atomica | aplicavel | o efeito e a substituicao de um artefato **derivado e regeneravel** (o comparativo e reconstruivel das abas mensais). O pior estado intermediario e a aba `COMPARATIVO_2026` parcialmente escrita entre `clear()` e o `setValues` dos dados (`Render/RendererComparativo2026.js:11,69`) — regeneravel por nova geracao, e nenhuma aba mensal e tocada. |
-| race_condition | pendente | **Justificativa:** dois geradores concorrentes (operador pelo menu + `clasp run gerarComparativo2026Headless`, Porta C06/MOD-C06-01/P02) escrevem a **mesma** aba de nome fixo `COMPARATIVO_2026`. A sequencia `clear()` → escrever dados (`Render/RendererComparativo2026.js:11-69`) e ler-depois-escrever: a segunda limpeza apaga o que a primeira ja escreveu e o resultado final pode ser um comparativo hibrido **sem que nenhuma execucao reporte erro**. O codigo de produto **nao** usa `LockService` (unica mencao no repositorio: stub de sandbox em `Testes/TestMenuP3.js:80`). **Decisao exigida:** `LockService` na geracao (ou Instalacao transversal de serializacao, §8.11). |
+| race_condition | aplicavel | **Resolvido pela trava global (`INST-SERIALIZACAO-001` (§8.11)):** `gerarComparativo2026Premium` adquire a trava ANTES de renderizar (`Features/CompiladorProdutividade.js:58`) e o menu (`:58`) e o headless (`:120`) compartilham a MESMA trava. A sequencia `clear()` + escritas da aba de NOME FIXO (`Render/RendererComparativo2026.js:11`) deixa de ser interleavavel: a segunda execucao falha RUIDOSAMENTE (`SERIALIZACAO_OCUPADA`) com ZERO escrita, em vez de produzir comparativo hibrido. **Helper da trava:** `Core/SerializacaoEscrita.js` (helper unico da `INST-SERIALIZACAO-001`). **Evidencia:** `Testes/TestSerializacaoEscrita.js` (corrida + fail-closed). |
 | cache | nao_aplicavel | dado vivo: cache de leitura produziria comparativo obsoleto. |
 | retry_pelo_cliente | aplicavel | o cliente e o operador/agente: a politica esta declarada — regerar reconstroi a aba inteira sem limpeza manual (`Render/RendererComparativo2026.js:11-13`) e o desfecho de recusa e explicito (`Features/CompiladorProdutividade.js:52-54`). |
 
@@ -60,3 +60,4 @@ Leitura direta do codigo nesta sessao (13/09/2026): `Features/CompiladorProdutiv
 
 ## Estado
 Contrato declarado. **1 item `pendente`** (race_condition) — a Porta **bloqueia em G7**. Antes deste card a Porta existia como linha **`Menu -> comparativo`** na capsula de C06-01.
+**Fechamento (#164, 14/09/2026):** o `race_condition` saiu de `pendente` com prova. O nome da aba continua FIXO (`COMPARATIVO_2026`, contrato do proprietario) — o que mudou e a serializacao das execucoes.

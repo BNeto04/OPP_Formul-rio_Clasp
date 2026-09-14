@@ -5,7 +5,7 @@
 - **Origem:** `Features/GuardiaoQualidade.js:647-651` (dentro de `varrerAba`, `:78`)
 - **Destino:** coluna **AM** (indice 0-based 38) da propria aba mensal auditada — `Render/RendererAuditoriaSaude.js:348` (`aplicarDestaquesAlertasAM_`) e `:392` (`prepararColunaAlertas`)
 - **Elegibilidade (§12.6):** ELEGÍVEL — (B) expoe efeito externo: **escreve na aba operacional** (nao so em aba de apoio); (C) lida com concorrencia: a coluna e regravada apos a varredura, no mesmo dado que foi lido
-- **Estado:** AMARELO — 1 item(ns) `pendente` declarado(s) (BLOQUEIA a Porta em G7, §12.6)
+- **Estado:** VERDE — 0 item `pendente`/0 bloqueante (§12.6); leitura e escrita da mesma aba serializadas por `INST-SERIALIZACAO-001`.
 
 ## Payload
 `Array` de textos de alerta, uma linha por linha de dado da aba (`Features/GuardiaoQualidade.js:638-646`); a coluna recebe o texto consolidado dos diagnosticos da linha, unidos por ` | `.
@@ -32,7 +32,7 @@
 | paginacao | nao_aplicavel | a escrita e uma coluna da aba corrente; sem colecao paginavel. |
 | validacao_entrada | aplicavel | a coluna e localizada por cabecalho; ausente, a Porta **declara** a criacao (`Features/GuardiaoQualidade.js:199-201`) em vez de escrever em coluna suposta. |
 | operacao_atomica | aplicavel | o efeito e a substituicao de **uma** coluna derivada em bloco unico (`Features/GuardiaoQualidade.js:648`), com o destaque aplicado depois (`:651`). O pior estado intermediario e a coluna AM sem o destaque visual — dado derivado, regeneravel por nova auditoria; A:AL permanecem intactas em qualquer ponto. |
-| race_condition | pendente | **Justificativa:** a auditoria **le** a aba e **escreve nela** na mesma execucao (ler-depois-escrever sobre a mesma regiao de linhas: `Features/GuardiaoQualidade.js:162,648`). Duas auditorias concorrentes (operador na UI + card headless) podem gravar a coluna AM de linhas que a outra ainda nao leu, fazendo os alertas de uma execucao corresponderem a um retrato parcial. O codigo de produto **nao** usa `LockService` (unica mencao no repositorio: stub de sandbox em `Testes/TestMenuP3.js:80`). **Decisao exigida:** `LockService` no ciclo de auditoria; ate a decisao, auditar a mesma aba em paralelo por UI e headless e proibido por contrato. |
+| race_condition | aplicavel | **Resolvido pela trava global (`INST-SERIALIZACAO-001` (§8.11)):** a coluna AM e derivada do que a auditoria LE da mesma aba; leitura e escrita agora acontecem na MESMA secao critica (`Features/GuardiaoQualidade.js:155` adquire a trava; `:740` prepara/limpa a coluna; `:741` grava). Duas auditorias concorrentes (operador na UI + card headless) nao produzem mais alerta baseado em retrato parcial: a segunda execucao falha RUIDOSAMENTE (`SERIALIZACAO_OCUPADA`) com ZERO escrita. **Helper da trava:** `Core/SerializacaoEscrita.js` (helper unico da `INST-SERIALIZACAO-001`). **Evidencia:** `Testes/TestSerializacaoEscrita.js` (casos de corrida e fail-closed). |
 | cache | nao_aplicavel | a Porta escreve; a leitura da aba acontece uma vez por auditoria (`Features/GuardiaoQualidade.js:162`). |
 | retry_pelo_cliente | aplicavel | o chamador e o operador/agente: nova auditoria reescreve a coluna inteira, sem exigir limpeza manual (`Features/GuardiaoQualidade.js:648`). |
 
@@ -59,6 +59,7 @@ Leitura direta do codigo nesta sessao (13/09/2026): `Features/GuardiaoQualidade.
 
 ## Estado
 Contrato declarado. **1 item `pendente`** (race_condition) — a Porta **bloqueia em G7**. Antes deste card a Porta existia como linha **`Guardiao -> coluna AM`** na capsula de C05.
+**Fechamento (#164, 14/09/2026):** o `race_condition` saiu de `pendente` com prova. A coluna continua endereçada pelo CABECALHO CANONICO `Alerta Integridade` (fail-safe AUSENTE/AMBIGUA => zero escrita), ja coberto por `Testes/TestGuardiaoHeadlessEfeitoDeclarado.js`.
 
 
 > **Reconciliação D-164-04 (13-14/09/2026):** esta Porta descrevia o comportamento anterior (`idx=38` + criação de `AM1`). O comportamento vigente é: **validar completamente antes de qualquer escrita**; coluna de alerta resolvida por **cabeçalho canônico**; ausente/ambígua ⇒ **`ERRO_TECNICO`, diagnóstico e nenhuma escrita**. Ver `DIAGNOSTICO_D_164_04.md`, `RELATORIO_164_FIX.md` e `Features/GuardiaoQualidade.js:resolverColunaAlerta`.

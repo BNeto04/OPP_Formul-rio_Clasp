@@ -1,7 +1,14 @@
 /**
  * ARQUIVO: Features/CompiladorProdutividade.js
  * DESCRIÇÃO: Orquestrador da consolidação de produtividade por policial.
+ *
+ * INST-SERIALIZACAO-001 (§8.11): todas as portas mutantes deste arquivo (comparativo 2026 —
+ * menu e headless — e produtividade geral) adquirem a TRAVA GLOBAL de escrita. A guarda de TOPO
+ * carrega o helper na bancada Node sem criar simbolo global novo.
  */
+if (typeof SyntheonSerializacaoEscrita === 'undefined' && typeof require !== 'undefined') {
+  try { global.SyntheonSerializacaoEscrita = require('../Core/SerializacaoEscrita'); } catch (e) { /* fail-closed no uso */ }
+}
 
 function compilarProdutividadeRapida() {
   iniciarCompiladorProdutividade(false);
@@ -37,7 +44,23 @@ function processarComparativo2026Selecionado(abasSelecionadas) {
   return gerarComparativo2026Premium(abasSelecionadas);
 }
 
+/**
+ * Porta MUTANTE do comparativo (INST-SERIALIZACAO-001, §8.11): grava a aba de nome FIXO
+ * `COMPARATIVO_2026` e o log. Menu e headless compartilham a MESMA trava global — antes, a
+ * segunda limpeza apagava o que a primeira ja tinha escrito e o comparativo terminava HIBRIDO,
+ * com as duas execucoes reportando sucesso (`DIAGNOSTICO_164_CONCORRENCIA.md` §1.1 item #8/#9).
+ */
 function gerarComparativo2026Premium(abasSelecionadas) {
+  if (typeof SyntheonSerializacaoEscrita === 'undefined' || !SyntheonSerializacaoEscrita
+      || typeof SyntheonSerializacaoEscrita.executarComLock !== 'function') {
+    throw new Error('ESCRITA BLOQUEADA: mecanismo de serializacao de escrita indisponivel (INST-SERIALIZACAO-001). Nada foi gravado.');
+  }
+  return SyntheonSerializacaoEscrita.executarComLock('CompiladorProdutividade.comparativo', function () {
+    return gerarComparativo2026PremiumSobTrava_(abasSelecionadas);
+  });
+}
+
+function gerarComparativo2026PremiumSobTrava_(abasSelecionadas) {
   const inicioGlobal = Date.now();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const logger = new SyntheonLogger("COMPARATIVO_2026");
@@ -93,8 +116,21 @@ function gerarComparativo2026Headless(abas) {
   const lista = (typeof abas === 'string')
     ? (abas ? abas.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [])
     : (abas || []);
-  const r = gerarComparativo2026Premium(lista.length ? lista : null);
-  return JSON.stringify(r || { sucesso: null, aviso: 'sem retorno' });
+  try {
+    const r = SyntheonSerializacaoEscrita.executarComLock('CompiladorProdutividade.comparativo.headless', function () {
+      return gerarComparativo2026Premium(lista.length ? lista : null);
+    });
+    return JSON.stringify(r || { sucesso: null, aviso: 'sem retorno' });
+  } catch (e) {
+    // Fail-closed visivel na rota headless (mesmo contrato de `GuardiaoHeadless`: nunca lanca).
+    const ocupada = typeof SyntheonSerializacaoEscrita !== 'undefined' && SyntheonSerializacaoEscrita
+      && typeof SyntheonSerializacaoEscrita.ehOcupada === 'function' && SyntheonSerializacaoEscrita.ehOcupada(e);
+    return JSON.stringify({
+      sucesso: false,
+      status: ocupada ? 'SERIALIZACAO_OCUPADA' : 'ERRO',
+      erro: (e && e.message) || String(e)
+    });
+  }
 }
 
 function obterAbasComparativo2026(ss) {
@@ -152,7 +188,22 @@ function montarRegistroComparativo2026(policial, produtividade) {
   };
 }
 
+/**
+ * Porta MUTANTE da produtividade geral (INST-SERIALIZACAO-001): grava a aba de nome FIXO
+ * `PRODUTIVIDADE_GERAL` e o log do fluxo sob a MESMA trava global dos demais geradores — duas
+ * geracoes concorrentes (avancada + rapida) nao se apagam.
+ */
 function iniciarCompiladorProdutividade(avancado) {
+  if (typeof SyntheonSerializacaoEscrita === 'undefined' || !SyntheonSerializacaoEscrita
+      || typeof SyntheonSerializacaoEscrita.executarComLock !== 'function') {
+    throw new Error('ESCRITA BLOQUEADA: mecanismo de serializacao de escrita indisponivel (INST-SERIALIZACAO-001). Nada foi gravado.');
+  }
+  return SyntheonSerializacaoEscrita.executarComLock('CompiladorProdutividade.geral', function () {
+    return iniciarCompiladorProdutividadeSobTrava_(avancado);
+  });
+}
+
+function iniciarCompiladorProdutividadeSobTrava_(avancado) {
   const inicioGlobal = Date.now();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const logger = new SyntheonLogger("COMPILADOR_PRODUTIVIDADE");

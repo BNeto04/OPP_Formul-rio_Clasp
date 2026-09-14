@@ -14,7 +14,15 @@
  * ALERTA DO GUARDIAO, enderecado por cabecalho canonico
  * (`Core/ContratoMutacaoSegura.js:58-61`: "A:AL sao dados; AM e a coluna de alerta do Guardiao").
  * NAO abre dialogo e NAO substitui a selecao do operador.
+ *
+ * INST-SERIALIZACAO-001 (§8.11): esta porta herda a TRAVA GLOBAL de escrita do ciclo de auditoria
+ * (menu, seletor de meses e headless compartilham a MESMA trava). Se o operador estiver auditando
+ * a mesma aba, a prova headless FALHA RUIDOSAMENTE com `SERIALIZACAO_OCUPADA` e ZERO escrita, em
+ * vez de anexar laudo no mesmo bloco.
  */
+if (typeof SyntheonSerializacaoEscrita === 'undefined' && typeof require !== 'undefined') {
+  try { global.SyntheonSerializacaoEscrita = require('../Core/SerializacaoEscrita'); } catch (e) { /* fail-closed no uso */ }
+}
 
 var GuardiaoHeadless = {
   LIMITE_PRIORITARIOS: 15,
@@ -57,6 +65,23 @@ var GuardiaoHeadless = {
    * @returns {string} JSON
    */
   executar: function (selecaoTexto, deps) {
+    const self = this;
+    try {
+      return SyntheonSerializacaoEscrita.executarComLock('GuardiaoHeadless.executar', function () {
+        return self._executarSobTrava_(selecaoTexto, deps);
+      });
+    } catch (e) {
+      // Fail-closed: sem a trava global a auditoria NAO roda e NADA e escrito.
+      const ocupada = typeof SyntheonSerializacaoEscrita !== 'undefined' && SyntheonSerializacaoEscrita
+        && typeof SyntheonSerializacaoEscrita.ehOcupada === 'function' && SyntheonSerializacaoEscrita.ehOcupada(e);
+      return JSON.stringify({
+        status: ocupada ? 'SERIALIZACAO_OCUPADA' : 'ERRO',
+        mensagem: String((e && e.message) || e)
+      });
+    }
+  },
+
+  _executarSobTrava_: function (selecaoTexto, deps) {
     try {
       const ss = deps.obterSS();
       const modulo = deps.modulo;
@@ -105,12 +130,16 @@ var GuardiaoHeadless = {
  */
 function executarGuardiaoHeadless(selecaoTexto) {
   try {
-    return GuardiaoHeadless.executar(selecaoTexto, {
-      obterSS: obterSpreadsheetOcorrencias_,
-      modulo: SeletorMesesGuardiao
+    return SyntheonSerializacaoEscrita.executarComLock('GuardiaoHeadless.porta', function () {
+      return GuardiaoHeadless.executar(selecaoTexto, {
+        obterSS: obterSpreadsheetOcorrencias_,
+        modulo: SeletorMesesGuardiao
+      });
     });
   } catch (e) {
-    return JSON.stringify({ status: 'ERRO', mensagem: String((e && e.message) || e) });
+    const ocupada = typeof SyntheonSerializacaoEscrita !== 'undefined' && SyntheonSerializacaoEscrita
+      && typeof SyntheonSerializacaoEscrita.ehOcupada === 'function' && SyntheonSerializacaoEscrita.ehOcupada(e);
+    return JSON.stringify({ status: ocupada ? 'SERIALIZACAO_OCUPADA' : 'ERRO', mensagem: String((e && e.message) || e) });
   }
 }
 

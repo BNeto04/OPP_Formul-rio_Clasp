@@ -5,7 +5,7 @@
 - **Origem:** menu unico P3 (C01), grupo Armas → `abrirMenuSelecaoLivre` (`Compilador_Armas.js:33`), com retorno do dialogo em `processarMenuLivre` (`:69`); declarado em `Entrada/Menu.js:25-28`
 - **Destino:** aba gerada `COMP_ARMAS_<primeiro>_<ultimo>` na planilha ativa + aba de log `LOG_LIVRE` — `Compilador_Armas.js:130,251-260,323-349`
 - **Elegibilidade (§12.6):** ELEGÍVEL — (A) cruza Comodo: origem no menu de C01, destino em C06; (B) expoe efeito externo: cria aba e log; (C) lida com concorrencia: a reserva do nome da aba e ler-depois-escrever
-- **Estado:** AMARELO — 1 item(ns) `pendente` declarado(s) (BLOQUEIA a Porta em G7, §12.6)
+- **Estado:** VERDE — 0 item `pendente`/0 bloqueante (§12.6); efeito APPEND com chave de execucao estavel e rejeicao de replay. 
 
 ## Payload
 Entrada: lista de meses marcados no dialogo (`processarMenuLivre`, `Compilador_Armas.js:69`). Saida: `{sucesso, aba, logs{abasProcessadas, linhasLidas, policiaisUnicos, linhasIgnoradas, avisosGerados}}` (`:353`).
@@ -29,7 +29,7 @@ Entrada: lista de meses marcados no dialogo (`processarMenuLivre`, `Compilador_A
 
 | Item | Estado | Resposta (fato medido) |
 |---|---|---|
-| idempotente | pendente | **Justificativa:** cada execucao cria uma **nova aba** — o nome e versionado num laco de reserva (`while (ss.getSheetByName(nomeFinalAba)) { nomeFinalAba = base + '.v' + versao }`, `Compilador_Armas.js:251-260`). Logo reexecutar **multiplica** abas (`COMP_ARMAS_...`, `.v1`, `.v2`, ...), por desenho declarado no codigo (preservar o resultado anterior), **sem politica de expiracao ou limpeza**. **Decisao exigida do Planner:** ou o produto e versionador (e entao a versao anterior precisa de regra de arquivamento/expurgo), ou a Porta e idempotente (mesmo nome, sobrescrita). Nao ha chave de idempotencia hoje. |
+| idempotente | aplicavel | **Resolvido — efeito classificado como APPEND com CHAVE DE EXECUCAO ESTAVEL + rejeicao de replay.** A aba nova por execucao e preservacao declarada do resultado anterior (versionamento por `insertSheet`, `Compilador_Armas.js:378-382`); a execucao passou a ser identificada por uma chave estavel — modo + abas processadas + hash deterministico do ranking (`chaveExecucaoArmas_`, `Compilador_Armas.js:35`) — e repetir a MESMA compilacao e RECUSADO com `REPLAY_RECUSADO` (`Compilador_Armas.js:367-375`), SEM criar aba nova. O registro de execucoes tem retencao limitada (20 bases) e registro ilegivel e recuperado, nunca trava o produto. **Evidencia:** `Testes/TestSerializacaoEscrita.js` (caso "APPEND com chave estavel": mesma chave para o mesmo ranking, chave diferente para conteudo diferente, replay nomeando a aba existente, registro corrompido recuperado). |
 | deduplicacao | aplicavel | a agregacao e por tunel (`Motor/PoliticaMeritoArmas.js:4-6`) e o ranking tem uma linha por policial/GTAR — cada tunel entra uma vez (invariante 2 da capsula de C06-02); a legenda tambem nao repete faixa (`Core/LegendaCores.js`, fonte unica). |
 | rate_limit | nao_aplicavel | gesto humano no menu; sem volume externo. |
 | paginacao | aplicavel | a leitura e por aba mensal (`Compilador_Armas.js:145-215`) e a saida e a aba do periodo selecionado — o recorte e por mes, nunca o ano inteiro num payload. |
@@ -62,3 +62,4 @@ Leitura direta do codigo nesta sessao (13/09/2026): `Compilador_Armas.js:33,63,6
 
 ## Estado
 Contrato declarado. **1 item `pendente`** (idempotente) — a Porta **bloqueia em G7** ate a decisao de desenho. Antes deste card a Porta existia como linha **`Menu Armas -> Selecao Livre`** na capsula de C06-02.
+**Fechamento (#164, 14/09/2026):** o item `idempotente` saiu de `pendente`. A decisao exigida do Planner foi tomada no formato do §2 do adendo: efeito classificado como **APPEND** — logo com **chave de execucao estavel** e **rejeicao de replay**, preservando o versionamento (o resultado anterior nunca e sobrescrito).

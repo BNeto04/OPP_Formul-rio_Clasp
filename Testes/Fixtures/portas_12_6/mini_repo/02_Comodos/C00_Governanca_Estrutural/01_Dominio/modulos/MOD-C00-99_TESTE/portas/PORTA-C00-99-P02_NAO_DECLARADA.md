@@ -29,7 +29,7 @@ Fixture.
 | paginacao | nao_aplicavel | Nao incide nesta porta de teste: motivo declarado e suficientemente longo. |
 | validacao_entrada | nao_aplicavel | Nao incide nesta porta de teste: motivo declarado e suficientemente longo. |
 | operacao_atomica | nao_aplicavel | Nao incide nesta porta de teste: motivo declarado e suficientemente longo. |
-| race_condition | pendente | **Justificativa:** pendencia declarada de teste, com a decisao exigida escrita aqui. |
+| race_condition | pendente | **Justificativa:** pendencia declarada de teste, com a decisao exigida escrita aqui. **MARCO:** #164 (14/09/2026) — aceite formal de divida. |
 | cache | aplicavel | Resposta medida de teste desta porta, com fato declarado e longo o bastante. |
 | retry_pelo_cliente | nao_aplicavel | Nao incide nesta porta de teste: motivo declarado e suficientemente longo. |
 

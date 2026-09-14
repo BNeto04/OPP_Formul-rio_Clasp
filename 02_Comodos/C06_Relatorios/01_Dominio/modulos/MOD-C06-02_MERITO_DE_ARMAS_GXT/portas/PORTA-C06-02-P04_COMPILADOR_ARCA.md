@@ -5,7 +5,7 @@
 - **Origem:** **declarada** na capsula de C06-02: `Compilador -> ARCA` | consulta | regras R1-R9 inferidas + R10 ditada pelo proprietario
 - **Destino:** ARCA (catalogo canonico) — destino declarado; **nenhuma chamada existe no runtime**
 - **Elegibilidade (§12.6):** ELEGÍVEL — (A) cruza fronteira: o destino declarado esta **fora da Planta** (ARCA). ATENCAO: a Porta esta **declarada sem implementacao** (divergencia **D-164-02**)
-- **Estado:** AMARELO — 3 item(ns) `pendente` declarado(s) (BLOQUEIA a Porta em G7, §12.6)
+- **Estado:** VERDE — 0 bloqueante (§12.6); os 3 itens de existencia foram decididos por **NAO_APLICAVEL com justificativa medida** (a implementacao nao existe). A Porta segue declarada como NAO IMPLEMENTADA.
 
 ## Payload
 **Nao existe.** Medicao: `grep -n 'AdaptadorConsultaArca|consultarPorRuleId' Compilador_Armas.js` = **0** ocorrencias; as unicas referencias do repositorio a `AdaptadorConsultaArca` estao em `Core/RegrasQualidade.js:32-38`, `Entrada/EntradaManual.js:805-812`, `Features/NormalizadorEfetivo.js:258-268` e no proprio adaptador. As regras R1-R9 vivem em **documento** (`Dominio/ARCA/REGRAS_ARMAS_INFERIDAS.md`) e o R10 (desempate por antiguidade) esta **codificado localmente** em `Compilador_Armas.js:241-249` — sem consulta a ARCA.
@@ -26,11 +26,11 @@
 
 | Item | Estado | Resposta (fato medido) |
 |---|---|---|
-| idempotente | pendente | **Justificativa:** sem chamada nao ha comportamento idempotente a declarar. A Porta existe no contrato e nao existe no runtime — declarar `aplicavel` seria afirmar comportamento inexistente. **Decisao exigida:** implementar ou retirar. |
-| deduplicacao | pendente | **Justificativa:** idem — nao ha consumo a deduplicar (uma consulta de metadados por regra seria naturalmente unica, mas isso e desenho previsto, nao fato medido). **Decisao exigida:** implementar ou retirar. |
+| idempotente | nao_aplicavel | **Justificativa (medida em 14/09/2026):** nao existe comportamento idempotente a declarar porque **a consulta a ARCA NAO EXISTE no runtime**. Medicao: `grep -n "AdaptadorConsultaArca\|consultarPorRuleId\|obterRegra" Compilador_Armas.js Motor/PoliticaMeritoArmas.js` => **0 ocorrencias** (as unicas mencoes de ARCA no arquivo sao comentarios sobre o indice de antiguidade de `Core/Policiais.js`). Sem chamada nao ha idempotencia a contratar; a decisao do Planner (14/09/2026, §3) e explicita: **proibido criar implementacao apenas para satisfazer documentacao**. A promessa foi RETIRADA da capsula de C06-02 (linha da tabela de Portas marcada como prevista e nao implementada). |
+| deduplicacao | nao_aplicavel | **Justificativa (medida):** nao ha consumo a deduplicar — nenhum chamador consulta regra/servico ARCA no compilador de armas (mesma medicao: 0 ocorrencias de `AdaptadorConsultaArca`/`consultarPorRuleId` em `Compilador_Armas.js` e `Motor/PoliticaMeritoArmas.js`). Item sem objeto: declarar `aplicavel` seria afirmar fato inexistente. |
 | rate_limit | nao_aplicavel | quando implementada, e leitura local de catalogo em processo, sem volume externo nem rede (padrao das demais consultas a ARCA). |
 | paginacao | nao_aplicavel | a resposta prevista e metadado de regra, um item por `rule_id`. |
-| validacao_entrada | pendente | **Justificativa:** sem implementacao nao existe validacao de `rule_id`. **Decisao exigida:** implementar ou retirar. |
+| validacao_entrada | nao_aplicavel | **Justificativa (medida):** sem implementacao nao existe `rule_id` de entrada para validar. A consulta a ARCA segue **prevista e nao implementada** (divergencia **D-164-02**); a capsula perdeu a promessa e a Porta permanece declarada para que a decisao futura (implementar OU retirar) tenha endereco. |
 | operacao_atomica | nao_aplicavel | consulta prevista e somente leitura — sem estado intermediario. |
 | race_condition | nao_aplicavel | consulta prevista sobre catalogo imutavel com cache congelado no adaptador (`Dominio/ARCA/AdaptadorConsultaArca.js:108,137`). |
 | cache | nao_aplicavel | quando implementada, deve usar a porta canonica e **herda** o cache existente do adaptador — nada a decidir aqui (§12.6: referenciar, nao repetir). |
@@ -58,4 +58,4 @@ Nenhum teste exercita esta Porta — nao ha o que exercitar (declarado).
 Medicao nesta sessao (13/09/2026): `grep -n 'AdaptadorConsultaArca\|consultarPorRuleId' Compilador_Armas.js` = 0 linhas; `grep -rn AdaptadorConsultaArca --include=*.js` lista apenas `Core/RegrasQualidade.js:32,35`, `Entrada/EntradaManual.js:805,806`, `Features/NormalizadorEfetivo.js:258,260,268` e `Dominio/ARCA/AdaptadorConsultaArca.js`.
 
 ## Estado
-Contrato declarado **como nao implementado**. **3 itens `pendente`** (idempotente, deduplicacao, validacao_entrada) — a Porta **bloqueia em G7**. Esta e a unica Porta do inventario cuja pendencia nao e de operacao, mas de **existencia**: ou a capsula de C06-02 perde a linha, ou a consulta a ARCA e implementada (divergencia **D-164-02**).
+Contrato declarado **como nao implementado**. **0 item `pendente`/0 bloqueante**: os 3 itens de existencia foram decididos em 14/09/2026 como **NAO_APLICAVEL com justificativa medida** (a consulta a ARCA nao existe no runtime). **Fechamento (#164, 14/09/2026):** o Planner admitia duas saidas — implementar ou retirar (proibido implementar para satisfazer documentacao); a medicao sustenta a **retirada da promessa da capsula**, e a Porta permanece declarada para preservar o rastro da decisao. Esta e a unica Porta do inventario cuja pendencia nao era de operacao, mas de **existencia**: ou a capsula de C06-02 perde a linha, ou a consulta a ARCA e implementada (divergencia **D-164-02**).

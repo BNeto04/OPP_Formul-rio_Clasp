@@ -5,7 +5,7 @@
 - **Origem:** `NormalizadorEfetivo.executar` — chamado pelo gatilho de menu (`Features/NormalizadorEfetivo.js:395`) e pela Porta headless (C01/MOD-C01-02/P03)
 - **Destino:** aba `EFETIVO` (referencia) e aba `EFETIVO_LEGADO` — `Features/NormalizadorEfetivo.js:155` (`escreverEfetivo`) e `:166` (`escreverLegado`)
 - **Elegibilidade (§12.6):** ELEGÍVEL — (B) expoe efeito externo: **reescreve** a aba de referencia EFETIVO; (C) lida com concorrencia: apaga antes de escrever, sem serializacao
-- **Estado:** AMARELO — 1 item(ns) `pendente` declarado(s) (BLOQUEIA a Porta em G7, §12.6)
+- **Estado:** VERDE — 0 item `pendente`/0 bloqueante (§12.6); a corrida e a janela de duas chamadas estao fechadas pela instalação transversal `INST-SERIALIZACAO-001`.
 
 ## Payload
 Linhas de EFETIVO montadas de `PECULIO` (fonte externa) + `EFETIVO` atual: `escreverEfetivo(sheet, saida)` recebe `Array<Array>` de 7 colunas (`Features/NormalizadorEfetivo.js:155-164,177-190`).
@@ -35,7 +35,7 @@ Linhas de EFETIVO montadas de `PECULIO` (fonte externa) + `EFETIVO` atual: `escr
 | paginacao | nao_aplicavel | a escrita e da referencia inteira em um par `clearContent`+`setValues`; nao existe leitor paginado desta aba. |
 | validacao_entrada | aplicavel | pre-condicoes de fonte (PECULIO configurado, aba PECULIO localizada) falham **antes** de qualquer escrita (`Features/NormalizadorEfetivo.js:14-15,34-36`); linha sem matricula e sem nome e descartada (`:104`). |
 | operacao_atomica | aplicavel | o efeito e a substituicao integral de um artefato **derivado e regeneravel** (a referencia e reconstruivel do PECULIO em qualquer momento). O pior estado intermediario e a aba EFETIVO parcialmente vazia entre `clearContent` (`:158`) e `setValues` (`:160`) — contrato declarado e aceito porque a fonte de verdade (PECULIO) nao e tocada; nao ha risco de perda de dado operacional. |
-| race_condition | pendente | **Justificativa:** `clearContent` e `setValues` sao dois passos (`Features/NormalizadorEfetivo.js:158,160`) e o codigo de produto **nao** usa `LockService` (unica mencao no repositorio: stub de sandbox em `Testes/TestMenuP3.js:80`). Duas execucoes concorrentes (operador pelo menu + card headless) podem interleavar: uma limpa, a outra grava, e o resultado final pode ser uma referencia pela metade **sem que nenhuma execucao reporte erro** — a auditoria registraria sucesso nas duas. **Decisao exigida do Planner:** `LockService` no inicio de `executar()` + escrita em uma unica chamada (`setValues` de matriz ja limpa por sobrescrita de range dimensionado) — ou Instalacao transversal de serializacao (§8.11). |
+| race_condition | aplicavel | **Resolvido pela trava global (`INST-SERIALIZACAO-001` (§8.11)):** `NormalizadorEfetivo.executar` adquire a trava ANTES de ler PECULIO/EFETIVO (`Features/NormalizadorEfetivo.js:27`) e menu (`:440`) e headless (`:484`) compartilham a MESMA trava. A substituicao da referencia deixou de ser `clearContent` + `setValues` e passou a ser UMA chamada de API (`escreverEfetivo`, `Features/NormalizadorEfetivo.js:200`), o que elimina a janela de rede do diagnostico §2.1 (aba EFETIVO hibrida). **Helper da trava:** `Core/SerializacaoEscrita.js` (helper unico da `INST-SERIALIZACAO-001`). **Evidencia:** `Testes/TestSerializacaoEscrita.js` (caso EFETIVO: 1 `setValues`, 0 `clearContent` e repeticao reconstruindo o MESMO estado) e caso da corrida. |
 | cache | nao_aplicavel | a Porta escreve; nao ha leitura cara a cachear (a leitura do PECULIO e feita uma vez por execucao, `Features/NormalizadorEfetivo.js:38,94`). |
 | retry_pelo_cliente | aplicavel | o cliente e o operador/agente: a politica esta declarada — falha **re-lanca** ao chamador depois de registrar `ERRO` na auditoria (`Features/NormalizadorEfetivo.js:405-415`), e a reexecucao e segura porque a operacao e reconstrucao completa a partir do PECULIO. |
 
@@ -62,3 +62,4 @@ Leitura direta do codigo nesta sessao (13/09/2026): `Features/NormalizadorEfetiv
 
 ## Estado
 Contrato declarado. **1 item `pendente`** (race_condition) — a Porta **bloqueia em G7**. Antes deste card a Porta nao estava descrita em lugar nenhum como Porta: existia apenas na tabela de **Artefatos** da NOTA_DE_RESPONSABILIDADE (`EFETIVO (escrita)`) e no no `norm-4` do circuito.
+**Fechamento (#164, 14/09/2026):** o `race_condition` saiu de `pendente` com prova dupla — trava global no entrypoint + escrita em UMA chamada de API (a opcao A+E da recomendacao do diagnostico). A fechadura `Testes/TestSerializacaoEscrita.js` reprova `clearContent` antes do `setValues`.

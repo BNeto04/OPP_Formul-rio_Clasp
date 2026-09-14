@@ -5,7 +5,7 @@
 - **Origem:** `Features/GuardiaoQualidade.js:655` (`RendererAuditoriaSaude.renderizarLog`, dentro de `varrerAba`)
 - **Destino:** abas `[AUDITORIA] Ocorrencias` (sobrescrita) e `[HISTORICO] Auditoria Ocorrencias` (acumulo) — `Render/RendererAuditoriaSaude.js:25-26,111-112,117-132`
 - **Elegibilidade (§12.6):** ELEGÍVEL — (B) expoe efeito externo: grava duas abas de auditoria; (C) lida com concorrencia: duas auditorias na mesma janela disputam as mesmas linhas
-- **Estado:** AMARELO — 1 item(ns) `pendente` declarado(s) (BLOQUEIA a Porta em G7, §12.6)
+- **Estado:** VERDE — 0 item `pendente`/0 bloqueante (§12.6); o ciclo de auditoria esta serializado por `INST-SERIALIZACAO-001`.
 
 ## Payload
 Diagnosticos consolidados da aba auditada (lista de `{codigoRegra, severidade, linha, celula, arca, ...}`) + tuneis + contagem de linhas (`Render/RendererAuditoriaSaude.js:60-112`).
@@ -33,7 +33,7 @@ Diagnosticos consolidados da aba auditada (lista de `{codigoRegra, severidade, l
 | paginacao | nao_aplicavel | a escrita e o bloco de diagnosticos da execucao corrente; nao ha endpoint paginado. |
 | validacao_entrada | aplicavel | sem documento pai (`sheet.getParent()`) a Porta nao executa (`RendererAuditoriaSaude.js:20-22`); sem range funcional, retorna sem efeito (`:152,239`). |
 | operacao_atomica | aplicavel | `[AUDITORIA]` e substituicao de um retrato regeneravel; `[HISTORICO]` e um bloco anexado de uma vez (`setValues` de `registrosHistorico`, `RendererAuditoriaSaude.js:132`), com a linha separadora limpa imediatamente antes (`:126-127`). O pior estado intermediario e um bloco de historico ausente — regeneravel na proxima auditoria; **nao** ha dado operacional nesse caminho. |
-| race_condition | pendente | **Justificativa:** duas auditorias concorrentes sobre a **mesma** aba escrevem as mesmas abas de apoio. `[AUDITORIA]` e sobrescrita (a ultima vence: o retrato de quem perdeu se perde) e `[HISTORICO]` calcula a proxima linha livre com **ler-depois-escrever** (`calcularProximaLinhaHistorico`, `Render/RendererAuditoriaSaude.js:140-152`) — dois processos podem anexar no mesmo bloco. O codigo de produto **nao** usa `LockService` (unica mencao no repositorio: stub de sandbox em `Testes/TestMenuP3.js:80`). **Decisao exigida do Planner:** `LockService` no ciclo de auditoria (ou Instalacao transversal de serializacao, §8.11) e revalidacao da linha livre sob lock. |
+| race_condition | aplicavel | **Resolvido pela trava global (`INST-SERIALIZACAO-001` (§8.11)):** o ciclo de auditoria roda inteiro sob a trava — `GuardiaoQualidade.varrerAba` adquire `SyntheonSerializacaoEscrita.executarComLock` (`Features/GuardiaoQualidade.js:155`) antes de ler a aba e escrever; menu por aba (`:787`), seletor de meses (`Entrada/SeletorMesesGuardiao.js:219`) e headless (`Features/GuardiaoHeadless.js:70`) compartilham a MESMA trava. A proxima linha do `[HISTORICO]` e lida (`getLastRow`) e usada DENTRO da secao critica (`Render/RendererAuditoriaSaude.js:122` calcula a linha; `:132` grava), sem intercalamento de outro escritor. **Helper da trava:** `Core/SerializacaoEscrita.js` (helper unico da `INST-SERIALIZACAO-001`). **Evidencia:** `Testes/TestSerializacaoEscrita.js` (corrida + fail-closed) e `Testes/TestGuardiaoHeadlessEfeitoDeclarado.js` (efeito declarado = efeito medido). |
 | cache | nao_aplicavel | a Porta escreve o resultado da execucao corrente; nao ha leitura cara a cachear. |
 | retry_pelo_cliente | aplicavel | o chamador e o operador/agente: a politica esta declarada — nova auditoria reconstroi `[AUDITORIA]` e acrescenta um novo bloco a `[HISTORICO]`, sem exigir limpeza manual. |
 
@@ -60,6 +60,7 @@ Leitura direta do codigo nesta sessao (13/09/2026): `Render/RendererAuditoriaSau
 
 ## Estado
 Contrato declarado. **1 item `pendente`** (race_condition) — a Porta **bloqueia em G7**. Antes deste card a Porta existia como linha **`Guardiao -> abas de auditoria`** na capsula de C05.
+**Fechamento (#164, 14/09/2026):** o `race_condition` saiu de `pendente` com prova: a trava global serializa `[AUDITORIA]` (sobrescrita) e o append do `[HISTORICO]` (ler-depois-escrever), que eram os dois pontos medidos no diagnostico §2.2.
 
 
 > **Reconciliação D-164-04 (13-14/09/2026):** esta Porta descrevia o comportamento anterior (`idx=38` + criação de `AM1`). O comportamento vigente é: **validar completamente antes de qualquer escrita**; coluna de alerta resolvida por **cabeçalho canônico**; ausente/ambígua ⇒ **`ERRO_TECNICO`, diagnóstico e nenhuma escrita**. Ver `DIAGNOSTICO_D_164_04.md`, `RELATORIO_164_FIX.md` e `Features/GuardiaoQualidade.js:resolverColunaAlerta`.

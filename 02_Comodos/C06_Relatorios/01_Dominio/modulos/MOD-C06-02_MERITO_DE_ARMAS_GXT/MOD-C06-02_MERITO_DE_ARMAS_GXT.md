@@ -32,7 +32,7 @@ Lista de armas por periodo (Selecao Livre e Anual) . faixas de cor com **quantos
 | Menu `Armas` -> Anual | UI | `iniciarModoAnual` |
 | `clasp run` -> compilador | **headless** | `executarCompiladorArmasHeadless` |
 | Compilador -> legenda | padrao visual | `Core/LegendaCores.js` (fonte unica) |
-| Compilador -> ARCA | consulta | regras R1-R9 inferidas + R10 ditada pelo proprietario |
+| Compilador -> ARCA (declarada e **NAO implementada** — D-164-02, fechada em 14/09/2026 no #164) | consulta | **promessa retirada:** nao ha chamada a ARCA no runtime (`Compilador_Armas.js`, `Motor/PoliticaMeritoArmas.js`: 0 ocorrencias de `AdaptadorConsultaArca`); as regras R1-R9 foram inferidas e vivem em `Dominio/ARCA/REGRAS_ARMAS_INFERIDAS.md`. A Porta `C06/MOD-C06-02/P04` permanece declarada com os itens de existencia em `nao_aplicavel`. |
 
 ## Conexoes
 `C06-02 -> C04/Motor` (`PoliticaMeritoArmas`) . `C06-02 -> C03/ARCA` (regra de armas) .

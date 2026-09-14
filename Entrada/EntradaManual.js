@@ -13,6 +13,18 @@ function qtdOcorrenciaPadrao_(valor) {
   return v;
 }
 
+/**
+ * Trava global de escrita — INST-SERIALIZACAO-001 (§8.11).
+ * No runtime Apps Script todos os arquivos compartilham o escopo global (o helper esta em
+ * `Core/SerializacaoEscrita.js`). Na bancada Node, esta guarda de TOPO carrega o helper UMA vez
+ * por arquivo consumidor SEM criar simbolo global novo (o teste `TestSemRedefinicaoGlobal`
+ * proibe funcao de topo definida em dois arquivos enviados). Ausencia de meio de trava NAO
+ * autoriza escrever: sem `SyntheonSerializacaoEscrita`, a porta falha fechado.
+ */
+if (typeof SyntheonSerializacaoEscrita === 'undefined' && typeof require !== 'undefined') {
+  try { global.SyntheonSerializacaoEscrita = require('../Core/SerializacaoEscrita'); } catch (e) { /* fail-closed abaixo */ }
+}
+
 function obterSpreadsheetOcorrencias_() {
   if (typeof SpreadsheetApp !== 'undefined') {
     try {
@@ -29,6 +41,16 @@ function obterSpreadsheetOcorrencias_() {
 /**
  * Núcleo da entrada manual: NUNCA bloqueia. Validações viram AVISOS (não exceções) e a gravação
  * segue "best effort" — a triagem forte fica com o GUARDIÃO (auditoria), não com a entrada.
+ *
+ * SERIALIZACAO (INST-SERIALIZACAO-001): todo o bloco mutante — deteccao da identidade da operacao
+ * (`verificarDuplicidadeOcorrencia`), leitura da linha livre (`localizarBlocoModeloDisponivel_`) e
+ * gravacao — roda sob a TRAVA GLOBAL de escrita. Dois operadores (ou operador + card headless)
+ * nao escolhem a mesma linha livre: o segundo FALHA RUIDOSAMENTE (`SERIALIZACAO_OCUPADA`),
+ * com ZERO escrita, em vez de perder o BO.
+ *
+ * IDEMPOTENCIA (ENTRADA_OPERACIONAL, decisao do Planner 14/09/2026): a identidade da operacao e
+ * `DATA|MIKE|BOE` (regra canonica `ARCA-OCORRENCIA-007`). Reentrega da MESMA operacao e REPLAY:
+ * nao grava (status `REPLAY_RECUSADO`), em vez de gravar um segundo bloco "avisando" depois.
  * @param {Object} payload
  * @param {{simular?: boolean}} opcoes simular=true valida e NAO grava (dry-run).
  * @returns {{status: string, registros: number, avisos: string[], identificador: string, aba: string|null}}
@@ -48,32 +70,51 @@ function _processarEntradaManual(payload, opcoes) {
       return { status: 'NAO_GRAVADO', registros: 0, avisos: avisos, identificador: identificador, aba: null };
     }
 
-    // Anti-duplicidade: vira AVISO, nao bloqueia (a triagem fica no Guardiao).
-    verificarDuplicidadeOcorrencia(aba, payload.boe, payload.mike, avisos);
-
-    let linhas = [];
-    try {
-      linhas = montarLinhasEntradaManual(payload);
-    } catch (e) {
-      avisos.push('MONTAGEM: ' + (e && e.message || e));
-      return { status: 'NAO_GRAVADO', registros: 0, avisos: avisos, identificador: identificador, aba: aba.getName() };
+    if (typeof SyntheonSerializacaoEscrita === 'undefined' || !SyntheonSerializacaoEscrita
+        || typeof SyntheonSerializacaoEscrita.executarComLock !== 'function') {
+      avisos.push('ESCRITA_BLOQUEADA: mecanismo de serializacao de escrita indisponivel (INST-SERIALIZACAO-001). Nada foi gravado.');
+      return { status: 'SERIALIZACAO_INDISPONIVEL', registros: 0, avisos: avisos, identificador: identificador, aba: null };
     }
 
-    try {
-      gravarLinhasEntradaManual(aba, linhas, { simular: opcoes.simular, avisos: avisos });
-    } catch (e) {
-      avisos.push('GRAVACAO: ' + (e && e.message || e));
-      return { status: 'NAO_GRAVADO', registros: 0, avisos: avisos, identificador: identificador, aba: aba.getName() };
-    }
+    // Entrypoint mutante: a trava e adquirida ANTES de qualquer leitura/escrita de linha.
+    return SyntheonSerializacaoEscrita.executarComLock('EntradaManual.BO', function () {
+      // Anti-duplicidade por IDENTIDADE DE OPERACAO (DATA|MIKE|BOE). Nao bloqueia por "conteudo
+      // adivinhado": compara os campos de identidade da ocorrencia na aba-alvo.
+      const replay = verificarDuplicidadeOcorrencia(aba, payload.boe, payload.mike, avisos);
+      if (replay.length > 0 && !opcoes.simular) {
+        return { status: 'REPLAY_RECUSADO', registros: 0, avisos: avisos, identificador: identificador, aba: aba.getName() };
+      }
 
-    return {
-      status: opcoes.simular ? 'SIMULADO' : 'OK',
-      registros: linhas.length,
-      avisos: avisos,
-      identificador: identificador,
-      aba: aba.getName()
-    };
+      let linhas = [];
+      try {
+        linhas = montarLinhasEntradaManual(payload);
+      } catch (e) {
+        avisos.push('MONTAGEM: ' + (e && e.message || e));
+        return { status: 'NAO_GRAVADO', registros: 0, avisos: avisos, identificador: identificador, aba: aba.getName() };
+      }
+
+      try {
+        gravarLinhasEntradaManual(aba, linhas, { simular: opcoes.simular, avisos: avisos });
+      } catch (e) {
+        avisos.push('GRAVACAO: ' + (e && e.message || e));
+        return { status: 'NAO_GRAVADO', registros: 0, avisos: avisos, identificador: identificador, aba: aba.getName() };
+      }
+
+      return {
+        status: opcoes.simular ? 'SIMULADO' : 'OK',
+        registros: linhas.length,
+        avisos: avisos,
+        identificador: identificador,
+        aba: aba.getName()
+      };
+    });
   } catch (e) {
+    if (typeof SyntheonSerializacaoEscrita !== 'undefined' && SyntheonSerializacaoEscrita
+        && typeof SyntheonSerializacaoEscrita.ehOcupada === 'function' && SyntheonSerializacaoEscrita.ehOcupada(e)) {
+      avisos.push('ESCRITA_BLOQUEADA: ' + (e && e.message || e));
+      return { status: 'SERIALIZACAO_OCUPADA', registros: 0, avisos: avisos, identificador: identificador,
+               aba: aba ? aba.getName() : null };
+    }
     avisos.push('ERRO: ' + (e && e.message || e));
     return { status: 'NAO_GRAVADO', registros: 0, avisos: avisos, identificador: identificador, aba: aba ? aba.getName() : null };
   }
@@ -81,14 +122,38 @@ function _processarEntradaManual(payload, opcoes) {
 
 /**
  * Porta da UI: devolve mensagem amigavel (nunca lança). Avisos aparecem no texto, sem bloquear.
+ * A trava global pertence a esta porta: se outra execucao estiver escrevendo, a mensagem e
+ * INCONFUNDIVEL (a ocorrencia NAO entrou) — nunca "segue pela metade".
  */
 function processarEntradaManual(payload) {
-  const r = _processarEntradaManual(payload, {});
+  const identificador = String(payload && (payload.mike || payload.boe) || 'sem identificador').trim();
+  let r;
+  try {
+    r = SyntheonSerializacaoEscrita.executarComLock('EntradaManual.UI', function () {
+      return _processarEntradaManual(payload, {});
+    });
+  } catch (e) {
+    // Fail-closed na PORTA da UI: a ocorrencia NAO entrou; a mensagem e inconfundivel.
+    const ocupada = typeof SyntheonSerializacaoEscrita !== 'undefined' && SyntheonSerializacaoEscrita
+      && typeof SyntheonSerializacaoEscrita.ehOcupada === 'function' && SyntheonSerializacaoEscrita.ehOcupada(e);
+    r = {
+      status: ocupada ? 'SERIALIZACAO_OCUPADA' : 'NAO_GRAVADO',
+      registros: 0,
+      avisos: [(ocupada ? 'ESCRITA_BLOQUEADA: ' : 'ERRO: ') + (e && e.message || e)],
+      identificador: identificador,
+      aba: null
+    };
+  }
   let msg;
   if (r.status === 'OK') {
     msg = 'Ocorrência ' + r.identificador + ' salva (' + r.registros + ' registros).';
   } else if (r.status === 'SIMULADO') {
     msg = 'SIMULAÇÃO (nada gravado) — ocorrência ' + r.identificador + '.';
+  } else if (r.status === 'REPLAY_RECUSADO') {
+    // Reentrega da MESMA operacao (identidade DATA|MIKE|BOE): nao duplica gravacao. A correcao
+    // de um BO ja gravado e pelo Guardiao/correcao manual, nunca por segunda gravacao.
+    msg = '⛔ NÃO GRAVADO — ocorrência ' + r.identificador + ' (status: ' + r.status + ').\n' +
+      'Já existe ocorrência com este MIKE/BOE nesta aba: a reentrega NÃO foi gravada de novo (idempotência de operação).';
   } else {
     // NAO_GRAVADO precisa ser INCONFUNDIVEL: o operador tem de perceber que o BO
     // NAO entrou, para nao perder o registro (defeito do BO 04/09).
@@ -173,14 +238,22 @@ function localizarAbaMensalTratada(ss, dataStr) {
 
 /**
  * Valida a ocorrência contra o BOE e MIKE para evitar duplicidade na aba mensal.
+ *
+ * IDENTIDADE DA OPERACAO (idempotencia, §12.6 item `idempotente`): a ocorrencia e identificada
+ * por `DATA|MIKE|BOE` (regra canonica `ARCA-OCORRENCIA-007`); a `DATA` e a propria aba-alvo.
+ * A reentrega da MESMA operacao e REPLAY e NAO pode duplicar gravacao — por isso a funcao
+ * DEVOLVE a lista de replicas encontradas (o chamador decide: recusa, nao "avisa e grava").
  * @param {GoogleAppsScript.Spreadsheet.Sheet} aba 
  * @param {string|number} boe 
  * @param {string|number} mike 
+ * @param {Array<string>=} avisos acumulador de avisos (compatibilidade)
+ * @returns {Array<{campo:string, valor:string, linha:number}>} replicas por identidade
  */
 function verificarDuplicidadeOcorrencia(aba, boe, mike, avisos) {
   avisos = avisos || [];
   const payloadBoe = boe ? String(boe).trim() : "";
   const payloadMike = mike ? String(mike).trim() : "";
+  const replicas = [];
 
   if (payloadBoe || payloadMike) {
       const colBoe = aba.getRange("G2:G" + aba.getMaxRows()).getValues();
@@ -193,12 +266,15 @@ function verificarDuplicidadeOcorrencia(aba, boe, mike, avisos) {
           
           if (payloadBoe && boePlanilha && payloadBoe === boePlanilha) {
               avisos.push('DUPLICIDADE: o BOE ' + payloadBoe + ' já consta cadastrado nesta aba.');
+              replicas.push({ campo: 'BOE', valor: payloadBoe, linha: i + 2 });
           }
           if (payloadMike && mikePlanilha && payloadMike === mikePlanilha) {
               avisos.push('DUPLICIDADE: o MIKE ' + payloadMike + ' já consta cadastrado nesta aba.');
+              replicas.push({ campo: 'MIKE', valor: payloadMike, linha: i + 2 });
           }
       }
   }
+  return replicas;
 }
 
 /**
@@ -467,13 +543,23 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir, opcoes) {
   }
 
   // Fase 2: Gravação Física (Colunas AB, AC e AD são preenchidas pelas fórmulas PROCV da planilha)
+  //
+  // GRAVACAO EM BLOCOS CONTIGUOS (operacao_atomica, §12.6): a versao anterior fazia UMA chamada de
+  // API por coluna permitida (25 pares range/setValues). A planilha-alvo tem colunas de FORMULA
+  // intercaladas (TOTAL DE MACONHA, DIVIDIDO MAC, TOTAL CRACK (GR), TOTAL DE COCAINA, DIVIDIDO COC,
+  // PONTOS TOTAIS, PONTOS FICCAO, CHAVE OCORRENCIA) que nao podem ser sobrescritas por `setValues`
+  // de valor — logo o bloco NAO pode ser uma unica matriz. O que se faz aqui: agrupar as colunas
+  // permitidas em RUNS CONTIGUOS e gravar cada run com UMA chamada (as colunas de formula, por
+  // serem fronteira, quebram o run). Menos chamadas = janela de rede menor; e a escolha da linha
+  // livre + a gravacao acontecem sob a TRAVA GLOBAL do entrypoint (INST-SERIALIZACAO-001).
   const colsPermitidasNomes = [
     "DATA", "HORA", "QTD O", "MIKE", "NATUREZA", "BOE", "AIS", "CIDADE", "BAIRRO", "DETIDOS",
     "ARMA", "TIPO", "CALIBRE", "MODELO", "MUNIÇÃO", 
     "MACONHA DOLAR", "MACONHA GRAMA", "CRACK PEDRA", "CRACK GRAMA", "COCAINA PINO", "COCAINA GRAMA", 
     "POLICIAL", "QDT ARMAS", "OCORRÊNCIA PIP", "IMPUTADO?"
   ];
-  
+
+  const tarefas = [];
   for (let i = 0; i < colsPermitidasNomes.length; i++) {
      const nomeCol = colsPermitidasNomes[i];
      const targetColIdx = SyntheonCabecalhosObj.encontrar(headersIndex, nomeCol);
@@ -491,14 +577,42 @@ function gravarLinhasEntradaManual(aba, linhasParaInserir, opcoes) {
      if (temFormula) {
          continue; // Proteção extra
      }
-     
-     const rangeCol = aba.getRange(linhaParaEscrever, targetColIdx + 1, totalLinhas, 1);
-     const valoresCol = [];
+
+     const valores = [];
      for (let r = 0; r < totalLinhas; r++) {
-         valoresCol.push([linhasParaInserir[r][sourceColIdx]]);
+         valores.push(linhasParaInserir[r][sourceColIdx]);
      }
-     rangeCol.setValues(valoresCol);
+     tarefas.push({ colIdx: targetColIdx, valores: valores });
   }
+
+  tarefas.sort(function (a, b) { return a.colIdx - b.colIdx; });
+  const blocos = [];
+  tarefas.forEach(function (t) {
+     const ultimo = blocos[blocos.length - 1];
+     if (ultimo && ultimo.colIdxFim + 1 === t.colIdx) {
+        ultimo.cols.push(t);
+        ultimo.colIdxFim = t.colIdx;
+     } else {
+        blocos.push({ colIdxIni: t.colIdx, colIdxFim: t.colIdx, cols: [t] });
+     }
+  });
+
+  blocos.forEach(function (bloco) {
+     const matriz = [];
+     for (let r = 0; r < totalLinhas; r++) {
+        const linha = [];
+        for (let c = bloco.colIdxIni; c <= bloco.colIdxFim; c++) {
+           let preenchido = false;
+           for (let k = 0; k < bloco.cols.length; k++) {
+              if (bloco.cols[k].colIdx === c) { linha.push(bloco.cols[k].valores[r]); preenchido = true; break; }
+           }
+           if (!preenchido) linha.push(targetValues[r] ? targetValues[r][c] : '');
+        }
+        matriz.push(linha);
+     }
+     aba.getRange(linhaParaEscrever, bloco.colIdxIni + 1, totalLinhas, bloco.colIdxFim - bloco.colIdxIni + 1)
+        .setValues(matriz);
+  });
 
   // Fase 3: Clonar fórmulas PROCV da linha 2 para as colunas PELOTÃO, GRAD e MATRÍCULA.
   // Usa copyTo da célula modelo, garantindo que a fórmula nativa da planilha

@@ -2,7 +2,82 @@
  * PROJETO: Compilador de Armas GS
  * LOTE: Ocorrência por PEL 2026
  * DESCRIÇÃO: Script para consolidação automática do rateio de produtividade de armas.
+ *
+ * INST-SERIALIZACAO-001 (§8.11): as portas mutantes (menu "Selecao livre", "Anual" e a rota
+ * headless) compartilham a TRAVA GLOBAL de escrita; sem trava NAO compila e NAO cria aba
+ * (fail-closed). A guarda de TOPO carrega o helper na bancada Node sem criar simbolo global novo.
+ *
+ * IDEMPOTENCIA (§12.6): o efeito e APPEND por desenho (cada execucao cria uma aba NOVA versionada,
+ * preservando o resultado anterior). Para nao multiplicar abas com o MESMO conteudo, a execucao e
+ * identificada por uma CHAVE ESTAVEL (modo + abas + hash do ranking); repetir a mesma compilacao e
+ * REPLAY e e RECUSADO (`REPLAY_RECUSADO`), sem criar aba nova.
  */
+if (typeof SyntheonSerializacaoEscrita === 'undefined' && typeof require !== 'undefined') {
+  try { global.SyntheonSerializacaoEscrita = require('./Core/SerializacaoEscrita'); } catch (e) { /* fail-closed no uso */ }
+}
+
+// --- Chave de execucao / registro de replay (retencao limitada, sem crescimento ilimitado) ---
+const CHAVE_REPLAY_ARMAS = 'SYNTHEON_ARMAS_REPLAY';
+const LIMITE_BASES_REPLAY_ARMAS = 20;
+
+/** Hash determinístico (FNV-1a 32 bits) do conteudo agregado — nao depende de ordem de chaves. */
+function hashExecucaoArmas_(texto) {
+  const s = String(texto === undefined || texto === null ? '' : texto);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return ('00000000' + h.toString(16)).slice(-8) + '-' + s.length;
+}
+
+/** Chave de execucao ESTAVEL: mesmo modo + mesmas abas + mesmo ranking => mesma chave. */
+function chaveExecucaoArmas_(modo, meses, ranking) {
+  const escopo = Array.isArray(meses) ? meses.slice().sort().join(',') : String(meses || '');
+  const corpo = (Array.isArray(ranking) ? ranking : [])
+    .map(linha => (Array.isArray(linha) ? linha.join('\u0001') : String(linha)))
+    .join('\u0002');
+  return 'ARMAS|' + String(modo || 'LIVRE') + '|' + escopo + '|' + hashExecucaoArmas_(corpo);
+}
+
+function _propsReplayArmas_() {
+  try {
+    if (typeof PropertiesService === 'undefined' || !PropertiesService || !PropertiesService.getScriptProperties) return null;
+    return PropertiesService.getScriptProperties();
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Decide se a chave ja produziu artefato (replay) — registro ilegivel e recuperado, nunca trava. */
+function decidirReplayArmas_(base, chave) {
+  const props = _propsReplayArmas_();
+  if (!props) return { replay: false, aba: null, chave: chave, registro: 'AUSENTE' };
+  let mapa = null;
+  try { mapa = JSON.parse(props.getProperty(CHAVE_REPLAY_ARMAS) || '{}'); } catch (e) { mapa = null; }
+  if (!mapa || typeof mapa !== 'object') return { replay: false, aba: null, chave: chave, registro: 'CORROMPIDO' };
+  const reg = mapa[base];
+  if (reg && reg.chave === chave && reg.aba) {
+    return { replay: true, aba: reg.aba, chave: chave, registro: 'PRESENTE' };
+  }
+  return { replay: false, aba: null, chave: chave, registro: reg ? 'DIVERGENTE' : 'AUSENTE' };
+}
+
+function registrarReplayArmas_(base, chave, aba) {
+  const props = _propsReplayArmas_();
+  if (!props) return false;
+  let mapa = null;
+  try { mapa = JSON.parse(props.getProperty(CHAVE_REPLAY_ARMAS) || '{}'); } catch (e) { mapa = null; }
+  if (!mapa || typeof mapa !== 'object') mapa = {};
+  mapa[base] = { chave: chave, aba: aba, quando: new Date().toISOString() };
+  const chaves = Object.keys(mapa);
+  if (chaves.length > LIMITE_BASES_REPLAY_ARMAS) {
+    chaves.sort((a, b) => String(mapa[a].quando).localeCompare(String(mapa[b].quando)));
+    chaves.slice(0, chaves.length - LIMITE_BASES_REPLAY_ARMAS).forEach(k => { delete mapa[k]; });
+  }
+  try { props.setProperty(CHAVE_REPLAY_ARMAS, JSON.stringify(mapa)); } catch (e) { return false; }
+  return true;
+}
 
 // ============================================================================
 // UI - ENTRADA DO FLUXO
@@ -26,7 +101,10 @@ function iniciarModoAnual() {
   
   const response = ui.alert('Modo Anual', 'Deseja processar todos os meses de 2026?', ui.ButtonSet.YES_NO);
   if (response == ui.Button.YES) {
-    executarCompilador(mesesAnual, 'ANUAL');
+    // Porta de entrada mutante: a trava global e adquirida AQUI (INST-SERIALIZACAO-001).
+    return SyntheonSerializacaoEscrita.executarComLock('CompiladorArmas.menuAnual', function () {
+      return executarCompilador(mesesAnual, 'ANUAL');
+    });
   }
 }
 
@@ -68,7 +146,10 @@ function abrirMenuSelecaoLivre() {
 }
 
 function processarMenuLivre(mesesSelecionados) {
-  executarCompilador(mesesSelecionados, 'LIVRE');
+  // Porta de entrada mutante: a trava global e adquirida AQUI (INST-SERIALIZACAO-001).
+  return SyntheonSerializacaoEscrita.executarComLock('CompiladorArmas.menuLivre', function () {
+    return executarCompilador(mesesSelecionados, 'LIVRE');
+  });
 }
 
 // Tabela CANONICA de cores por grupo. Fonte unica: Render/RendererGxt.js:14-22 (CORES_PELOTAO).
@@ -127,7 +208,35 @@ function _uiSeguraArmas_() {
   }
 }
 
+/**
+ * Porta MUTANTE do compilador de armas (INST-SERIALIZACAO-001, §8.11): cria a aba versionada
+ * (`insertSheet`) e reescreve o log. Menu (livre/anual) e headless compartilham a MESMA trava
+ * global; sem trava NAO compila e NAO cria aba (fail-closed). Reentrega identica e REPLAY.
+ */
 function executarCompilador(mesesAlvo, modo) {
+  if (typeof SyntheonSerializacaoEscrita === 'undefined' || !SyntheonSerializacaoEscrita
+      || typeof SyntheonSerializacaoEscrita.executarComLock !== 'function') {
+    const uiFalha = _uiSeguraArmas_();
+    const msgFalha = 'ESCRITA BLOQUEADA: mecanismo de serializacao de escrita indisponivel (INST-SERIALIZACAO-001). Nada foi gravado.';
+    if (uiFalha) uiFalha.alert('Erro bloqueante', msgFalha, uiFalha.ButtonSet.OK);
+    return { sucesso: false, erro: 'SERIALIZACAO_INDISPONIVEL', mensagem: msgFalha };
+  }
+  try {
+    return SyntheonSerializacaoEscrita.executarComLock('CompiladorArmas."' + String(modo || 'LIVRE') + '"', function () {
+      return _executarCompiladorSobTrava_(mesesAlvo, modo);
+    });
+  } catch (erro) {
+    const ocupada = SyntheonSerializacaoEscrita.ehOcupada(erro);
+    const mensagem = ocupada
+      ? SyntheonSerializacaoEscrita.mensagemParaOperador(erro)
+      : String((erro && erro.message) || erro);
+    const uiFalha2 = _uiSeguraArmas_();
+    if (uiFalha2) uiFalha2.alert('Erro bloqueante', mensagem, uiFalha2.ButtonSet.OK);
+    return { sucesso: false, erro: ocupada ? 'SERIALIZACAO_OCUPADA' : 'ERRO', mensagem: mensagem };
+  }
+}
+
+function _executarCompiladorSobTrava_(mesesAlvo, modo) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const ui = _uiSeguraArmas_();
   
@@ -251,13 +360,27 @@ function executarCompilador(mesesAlvo, modo) {
     let nomeBaseAba = modo === 'ANUAL' ? 'COMP_ARMAS_2026' : `COMP_ARMAS_${logs.abasProcessadas[0]}_${logs.abasProcessadas[logs.abasProcessadas.length - 1]}`;
     let nomeFinalAba = nomeBaseAba;
     let versao = 1;
-    
+
+    // IDEMPOTENCIA (APPEND com chave de execucao estavel + rejeicao de replay): a compilacao e
+    // identificada por (modo + abas processadas + hash do ranking). Repetir a MESMA compilacao nao
+    // cria uma segunda aba com o mesmo conteudo — REJEITA o replay e nomeia a aba que ja o tem.
+    const chaveExecucao = chaveExecucaoArmas_(modo, logs.abasProcessadas, ranking);
+    const replayArmas = decidirReplayArmas_(nomeBaseAba, chaveExecucao);
+    if (replayArmas.replay && replayArmas.aba && ss.getSheetByName(replayArmas.aba)) {
+      const mensagemReplay = 'REPLAY_RECUSADO: o resultado idêntico desta compilação já está na aba "' +
+        replayArmas.aba + '". Nenhuma aba nova foi criada (idempotência de execução: mesma chave ' +
+        chaveExecucao + ').';
+      if (ui) ui.alert('Compilação já registrada', mensagemReplay, ui.ButtonSet.OK);
+      return { sucesso: false, erro: 'REPLAY_RECUSADO', aba: replayArmas.aba, chave: chaveExecucao, logs: logs };
+    }
+
     while (ss.getSheetByName(nomeFinalAba)) {
       nomeFinalAba = `${nomeBaseAba}.v${versao}`;
       versao++;
     }
     
     const novaAba = ss.insertSheet(nomeFinalAba);
+    registrarReplayArmas_(nomeBaseAba, chaveExecucao, nomeFinalAba);
     
     const cabecalhoResultado = [['PELOTÃO', 'GRADUAÇÃO', 'MATRÍCULA', 'POLICIAL', 'ARMAS']];
     const borderStyle = (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.BorderStyle)
@@ -364,6 +487,14 @@ function executarCompiladorArmasHeadless(mesesAlvo, modo) {
   const lista = (typeof mesesAlvo === 'string')
     ? (mesesAlvo ? mesesAlvo.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [])
     : (mesesAlvo || []);
-  const r = executarCompilador(lista.length ? lista : ['JAN2026'], modo || 'LIVRE');
-  return JSON.stringify(r || { sucesso: null, aviso: 'executarCompilador nao retornou resumo' });
+  try {
+    const r = SyntheonSerializacaoEscrita.executarComLock('CompiladorArmas.headless', function () {
+      return executarCompilador(lista.length ? lista : ['JAN2026'], modo || 'LIVRE');
+    });
+    return JSON.stringify(r || { sucesso: null, aviso: 'executarCompilador nao retornou resumo' });
+  } catch (e) {
+    const ocupada = typeof SyntheonSerializacaoEscrita !== 'undefined' && SyntheonSerializacaoEscrita
+      && typeof SyntheonSerializacaoEscrita.ehOcupada === 'function' && SyntheonSerializacaoEscrita.ehOcupada(e);
+    return JSON.stringify({ sucesso: false, erro: ocupada ? 'SERIALIZACAO_OCUPADA' : 'ERRO', mensagem: String((e && e.message) || e) });
+  }
 }

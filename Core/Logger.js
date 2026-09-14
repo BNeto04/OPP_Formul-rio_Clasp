@@ -1,7 +1,16 @@
 /**
  * Logger central do ecossistema SYNTHEON.
  * Centraliza estatisticas e avisos dos fluxos.
+ *
+ * INST-SERIALIZACAO-001 (§8.11): `gravarPlanilha` materializa o retrato do log em aba de NOME FIXO
+ * (`clear()` + `setValues` em `Render/RendererAuditoria.js:11,14`). Essa escrita roda sob a TRAVA
+ * GLOBAL: dois geradores concorrentes (comparativo + armas, produtividade + PIP/CPM) nao se apagam
+ * nem produzem log HIBRIDO (`DIAGNOSTICO_164_CONCORRENCIA.md` §2.3, item #1 dos 9).
  */
+if (typeof SyntheonSerializacaoEscrita === 'undefined' && typeof require !== 'undefined') {
+  try { global.SyntheonSerializacaoEscrita = require('./SerializacaoEscrita'); } catch (e) { /* fail-closed no uso */ }
+}
+
 class SyntheonLogger {
   constructor(modo) {
     this.modo = modo;
@@ -41,6 +50,12 @@ class SyntheonLogger {
   }
 
   gravarPlanilha(nomeAbaLog, nomeAbaResultado) {
-    RendererAuditoria.render(SpreadsheetApp.getActiveSpreadsheet(), this, nomeAbaLog, nomeAbaResultado);
+    if (typeof SyntheonSerializacaoEscrita === 'undefined' || !SyntheonSerializacaoEscrita
+        || typeof SyntheonSerializacaoEscrita.executarComLock !== 'function') {
+      throw new Error('ESCRITA BLOQUEADA: mecanismo de serializacao de escrita indisponivel (INST-SERIALIZACAO-001). Nada foi gravado.');
+    }
+    return SyntheonSerializacaoEscrita.executarComLock('Logger.gravarPlanilha', () => {
+      return RendererAuditoria.render(SpreadsheetApp.getActiveSpreadsheet(), this, nomeAbaLog, nomeAbaResultado);
+    });
   }
 }

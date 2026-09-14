@@ -18,6 +18,12 @@ const PADROES_EXCLUSAO = [
   'CONTROLE', 'MODELO', 'EXEMPLO', 'TESTE', 'GABARITO', 'BKP', 'BACKUP', 'RASCUNHO', 'GRAVITY', 'LOG'
 ];
 
+// INST-SERIALIZACAO-001 (§8.11): guarda de TOPO que carrega o helper da trava global na bancada
+// Node SEM criar simbolo global novo (proibido por `Testes/TestSemRedefinicaoGlobal.js`).
+if (typeof SyntheonSerializacaoEscrita === 'undefined' && typeof require !== 'undefined') {
+  try { global.SyntheonSerializacaoEscrita = require('../Core/SerializacaoEscrita'); } catch (e) { /* fail-closed no uso */ }
+}
+
 class SeletorMesesGuardiao {
   /**
    * Normaliza para comparacao flexivel sem depender de SyntheonUtils (uso em Node e Apps Script).
@@ -206,6 +212,16 @@ class SeletorMesesGuardiao {
    * @returns {{porMes:Object, resumo:Object}}
    */
   static auditarMeses(selecao, ss, motor) {
+    if (typeof SyntheonSerializacaoEscrita === 'undefined' || !SyntheonSerializacaoEscrita
+        || typeof SyntheonSerializacaoEscrita.executarComLock !== 'function') {
+      throw new Error('ESCRITA BLOQUEADA: mecanismo de serializacao de escrita indisponivel (INST-SERIALIZACAO-001). Nada foi gravado.');
+    }
+    return SyntheonSerializacaoEscrita.executarComLock('SeletorMesesGuardiao.auditarMeses', function () {
+      return SeletorMesesGuardiao._auditarMesesSobTrava_(selecao, ss, motor);
+    });
+  }
+
+  static _auditarMesesSobTrava_(selecao, ss, motor) {
     const motorReal = motor || (typeof GuardiaoQualidade !== 'undefined' ? GuardiaoQualidade : null);
     if (!motorReal || typeof motorReal.varrerAba !== 'function') {
       throw new Error('Motor do Guardiao indisponivel (varrerAba ausente).');
@@ -291,7 +307,9 @@ function abrirSeletorMesesGuardiaoPorTexto() {
   }
   if (!selecao) return { status: 'CANCELADO', motivo: 'TENTATIVAS_ESGOTADAS' };
 
-  const consolidado = SeletorMesesGuardiao.auditarMeses(selecao, ss);
+  const consolidado = SyntheonSerializacaoEscrita.executarComLock('SeletorMesesGuardiao.porTexto', function () {
+    return SeletorMesesGuardiao.auditarMeses(selecao, ss);
+  });
   const painel = SeletorMesesGuardiao.montarPainel(consolidado);
 
   const linhasResumo = Object.keys(consolidado.porMes).map(nome => {
@@ -365,7 +383,9 @@ function executarSelecaoGuardiao(selecionados) {
     return { status: 'SEM_SELECAO', invalidos: selecao.invalidos };
   }
 
-  const consolidado = SeletorMesesGuardiao.auditarMeses(selecao, ss);
+  const consolidado = SyntheonSerializacaoEscrita.executarComLock('SeletorMesesGuardiao.executarSelecao', function () {
+    return SeletorMesesGuardiao.auditarMeses(selecao, ss);
+  });
   const painel = SeletorMesesGuardiao.montarPainel(consolidado);
   ui.alert('Guardiao da Qualidade - Resultado',
     SeletorMesesGuardiao.formatarResultado(consolidado, painel),

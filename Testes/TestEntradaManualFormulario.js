@@ -23,6 +23,9 @@ const policiaisCode = fs.readFileSync(path.join(__dirname, '../Core/Policiais.js
 eval(policiaisCode + '\n;if(typeof ordenarEquipePorAntiguidade_ !== "undefined") global.ordenarEquipePorAntiguidade_ = ordenarEquipePorAntiguidade_;');
 
 const entradaManualCode = fs.readFileSync(path.join(__dirname, '../Entrada/EntradaManual.js'), 'utf8');
+// INST-SERIALIZACAO-001 (#164): o arquivo de produto carrega o helper da trava global
+// (`Core/SerializacaoEscrita.js`) pela propria guarda de TOPO via require — a bancada nao precisa
+// injeta-lo. Sem o helper a porta falha FECHADO (zero escritas), que e o contrato.
 eval(entradaManualCode + '\nif(typeof gravarLinhasEntradaManual !== "undefined") global.gravarLinhasEntradaManual = gravarLinhasEntradaManual; if(typeof obterOpcoesValidacao !== "undefined") global.obterOpcoesValidacao = obterOpcoesValidacao; if(typeof localizarAbaMensalTratada !== "undefined") global.localizarAbaMensalTratada = localizarAbaMensalTratada; if(typeof processarEntradaManual !== "undefined") global.processarEntradaManual = processarEntradaManual; if(typeof verificarDuplicidadeOcorrencia !== "undefined") global.verificarDuplicidadeOcorrencia = verificarDuplicidadeOcorrencia; if(typeof resolverNomeAbaMensal !== "undefined") global.resolverNomeAbaMensal = resolverNomeAbaMensal;'); 
 const gravarLinhasEntradaManual = global.gravarLinhasEntradaManual;
 const obterOpcoesValidacao = global.obterOpcoesValidacao;
@@ -946,7 +949,9 @@ eval(fullFormularioScript);
     assert.ok(resSucesso.includes('2 registros'), 'Deve computar 2 registros (max entre policiais, armas e PIP)');
     assert.ok(sheetPersistencia.rangesEscritos.length > 0, 'Deve registrar escrita física no Sheets');
 
-    // 14.2: Bloqueio por Duplicidade de BOE com ZERO ESCRITA
+    // 14.2: Reentrega da MESMA operacao (identidade DATA|MIKE|BOE) e REPLAY: NAO grava.
+    // Decisao do Planner (14/09/2026, #164): ENTRADA_OPERACIONAL usa identidade de operacao —
+    // "repetir a mesma submissao nao pode duplicar gravacao" (antes: avisava e gravava).
     let sheetBoeDup = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
     sheetBoeDup.sheetName = 'AGO2026';
     sheetBoeDup.colBoeValues = [['2026/000123']]; // BOE já presente
@@ -956,13 +961,12 @@ eval(fullFormularioScript);
     };
     global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsBoeDup;
 
-    // 14.2: Duplicidade de BOE vira AVISO (grava mesmo assim; o Guardião tria depois)
     const msgBoeDup = processarEntradaManual(payloadCompleto);
-    assert.ok(msgBoeDup.indexOf('DUPLICIDADE') !== -1, 'Deve avisar duplicidade de BOE');
-    assert.ok(msgBoeDup.indexOf('salva') !== -1, 'Deve gravar mesmo com BOE duplicado (operador insiste e passa)');
-    assert.ok(sheetBoeDup.rangesEscritos.length > 0, 'Escrita deve ocorrer mesmo com BOE duplicado');
+    assert.ok(msgBoeDup.indexOf('DUPLICIDADE') !== -1, 'Deve nomear a duplicidade de BOE (identidade da operação)');
+    assert.ok(msgBoeDup.indexOf('REPLAY_RECUSADO') !== -1, 'Reentrega por BOE deve sair como REPLAY_RECUSADO');
+    assert.strictEqual(sheetBoeDup.rangesEscritos.length, 0, 'Replay NÃO pode escrever (zero gravação)');
 
-    // 14.3: Bloqueio por Duplicidade de MIKE com ZERO ESCRITA
+    // 14.3: Idem para MIKE — a identidade da operação é o par MIKE/BOE.
     let sheetMikeDup = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
     sheetMikeDup.sheetName = 'AGO2026';
     sheetMikeDup.colMikeValues = [['M123456']]; // MIKE já presente
@@ -972,11 +976,10 @@ eval(fullFormularioScript);
     };
     global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsMikeDup;
 
-    // 14.3: Duplicidade de MIKE vira AVISO (grava mesmo assim)
     const msgMikeDup = processarEntradaManual(payloadCompleto);
-    assert.ok(msgMikeDup.indexOf('DUPLICIDADE') !== -1, 'Deve avisar duplicidade de MIKE');
-    assert.ok(msgMikeDup.indexOf('salva') !== -1, 'Deve gravar mesmo com MIKE duplicado (operador insiste e passa)');
-    assert.ok(sheetMikeDup.rangesEscritos.length > 0, 'Escrita deve ocorrer mesmo com MIKE duplicado');
+    assert.ok(msgMikeDup.indexOf('DUPLICIDADE') !== -1, 'Deve nomear a duplicidade de MIKE');
+    assert.ok(msgMikeDup.indexOf('REPLAY_RECUSADO') !== -1, 'Reentrega por MIKE deve sair como REPLAY_RECUSADO');
+    assert.strictEqual(sheetMikeDup.rangesEscritos.length, 0, 'Replay NÃO pode escrever (zero gravação)');
 
     // 14.4: Bloqueio por Aba Mensal Ausente com ZERO ESCRITA
     let sheetAgo2026 = mockSheet(CABECALHOS_ORIGINAIS, null, null, validacoesPersistencia);
@@ -1156,22 +1159,24 @@ eval(fullFormularioScript);
     const chavesEsperadas = ['ais','armas','bairro','boe','cidade','data','detidos','drogas','hora','imputado','mike','natureza','ocorrenciasPip','origem','policiais','qtd_o'].sort();
     assert.deepStrictEqual(chavesPayload, chavesEsperadas, 'Payload unificado deve conter exatamente as 16 chaves contratuais');
 
-    // 15.7: Provas de Resiliência: Duplicidade, Validação Inválida e Aba Ausente com ZERO ESCRITA
+    // 15.7: Provas de Resiliência: Replay (idempotência de operação), Validação Inválida e Aba Ausente
     global.SpreadsheetApp.getActiveSpreadsheet = () => mockSsE2E;
-    // a) Duplicidade BOE vira AVISO (grava; Guardião tria depois)
+    // a) Reentrega com BOE já existente = REPLAY: identidade da operação já registrada → zero escrita
     sheetE2E.rangesEscritos = [];
     sheetE2E.colBoeValues = [['2026/888999']];
     const msgE2eBoe = processarEntradaManual(payloadE2ECompleto);
-    assert.ok(msgE2eBoe.indexOf('DUPLICIDADE') !== -1, 'Duplicidade BOE deve avisar (não bloquear)');
-    assert.ok(sheetE2E.rangesEscritos.length > 0, 'Escrita ocorre mesmo em duplicidade de BOE');
+    assert.ok(msgE2eBoe.indexOf('DUPLICIDADE') !== -1, 'Replay por BOE deve nomear a identidade já registrada');
+    assert.ok(msgE2eBoe.indexOf('REPLAY_RECUSADO') !== -1, 'Replay por BOE deve sair como REPLAY_RECUSADO');
+    assert.strictEqual(sheetE2E.rangesEscritos.length, 0, 'Replay por BOE NÃO pode escrever');
 
-    // b) Duplicidade MIKE vira AVISO
+    // b) Idem para MIKE
     sheetE2E.rangesEscritos = [];
     sheetE2E.colBoeValues = null;
     sheetE2E.colMikeValues = [['M888999']];
     const msgE2eMike = processarEntradaManual(payloadE2ECompleto);
-    assert.ok(msgE2eMike.indexOf('DUPLICIDADE') !== -1, 'Duplicidade MIKE deve avisar (não bloquear)');
-    assert.ok(sheetE2E.rangesEscritos.length > 0, 'Escrita ocorre mesmo em duplicidade de MIKE');
+    assert.ok(msgE2eMike.indexOf('DUPLICIDADE') !== -1, 'Replay por MIKE deve nomear a identidade já registrada');
+    assert.ok(msgE2eMike.indexOf('REPLAY_RECUSADO') !== -1, 'Replay por MIKE deve sair como REPLAY_RECUSADO');
+    assert.strictEqual(sheetE2E.rangesEscritos.length, 0, 'Replay por MIKE NÃO pode escrever');
 
     // c) Validação Inválida (Fase 1) vira AVISO
     sheetE2E.rangesEscritos = [];

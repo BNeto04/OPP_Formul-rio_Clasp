@@ -5,7 +5,7 @@
 - **Origem:** chamador **fora da Planta**: `clasp run executarCompiladorArmasHeadless` — `Compilador_Armas.js:363`
 - **Destino:** mesma cadeia das Portas C06/MOD-C06-02/P01 e P02 (`executarCompilador`, `:130`)
 - **Elegibilidade (§12.6):** ELEGÍVEL — (A) cruza fronteira: chamador **fora da Planta**; (B) mesmo efeito de escrita; (C) reserva versionada de nome
-- **Estado:** AMARELO — 1 item(ns) `pendente` declarado(s) (BLOQUEIA a Porta em G7, §12.6)
+- **Estado:** VERDE — 0 item `pendente`/0 bloqueante (§12.6); efeito APPEND com chave estavel (herdado da P01).
 
 ## Payload
 Entrada: `mesesAlvo` (string separada por virgula ou lista; vazio ⇒ `['JAN2026']`) e `modo` (default `'LIVRE'`) — `Compilador_Armas.js:364-366`. Saida: **STRING JSON** (`:368`).
@@ -27,7 +27,7 @@ Entrada: `mesesAlvo` (string separada por virgula ou lista; vazio ⇒ `['JAN2026
 
 | Item | Estado | Resposta (fato medido) |
 |---|---|---|
-| idempotente | pendente | **Justificativa (herdada):** mesma reserva versionada de nome das Portas P01/P02 (`Compilador_Armas.js:251-260`) — a prova headless cria mais uma aba por execucao. **Decisao exigida:** a mesma (politica de versionamento/expurgo ou sobrescrita idempotente). |
+| idempotente | aplicavel | **Resolvido (herdado da P01):** a rota headless usa a mesma chave de execucao (`Compilador_Armas.js:35` via `executarCompilador`) e a mesma rejeicao de replay (`:367-375`); a porta headless (`:491`) tambem roda sob a trava global. Repetir a prova com o mesmo conteudo NAO cria nova aba. **Evidencia:** `Testes/TestSerializacaoEscrita.js` (caso APPEND/chave estavel). |
 | deduplicacao | aplicavel | **Referencia:** identico as Portas P01/P02 (um registro por tunel; `Motor/PoliticaMeritoArmas.js:4-6`). |
 | rate_limit | nao_aplicavel | rota headless autenticada, chamada sob demanda por card/tarefa. |
 | paginacao | aplicavel | **Referencia:** o recorte e uma lista de meses (`Compilador_Armas.js:364-365`); vazio significa `['JAN2026']` — declarado, nao ambiguo. |
@@ -60,3 +60,4 @@ Leitura direta do codigo nesta sessao (13/09/2026): `Compilador_Armas.js:359,363
 
 ## Estado
 Contrato declarado. **1 item `pendente`** (idempotente, herdado) — a Porta **bloqueia em G7**. Antes deste card a Porta existia como linha **`clasp run -> compilador`** na capsula de C06-02 (e repetida como `Portas de produto` em C08-01).
+**Fechamento (#164, 14/09/2026):** o `idempotente` herdado saiu de `pendente` pela mesma chave de execucao da P01, agora tambem sob a trava global.

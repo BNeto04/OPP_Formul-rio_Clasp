@@ -5,7 +5,7 @@
 - **Origem:** menu unico P3 (C01), grupo Armas → `iniciarModoAnual` (`Compilador_Armas.js:23`), declarado em `Entrada/Menu.js:27`
 - **Destino:** aba `COMP_ARMAS_2026` + log `LOG_ANUAL` — `Compilador_Armas.js:29,251,323`
 - **Elegibilidade (§12.6):** ELEGÍVEL — (A) cruza Comodo (menu de C01 → C06); (B) cria aba e log; (C) reserva de nome por laco (ler-depois-escrever)
-- **Estado:** AMARELO — 1 item(ns) `pendente` declarado(s) (BLOQUEIA a Porta em G7, §12.6)
+- **Estado:** VERDE — 0 item `pendente`/0 bloqueante (§12.6); efeito APPEND com chave estavel (herdada da P01).
 
 ## Payload
 Sem payload de entrada: confirmacao `YES_NO` no alerta (`Compilador_Armas.js:27`); os 12 meses de 2026 sao passados ao compilador (`:25-29`). Saida: `{sucesso, aba, logs}`.
@@ -27,7 +27,7 @@ Sem payload de entrada: confirmacao `YES_NO` no alerta (`Compilador_Armas.js:27`
 
 | Item | Estado | Resposta (fato medido) |
 |---|---|---|
-| idempotente | pendente | **Justificativa (herdada):** mesma reserva versionada de nome da Porta C06/MOD-C06-02/P01 (`Compilador_Armas.js:251-260`) — reexecutar o modo anual cria `COMP_ARMAS_2026`, `.v1`, `.v2`, ... **Decisao exigida:** a mesma da P01 (politica de versionamento/expurgo ou sobrescrita idempotente). |
+| idempotente | aplicavel | **Resolvido (herdado da P01):** modo ANUAL entra na chave de execucao (`chaveExecucaoArmas_`, `Compilador_Armas.js:35`) — repetir a compilacao anual com o MESMO ranking e REPLAY (`:367-375`) e nao cria `COMP_ARMAS_2026.vN`. A reserva de nome continua versionada e a colisao de nome continua sendo falha RUIDOSA do Sheets. **Evidencia:** `Testes/TestSerializacaoEscrita.js` (caso APPEND/chave estavel). |
 | deduplicacao | aplicavel | **Referencia:** identico a Porta P01 (um registro por tunel; `Motor/PoliticaMeritoArmas.js:4-6`). |
 | rate_limit | nao_aplicavel | confirmacao humana no menu; sem volume externo. |
 | paginacao | aplicavel | **Referencia:** mesmo recorte por aba mensal da P01 (`Compilador_Armas.js:145-215`); no modo anual sao 12 leituras, uma por aba. |
@@ -60,3 +60,4 @@ Leitura direta do codigo nesta sessao (13/09/2026): `Compilador_Armas.js:23,25,2
 
 ## Estado
 Contrato declarado. **1 item `pendente`** (idempotente, herdado da aba versionada) — a Porta **bloqueia em G7**. Antes deste card a Porta existia como linha **`Menu Armas -> Anual`** na capsula de C06-02.
+**Fechamento (#164, 14/09/2026):** o `idempotente` herdado saiu de `pendente` pela mesma chave de execucao da P01 (o modo ANUAL compoe a chave).

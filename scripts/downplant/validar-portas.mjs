@@ -17,7 +17,21 @@
  *       `## Checklist de producao (§12.6)`;
  *   (c) os NOVE itens do §12.6 estao presentes, um a um, com estado em
  *       {aplicavel | nao_aplicavel | pendente} e resposta NAO vazia;
- *   (d) nenhum `pendente` sem justificativa escrita (regra do metodo: pendente bloqueia G7);
+ *   (d) CLASSIFICACAO DE FECHAMENTO em QUATRO estados (decisao do Planner, 14/09/2026 — §0 do
+ *       adendo de fechamento do #164). O instrumento nao pode contar `pendente` justificado como
+ *       PASS de fechamento:
+ *         - `PASS` .............. item com estado `aplicavel` ou `nao_aplicavel` e resposta medida;
+ *         - `PENDENTE_DECLARADA` . item `pendente` com **justificativa escrita** E **aceite formal
+ *                                  com marco** — o marcador `MARCO:` seguido de valor nao vazio na
+ *                                  propria resposta (ex.: `MARCO: #171 / decisao do Proprietario
+ *                                  14/09/2026`). Divida aceita COM rastro: nao bloqueia G7;
+ *         - `PENDENTE_BLOQUEANTE` item `pendente` SEM justificativa (=> FAIL, ver abaixo) ou COM
+ *                                  justificativa e SEM `MARCO:` — declaracao sem aceite formal:
+ *                                  **bloqueia G7** e o exit NAO pode ser 0 (ver codigos de saida);
+ *         - `FAIL` .............. estado invalido, resposta vazia/curta, item ausente, secao
+ *                                  ausente, identidade §46.3 incompleta, referencia quebrada.
+ *       O criterio e explicito e verificavel por teste
+ *       (`Testes/TestValidarChecklistProducaoPortas.js` exercita os quatro estados).
  *   (e) referencias a Instalacao transversal (§8.11) existem de fato no cofre;
  *   (f) nenhum arquivo de Porta existe fora do inventario (Porta ornamental = falha).
  *
@@ -29,10 +43,14 @@
  *   node scripts/downplant/validar-portas.mjs [baseDir] --registry <arquivo-relativo-ao-baseDir>
  *
  * Codigos de saida:
- *   0 = PASS (inventario coerente e checklist completo nas Portas elegiveis)
- *   1 = FAIL de validacao (Porta elegivel sem checklist, item ausente/invalido, pendente sem
- *       justificativa, referencia quebrada, Porta ornamental)
+ *   0 = PASS de fechamento (inventario coerente, checklist completo nas Portas elegiveis,
+ *       nenhum item PENDENTE_BLOQUEANTE e nenhuma verificacao falha)
+ *   1 = FAIL de validacao (Porta elegivel sem checklist, item ausente/invalido, resposta vazia,
+ *       pendente sem justificativa, referencia quebrada, Porta ornamental)
  *   2 = erro de leitura (inventario ausente ou bloco do inventario ilegivel)
+ *   3 = PENDENTE_BLOQUEANTE: checklist formalmente incompleto — `pendente` sem aceite formal
+ *       (`MARCO:`). Nao e erro de leitura nem defeito do checklist: e divida NAO aceita, e o
+ *       metodo diz que ela bloqueia a Porta em G7. **Nunca exit 0.**
  */
 
 import fs from 'fs';
@@ -58,6 +76,10 @@ export const ITENS_12_6 = [
 ];
 
 export const ESTADOS = ['aplicavel', 'nao_aplicavel', 'pendente'];
+/** Estados de FECHAMENTO do item (medidos, nao declarados pelo autor da Porta). */
+export const ESTADOS_FECHAMENTO = ['PASS', 'PENDENTE_DECLARADA', 'PENDENTE_BLOQUEANTE', 'FAIL'];
+/** Marcador de ACEITE FORMAL de divida: `MARCO:` + valor nao vazio. Sem ele, `pendente` bloqueia G7. */
+export const MARCO_FECHAMENTO = /MARCO:\s*[^\s|]/i;
 export const ESCALAS = ['submodulo', 'modulo', 'comodo'];
 export const SECAO_CHECKLIST = '## Checklist de produção (§12.6)';
 export const REGISTRY_MARK_INI = '<!-- PORTA-REGISTRY-V1 -->';
@@ -190,6 +212,7 @@ export function lerItensChecklist(texto) {
 
 export function validarPortaArquivo(relCaminho, conteudo, baseDir) {
   const passes = []; const falhas = [];
+  const pendentesDeclaradas = []; const pendentesBloqueantes = [];
   const ok = m => passes.push(m); const fail = m => falhas.push(m);
   const nome = relCaminho;
 
@@ -224,15 +247,15 @@ export function validarPortaArquivo(relCaminho, conteudo, baseDir) {
   const { secao, itens, faltando, invalidos, linhaSecao } = lerItensChecklist(texto);
   if (!secao) {
     fail(`${nome}: secao '${SECAO_CHECKLIST}' ausente — a Porta nao declara o checklist de producao`);
-    return { passes, falhas };
+    return { passes, falhas, pendentesDeclaradas, pendentesBloqueantes, itensPass: 0 };
   }
   ok(`${nome}: secao do checklist presente (linha ${linhaSecao})`);
   invalidos.forEach(x => fail(`${nome}: ${x}`));
   if (faltando.length) fail(`${nome}: itens do §12.6 AUSENTES: ${faltando.join(', ')}`);
   else ok(`${nome}: os 9 itens do §12.6 estao presentes`);
 
-  // (d/e) conteudo de cada item
-  let pendentes = 0;
+  // (d) CLASSIFICACAO DE FECHAMENTO em QUATRO estados (Planner, 14/09/2026)
+  let itensPass = 0;
   ITENS_12_6.forEach(k => {
     const it = itens[k];
     if (!it) return;
@@ -245,14 +268,21 @@ export function validarPortaArquivo(relCaminho, conteudo, baseDir) {
       return;
     }
     if (it.estado === 'pendente') {
-      pendentes++;
       if (!/justificativa/i.test(it.resposta)) {
         fail(`${nome}: item '${k}' marcado 'pendente' SEM justificativa (linha ${it.linha}) — o metodo exige justificativa escrita`);
+        return;
       }
+      if (!MARCO_FECHAMENTO.test(it.resposta)) {
+        pendentesBloqueantes.push(`${nome}: item '${k}' PENDENTE_BLOQUEANTE (linha ${it.linha}) — declarado com justificativa e SEM aceite formal; para nao bloquear G7 a resposta precisa do marco: 'MARCO: <card|data|dono>'`);
+        return;
+      }
+      pendentesDeclaradas.push(`${nome}: item '${k}' PENDENTE_DECLARADA (linha ${it.linha}) — justificativa escrita + aceite formal (MARCO)`);
+      return;
     }
+    itensPass++;
   });
-  if (pendentes === 0) ok(`${nome}: nenhum item pendente — Porta nao bloqueia G7 (§12.6)`);
-  else ok(`${nome}: ${pendentes} item(ns) pendente(s) declarado(s) COM justificativa — a Porta bloqueia em G7 (§12.6)`);
+  if (pendentesBloqueantes.length === 0) ok(`${nome}: nenhum item PENDENTE_BLOQUEANTE — a Porta nao bloqueia G7 (§12.6)`);
+  if (pendentesDeclaradas.length) ok(`${nome}: ${pendentesDeclaradas.length} item(ns) PENDENTE_DECLARADA (divida com aceite formal)`);
 
   // (e) Instalacao transversal referenciada precisa existir (§8.11)
   const refs = [...new Set((texto.match(/INST-[A-Z0-9-]+/g) || []))];
@@ -273,7 +303,7 @@ export function validarPortaArquivo(relCaminho, conteudo, baseDir) {
     else fail(`${nome}: referencia a instalacao transversal INEXISTENTE (${inst}) — §8.11 exige a instalacao real, nao a promessa dela`);
   });
 
-  return { passes, falhas };
+  return { passes, falhas, pendentesDeclaradas, pendentesBloqueantes, itensPass };
 }
 
 // ---------------------------------------------------------------------------
@@ -298,6 +328,7 @@ export function portasDeclaradas(baseDir) {
 
 export function conferir(baseDir, opts = {}) {
   const passes = []; const falhas = [];
+  const pendentesDeclaradas = []; const pendentesBloqueantes = [];
   const ok = m => passes.push(m); const fail = m => falhas.push(m);
   const registryRel = opts.registryRel || REGISTRY_DEFAULT;
   const registryAbs = path.resolve(baseDir, registryRel);
@@ -328,6 +359,8 @@ export function conferir(baseDir, opts = {}) {
   });
 
   // Portas elegiveis: arquivo existente + checklist completo
+  let portasVerdes = 0;
+  let itensPass = 0;
   elegiveis.forEach(r => {
     const rel = String(r.arquivo_porta).replace(/\\/g, '/');
     const abs = path.resolve(baseDir, rel);
@@ -338,6 +371,14 @@ export function conferir(baseDir, opts = {}) {
     const conteudo = fs.readFileSync(abs, 'utf8');
     const res = validarPortaArquivo(rel, conteudo, baseDir);
     res.passes.forEach(ok); res.falhas.forEach(fail);
+    (res.pendentesDeclaradas || []).forEach(x => pendentesDeclaradas.push(`${r.porta}: ${x}`));
+    (res.pendentesBloqueantes || []).forEach(x => pendentesBloqueantes.push(`${r.porta}: ${x}`));
+    itensPass += res.itensPass || 0;
+    if ((res.falhas || []).length === 0 && (res.pendentesBloqueantes || []).length === 0) {
+      portasVerdes++;
+    } else {
+      ok(`Porta ${r.porta}: NAO VERDE (${(res.pendentesBloqueantes || []).length} bloqueante(s), ${(res.falhas || []).length} falha(s))`);
+    }
     const idArquivo = (conteudo.match(/^#\s*PORTA\s+(\S+)/m) || [])[1];
     if (idArquivo && idArquivo.trim() !== r.porta.trim()) {
       fail(`Porta ${r.porta}: o arquivo ${rel} declara outro endereco (${idArquivo}) — inventario e arquivo divergem`);
@@ -354,25 +395,20 @@ export function conferir(baseDir, opts = {}) {
   });
   if (arquivos.length) ok(`${arquivos.length} arquivo(s) de Porta no cofre, todos declarados no inventario`);
 
-  const pendentesTotal = elegiveis.reduce((acc, r) => {
-    const rel = String(r.arquivo_porta).replace(/\\/g, '/');
-    const abs = path.resolve(baseDir, rel);
-    if (!fs.existsSync(abs)) return acc;
-    const { itens } = lerItensChecklist(fs.readFileSync(abs, 'utf8'));
-    return acc + ITENS_12_6.filter(k => itens[k] && itens[k].estado === 'pendente').length;
-  }, 0);
-
   const resumo = {
     baseDir,
     registros: inv.registros.length,
     elegiveis: elegiveis.length,
     naoElegiveis: naoElegiveis.length,
     arquivosDePorta: arquivos.length,
-    itensPendentes: pendentesTotal,
+    portasVerdes,
+    itensPass,
+    itensPendentesDeclaradas: pendentesDeclaradas.length,
+    itensPendentesBloqueantes: pendentesBloqueantes.length,
     passes: passes.length,
     falhas: falhas.length
   };
-  return { passes, falhas, resumo };
+  return { passes, falhas, pendentesDeclaradas, pendentesBloqueantes, resumo };
 }
 
 // ---------------------------------------------------------------------------
@@ -411,14 +447,21 @@ if (isMain) {
 
   r.passes.forEach(m => console.log(`  PASS  ${m}`));
   r.falhas.forEach(m => console.error(`  FAIL  ${m}`));
+  (r.pendentesDeclaradas || []).forEach(m => console.log(`  DECL  ${m}`));
+  (r.pendentesBloqueantes || []).forEach(m => console.error(`  BLOQ  ${m}`));
 
   const s = r.resumo;
+  const verdes = `${s.portasVerdes}/${s.elegiveis}`;
   console.log('\n   --------------------------------------------------------------');
   console.log(`   Portas no inventario ......... ${s.registros}`);
   console.log(`   Portas ELEGIVEIS (§12.6) ..... ${s.elegiveis}`);
   console.log(`   Portas nao elegiveis ......... ${s.naoElegiveis}`);
   console.log(`   Arquivos de Porta no cofre ... ${s.arquivosDePorta}`);
-  console.log(`   Itens 'pendente' declarados .. ${s.itensPendentes} (bloqueiam G7, §12.6)`);
+  console.log(`   Portas elegiveis VERDES ...... ${verdes} (sem blq/falha)`);
+  console.log(`   Itens PASS ................... ${s.itensPass}`);
+  console.log(`   Itens PENDENTE_DECLARADA ..... ${s.itensPendentesDeclaradas} (aceite formal com MARCO)`);
+  console.log(`   Itens PENDENTE_BLOQUEANTE .... ${s.itensPendentesBloqueantes}`);
+  console.log(`   Itens FAIL ................... ${s.falhas}`);
   console.log(`   Verificacoes ................. ${s.passes} PASS / ${s.falhas} FAIL`);
   console.log('   --------------------------------------------------------------\n');
 
@@ -426,6 +469,11 @@ if (isMain) {
     console.error(`FALHA! ${s.falhas} verificacao(oes) do §12.6 falharam. O checklist NAO esta completo.\n`);
     process.exit(1);
   }
-  console.log('SUCESSO! Toda Porta elegivel declara o checklist de producao (§12.6) sem pendencia sem justificativa.\n');
+  if (s.itensPendentesBloqueantes > 0) {
+    console.error(`BLOQUEADO! ${s.itensPendentesBloqueantes} item(ns) PENDENTE_BLOQUEANTE (pendente sem aceite formal 'MARCO:').`);
+    console.error('O metodo diz que `pendente` bloqueia a Porta em G7: o placar NAO e verde e o exit NAO e 0.\n');
+    process.exit(3);
+  }
+  console.log(`SUCESSO! ${verdes} Portas elegiveis verdes, 0 PENDENTE_BLOQUEANTE, 0 FAIL (§12.6).\n`);
   process.exit(0);
 }

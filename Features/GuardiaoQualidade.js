@@ -3,7 +3,15 @@
  * DESCRICAO: Motor central do Guardião da Qualidade Operacional (M05/M06).
  * Realiza varreduras estáticas de integridade sobre abas mensais de ocorrências
  * com diagnósticos estruturados e acionamento de renderização e destaques AM.
+ *
+ * INST-SERIALIZACAO-001 (§8.11): o ciclo de auditoria (leitura da aba + escrita da coluna AM +
+ * abas [AUDITORIA]/[HISTORICO]) roda sob a TRAVA GLOBAL de escrita. A guarda de TOPO abaixo
+ * carrega o helper na bancada Node sem criar simbolo global novo; no runtime ele ja e global.
  */
+if (typeof SyntheonSerializacaoEscrita === 'undefined' && typeof require !== 'undefined') {
+  try { global.SyntheonSerializacaoEscrita = require('../Core/SerializacaoEscrita'); } catch (e) { /* fail-closed no uso */ }
+}
+
 class GuardiaoQualidade {
   /**
    * Normaliza textos convertendo hífens, underlines e múltiplos espaços para comparação flexível.
@@ -132,7 +140,24 @@ class GuardiaoQualidade {
     return { indice: ocorrencias[0], status: 'RESOLVIDA', codigo: '', mensagem: '' };
   }
 
+  /**
+   * Porta MUTANTE do ciclo de auditoria (INST-SERIALIZACAO-001, §8.11). O ciclo LE a aba e ESCREVE
+   * nela (coluna AM 'Alerta Integridade'), alem de `[AUDITORIA] Ocorrencias` (sobrescrita) e
+   * `[HISTORICO] Auditoria Ocorrencias` (append com a proxima linha calculada por leitura). Duas
+   * auditorias concorrentes (menu + headless/seletor de meses) disputavam as MESMAS linhas
+   * (`DIAGNOSTICO_164_CONCORRENCIA.md` §2.2). Sem trava: NAO varre e NAO escreve (fail-closed).
+   */
   static varrerAba(sheet, fontePeculioExterna = null) {
+    if (typeof SyntheonSerializacaoEscrita === 'undefined' || !SyntheonSerializacaoEscrita
+        || typeof SyntheonSerializacaoEscrita.executarComLock !== 'function') {
+      throw new Error('ESCRITA BLOQUEADA: mecanismo de serializacao de escrita indisponivel (INST-SERIALIZACAO-001). Nada foi gravado.');
+    }
+    return SyntheonSerializacaoEscrita.executarComLock('GuardiaoQualidade.ciclo', function () {
+      return GuardiaoQualidade._varrerAbaSobTrava_(sheet, fontePeculioExterna);
+    });
+  }
+
+  static _varrerAbaSobTrava_(sheet, fontePeculioExterna = null) {
     const nomeAbaNorm = GuardiaoQualidade.normalizarNomeFlexivel(sheet.getName());
     if (nomeAbaNorm.includes('AUDITORIA') || nomeAbaNorm.includes('HISTORICO')) {
       const err = new Error('O Guardião não deve ser executado sobre abas de relatório ou histórico. Selecione uma aba mensal de ocorrências (ex: JUL2026).');
@@ -759,7 +784,9 @@ function executarGuardiaoQualidade() {
   const sheet = ss.getActiveSheet();
 
   try {
-    const resultado = GuardiaoQualidade.varrerAba(sheet);
+    const resultado = SyntheonSerializacaoEscrita.executarComLock('GuardiaoQualidade.menu', function () {
+      return GuardiaoQualidade.varrerAba(sheet);
+    });
     ui.alert(
       'Guardiao da Qualidade',
       `Aba ${sheet.getName()} auditada.\nTuneis: ${resultado.tuneis}\nLinhas analisadas: ${resultado.linhas}\nLinhas com alerta: ${resultado.alertas}`,
@@ -767,6 +794,11 @@ function executarGuardiaoQualidade() {
     );
     return resultado;
   } catch (erro) {
+    if (SyntheonSerializacaoEscrita.ehOcupada(erro)) {
+      // Fail-closed visivel: a auditoria NAO rodou e nada foi escrito.
+      ui.alert('Guardiao da Qualidade', SyntheonSerializacaoEscrita.mensagemParaOperador(erro), ui.ButtonSet.OK);
+      return { alertas: 0, linhas: 0, tuneis: 0, naoExecutado: true, motivo: 'SERIALIZACAO_OCUPADA' };
+    }
     const mensagem = erro && erro.stack ? erro.stack : String(erro);
     Logger.log(mensagem);
     ui.alert('Erro no Guardiao da Qualidade', mensagem, ui.ButtonSet.OK);

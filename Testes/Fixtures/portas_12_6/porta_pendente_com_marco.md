@@ -1,11 +1,11 @@
-# PORTA C00/MOD-C00-99/P01 — Porta de teste declarada
+# PORTA C00/MOD-C00-99/P01 — Porta de teste da fechadura §12.6
 
 - **Endereço global:** `C00_MOD-C00-99_P01`
 - **Escala:** modulo
 - **Origem:** fixture de teste (nao e codigo de produto)
 - **Destino:** fixture de teste
 - **Elegibilidade (§12.6):** ELEGÍVEL — (A) cruza Cômodo
-- **Estado:** VERDE — fixture
+- **Estado:** AMARELO — pendencia declarada COM aceite formal (nao bloqueia G7)
 
 ## Payload
 Fixture.
@@ -29,7 +29,7 @@ Fixture.
 | paginacao | nao_aplicavel | Nao incide nesta porta de teste: motivo declarado e suficientemente longo. |
 | validacao_entrada | nao_aplicavel | Nao incide nesta porta de teste: motivo declarado e suficientemente longo. |
 | operacao_atomica | nao_aplicavel | Nao incide nesta porta de teste: motivo declarado e suficientemente longo. |
-| race_condition | pendente | **Justificativa:** pendencia declarada de teste, com a decisao exigida escrita aqui. **MARCO:** #164 (14/09/2026) — aceite formal de divida. |
+| race_condition | pendente | **Justificativa:** pendencia declarada de teste COM aceite formal. **MARCO:** #164 (14/09/2026) — divida aceita com rastro. |
 | cache | aplicavel | Resposta medida de teste desta porta, com fato declarado e longo o bastante. |
 | retry_pelo_cliente | nao_aplicavel | Nao incide nesta porta de teste: motivo declarado e suficientemente longo. |
 
