@@ -1,6 +1,11 @@
 # MAPA artefato → endereço canônico — card #162 (DP24-001), 72 espelhos
 
-**Branch:** `sprint/g01-guardiao-qualidade-live-001` · **HEAD:** `fbb0608e7b98144533628c7f9b773a10505b800d` (`fbb0608`)
+**Branch:** `sprint/g01-guardiao-qualidade-live-001` · **HEAD:** `57c9f597557c68f47db20929054aed1b4e880435` (`57c9f59`) · **commit de referência dos 72 espelhos (freeze):** `fbb0608e7b98144533628c7f9b773a10505b800d` (`fbb0608`)
+
+> **Revisão de endereços (#162, fatia dos 7).** Este mapa nasceu com **7 NÃO RESOLVIDOS**. Nesta revisão os 7
+> foram **resolvidos de forma determinística na Planta** (seção `## Artefatos` das cápsulas dos endereços),
+> os espelhos afetados (7 no repo + 7 no vault) e o índice derivado foram regerados, e **nenhum dos 71 espelhos
+> que já estavam verdes foi tocado**. Placar: **72/72 com endereço resolvido**, 0 `NÃO RESOLVIDO`.
 
 > Arquivo na **raiz do repositório de propósito**: ele nomeia caminhos e tokens que a varredura de
 > conteúdo das árvores documentais proíbe. A raiz não é varrida. Mesmo precedente do `RELATORIO_162_PILOTO.md`.
@@ -25,15 +30,22 @@ endereço, é declaração concorrente da própria Planta.
 
 | Situação | Nós |
 | :--- | ---: |
-| Endereço único derivado (**OK**) | 29 |
+| Endereço único derivado (**OK**) | 36 |
 | Endereço primário derivado com **endereços concorrentes declarados** | 35 |
-| **NÃO RESOLVIDO** (nenhuma declaração na Planta) | 7 |
+| **NÃO RESOLVIDO** (nenhuma declaração na Planta) | **0** |
 | **Não é espelho de artefato** (índice derivado) | 1 |
 | **Total de nós de `07_Codigo_Leitura/`** | **72** |
 
-**Elemento parado:** 15 dos 72 nós ainda carregam ponteiro para `_SUP_158/C00_Governanca_Estrutural/01_Dominio/modulos/MOD-C00-01_INFRAESTRUTURA_CORE`
+**Elemento parado:** 15 dos 72 nós carregavam ponteiro para `_SUP_158/C00_Governanca_Estrutural/01_Dominio/modulos/MOD-C00-01_INFRAESTRUTURA_CORE`
 (medido nos espelhos de leitura **antes** desta escala). O briefing afirmava 69 de 72 — **não reproduzido**:
 a medição deu **15** (14 espelhos de arquivo + o índice antigo). Divergência declarada, não maquiada.
+
+**Depois desta revisão (fatia dos 7 endereços):** o elemento parado foi **materializado** na Planta canônica
+como `C00_Governanca_Estrutural/MOD-C00-03_INFRAESTRUTURA_CORE` (ID novo — o `MOD-C00-01` colide com a estrutura
+do cofre), e os 4 artefatos que ele descrevia e que estavam órfãos (`Core/Datas.js`, `Core/Erros.js`,
+`Core/Logger.js`, `appsscript.json`) passaram a ser endereçados por ele. Os outros 10 espelhos que citam o
+`_SUP_158` o fazem apenas no bloco histórico "Ponteiro anterior" — não no campo de endereço (a Planta já os
+endereça em outro módulo). O índice derivado foi regerado e **não** cita mais o elemento parado.
 
 ## Tabela completa — 72/72
 
@@ -48,10 +60,10 @@ a medição deu **15** (14 espelhos de arquivo + o índice antigo). Divergência
 | 7 | `07_Codigo_Leitura/Core/Cabecalhos.js.md` | `Core/Cabecalhos.js` | `C02_Leitura/MOD-C02-01_LEITURA_E_ADAPTACAO` | 1 | `02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/MOD-C02-01_LEITURA_E_ADAPTACAO.md`:62 (secao Artefatos) | — | SIM |
 | 8 | `07_Codigo_Leitura/Core/Config.js.md` | `Core/Config.js` | `C02_Leitura/MOD-C02-01_LEITURA_E_ADAPTACAO` | 3 | `02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/CIR-MOD-C02-01_LEITURA_E_ADAPTACAO.canvas` (menção em arquivo do próprio endereço) | — | SIM |
 | 9 | `07_Codigo_Leitura/Core/Constantes.js.md` | `Core/Constantes.js` | `C01_Entrada/MOD-C01-02_NORMALIZADOR_DE_EFETIVO` | 1 | `02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/NOTA_DE_RESPONSABILIDADE.md`:20 (secao Artefatos) | 4 | SIM |
-| 10 | `07_Codigo_Leitura/Core/Datas.js.md` | `Core/Datas.js` | **NÃO RESOLVIDO** | — | — | — | SIM |
-| 11 | `07_Codigo_Leitura/Core/Erros.js.md` | `Core/Erros.js` | **NÃO RESOLVIDO** | — | — | — | SIM |
+| 10 | `07_Codigo_Leitura/Core/Datas.js.md` | `Core/Datas.js` | `C00_Governanca_Estrutural/MOD-C00-03_INFRAESTRUTURA_CORE` | 1 | `02_Comodos/C00_Governanca_Estrutural/01_Dominio/modulos/MOD-C00-03_INFRAESTRUTURA_CORE/MOD-C00-03_INFRAESTRUTURA_CORE.md`:61 (secao Artefatos) | — | SIM |
+| 11 | `07_Codigo_Leitura/Core/Erros.js.md` | `Core/Erros.js` | `C00_Governanca_Estrutural/MOD-C00-03_INFRAESTRUTURA_CORE` | 1 | `02_Comodos/C00_Governanca_Estrutural/01_Dominio/modulos/MOD-C00-03_INFRAESTRUTURA_CORE/MOD-C00-03_INFRAESTRUTURA_CORE.md`:61 (secao Artefatos) | — | SIM |
 | 12 | `07_Codigo_Leitura/Core/LeitorPlanilhas.js.md` | `Core/LeitorPlanilhas.js` | `C02_Leitura/MOD-C02-01_LEITURA_E_ADAPTACAO` | 1 | `02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/MOD-C02-01_LEITURA_E_ADAPTACAO.md`:61 (secao Artefatos) | 3 | — |
-| 13 | `07_Codigo_Leitura/Core/Logger.js.md` | `Core/Logger.js` | **NÃO RESOLVIDO** | — | — | — | SIM |
+| 13 | `07_Codigo_Leitura/Core/Logger.js.md` | `Core/Logger.js` | `C00_Governanca_Estrutural/MOD-C00-03_INFRAESTRUTURA_CORE` | 1 | `02_Comodos/C00_Governanca_Estrutural/01_Dominio/modulos/MOD-C00-03_INFRAESTRUTURA_CORE/MOD-C00-03_INFRAESTRUTURA_CORE.md`:61 (secao Artefatos) | — | SIM |
 | 14 | `07_Codigo_Leitura/Core/Metricas.js.md` | `Core/Metricas.js` | `C02_Leitura/MOD-C02-01_LEITURA_E_ADAPTACAO` | 1 | `02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/MOD-C02-01_LEITURA_E_ADAPTACAO.md`:62 (secao Artefatos) | 1 | SIM |
 | 15 | `07_Codigo_Leitura/Core/Normalizador.js.md` | `Core/Normalizador.js` | `C02_Leitura/MOD-C02-01_LEITURA_E_ADAPTACAO` | 3 | `02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/CIR-MOD-C02-01_LEITURA_E_ADAPTACAO.canvas` (menção em arquivo do próprio endereço) | 1 | SIM |
 | 16 | `07_Codigo_Leitura/Core/Policiais.js.md` | `Core/Policiais.js` | `C01_Entrada/MOD-C01-01_FORMULARIO_E_MENUS` | 1 | `02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/MOD-C01-01_FORMULARIO_E_MENUS.md`:57 (secao Artefatos) | 1 | SIM |
@@ -86,15 +98,15 @@ a medição deu **15** (14 espelhos de arquivo + o índice antigo). Divergência
 | 45 | `07_Codigo_Leitura/Features/CompiladorProdutividadeV2.js.md` | `Features/CompiladorProdutividadeV2.js` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | 1 | `02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/MOD-C06-01_RELATORIOS_OFICIAIS.md`:59 (secao Artefatos) | — | — |
 | 46 | `07_Codigo_Leitura/Features/GuardiaoQualidade.js.md` | `Features/GuardiaoQualidade.js` | `C05_Guardiao/MOD-C05-01_GUARDIAO_DE_QUALIDADE` | 1 | `02_Comodos/C05_Guardiao/01_Dominio/modulos/MOD-C05-01_GUARDIAO_DE_QUALIDADE/MOD-C05-01_GUARDIAO_DE_QUALIDADE.md`:62 (secao Artefatos) | 2 | — |
 | 47 | `07_Codigo_Leitura/Features/NormalizadorEfetivo.js.md` | `Features/NormalizadorEfetivo.js` | `C01_Entrada/MOD-C01-02_NORMALIZADOR_DE_EFETIVO` | 1 | `02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-02_NORMALIZADOR_DE_EFETIVO/NOTA_DE_RESPONSABILIDADE.md`:18 (secao Artefatos) | 3 | — |
-| 48 | `07_Codigo_Leitura/INDICE_AS_IS.md` | `— (índice)` | **NÃO RESOLVIDO** | — | — | — | SIM |
+| 48 | `07_Codigo_Leitura/INDICE_AS_IS.md` | `— (índice)` | `— (não é espelho de artefato: índice derivado)` | — | — | — | SIM |
 | 49 | `07_Codigo_Leitura/Leitura/Adaptador2026.js.md` | `Leitura/Adaptador2026.js` | `C02_Leitura/MOD-C02-01_LEITURA_E_ADAPTACAO` | 1 | `02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/MOD-C02-01_LEITURA_E_ADAPTACAO.md`:61 (secao Artefatos) | — | — |
 | 50 | `07_Codigo_Leitura/Leitura/LeitorAntiguidadePeculio.js.md` | `Leitura/LeitorAntiguidadePeculio.js` | `C02_Leitura/MOD-C02-01_LEITURA_E_ADAPTACAO` | 1 | `02_Comodos/C02_Leitura/01_Dominio/modulos/MOD-C02-01_LEITURA_E_ADAPTACAO/MOD-C02-01_LEITURA_E_ADAPTACAO.md`:61 (secao Artefatos) | 1 | — |
-| 51 | `07_Codigo_Leitura/Modelos/IRelatorioModelo.js.md` | `Modelos/IRelatorioModelo.js` | **NÃO RESOLVIDO** | — | — | — | — |
-| 52 | `07_Codigo_Leitura/Modelos/ModeloProdutividade.js.md` | `Modelos/ModeloProdutividade.js` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | 3 | `02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/CIR-MOD-C06-01_RELATORIOS_OFICIAIS.canvas` (menção em arquivo do próprio endereço) | 1 | — |
+| 51 | `07_Codigo_Leitura/Modelos/IRelatorioModelo.js.md` | `Modelos/IRelatorioModelo.js` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | 1 | `02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/MOD-C06-01_RELATORIOS_OFICIAIS.md`:61 (secao Artefatos) | — | — |
+| 52 | `07_Codigo_Leitura/Modelos/ModeloProdutividade.js.md` | `Modelos/ModeloProdutividade.js` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | 1 | `02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/MOD-C06-01_RELATORIOS_OFICIAIS.md`:61 (secao Artefatos) | 1 | — |
 | 53 | `07_Codigo_Leitura/Motor/DiagnosticoDeterministicoGxt.js.md` | `Motor/DiagnosticoDeterministicoGxt.js` | `C04_Motor/MOD-C04-01_MOTOR_ANALITICO` | 1 | `02_Comodos/C04_Motor/01_Dominio/modulos/MOD-C04-01_MOTOR_ANALITICO/MOD-C04-01_MOTOR_ANALITICO.md`:59 (secao Artefatos) | 1 | — |
 | 54 | `07_Codigo_Leitura/Motor/MotorAnaliticoV2.js.md` | `Motor/MotorAnaliticoV2.js` | `C04_Motor/MOD-C04-01_MOTOR_ANALITICO` | 1 | `02_Comodos/C04_Motor/01_Dominio/modulos/MOD-C04-01_MOTOR_ANALITICO/MOD-C04-01_MOTOR_ANALITICO.md`:59 (secao Artefatos) | — | — |
 | 55 | `07_Codigo_Leitura/Motor/PoliticaMeritoArmas.js.md` | `Motor/PoliticaMeritoArmas.js` | `C04_Motor/MOD-C04-01_MOTOR_ANALITICO` | 1 | `02_Comodos/C04_Motor/01_Dominio/modulos/MOD-C04-01_MOTOR_ANALITICO/MOD-C04-01_MOTOR_ANALITICO.md`:59 (secao Artefatos) | 2 | — |
-| 56 | `07_Codigo_Leitura/Plugins/IPluginMetrica.js.md` | `Plugins/IPluginMetrica.js` | **NÃO RESOLVIDO** | — | — | — | — |
+| 56 | `07_Codigo_Leitura/Plugins/IPluginMetrica.js.md` | `Plugins/IPluginMetrica.js` | `C04_Motor/MOD-C04-01_MOTOR_ANALITICO` | 1 | `02_Comodos/C04_Motor/01_Dominio/modulos/MOD-C04-01_MOTOR_ANALITICO/MOD-C04-01_MOTOR_ANALITICO.md`:61 (secao Artefatos) | — | — |
 | 57 | `07_Codigo_Leitura/Plugins/Metricas/PluginArmas.js.md` | `Plugins/Metricas/PluginArmas.js` | `C04_Motor/MOD-C04-01_MOTOR_ANALITICO` | 1 | `02_Comodos/C04_Motor/01_Dominio/modulos/MOD-C04-01_MOTOR_ANALITICO/MOD-C04-01_MOTOR_ANALITICO.md`:60 (secao Artefatos) | — | — |
 | 58 | `07_Codigo_Leitura/Plugins/Metricas/PluginEntorpecentes.js.md` | `Plugins/Metricas/PluginEntorpecentes.js` | `C04_Motor/MOD-C04-01_MOTOR_ANALITICO` | 1 | `02_Comodos/C04_Motor/01_Dominio/modulos/MOD-C04-01_MOTOR_ANALITICO/MOD-C04-01_MOTOR_ANALITICO.md`:60 (secao Artefatos) | — | — |
 | 59 | `07_Codigo_Leitura/Plugins/Metricas/PluginOcorrencias.js.md` | `Plugins/Metricas/PluginOcorrencias.js` | `C04_Motor/MOD-C04-01_MOTOR_ANALITICO` | 1 | `02_Comodos/C04_Motor/01_Dominio/modulos/MOD-C04-01_MOTOR_ANALITICO/MOD-C04-01_MOTOR_ANALITICO.md`:60 (secao Artefatos) | — | — |
@@ -108,9 +120,9 @@ a medição deu **15** (14 espelhos de arquivo + o índice antigo). Divergência
 | 67 | `07_Codigo_Leitura/Render/RendererGxt.js.md` | `Render/RendererGxt.js` | `C06_Relatorios/MOD-C06-02_MERITO_DE_ARMAS_GXT` | 3 | `02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-02_MERITO_DE_ARMAS_GXT/CIR-MOD-C06-02_MERITO_DE_ARMAS_GXT.canvas` (menção em arquivo do próprio endereço) | — | — |
 | 68 | `07_Codigo_Leitura/Render/RendererLogico.js.md` | `Render/RendererLogico.js` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | 3 | `02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/CIR-MOD-C06-01_RELATORIOS_OFICIAIS.canvas` (menção em arquivo do próprio endereço) | 1 | — |
 | 69 | `07_Codigo_Leitura/Render/RendererTabela.js.md` | `Render/RendererTabela.js` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | 3 | `02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/CIR-MOD-C06-01_RELATORIOS_OFICIAIS.canvas` (menção em arquivo do próprio endereço) | — | — |
-| 70 | `07_Codigo_Leitura/Schemas/ProdutividadeSchema.js.md` | `Schemas/ProdutividadeSchema.js` | **NÃO RESOLVIDO** | — | — | — | — |
+| 70 | `07_Codigo_Leitura/Schemas/ProdutividadeSchema.js.md` | `Schemas/ProdutividadeSchema.js` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | 1 | `02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/MOD-C06-01_RELATORIOS_OFICIAIS.md`:61 (secao Artefatos) | — | — |
 | 71 | `07_Codigo_Leitura/Temas/TemaPMPE.js.md` | `Temas/TemaPMPE.js` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | 3 | `02_Comodos/C06_Relatorios/01_Dominio/modulos/MOD-C06-01_RELATORIOS_OFICIAIS/CIR-MOD-C06-01_RELATORIOS_OFICIAIS.canvas` (menção em arquivo do próprio endereço) | 1 | — |
-| 72 | `07_Codigo_Leitura/appsscript.json.md` | `appsscript.json` | **NÃO RESOLVIDO** | — | — | — | SIM |
+| 72 | `07_Codigo_Leitura/appsscript.json.md` | `appsscript.json` | `C00_Governanca_Estrutural/MOD-C00-03_INFRAESTRUTURA_CORE` | 1 | `02_Comodos/C00_Governanca_Estrutural/01_Dominio/modulos/MOD-C00-03_INFRAESTRUTURA_CORE/MOD-C00-03_INFRAESTRUTURA_CORE.md`:61 (secao Artefatos) | — | SIM |
 
 ## Endereços concorrentes (declarados, não resolvidos por decreto)
 
@@ -152,21 +164,28 @@ a medição deu **15** (14 espelhos de arquivo + o índice antigo). Divergência
 | `Render/RendererLogico.js` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | `C04_Motor/MOD-C04-01_MOTOR_ANALITICO` |
 | `Temas/TemaPMPE.js` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | `C04_Motor/MOD-C04-01_MOTOR_ANALITICO` |
 
-## NÃO RESOLVIDOS — reportados, jamais inventados
+## Resolvidos nesta revisão — os 7 que estavam NÃO RESOLVIDO (antes → depois)
 
-| Artefato | Por que não resolve | Ponteiro antigo |
-| :--- | :--- | :--- |
-| `Core/Datas.js` | varredura completa de `02_Comodos` (seções `## Artefatos`, tabelas de artefatos e menções em arquivo do diretório do endereço) não encontra declaração deste artefato em nenhum endereço | `_SUP_158/…/MOD-C00-01_INFRAESTRUTURA_CORE` (elemento PARADO) |
-| `Core/Erros.js` | varredura completa de `02_Comodos` (seções `## Artefatos`, tabelas de artefatos e menções em arquivo do diretório do endereço) não encontra declaração deste artefato em nenhum endereço | `_SUP_158/…/MOD-C00-01_INFRAESTRUTURA_CORE` (elemento PARADO) |
-| `Core/Logger.js` | varredura completa de `02_Comodos` (seções `## Artefatos`, tabelas de artefatos e menções em arquivo do diretório do endereço) não encontra declaração deste artefato em nenhum endereço | `_SUP_158/…/MOD-C00-01_INFRAESTRUTURA_CORE` (elemento PARADO) |
-| `Modelos/IRelatorioModelo.js` | varredura completa de `02_Comodos` (seções `## Artefatos`, tabelas de artefatos e menções em arquivo do diretório do endereço) não encontra declaração deste artefato em nenhum endereço | nenhum endereço utilizável |
-| `Plugins/IPluginMetrica.js` | varredura completa de `02_Comodos` (seções `## Artefatos`, tabelas de artefatos e menções em arquivo do diretório do endereço) não encontra declaração deste artefato em nenhum endereço | nenhum endereço utilizável |
-| `Schemas/ProdutividadeSchema.js` | varredura completa de `02_Comodos` (seções `## Artefatos`, tabelas de artefatos e menções em arquivo do diretório do endereço) não encontra declaração deste artefato em nenhum endereço | nenhum endereço utilizável |
-| `appsscript.json` | varredura completa de `02_Comodos` (seções `## Artefatos`, tabelas de artefatos e menções em arquivo do diretório do endereço) não encontra declaração deste artefato em nenhum endereço | `_SUP_158/…/MOD-C00-01_INFRAESTRUTURA_CORE` (elemento PARADO) |
+Nenhum endereço foi "adivinhado": cada um foi **declarado** na seção `## Artefatos` do endereço (nível 1) e
+provado pelo verificador §46.15 (T1/T2 OK). O único elemento estrutural criado foi o módulo de infraestrutura.
 
-Nestes casos o espelho foi **materializado com o campo "Endereço Down Plant" declarando `NÃO RESOLVIDO`** e a
-justificativa — os testes T1/T2 entram como **ACHADO**, nunca como OK. Isso é a decisão (b) do método:
-reportar. Não houve tentativa de "adivinhar" um módulo próximo.
+| Artefato | Antes | Depois (endereço canônico) | Evidência | Como foi resolvido |
+| :--- | :--- | :--- | :--- | :--- |
+| `Core/Datas.js` | `NÃO RESOLVIDO` | `C00_Governanca_Estrutural/MOD-C00-03_INFRAESTRUTURA_CORE` | `…/MOD-C00-03_INFRAESTRUTURA_CORE.md`:61 | declaração em `## Artefatos` do módulo **materializado** |
+| `Core/Erros.js` | `NÃO RESOLVIDO` | `C00_Governanca_Estrutural/MOD-C00-03_INFRAESTRUTURA_CORE` | `…/MOD-C00-03_INFRAESTRUTURA_CORE.md`:61 | idem |
+| `Core/Logger.js` | `NÃO RESOLVIDO` | `C00_Governanca_Estrutural/MOD-C00-03_INFRAESTRUTURA_CORE` | `…/MOD-C00-03_INFRAESTRUTURA_CORE.md`:61 | idem |
+| `appsscript.json` | `NÃO RESOLVIDO` | `C00_Governanca_Estrutural/MOD-C00-03_INFRAESTRUTURA_CORE` | `…/MOD-C00-03_INFRAESTRUTURA_CORE.md`:61 | idem (manifesto de ambiente) |
+| `Modelos/IRelatorioModelo.js` | `NÃO RESOLVIDO` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | `…/MOD-C06-01_RELATORIOS_OFICIAIS.md`:61 | declaração em `## Artefatos` do endereço existente |
+| `Plugins/IPluginMetrica.js` | `NÃO RESOLVIDO` | `C04_Motor/MOD-C04-01_MOTOR_ANALITICO` | `…/MOD-C04-01_MOTOR_ANALITICO.md`:61 | declaração em `## Artefatos` do endereço existente |
+| `Schemas/ProdutividadeSchema.js` | `NÃO RESOLVIDO` | `C06_Relatorios/MOD-C06-01_RELATORIOS_OFICIAIS` | `…/MOD-C06-01_RELATORIOS_OFICIAIS.md`:61 | declaração em `## Artefatos` do endereço existente |
+
+**Elemento estrutural materializado:** `02_Comodos/C00_Governanca_Estrutural/01_Dominio/modulos/MOD-C00-03_INFRAESTRUTURA_CORE/`
+(cápsula §46.2 + `NOTA_DE_RESPONSABILIDADE.md`), a partir do **conteúdo parado** `_SUP_158/…/MOD-C00-01_INFRAESTRUTURA_CORE`
+(o `MOD-C00-01` colidia de ID com o `MOD-C00-01_ESTRUTURA_DO_COFRE`; o ID novo é o próximo livre do cômodo).
+
+**Nota de coerência (sem trocar endereço):** `Modelos/ModeloProdutividade.js` passou de nível 3 (menção no
+circuito) a nível 1 (mesma linha `:61` da cápsula `MOD-C06-01`) — **o endereço primário dele não mudou**
+(continua `C06-01`, com `C04-01` concorrente). O espelho dele **não** foi tocado.
 
 ## Deriva pré-existente medida nos espelhos de leitura (antes desta escala)
 

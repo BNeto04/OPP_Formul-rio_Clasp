@@ -58,7 +58,7 @@ Apps Script V8 + `SpreadsheetApp` para escrita das abas . renderer proprio (`Ren
 ## Artefatos
 `Features/CompiladorProdutividade.js` . `Features/CompiladorProdutividadeV2.js` .
 `CPM - Compilador de Pontuacao Mensal.js` . `Compilador PIP.js` . `Render/RendererComparativo2026.js` .
-`Render/RendererCA.js` . `Entrada/DialogComparativo2026.html` . `Core/LegendaCores.js`.
+`Render/RendererCA.js` . `Entrada/DialogComparativo2026.html` . `Core/LegendaCores.js` . `Modelos/IRelatorioModelo.js` . `Modelos/ModeloProdutividade.js` . `Schemas/ProdutividadeSchema.js`.
 
 ## Dependencias (§31.6)
 | Dependencia | Vinculo | Versao/estado |
