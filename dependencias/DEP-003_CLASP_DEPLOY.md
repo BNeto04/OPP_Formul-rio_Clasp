@@ -7,7 +7,7 @@ estado: ativo
 comodos: [C00, C08]
 cards: ["#140", "#141", "#142", "#144", "#152", "#153", "#167"]
 data_registro: "2026-09-13"
-versao: "NAO_COMPROVADA"  <!-- `clasp --version` retornou VAZIO neste ambiente (14/09/2026); registro prematuro do commit 53684b7 corrigido por commit novo, §3.7 -->
+versao: "3.3.0"  <!-- INSTALADA, provada: `clasp --version` e `clasp -v` => 3.3.0 (14/09/2026). Confere com a tag GitHub v3.3.0; npm publica 3.4.1 => estado DEFASADO em relação ao npm. Registros anteriores: 53684b7 (prematuro, corrigido) e a929f1e (NAO_COMPROVADA por leitura vazia transitória, corrigido aqui) — §3.7 preservação histórica -->
 fonte: "https://registry.npmjs.org/@google/clasp (dist-tags.latest) + https://github.com/google/clasp/releases"
 data_decisao: "2026-09-14"
 decisao: "DEC-DEP-003"
