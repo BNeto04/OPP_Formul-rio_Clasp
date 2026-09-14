@@ -7,7 +7,7 @@ estado: ativo
 comodos: [C00, C08]
 cards: ["#140", "#141", "#142", "#144", "#152", "#153", "#167"]
 data_registro: "2026-09-13"
-versao: "AUSENTE_DECLARADO"
+versao:   <!-- instalada, provada por `clasp --version` em 14/09/2026 -->
 fonte: "https://registry.npmjs.org/@google/clasp (dist-tags.latest) + https://github.com/google/clasp/releases"
 data_decisao: "2026-09-14"
 decisao: "DEC-DEP-003"
