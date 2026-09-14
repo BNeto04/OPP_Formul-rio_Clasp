@@ -8,8 +8,12 @@
  * exigencia do scripts.run).
  *
  * Escopo: leitura/diagnostico + os mesmos efeitos do fluxo oficial (auditarMeses renderiza
- * [AUDITORIA] Ocorrencias e [HISTORICO] Auditoria Ocorrencias). NAO abre dialogo, NAO altera
- * dados operacionais e NAO substitui a selecao do operador.
+ * [AUDITORIA] Ocorrencias e [HISTORICO] Auditoria Ocorrencias e publica o alerta na coluna AM
+ * da aba auditada). As colunas A:AL da aba mensal sao SOMENTE LEITURA — nenhuma celula, formula
+ * ou formatacao de dado operacional e alterada; a coluna AM ('Alerta Integridade') e o CANAL DE
+ * ALERTA DO GUARDIAO, enderecado por cabecalho canonico
+ * (`Core/ContratoMutacaoSegura.js:58-61`: "A:AL sao dados; AM e a coluna de alerta do Guardiao").
+ * NAO abre dialogo e NAO substitui a selecao do operador.
  */
 
 var GuardiaoHeadless = {

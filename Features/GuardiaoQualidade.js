@@ -75,6 +75,63 @@ class GuardiaoQualidade {
     return -1;
   }
 
+  /**
+   * Resolve o endereco da coluna de alerta da aba mensal pelo CABECALHO CANONICO
+   * ('Alerta Integridade' em AM).
+   *
+   * Contrato (canonico, nao interpretativo): `Core/ContratoMutacaoSegura.js:58-61` —
+   * "A:AL sao dados; AM e a coluna de alerta do Guardiao"; `MOD-C05-01_GUARDIAO_DE_QUALIDADE.md:14-16`
+   * licencia a escrita na AM e proibe A:AL; `03_Especificacoes/INDICE.md:18` fixa o nome
+   * ('A coluna AM continua sendo `Alerta Integridade`'). Logo a AM e endereçada por NOME DE
+   * CONTRATO — nunca por alias solto nem por posicao suposta.
+   *
+   * Fechamento do risco de endereco apontado no diagnostico (D-164-04, §4.3): a resolucao anterior
+   * (`loc('ALERTA_INTEGRIDADE')`, alias `['ALERTA INTEGRIDADE','ALERTA','OBSERVADOR']` em
+   * `Core/Constantes.js:61`) usava match PARCIAL (`Core/Utils.js:70-73` / `Core/Cabecalhos.js:77-82`),
+   * podendo mirar uma coluna de A:AL cujo cabecalho apenas CONTIVESSE 'ALERTA' (ex.: 'ALERTA
+   * OPERACIONAL') ou o alias 'OBSERVADOR' — e o fallback fixo `idx = 38` escrevia na 39a coluna de
+   * uma aba fora do layout canonico. Aqui:
+   *   - exige-se o cabecalho canonico EXATO (sem 'ALERTA' parcial, sem 'OBSERVADOR');
+   *   - nome canonico repetido em mais de uma coluna => AMBIGUA (nao se escolhe por posicao);
+   *   - ausente => AUSENTE.
+   * Nos dois ultimos casos o retorno tem `indice = -1` e o chamador segue FAIL-SAFE: emite o
+   * diagnostico e NAO escreve nada (o Guardiao nunca escreve em coluna suposta).
+   *
+   * @param {Array<string>} headers cabecalhos da linha 1 da aba
+   * @returns {{indice:number, status:string, codigo:string, mensagem:string}}
+   */
+  static resolverColunaAlerta(headers) {
+    const CANONICO = 'ALERTA INTEGRIDADE';
+    const norm = h => typeof SyntheonUtils !== 'undefined' && typeof SyntheonUtils.normalizarTexto === 'function'
+      ? SyntheonUtils.normalizarTexto(h)
+      : String(h === undefined || h === null ? '' : h).trim().toUpperCase();
+    const lista = Array.isArray(headers) ? headers.map(norm) : [];
+    const ocorrencias = [];
+    lista.forEach((h, i) => { if (h === CANONICO) ocorrencias.push(i); });
+
+    if (ocorrencias.length === 0) {
+      return {
+        indice: -1,
+        status: 'AUSENTE',
+        codigo: 'COLUNA_ALERTA_AUSENTE',
+        mensagem: 'Coluna de alerta canonica ("Alerta Integridade" em AM) ausente na aba: nenhuma escrita foi feita (fail-safe). ' +
+          'A AM e o endereco contratado do alerta (Core/ContratoMutacaoSegura.js:58-61); o Guardiao nao cria a coluna para nao ' +
+          'mirar uma coluna de A:AL.'
+      };
+    }
+    if (ocorrencias.length > 1) {
+      return {
+        indice: -1,
+        status: 'AMBIGUA',
+        codigo: 'COLUNA_ALERTA_AMBIGUA',
+        mensagem: 'Coluna de alerta ambigua: o cabecalho canonico "Alerta Integridade" aparece em ' + ocorrencias.length +
+          ' colunas (' + ocorrencias.map(i => i + 1).join(', ') + '): nenhuma escrita foi feita (fail-safe). ' +
+          'O endereco da AM nao e resolvido por posicao.'
+      };
+    }
+    return { indice: ocorrencias[0], status: 'RESOLVIDA', codigo: '', mensagem: '' };
+  }
+
   static varrerAba(sheet, fontePeculioExterna = null) {
     const nomeAbaNorm = GuardiaoQualidade.normalizarNomeFlexivel(sheet.getName());
     if (nomeAbaNorm.includes('AUDITORIA') || nomeAbaNorm.includes('HISTORICO')) {
@@ -169,6 +226,12 @@ class GuardiaoQualidade {
     const headers = dados[0].map(h => SyntheonUtils.normalizarTexto(h));
     const loc = (chaveAlias) => SyntheonUtils.localizarColuna(headers, chaveAlias);
 
+    // D-164-04: a coluna de alerta NAO e resolvida por alias solto ('ALERTA'/'OBSERVADOR', que
+    // casariam por match parcial com uma coluna de A:AL) nem por posicao fixa (fallback cego
+    // idx = 38). O endereco da AM e o do contrato: o CABECALHO CANONICO 'Alerta Integridade'
+    // (Core/ContratoMutacaoSegura.js:58-61: "A:AL sao dados; AM e a coluna de alerta do Guardiao").
+    const resolucaoAlerta = GuardiaoQualidade.resolverColunaAlerta(headers);
+
     const idx = {
       data: loc('DATA'),
       mike: loc('MIKE'),
@@ -192,16 +255,21 @@ class GuardiaoQualidade {
       imputado: loc('IMPUTADO'),
       pontosTotais: loc('PONTOS_TOTAIS'),
       pontosFiccao: loc('PONTOS_FICCAO'),
-      alerta: loc('ALERTA_INTEGRIDADE'),
+      alerta: resolucaoAlerta.indice, // endereco canonico da AM (D-164-04) — ver comentario acima
       calculadas: RegrasQualidade.localizarColunasCalculadas(headers)
     };
 
-    if (idx.alerta === -1) {
-      idx.alerta = 38; // Coluna AM (0-based: 38)
-      sheet.getRange(1, idx.alerta + 1).setValue('Alerta Integridade');
-    }
-
+    // D-164-04b (ordem): a validacao completa — cabecalhos obrigatorios E endereco da coluna de
+    // alerta — roda ANTES de qualquer escrita. Em falha o efeito e ZERO, inclusive AM1: nao ha
+    // criacao de cabecalho nem publicacao parcial em execucao que aborta.
     RegrasQualidade.validarCabecalhosObrigatorios(idx);
+
+    if (resolucaoAlerta.indice === -1) {
+      const err = new Error(resolucaoAlerta.mensagem);
+      err.severidade = typeof SEVERIDADES_GUARDIAO !== 'undefined' ? SEVERIDADES_GUARDIAO.ERRO_TECNICO : 'ERRO TECNICO';
+      err.codigoRegra = resolucaoAlerta.codigo;
+      throw err;
+    }
 
     const alertasPorLinha = Array.from({ length: lastRow - 1 }, () => []);
     const tuneis = {};
