@@ -88,14 +88,34 @@ function rodarSuite() {
     }
   });
 
-  test('Condicao 3 e literal: PENDENTE ate o Proprietario confirmar', () => {
+  test('Condicao 3 so vale CONFIRMADO com registro de confirmacao do Proprietario declarado', () => {
     const { json } = rodarGate();
     const c3 = json.condicao_3;
     assert.ok(c3 && typeof c3 === 'object', 'condicao_3 ausente');
     assert.ok(['PENDENTE', 'CONFIRMADO'].indexOf(c3.valor) !== -1,
       `condicao_3 so pode ser PENDENTE ou CONFIRMADO (veio: ${c3.valor})`);
-    assert.notStrictEqual(c3.valor, 'CONFIRMADO',
-      'condicao_3 marcada CONFIRMADO sem fonte de confirmacao declarada do Proprietario');
+    if (c3.valor === 'CONFIRMADO') {
+      assert.ok(c3.fonte && String(c3.fonte).trim().length > 20, 'CONFIRMADO sem fonte declarada');
+      assert.ok(c3.fonte_arquivo && fs.existsSync(path.join(REPO, c3.fonte_arquivo)),
+        `CONFIRMADO apontando registro inexistente: ${c3.fonte_arquivo}`);
+      assert.ok(Array.isArray(c3.ressalvas) && c3.ressalvas.some((r) => /C2/.test(r)),
+        'CONFIRMADO sem declarar a ressalva de C2');
+    } else {
+      assert.ok(!c3.fonte, 'PENDENTE nao pode declarar fonte de confirmacao');
+    }
+  });
+
+  test('vermelho global por LACUNA_DE_GOVERNANCA: C1 VERDE + C3 CONFIRMADO + C2 nao mensuravel', () => {
+    const { json } = rodarGate();
+    assert.ok(Array.isArray(json.gate_global_motivo), 'placar sem gate_global_motivo');
+    if (json.condicao_1.valor === 'VERDE' && json.condicao_3.valor === 'CONFIRMADO' && json.condicao_2.valor !== 'VERDE') {
+      assert.strictEqual(json.gate_global, 'VERMELHO',
+        'C1 VERDE + C3 CONFIRMADO + C2 nao mensuravel tem de manter GATE_GLOBAL = VERMELHO');
+      assert.ok(json.gate_global_motivo.some((m) => /C2/.test(m) && /LACUNA_DE_GOVERNANCA/.test(m)),
+        `motivo do vermelho nao declara C2/LACUNA_DE_GOVERNANCA: ${JSON.stringify(json.gate_global_motivo)}`);
+      assert.ok(!json.gate_global_motivo.some((m) => /^C1/.test(m)),
+        'C1 nao pode constar como bloqueio enquanto C1 = VERDE');
+    }
   });
 
   test('correspondencia incerta NUNCA vira cobertura: fallback por nome fica separado', () => {
@@ -178,6 +198,8 @@ function rodarSuite() {
     if (c2.mensuravel !== true) {
       assert.strictEqual(c2.causa, 'AUSENCIA_DE_FONTE_CANONICA_DE_ESTADO_DE_AUDITORIA',
         `causa inesperada para C2: ${c2.causa}`);
+      assert.strictEqual(c2.natureza, 'LACUNA_DE_GOVERNANCA',
+        `natureza inesperada para C2: ${c2.natureza}`);
       assert.ok(Array.isArray(c2.candidatos_avaliados_e_descartados) && c2.candidatos_avaliados_e_descartados.length >= 3,
         'C2 tem de registrar os candidatos avaliados e descartados');
     }

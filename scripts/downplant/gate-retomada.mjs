@@ -378,6 +378,7 @@ function medirCondicao2() {
     mensuravel: false,
     valor: 'NAO_MENSURAVEL',
     causa: 'AUSENCIA_DE_FONTE_CANONICA_DE_ESTADO_DE_AUDITORIA',
+    natureza: 'LACUNA_DE_GOVERNANCA',
     motivo: 'não existe fonte canônica legível por máquina do estado das Auditorias (§7.4) — lacuna de governança, '
       + 'não dívida estrutural. '
       + `Busca por ${estados.join('/')} em todo o repositório = ${comEstado.length} ocorrência(s). `
@@ -398,14 +399,27 @@ function medirCondicao2() {
 // C3 — confirmação explícita do Proprietário (literal)
 // ---------------------------------------------------------------------------
 
+const REGISTRO_CONFIRMACAO = path.join(REPO, '02_Comodos', 'C00_Governanca_Estrutural', '03_Especificacoes', 'CONFIRMACAO_PROPRIETARIO_21_2.md');
+
 function medirCondicao3() {
-  return {
-    valor: 'PENDENTE',
-    motivo: 'depende de confirmação explícita do Proprietário de que a visão geral foi restabelecida (§21.2/3). '
-      + 'Não há fonte canônica de confirmação; autorização para construir este instrumento NÃO é confirmação. '
-      + 'O Proprietário declarou que confirmar agora seria circular enquanto C1 tiver item em aberto e C2 não tiver fonte.',
-    fonte: null,
-  };
+  const rel = path.relative(REPO, REGISTRO_CONFIRMACAO).replace(/\\/g, '/');
+  if (!fs.existsSync(REGISTRO_CONFIRMACAO)) {
+    return { valor: 'PENDENTE', fonte: null, fonte_arquivo: null, ressalvas: [],
+      motivo: 'depende de confirmacao explicita do Proprietario de que a visao geral foi restabelecida (21.2/3). '
+        + 'Nao existe registro declarado (' + rel + '). Autorizacao para construir o instrumento NAO e confirmacao.' };
+  }
+  const texto = fs.readFileSync(REGISTRO_CONFIRMACAO, 'utf8');
+  const campo = (nome) => (texto.match(new RegExp('^\\*\\*' + nome + ':\\*\\*\\s*(.+)$', 'm')) || [])[1] || null;
+  const status = campo('Status');
+  const ressalvas = (campo('Ressalvas') || '').split(';').map((s) => s.trim()).filter(Boolean);
+  if (status !== 'CONFIRMADO') {
+    return { valor: 'PENDENTE', fonte: null, fonte_arquivo: rel, ressalvas,
+      motivo: 'registro declarado existe (' + rel + ") mas o Status e '" + status + "' - nao e confirmacao valida" };
+  }
+  return { valor: 'CONFIRMADO', fonte_arquivo: rel,
+    fonte: rel + ' - Proprietario: ' + (campo('Proprietário') || campo('Proprietario')) + '; data ' + campo('Data') + '; card ' + campo('Card'),
+    ressalvas,
+    motivo: 'confirmacao explicita do Proprietario registrada em arquivo declarado; NAO transforma C2 em mensuravel e NAO fecha o card.' };
 }
 
 // ---------------------------------------------------------------------------
@@ -426,7 +440,7 @@ function medirMetricas38(c1, comodosComPendencia) {
         nao_aplicavel: b.NAO_APLICAVEL.total },
     },
     auditorias_com_rejeicao_em_aberto: { valor: 'NAO_MENSURAVEL', causa: 'AUSENCIA_DE_FONTE_CANONICA_DE_ESTADO_DE_AUDITORIA',
-      motivo: 'mesma ausência de fonte canônica da Condição 2' },
+      natureza: 'LACUNA_DE_GOVERNANCA', motivo: 'mesma ausência de fonte canônica da Condição 2' },
     proporcao_catchup_vs_produto_por_comodo: {
       valor: 'NAO_MENSURAVEL',
       motivo: 'o §45.4 exige que o handoff declare se a Task é de catch-up estrutural; medido: o handoff canônico (§46.12) '
@@ -451,11 +465,18 @@ function calcular() {
   const c3 = medirCondicao3();
   const metricas = medirMetricas38(c1base, velho.length);
 
+  // motivo do vermelho global: declarado, nunca implicito
+  const motivosBloqueio = [];
+  if (c1base.valor !== 'VERDE') motivosBloqueio.push('C1: ' + c1base.valor + ' (' + c1base.medido.contam_no_veredito + ' pendencia(s) que contam)');
+  if (c2.valor !== 'VERDE') motivosBloqueio.push('C2: ' + c2.valor + ' - ' + c2.natureza);
+  if (c3.valor !== 'CONFIRMADO') motivosBloqueio.push('C3: ' + c3.valor);
+
   const placar = {
     card: '#170 (DP24-007)',
     instrumento: 'scripts/downplant/gate-retomada.mjs',
     medido_em: new Date().toISOString().slice(0, 10),
-    gate_global: (c1base.valor === 'VERDE' && c2.valor === 'VERDE' && c3.valor === 'CONFIRMADO') ? 'VERDE' : 'VERMELHO',
+    gate_global: motivosBloqueio.length === 0 ? 'VERDE' : 'VERMELHO',
+    gate_global_motivo: motivosBloqueio,
     condicao_1: c1,
     condicao_2: c2,
     condicao_3: c3,
@@ -499,9 +520,17 @@ function imprimirHumano(p) {
   L.push(`   ${p.capsula.resposta}`);
   L.push(`   Módulos sem cápsula (advisory, fora do C1): ${em.modulos.join(', ') || '—'}`);
   L.push('');
-  L.push(`C2 (Auditoria com rejeição em aberto) = ${p.condicao_2.valor}`);
+  L.push(`C2 (Auditoria com rejeição em aberto) = ${p.condicao_2.valor} - ${p.condicao_2.natureza}`);
   L.push(`   causa = ${p.condicao_2.causa}`);
-  L.push(`C3 (confirmação do Proprietário) = ${p.condicao_3.valor}`);
+  L.push(`C3 (confirmação do Proprietário) = ${p.condicao_3.valor}` + (p.condicao_3.fonte_arquivo ? ` · registro: ${p.condicao_3.fonte_arquivo}` : ''));
+  L.push('');
+  L.push('--- PLACAR FINAL (§21.2) ---');
+  L.push(`C1 = ${p.condicao_1.valor}`);
+  L.push(`C2 = ${p.condicao_2.valor} - ${p.condicao_2.natureza}`);
+  L.push(`C3 = ${p.condicao_3.valor}`);
+  L.push(`GATE_GLOBAL = ${p.gate_global}` + (p.gate_global === 'VERMELHO'
+    ? (p.gate_global_motivo.length === 1 ? ' exclusivamente por ' + String(p.gate_global_motivo[0]).split(':')[0]
+      : ' | bloqueios: ' + p.gate_global_motivo.join(' · ')) : ''));
   L.push('');
   L.push(`módulos=${p.condicao_1.medido.modulos} · código declarado=${p.condicao_1.medido.artefatos_de_codigo}`
     + ` · cobertos=${p.condicao_1.medido.cobertos_por_endereco_declarado} · pendentes=${p.condicao_1.medido.pendentes}`);
