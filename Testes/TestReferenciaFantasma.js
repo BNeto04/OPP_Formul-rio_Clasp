@@ -30,8 +30,20 @@ const REPO = path.join(__dirname, '..');
 const RUNNER = path.join(REPO, 'Testes', 'RodarTodosOsTestes.js');
 const TEM_GIT = fs.existsSync(path.join(REPO, '.git'));
 
+/**
+ * O runner COMENTA o caso do F1 (documentacao), por isso o comentario precisa ser removido ANTES de
+ * procurar `require`: mencao em prosa nao e dependencia. So o codigo executavel conta.
+ */
+function semComentarios(texto) {
+  return texto
+    .replace(/\/\*[\s\S]*?\*\//g, '')      // /* bloco */
+    .split(/\r?\n/)
+    .map((l) => l.replace(/\/\/.*$/, ''))  // // linha
+    .join('\n');
+}
+
 function requiresDoRunner() {
-  const texto = fs.readFileSync(RUNNER, 'utf8');
+  const texto = semComentarios(fs.readFileSync(RUNNER, 'utf8'));
   const nomes = new Set();
   const re = /require\(\s*'\.\/([A-Za-z0-9_\-.]+)'\s*\)/g;
   let m;
@@ -77,15 +89,14 @@ function rodarSuite() {
       `modulo exigido pelo runner e NAO rastreado (invisivel em checkout limpo): ${naoRastreados.join(', ')}`);
   });
 
-  test('o runner nao cita o arquivo removido que originou o F1 (regressao nomeada)', () => {
-    const texto = fs.readFileSync(RUNNER, 'utf8');
-    const citado = texto.indexOf('TestNormalizadorEfetivo') !== -1;
-    if (citado && TEM_GIT && !rastreadoNoGit('Testes/TestNormalizadorEfetivo.js')) {
-      assert.fail('TestNormalizadorEfetivo.js voltou a ser exigido pelo runner, mas NAO esta rastreado no Git (referencia fantasma)');
+  test('o runner nao EXIGE (require) o arquivo removido que originou o F1', () => {
+    const exigido = nomes.indexOf('TestNormalizadorEfetivo') !== -1;
+    if (!exigido) return;
+    const rastreado = TEM_GIT && rastreadoNoGit('Testes/TestNormalizadorEfetivo.js');
+    if (!rastreado) {
+      assert.fail('TestNormalizadorEfetivo.js voltou a ser EXIGIDO pelo runner, mas NAO esta rastreado no Git (referencia fantasma)');
     }
-    if (citado) {
-      console.log('         [NOTA] TestNormalizadorEfetivo.js e exigido E esta rastreado: o slot foi reocupado de forma legitima.');
-    }
+    console.log('         [NOTA] TestNormalizadorEfetivo.js e exigido E esta rastreado: o slot foi reocupado de forma legitima.');
   });
 
   console.log(`\nRESULTADOS FINAIS: ${sucessos} PASS / ${falhas} FAIL`);
