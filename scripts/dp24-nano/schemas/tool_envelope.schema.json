@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dp24-tool-envelope.schema.json",
+  "title": "DP24 Nano Tool Envelope",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["caller_id", "caller_type", "operation"],
+  "properties": {
+    "caller_id": { "type": "string", "minLength": 1 },
+    "caller_type": { "type": "string", "enum": ["agente_local", "agente_global", "sistema_api"] },
+    "operation": {
+      "type": "string",
+      "enum": ["READ", "WRITE", "PATCH", "PARSE_CANVAS", "BUILD_CANVAS", "VERIFY_FILE"]
+    },
+    "root": { "type": "string" },
+    "target": { "type": "string" },
+    "payload": { "type": "object" },
+    "dry_run": { "type": "boolean" }
+  }
+}

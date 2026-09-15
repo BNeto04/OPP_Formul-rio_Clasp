@@ -53,3 +53,6 @@ VigiaPonte/telegram_*.json
 VigiaPonte/telegram_*.jsonl
 VigiaPonte/carrier_*.json
 VigiaPonte/sprint_continuity_journal.json
+
+# #169 INST-NANO-001: bytecode do Python da instalacao transversal (nao versionado)
+scripts/dp24-nano/**/__pycache__/

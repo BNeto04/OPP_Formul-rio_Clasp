@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dp24-nano-task.schema.json",
+  "title": "DP24 Nano Task Experimental Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "identity",
+    "gps",
+    "input",
+    "operation",
+    "contract",
+    "authority",
+    "transition",
+    "evidence",
+    "stop"
+  ],
+  "properties": {
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parent_task", "function_id", "algorithm_id", "subfunction_id", "step_id", "assignee"],
+      "properties": {
+        "parent_task": { "type": "string", "minLength": 1 },
+        "function_id": { "type": "string", "minLength": 1 },
+        "algorithm_id": { "type": "string", "minLength": 1 },
+        "subfunction_id": { "type": "string", "minLength": 1 },
+        "step_id": { "type": "string", "minLength": 1 },
+        "assignee": { "type": "string", "minLength": 1 }
+      }
+    },
+    "gps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["terrain", "room", "module", "submodule", "circuit", "port"],
+      "properties": {
+        "terrain": { "type": "string", "minLength": 1 },
+        "room": { "type": "string", "minLength": 1 },
+        "module": { "type": "string", "minLength": 1 },
+        "submodule": { "type": "string", "minLength": 1 },
+        "circuit": { "type": "string", "minLength": 1 },
+        "port": { "type": "string", "minLength": 1 }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["references"],
+      "properties": {
+        "references": { "type": "array", "items": { "type": "string" } },
+        "values": { "type": "object" }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "max_calls"],
+      "properties": {
+        "tool": { "type": "string", "enum": ["NM-OBS-READ", "NM-OBS-WRITE", "NM-OBS-PATCH", "NM-OBS-PARSE-CANVAS", "NM-OBS-BUILD-CANVAS", "NM-OBS-VERIFY-FILE"] },
+        "max_calls": { "type": "integer", "minimum": 1 }
+      },
+      "not": { "required": ["capability"] }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["require", "ensure", "invariant"],
+      "properties": {
+        "require": { "type": "string", "minLength": 1 },
+        "ensure": { "type": "string", "minLength": 1 },
+        "invariant": { "type": "string", "minLength": 1 }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_paths", "expand_scope", "effects"],
+      "properties": {
+        "allowed_paths": { "type": "array", "items": { "type": "string" } },
+        "expand_scope": { "type": "boolean" },
+        "effects": { "type": "array", "items": { "type": "string", "enum": ["read", "write", "patch", "verify", "parse", "build"] } }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["on_success", "on_failure", "retry_limit"],
+      "properties": {
+        "on_success": { "type": "string" },
+        "on_failure": { "type": "string" },
+        "retry_limit": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expected", "store"],
+      "properties": {
+        "expected": { "type": "array", "items": { "type": "string" } },
+        "store": { "type": "string", "minLength": 1 }
+      }
+    },
+    "stop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition"],
+      "properties": {
+        "condition": { "type": "string", "enum": ["after_single_operation", "after_verification", "on_rejection"] }
+      }
+    }
+  }
+}

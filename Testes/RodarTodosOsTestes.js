@@ -133,6 +133,17 @@ async function main() {
     }
   }
   console.log('');
+  {
+    // #169 [DP24-006] - fechadura da INSTALACAO TRANSVERSAL INST-NANO-001 (Nano Task de 9 blocos +
+    // ferramentas deterministicas NM-OBS-*), colhida do laboratorio dp24-nano-lab. Esta fechadura
+    // executa a bancada da propria instalacao e exige exit 0 dela: contador de PASS nao substitui
+    // exit code, e instalacao que nao roda nao esta instalada.
+    const testNanoMachines = require('./TestNanoMachines');
+    if (typeof testNanoMachines === 'function') {
+      testNanoMachines();
+    }
+  }
+  console.log('');
   console.log('');
   require('./TestVigiaPonte');
   console.log('');
