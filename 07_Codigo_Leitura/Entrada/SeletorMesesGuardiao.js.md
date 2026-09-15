@@ -1,0 +1,453 @@
+# ESPELHO — SeletorMesesGuardiao.js
+
+> [!NOTE] Espelho rico de código (Metodo §46.15) — gerado por `scripts/downplant/espelho-rico.mjs`
+> Somente leitura. Não editar à mão: qualquer edição é sobrescrita na próxima geração.
+> O código abaixo é cópia verbatim do arquivo de origem no commit declarado; divergência entre o embutido e a origem é deriva (§18.1).
+> Regra do sha256 declarado: sha256 do conteúdo **normalizado para LF** (igual ao blob do Git). Em arquivo CRLF com terminador final diferente, ele difere do `sha256sum` dos bytes crus — a comparação de deriva é feita conteúdo-contra-conteúdo.
+> Papel desta cópia: CANÔNICA (repositório). O derivado navegável no vault é gerado com as mesmas entradas.
+
+- **Endereço Down Plant:** `C01_Entrada / MOD-C01-01_FORMULARIO_E_MENUS` — [NOTA_DE_RESPONSABILIDADE.md](../../02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/NOTA_DE_RESPONSABILIDADE.md)
+- **Arquivo de origem (link para o disco):** [`Entrada/SeletorMesesGuardiao.js`](../../Entrada/SeletorMesesGuardiao.js)
+- **Commit de referência:** `0049c30443c138cdaca525cdc55524aa11d39fce` (`0049c30`)
+- **Data da última sincronização:** 2026-09-15T18:23:04-03:00
+
+## Código-fonte embutido
+
+Verbatim de `Entrada/SeletorMesesGuardiao.js` em `0049c30`. sha256 do bloco (LF): `da64483e2dfdd641b209a21d799c3c91f0bb7ac383204bcb19b2176eba63e150` — 397 linhas.
+
+```javascript
+'use strict';
+
+/**
+ * ARQUIVO: Entrada/SeletorMesesGuardiao.js
+ * DESCRICAO: Seletor de abas mensais auditaveis do Guardiao da Qualidade (G01 #113).
+ * Lista SOMENTE abas mensais validas (exclui AUDITORIA/HISTORICO/Tabela PIP e auxiliares),
+ * permite UM mes, VARIOS meses ou TODOS, consolida por mes e nunca esconde falha de uma aba.
+ *
+ * Regra do produto: o Guardiao NAO corrige dados. Detecta, explica e localiza.
+ * Regra #115 antecipada: se nada for auditavel, responde NAO_AUDITAVEL (nunca falso verde).
+ */
+
+const MESES_ABREV = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+
+// Padroes de nome de aba que NUNCA sao abas mensais auditaveis.
+const PADROES_EXCLUSAO = [
+  'AUDITORIA', 'HISTORICO', 'TABELA PIP', 'PIP', 'PECULIO', 'AUX',
+  'CONTROLE', 'MODELO', 'EXEMPLO', 'TESTE', 'GABARITO', 'BKP', 'BACKUP', 'RASCUNHO', 'GRAVITY', 'LOG'
+];
+
+// INST-SERIALIZACAO-001 (§8.11): guarda de TOPO que carrega o helper da trava global na bancada
+// Node SEM criar simbolo global novo (proibido por `Testes/TestSemRedefinicaoGlobal.js`).
+if (typeof SyntheonSerializacaoEscrita === 'undefined' && typeof require !== 'undefined') {
+  try { global.SyntheonSerializacaoEscrita = require('../Core/SerializacaoEscrita'); } catch (e) { /* fail-closed no uso */ }
+}
+
+class SeletorMesesGuardiao {
+  /**
+   * Normaliza para comparacao flexivel sem depender de SyntheonUtils (uso em Node e Apps Script).
+   */
+  static normalizar(nome) {
+    if (!nome) return '';
+    return String(nome).toUpperCase().trim().replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  static ehAbaExcluida(nomeNorm) {
+    return PADROES_EXCLUSAO.some(p => nomeNorm.includes(p));
+  }
+
+  /**
+   * Tenta interpretar um nome de aba como mes valido.
+   * Formatos aceitos: JUL2026 / JUL 2026 / JULHO 2026 / 2026-07 / 2026 07 / JUL/2026.
+   * @returns {null|{nome, ano:number, mes:number, ordem:number}}
+   */
+  static nomeMensalValido(nome) {
+    const norm = SeletorMesesGuardiao.normalizar(nome);
+    if (!norm || SeletorMesesGuardiao.ehAbaExcluida(norm)) return null;
+
+    let ano = null;
+    let mes = null;
+
+    // 1) ABREV + ano: JUL2026, JUL 2026, JULHO 2026, JUL/2026, jul.2026, JUL-2026
+    const mAbv = norm.match(/^(JANEIRO|FEVEREIRO|MARCO|ABRIL|MAIO|JUNHO|JULHO|AGOSTO|SETEMBRO|OUTUBRO|NOVEMBRO|DEZEMBRO|JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[ .\-_/]?((?:19|20)\d{2})$/);
+    if (mAbv) {
+      mes = SeletorMesesGuardiao.mesParaNumero(mAbv[1]);
+      ano = parseInt(mAbv[2], 10);
+    }
+
+    // 2) ISO/numero: 2026-07, 2026 07, 202607
+    if (!mes) {
+      const mIso = norm.match(/^(20\d{2}) ?(0?[1-9]|1[0-2])$/);
+      if (mIso) {
+        ano = parseInt(mIso[1], 10);
+        mes = parseInt(mIso[2], 10);
+      }
+    }
+
+    if (!mes || !ano) return null;
+    return { nome, ano, mes, ordem: ano * 100 + mes };
+  }
+
+  static mesParaNumero(token) {
+    if (/^\d+$/.test(token)) return parseInt(token, 10);
+    const idx = MESES_ABREV.findIndex((m, i) => token.slice(0, 3) === m);
+    return idx === -1 ? null : idx + 1;
+  }
+
+  /**
+   * Lista abas mensais validas de uma planilha, ordenadas cronologicamente.
+   * @param {object} ss fake ou Spreadsheet com getSheets()
+   * @returns {Array<{nome:string, ano:number, mes:number, ordem:number, sheet:object}>}
+   */
+  static listarAbasMensais(ss) {
+    const todas = (ss && typeof ss.getSheets === 'function') ? ss.getSheets() : [];
+    return todas
+      .map(sheet => {
+        const parsed = SeletorMesesGuardiao.nomeMensalValido(sheet.getName());
+        return parsed ? { nome: sheet.getName(), sheet, ...parsed } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.ordem - b.ordem);
+  }
+
+  /**
+   * Interpreta a resposta do usuario: TODOS | lista de abas validas.
+   * @returns {{modo:'TODOS'|'LISTA', alvos:Array<object>, invalidos:Array<string>, cancelado:boolean}}
+   */
+  static parseSelecao(texto, validas) {
+    if (texto === null || texto === undefined) {
+      return { modo: null, alvos: [], invalidos: [], cancelado: true };
+    }
+    const t = String(texto).trim();
+    if (!t) return { modo: null, alvos: [], invalidos: [], cancelado: false };
+    if (/^(TODOS|TODAS|ALL|TODOS OS MESES)$/i.test(t)) {
+      return { modo: 'TODOS', alvos: validas.slice(), invalidos: [], cancelado: false };
+    }
+    const tokens = t.split(',').map(s => s.trim()).filter(Boolean);
+    const alvos = [];
+    const invalidos = [];
+    for (const token of tokens) {
+      let alvo = validas.find(v => SeletorMesesGuardiao.normalizar(v.nome) === SeletorMesesGuardiao.normalizar(token));
+      if (!alvo && /^\d+$/.test(token)) {
+        const idx = parseInt(token, 10) - 1;
+        alvo = validas[idx];
+      }
+      if (alvo) {
+        if (!alvos.includes(alvo)) alvos.push(alvo);
+      } else {
+        invalidos.push(token);
+      }
+    }
+    return { modo: alvos.length ? 'LISTA' : null, alvos, invalidos, cancelado: false };
+  }
+
+  /**
+   * Monta a mensagem legivel com as abas validas (para dialogo do usuario).
+   */
+  static montarListaLegivel(validas) {
+    if (!validas.length) return '(nenhuma aba mensal valida encontrada)';
+    return validas.map((v, i) => `${i + 1}. ${v.nome} (${String(v.mes).padStart(2, '0')}/${v.ano})`).join('\n');
+  }
+
+  /** Opcoes do dialogo em botoes: valor canonico (nome da aba) + rotulo amigavel. */
+  static prepararOpcoes(validas) {
+    return (validas || []).map(v => ({
+      valor: v.nome,
+      rotulo: String(v.mes).padStart(2, '0') + '/' + v.ano + ' - ' + v.nome
+    }));
+  }
+
+  /** Traduz a selecao vinda do dialogo em botoes (array de nomes) para o contrato de parseSelecao. */
+  static resolverSelecaoDialogo(selecionados, validas) {
+    if (selecionados === null || selecionados === undefined) {
+      return { modo: null, alvos: [], invalidos: [], cancelado: true };
+    }
+    const lista = Array.isArray(selecionados) ? selecionados.slice() : String(selecionados).split(',');
+    const limpos = lista.map(s => String(s).trim()).filter(Boolean);
+    if (!limpos.length) return { modo: null, alvos: [], invalidos: [], cancelado: false };
+    return SeletorMesesGuardiao.parseSelecao(limpos.join(','), validas);
+  }
+
+  /** Texto do resultado apresentado ao operador (resumo por mes + painel + tuneis prioritarios). */
+  static formatarResultado(consolidado, painel) {
+    const linhasResumo = Object.keys((consolidado && consolidado.porMes) || {}).map(nome => {
+      const p = consolidado.porMes[nome];
+      return p.status === 'OK'
+        ? '  ' + nome + ': tuneis ' + p.resultado.tuneis + ' | linhas ' + p.resultado.linhas + ' | linhas c/ alerta ' + p.resultado.alertas
+        : '  ' + nome + ': ERRO -> ' + p.mensagem;
+    });
+    const linhasPrioritarias = ((painel && painel.prioritarios) || []).map(t =>
+      '  [' + t.classificacao + '] ' + t.mes + ' | ' + (t.mike || t.tunel) + ' | linhas ' +
+      (((t.linhas && t.linhas.join(', ')) || '-')) + ' | ' +
+      (((t.diagnosticos && t.diagnosticos[0] && t.diagnosticos[0].codigo) || t.motivo) || '-')
+    );
+    return linhasResumo.join('\n') +
+      '\n\n' + ((painel && painel.texto) || '') +
+      (linhasPrioritarias.length ? '\n\nTUNEIS PRIORITARIOS (drill-down):\n' + linhasPrioritarias.join('\n') : '') +
+      '\n\nDetalhe completo (codigo, severidade, ARCA, acao): aba [AUDITORIA] Ocorrencias.\nHistorico de execucoes: [HISTORICO] Auditoria Ocorrencias.';
+  }
+
+  /**
+   * Monta o painel consolidado (por mes + global + drill-down) a partir do retorno de auditarMeses.
+   * #116: MES -> TUNEL/MIKE -> LINHAS -> DIAGNOSTICO, com NAO_AUDITADO explicito.
+   */
+  static montarPainel(consolidado) {
+    let Painel = typeof PainelSaude !== 'undefined' ? PainelSaude : null;
+    if (!Painel && typeof require !== 'undefined') {
+      try { Painel = require('../Render/PainelSaude').PainelSaude; } catch (e) {}
+    }
+    const resumosPorMes = [];
+    const drillDown = [];
+    Object.keys((consolidado && consolidado.porMes) || {}).forEach(nome => {
+      const item = consolidado.porMes[nome];
+      if (item.status !== 'OK' || !item.resultado) {
+        resumosPorMes.push({ mes: nome, erro: item.mensagem || 'FALHA_NA_ABA', coberturaStatus: 'NAO_AUDITADO', regrasNaoAuditadas: ['ABA_NAO_AUDITADA'], tuneisTotal: 0, saudaveis: 0, alertas: 0, criticos: 0, incompletos: 0, naoAuditaveis: 0, linhas: 0, ocorrenciasOrfas: 0, duplicados: 0, fragmentados: 0 });
+        return;
+      }
+      if (!Painel) return;
+      resumosPorMes.push(Painel.construirResumoMes(nome, item.resultado));
+      drillDown.push.apply(drillDown, Painel.construirDrillDown(nome, item.resultado));
+    });
+    if (!Painel) return { resumosPorMes, global: null, drillDown, prioritarios: [], texto: '' };
+    const global = Painel.construirResumoGlobal(resumosPorMes);
+    const prioritarios = Painel.listarTuneisPrioritarios(drillDown, 10);
+    return {
+      resumosPorMes,
+      global,
+      drillDown,
+      prioritarios,
+      texto: Painel.formatarPainelTexto(resumosPorMes, global)
+    };
+  }
+
+  /**
+   * Executa a auditoria sobre as abas selecionadas usando o motor canonico varrerAba.
+   * Falha em UMA aba NAO esconde o resultado das demais: cada aba vira entrada propria
+   * com status OK ou ERRO explicito. Nunca produz verde sem auditar.
+   *
+   * @param {object} selecao parseSelecao()
+   * @param {object} ss planilha
+   * @param {object} [motor] injecao p/ teste (default: GuardiaoQualidade global)
+   * @returns {{porMes:Object, resumo:Object}}
+   */
+  static auditarMeses(selecao, ss, motor) {
+    if (typeof SyntheonSerializacaoEscrita === 'undefined' || !SyntheonSerializacaoEscrita
+        || typeof SyntheonSerializacaoEscrita.executarComLock !== 'function') {
+      throw new Error('ESCRITA BLOQUEADA: mecanismo de serializacao de escrita indisponivel (INST-SERIALIZACAO-001). Nada foi gravado.');
+    }
+    return SyntheonSerializacaoEscrita.executarComLock('SeletorMesesGuardiao.auditarMeses', function () {
+      return SeletorMesesGuardiao._auditarMesesSobTrava_(selecao, ss, motor);
+    });
+  }
+
+  static _auditarMesesSobTrava_(selecao, ss, motor) {
+    const motorReal = motor || (typeof GuardiaoQualidade !== 'undefined' ? GuardiaoQualidade : null);
+    if (!motorReal || typeof motorReal.varrerAba !== 'function') {
+      throw new Error('Motor do Guardiao indisponivel (varrerAba ausente).');
+    }
+    if (!selecao || selecao.cancelado || !selecao.alvos.length) {
+      return { porMes: {}, resumo: { total: 0, ok: 0, comErro: 0, alertas: 0, tuneis: 0, diagnosticos: 0, status: 'NAO_EXECUTADO' } };
+    }
+    const porMes = {};
+    let ok = 0;
+    let comErro = 0;
+    let alertasTotal = 0;
+    let tuneisTotal = 0;
+    let diagnosticosTotal = 0;
+    for (const alvo of selecao.alvos) {
+      try {
+        const r = motorReal.varrerAba(alvo.sheet);
+        const diagnosticoCount = Array.isArray(r.diagnosticos) ? r.diagnosticos.length : (r.diagnosticos || 0);
+        porMes[alvo.nome] = { status: 'OK', resultado: { alertas: r.alertas, linhas: r.linhas, tuneis: r.tuneis, diagnosticos: diagnosticoCount } };
+        ok++;
+        alertasTotal += r.alertas || 0;
+        tuneisTotal += r.tuneis || 0;
+        diagnosticosTotal += diagnosticoCount;
+      } catch (erro) {
+        comErro++;
+        porMes[alvo.nome] = { status: 'ERRO', mensagem: (erro && erro.message) ? erro.message : String(erro) };
+      }
+    }
+    const resumo = {
+      total: selecao.alvos.length,
+      ok,
+      comErro,
+      alertas: alertasTotal,
+      tuneis: tuneisTotal,
+      diagnosticos: diagnosticosTotal,
+      status: comErro === 0 ? (ok > 0 ? 'OK' : 'NAO_EXECUTADO') : 'PARCIAL_COM_ERRO'
+    };
+    return { porMes, resumo };
+  }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = SeletorMesesGuardiao;
+}
+
+/**
+ * Fluxo de UI (Apps Script): descobrir abas validas -> prompt 1/N/TODOS -> auditar -> consolidar.
+ * Cancelar em qualquer ponto retorna sem efeito colateral. Sem abas validas => NAO_AUDITAVEL.
+ */
+function abrirSeletorMesesGuardiaoPorTexto() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+
+  const validas = SeletorMesesGuardiao.listarAbasMensais(ss);
+  if (!validas.length) {
+    const msg = 'NAO_AUDITAVEL: nenhuma aba mensal valida encontrada.\n' +
+      'Abas auxiliares (AUDITORIA/HISTORICO/PIP etc.) sao ignoradas.\n' +
+      'Nomes validos: ex. JUL2026, 2026-07.';
+    ui.alert('Guardiao da Qualidade', msg, ui.ButtonSet.OK);
+    return { status: 'NAO_AUDITAVEL', motivo: 'NENHUMA_ABA_MENSAL' };
+  }
+
+  const legivel = SeletorMesesGuardiao.montarListaLegivel(validas);
+  const instrucao = 'Abas mensais auditaveis:\n' + legivel +
+    '\n\nDigite: TODOS  |  ou nomes separados por virgula (ex.: JUL2026, AGO2026).\n' +
+    'Pode usar tambem o numero da lista.\n(Cancelar = sair sem efeito)';
+
+  let selecao = null;
+  for (let tentativa = 0; tentativa < 3 && !selecao; tentativa++) {
+    const resposta = ui.prompt('Guardiao - Seletor de meses', instrucao, ui.ButtonSet.OK_CANCEL);
+    if (resposta.getSelectedButton() === ui.Button.CANCEL || resposta.getSelectedButton() === ui.Button.CLOSE) {
+      return { status: 'CANCELADO' };
+    }
+    const texto = resposta.getResponseText();
+    const rascunho = SeletorMesesGuardiao.parseSelecao(texto, validas);
+    if (rascunho.cancelado) return { status: 'CANCELADO' };
+    if (rascunho.invalidos.length) {
+      ui.alert('Guardiao - Selecao invalida',
+        'Nao reconhecidos: ' + rascunho.invalidos.join(', ') + '\n\n' + instrucao,
+        ui.ButtonSet.OK);
+      continue;
+    }
+    selecao = rascunho;
+  }
+  if (!selecao) return { status: 'CANCELADO', motivo: 'TENTATIVAS_ESGOTADAS' };
+
+  const consolidado = SyntheonSerializacaoEscrita.executarComLock('SeletorMesesGuardiao.porTexto', function () {
+    return SeletorMesesGuardiao.auditarMeses(selecao, ss);
+  });
+  const painel = SeletorMesesGuardiao.montarPainel(consolidado);
+
+  const linhasResumo = Object.keys(consolidado.porMes).map(nome => {
+    const p = consolidado.porMes[nome];
+    return p.status === 'OK'
+      ? `  ${nome}: tuneis ${p.resultado.tuneis} | linhas ${p.resultado.linhas} | linhas c/ alerta ${p.resultado.alertas}`
+      : `  ${nome}: ERRO -> ${p.mensagem}`;
+  });
+
+  const linhasPrioritarias = (painel.prioritarios || []).map(t =>
+    `  [${t.classificacao}] ${t.mes} | ${t.mike || t.tunel} | linhas ${t.linhas.join(', ') || '-'} | ${(t.diagnosticos[0] && t.diagnosticos[0].codigo) || t.motivo}`
+  );
+
+  ui.alert(
+    'Guardiao da Qualidade - Resultado',
+    linhasResumo.join('\n') +
+    '\n\n' + (painel.texto || '') +
+    (linhasPrioritarias.length ? '\n\nTUNEIS PRIORITARIOS (drill-down):\n' + linhasPrioritarias.join('\n') : '') +
+    '\n\nDetalhe completo (codigo, severidade, ARCA, acao): aba [AUDITORIA] Ocorrencias.\nHistorico de execucoes: [HISTORICO] Auditoria Ocorrencias.',
+    ui.ButtonSet.OK
+  );
+
+  consolidado.painel = painel;
+  return consolidado;
+}
+
+/**
+ * SELETOR DE MESES EM BOTOES (dialogo HTML) - decisao do proprietario (10/09/2026).
+ *
+ * Substitui o prompt de digitacao por um dialogo com checkboxes dos meses reais da planilha,
+ * no mesmo padrao do seletor de meses de arma (DialogGxtSelecaoLivre): botoes Todos / Limpar /
+ * Cancelar / Auditar. Abas auxiliares continuam fora da lista (mesma fonte do MOD-C05-01).
+ * Cancelar nao produz efeito; sem abas validas => NAO_AUDITAVEL.
+ */
+function abrirSeletorMesesGuardiao() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const validas = SeletorMesesGuardiao.listarAbasMensais(ss);
+
+  if (!validas.length) {
+    ui.alert('Guardiao da Qualidade',
+      'NAO_AUDITAVEL: nenhuma aba mensal valida encontrada.\n' +
+      'Abas auxiliares (AUDITORIA/HISTORICO/PIP etc.) sao ignoradas.\n' +
+      'Nomes validos: ex. JUL2026, 2026-07.',
+      ui.ButtonSet.OK);
+    return { status: 'NAO_AUDITAVEL', motivo: 'NENHUMA_ABA_MENSAL' };
+  }
+
+  const template = HtmlService.createTemplateFromFile('Entrada/DialogSeletorMesesGuardiao');
+  template.abasJson = JSON.stringify(SeletorMesesGuardiao.prepararOpcoes(validas));
+  const altura = Math.min(560, 220 + validas.length * 12);
+  ui.showModalDialog(template.evaluate().setWidth(430).setHeight(altura),
+    'Guardiao - Seletor de meses (botoes)');
+  return { status: 'DIALOGO_ABERTO', abas: validas.length };
+}
+
+/**
+ * Callback do dialogo de botoes: audita as abas marcadas e apresenta o resultado ao operador.
+ * @param {Array<string>} selecionados nomes das abas mensais marcadas
+ */
+function executarSelecaoGuardiao(selecionados) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const validas = SeletorMesesGuardiao.listarAbasMensais(ss);
+  const selecao = SeletorMesesGuardiao.resolverSelecaoDialogo(selecionados, validas);
+
+  if (!selecao.alvos.length) {
+    ui.alert('Guardiao - Selecao vazia',
+      'Nenhuma aba mensal valida foi marcada. Nada foi auditado.',
+      ui.ButtonSet.OK);
+    return { status: 'SEM_SELECAO', invalidos: selecao.invalidos };
+  }
+
+  const consolidado = SyntheonSerializacaoEscrita.executarComLock('SeletorMesesGuardiao.executarSelecao', function () {
+    return SeletorMesesGuardiao.auditarMeses(selecao, ss);
+  });
+  const painel = SeletorMesesGuardiao.montarPainel(consolidado);
+  ui.alert('Guardiao da Qualidade - Resultado',
+    SeletorMesesGuardiao.formatarResultado(consolidado, painel),
+    ui.ButtonSet.OK);
+
+  consolidado.painel = painel;
+  consolidado.selecao = { modo: selecao.modo, alvos: selecao.alvos.map(a => a.nome), invalidos: selecao.invalidos };
+  return consolidado;
+}
+```
+
+## Responsabilidade observada
+
+Fonte: `02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/MOD-C01-01_FORMULARIO_E_MENUS.md` — CAPSULA do modulo (formato 46.2), "## Responsabilidade".
+
+Receber o texto do BO (colagem/OCR), transformá-lo em **payload conferível** e entregá-lo à persistência (`SUB-C01-01-02_PERSISTENCIA_MANUAL`). Não decide pontuação, não corrige dado: **sugere e deixa conferir**. Também expõe a **porta única de navegação P3** do produto.
+
+Fonte: `02_Comodos/C01_Entrada/01_Dominio/modulos/MOD-C01-01_FORMULARIO_E_MENUS/MOD-C01-01_FORMULARIO_E_MENUS.md` — CAPSULA do modulo (formato 46.2), "## Limites".
+
+- **Não** grava direto na aba mensal: o payload passa por `Entrada/EntradaManual.js` (validação de coluna, anti-duplicidade, fórmula).
+- **Não** decide imputado (`IMPUTADO?` é escolha do operador; DETIDOS nunca é inferido).
+- **Não** aplica regra de domínio nova por heurística: consulta a ARCA quando a regra existe (fail-soft).
+- **Não** inventa valor: campo sem evidência fica pendente e **explícito** (ex.: alerta `CONFERIR AIS`).
+
+## Portas expostas (se aplicável)
+
+- Superfície exposta no nível do arquivo (nível global): `SeletorMesesGuardiao`, `abrirSeletorMesesGuardiaoPorTexto`, `abrirSeletorMesesGuardiao`, `executarSelecaoGuardiao`
+- Membros públicos observados: `normalizar`, `ehAbaExcluida`, `nomeMensalValido`, `mesParaNumero`, `listarAbasMensais`, `parseSelecao`, `montarListaLegivel`, `prepararOpcoes`, `resolverSelecaoDialogo`, `formatarResultado`, `montarPainel`, `auditarMeses`, `_auditarMesesSobTrava_`
+
+_Extraído por heurística do gerador (globais de nível arquivo + métodos/accessors de 1º–2º nível). Não substitui a declaração de porta da Planta: confirme no endereço acima._
+
+## Divergência com a Planta declarada
+
+Testes mecânicos executados na geração (commit `0049c30`, 2026-09-15T18:23:04-03:00):
+
+- OK — T1 endereco existe: NOTA_DE_RESPONSABILIDADE.md do modulo presente
+- OK — T2 artefato declarado no endereco: "Entrada/SeletorMesesGuardiao.js" aparece na Planta
+- OK — T3 arquivo presente no commit de referencia (0049c30:Entrada/SeletorMesesGuardiao.js)
+- OK — T4 conteudo em disco identico ao do commit de referencia (sha256 LF)
+
+Veredito mecânico: **nenhuma divergência detectada pelos testes acima**.
+
+## Última verificação (data/commit)
+
+- 2026-09-15T18:23:04-03:00 · commit `0049c30` · sha256 da origem (LF): `da64483e2dfdd641b209a21d799c3c91f0bb7ac383204bcb19b2176eba63e150`
+- Reexecutar: `node scripts/downplant/espelho-rico.mjs gerar --endereco C01_Entrada/MOD-C01-01_FORMULARIO_E_MENUS --origem Entrada/SeletorMesesGuardiao.js --saida <caminho>`
+- Verificar deriva sem regravar: `node scripts/downplant/espelho-rico.mjs verificar --espelho <caminho>`

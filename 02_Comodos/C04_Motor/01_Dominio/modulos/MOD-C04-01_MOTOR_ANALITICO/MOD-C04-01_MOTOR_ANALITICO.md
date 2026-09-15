@@ -57,8 +57,8 @@ JavaScript puro sobre Apps Script V8 . plugins em `Plugins/Metricas/*` . **nenhu
 
 ## Artefatos
 `Motor/MotorAnaliticoV2.js` . `Motor/PoliticaMeritoArmas.js` . `Motor/DiagnosticoDeterministicoGxt.js` .
-`Plugins/Metricas/PluginArmas.js`, `PluginEntorpecentes.js`, `PluginOcorrencias.js`, `PluginPontuacao.js`,
-`PluginPrisoes.js` . `Dominio/RegistroAnalitico.js` . `Features/CentralAnalitica.js` . `Plugins/IPluginMetrica.js` (contrato base dos plugins de metrica).
+`Plugins/Metricas/PluginArmas.js`, `Plugins/Metricas/PluginEntorpecentes.js`, `Plugins/Metricas/PluginOcorrencias.js`, `Plugins/Metricas/PluginPontuacao.js`,
+`Plugins/Metricas/PluginPrisoes.js` . `Dominio/RegistroAnalitico.js` . `Features/CentralAnalitica.js` . `Plugins/IPluginMetrica.js` (contrato base dos plugins de metrica).
 
 ## Dependencias (§31.6)
 | Dependencia | Vinculo | Versao/estado |
