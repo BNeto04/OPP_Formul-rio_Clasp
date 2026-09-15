@@ -159,6 +159,18 @@ async function main() {
     }
   }
   console.log('');
+  {
+    // #170 (DP24-007) - fechadura do instrumento `scripts/downplant/gate-retomada.mjs`: placar objetivo,
+    // exit code coerente, Condicao 2 nunca inventada (NAO_MENSURAVEL sem fonte canonica), Condicao 3
+    // literal (PENDENTE ate o Proprietario confirmar), fallback por nome separado da cobertura,
+    // medicao read-only e determinista. A fechadura NAO exige VERDE: o gate pode (e hoje deve) medir
+    // VERMELHO. Ela exige que o instrumento seja honesto.
+    const testGateRetomada = require('./TestGateRetomada');
+    if (typeof testGateRetomada === 'function') {
+      testGateRetomada();
+    }
+  }
+  console.log('');
   console.log('');
   require('./TestVigiaPonte');
   console.log('');
