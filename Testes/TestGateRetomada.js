@@ -110,11 +110,25 @@ function rodarSuite() {
     }
   });
 
-  test('a medicao e READ-ONLY (none altera a arvore do repositorio)', () => {
-    const antes = hashArvore(REPO);
-    rodarGate();
-    const depois = hashArvore(REPO);
-    assert.deepStrictEqual(depois, antes, 'o gate mutou a arvore durante a medicao');
+  test('a medicao e READ-ONLY (o gate numa COPIA PRIVADA da arvore nao altera nada)', () => {
+    // A copia privada isola a prova de escritores externos (VigiaPonte/ponte1/state) que tocam o repo
+    // de verdade durante a suite: aqui, QUALQUER diferenca so pode ter sido causada pelo gate.
+    const os = require('os');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gate-ro-'));
+    try {
+      fs.cpSync(REPO, tmp, { recursive: true,
+        filter: (src) => !/(^|[\\/])(\.git|node_modules|__pycache__)([\\/]|$)/.test(src) });
+      const antes = hashArvore(tmp);
+      const gateCopia = path.join(tmp, 'scripts', 'downplant', 'gate-retomada.mjs');
+      assert.ok(fs.existsSync(gateCopia), 'copia da arvore sem o instrumento');
+      const r = spawnSync(process.execPath, [gateCopia, '--json'], { cwd: tmp, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+      assert.ok(r.stdout && r.stdout.trim().startsWith('{'), `gate nao emitiu JSON na copia: ${(r.stderr || '').slice(0, 300)}`);
+      const depois = hashArvore(tmp);
+      const mudou = Object.keys({ ...antes, ...depois }).filter((k) => antes[k] !== depois[k]);
+      assert.strictEqual(mudou.length, 0, `o gate mutou a arvore durante a medicao: ${mudou.slice(0, 8).join(', ')}`);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
   test('o gate e determinista (duas execucoes seguidas dao o mesmo placar)', () => {
@@ -124,6 +138,71 @@ function rodarSuite() {
     assert.strictEqual(JSON.stringify(a.condicao_1), JSON.stringify(b.condicao_1));
     assert.strictEqual(JSON.stringify(a.condicao_2), JSON.stringify(b.condicao_2));
     assert.strictEqual(JSON.stringify(a.condicao_3), JSON.stringify(b.condicao_3));
+  });
+
+  test('C1 separa a NATUREZA das pendencias e a soma dos baldes fecha com o medido', () => {
+    const { json } = rodarGate();
+    const sep = json.condicao_1 && json.condicao_1.separacao;
+    assert.ok(sep && sep.baldes, 'condicao_1 sem o bloco separacao.baldes');
+    for (const k of ['PRODUTO', 'IDENTIDADE', 'ALOCACAO', 'HOMOLOGACAO_INFRA', 'DONO_CONSUMIDOR', 'NAO_APLICAVEL']) {
+      assert.ok(Object.prototype.hasOwnProperty.call(sep.baldes, k), `separacao.baldes sem o balde ${k}`);
+    }
+    const b = sep.baldes;
+    const soma = b.PRODUTO.total + b.IDENTIDADE.total + b.ALOCACAO.total + b.HOMOLOGACAO_INFRA.total
+      + b.DONO_CONSUMIDOR.total + b.NAO_APLICAVEL.total;
+    assert.strictEqual(soma, json.condicao_1.medido.pendentes,
+      `baldes (${soma}) nao fecham com as pendencias medidas (${json.condicao_1.medido.pendentes})`);
+    const alocEmDono = (b.DONO_CONSUMIDOR.casos || []).filter((c) => c.natureza === 'ALOCACAO')
+      .reduce((n, c) => n + c.pendencias, 0);
+    assert.strictEqual(sep.cartografia.total, b.IDENTIDADE.total + b.ALOCACAO.total + alocEmDono,
+      'visao cartografia nao fecha com IDENTIDADE + ALOCACAO (incluindo os casos de alocacao em DONO_CONSUMIDOR)');
+  });
+
+  test('ausencia de capsula NAO pontua no C1 (nao e requisito do §21.2)', () => {
+    const { json } = rodarGate();
+    const c1 = json.condicao_1;
+    const pend = [];
+    (c1.comodos || []).forEach((c) => c.modulos.forEach((m) => m.pendentes.forEach((p) => pend.push(p))));
+    assert.ok(!pend.some((p) => p.classe === 'CAPSULA' || p.balde === 'CAPSULA'),
+      'a ausencia de capsula ainda contamina as pendencias do C1');
+    assert.ok(Array.isArray(c1.separacao.estrutura_modulo.modulos), 'separacao.estrutura_modulo sem lista de modulos');
+    assert.strictEqual(c1.separacao.estrutura_modulo.modulos.length, c1.medido.modulos_sem_capsula,
+      'estrutura_modulo nao casa com medido.modulos_sem_capsula');
+    assert.ok(json.capsula && json.capsula.resposta && json.capsula.fontes.length >= 5,
+      'o placar tem de declarar o veredito da reconciliacao da capsula com as fontes citadas');
+  });
+
+  test('Condicao 2 NAO_MENSURAVEL declara a CAUSA medida (lacuna de governanca, nao de estrutura)', () => {
+    const { json } = rodarGate();
+    const c2 = json.condicao_2;
+    if (c2.mensuravel !== true) {
+      assert.strictEqual(c2.causa, 'AUSENCIA_DE_FONTE_CANONICA_DE_ESTADO_DE_AUDITORIA',
+        `causa inesperada para C2: ${c2.causa}`);
+      assert.ok(Array.isArray(c2.candidatos_avaliados_e_descartados) && c2.candidatos_avaliados_e_descartados.length >= 3,
+        'C2 tem de registrar os candidatos avaliados e descartados');
+    }
+  });
+
+  test('DONO x CONSUMIDOR: artefato em 2 Modulos nunca ganha dono escolhido pelo instrumento', () => {
+    const { json } = rodarGate();
+    const casos = (json.condicao_1.separacao.baldes.DONO_CONSUMIDOR || {}).casos || [];
+    assert.ok(casos.length > 0, 'nenhum caso DONO x CONSUMIDOR medido (o achado do diagnostico desapareceu)');
+    casos.forEach((c) => {
+      assert.ok(Array.isArray(c.modulos) && c.modulos.length >= 2,
+        `caso DONO x CONSUMIDOR sem os Modulos declarantes: ${JSON.stringify(c)}`);
+      assert.ok(!c.dono_escolhido, 'o gate escolheu dono por conta propria (decisao do Planner/#176)');
+      assert.ok(['AUSENCIA_MATERIAL', 'ALOCACAO', 'IDENTIDADE'].indexOf(c.natureza) !== -1,
+        `caso DONO x CONSUMIDOR sem natureza declarada: ${JSON.stringify(c)}`);
+    });
+  });
+
+  test('HOMOLOGACAO/INFRA e DONO x CONSUMIDOR ficam FORA do veredito do C1', () => {
+    const { json } = rodarGate();
+    const b = json.condicao_1.separacao.baldes;
+    const contam = b.PRODUTO.total + b.IDENTIDADE.total + b.ALOCACAO.total;
+    assert.strictEqual(json.condicao_1.medido.contam_no_veredito, contam, 'contam_no_veredito divergente de PRODUTO+IDENTIDADE+ALOCACAO');
+    assert.strictEqual(b.HOMOLOGACAO_INFRA.aplicabilidade, 'A_DECIDIR', 'HOMOLOGACAO/INFRA tem de declarar aplicabilidade A_DECIDIR');
+    assert.strictEqual(json.condicao_1.valor, contam === 0 ? 'VERDE' : 'VERMELHO');
   });
 
   console.log(`\nRESULTADOS FINAIS: ${sucessos} PASS / ${falhas} FAIL`);
