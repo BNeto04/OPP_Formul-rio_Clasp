@@ -15,11 +15,11 @@ Ela representa o domínio do **PROJETO COMO UM TODO**, transversal a compiladore
 > **Atualizado em 13/09/2026 pelo card #160 (GUARD-D7-001)** — números recontados à mão naquele momento.
 > Preservado como histórico: os números **vigentes** são os do bloco derivado abaixo, medidos do JSON pelo #159 ARCA-COUNT-001.
 <!-- ARCA-HISTORICO:FIM -->
-<!-- ARCA-METRICAS:INICIO (gerado por scripts/downplant/contar-regras-arca.mjs; sha256 do JSON: f9c853d6725a4b763472832f679ee339736a715ba4c2521f6b95a59588cadb43) -->
+<!-- ARCA-METRICAS:INICIO (gerado por scripts/downplant/contar-regras-arca.mjs; sha256 do JSON: f805e1c815ac275e26d0701ba6b9ca36954df1bb792ecc3e6262a498fba9f186) -->
 #### Métricas derivadas do JSON — por métrica, com definição explícita (#159 ARCA-COUNT-001)
 
 > Gerado por `scripts/downplant/contar-regras-arca.mjs` a partir de `Dominio/ARCA/arca_regras_dominio.json` 
-> (sha256 `f9c853d6725a4b763472832f679ee339736a715ba4c2521f6b95a59588cadb43`). **Nenhum número abaixo é digitado à mão**: cada linha é a medição do campo indicado.
+> (sha256 `f805e1c815ac275e26d0701ba6b9ca36954df1bb792ecc3e6262a498fba9f186`). **Nenhum número abaixo é digitado à mão**: cada linha é a medição do campo indicado.
 > Substitui qualquer "total ARCA" anterior — o total ambíguo não existe mais.
 
 | Métrica | Definição (campo medido no JSON) | Valor |

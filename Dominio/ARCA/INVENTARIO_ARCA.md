@@ -1,7 +1,7 @@
 # ARCA — Levantamento de Regras de Domínio
 
 > Documento **gerado** a partir de `Dominio/ARCA/arca_regras_dominio.json`.
-> Fonte da verdade: o JSON (sha256 `f9c853d6725a4b763472832f679ee339736a715ba4c2521f6b95a59588cadb43`). Este arquivo é um retrato (retrato = levantamento).
+> Fonte da verdade: o JSON (sha256 `f805e1c815ac275e26d0701ba6b9ca36954df1bb792ecc3e6262a498fba9f186`). Este arquivo é um retrato (retrato = levantamento).
 > Gerado por `scripts/downplant/contar-regras-arca.mjs` — **não editar à mão** (#159 ARCA-COUNT-001).
 
 ## Visão geral

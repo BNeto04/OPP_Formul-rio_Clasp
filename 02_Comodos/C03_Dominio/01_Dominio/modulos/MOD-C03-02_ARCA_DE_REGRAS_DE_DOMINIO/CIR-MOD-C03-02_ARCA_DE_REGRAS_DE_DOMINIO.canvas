@@ -61,7 +61,7 @@
       "width": 700,
       "height": 190,
       "type": "text",
-      "text": "### METRICAS DERIVADAS DA ARCA (do JSON - nao editar a mao)\nFonte: Dominio/ARCA/arca_regras_dominio.json\nsha256: f9c853d6725a4b76...\n49 regras | 33 MAPEADO | 8 INTEGRADO | 8 NAO_APLICAVEL | 0 NAO_AUDITAVEL\n16 regras fora da auditoria do Guardiao | 38 codigos de diagnostico (38 distintos) em 30 regras\nporta: 38 codigos -> 30 rule_ids | 19 regras sem regra na porta\n12 canonicas | 35 internas | 2 desconhecidas | 19 subdominios | 36 categorias | 23 campos por regra\nGerado por scripts/downplant/contar-regras-arca.mjs (#159 ARCA-COUNT-001)"
+      "text": "### METRICAS DERIVADAS DA ARCA (do JSON - nao editar a mao)\nFonte: Dominio/ARCA/arca_regras_dominio.json\nsha256: f805e1c815ac275e...\n49 regras | 33 MAPEADO | 8 INTEGRADO | 8 NAO_APLICAVEL | 0 NAO_AUDITAVEL\n16 regras fora da auditoria do Guardiao | 38 codigos de diagnostico (38 distintos) em 30 regras\nporta: 38 codigos -> 30 rule_ids | 19 regras sem regra na porta\n12 canonicas | 35 internas | 2 desconhecidas | 19 subdominios | 36 categorias | 23 campos por regra\nGerado por scripts/downplant/contar-regras-arca.mjs (#159 ARCA-COUNT-001)"
     }
   ],
   "edges": [

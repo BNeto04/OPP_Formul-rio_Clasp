@@ -58,7 +58,13 @@ const MARCADORES = {
 export function calcularMetricas() {
   const buffer = fs.readFileSync(ARQ_JSON);
   const json = JSON.parse(buffer.toString('utf8'));
-  const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+  // #172 (F2): o sha256 identifica CONTEUDO, nao a representacao de fim de linha do checkout.
+  // Antes, `update(buffer)` hasheava os bytes crus: a MESMA medicao produzia hash diferente numa
+  // working copy CRLF (Windows) e num checkout limpo LF (clone/pipeline), e a fechadura §159 acusava
+  // 7 FAIL por causa de EOL, nao de divergencia real. Normalizar para LF torna a identidade estavel
+  // nos dois ambientes sem alterar o conteudo (o JSON nao tem dado sensivel a EOL).
+  const canonico = Buffer.from(buffer.toString('utf8').replace(/\r\n/g, '\n'), 'utf8');
+  const sha256 = crypto.createHash('sha256').update(canonico).digest('hex');
   const regras = json.regras;
 
   const contarPor = (f) => regras.reduce((acc, r) => {

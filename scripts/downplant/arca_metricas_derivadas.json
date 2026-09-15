@@ -1,6 +1,6 @@
 {
   "fonte": "Dominio/ARCA/arca_regras_dominio.json",
-  "sha256_json": "f9c853d6725a4b763472832f679ee339736a715ba4c2521f6b95a59588cadb43",
+  "sha256_json": "f805e1c815ac275e26d0701ba6b9ca36954df1bb792ecc3e6262a498fba9f186",
   "gerado_por": "scripts/downplant/contar-regras-arca.mjs",
   "metricas": {
     "regras_total": 49,

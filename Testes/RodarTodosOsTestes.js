@@ -80,8 +80,13 @@ async function main() {
   console.log('');
   require('./TestEntradaManualFormulario');
   console.log('');
-  require('./TestNormalizadorEfetivo');
-  console.log('');
+  // #172 (F1): o `require('./TestNormalizadorEfetivo')` foi REMOVIDO daqui por ser REFERENCIA FANTASMA.
+  // O arquivo nao existe no repositorio: foi removido do Git em `9656bc8` ("remove do Git o WIP local
+  // TestNormalizadorEfetivo.js capturado pelo commit 9632d31") e continuava exigido pelo runner, o que
+  // derrubava a suite inteira num checkout limpo (MODULE_NOT_FOUND). O slot do Normalizador Efetivo
+  // permanece coberto, de forma rastreada, por: TestArcaNormalizadorEfetivo (l.30), TestDryRunNormalizador
+  // (l.36), TestExecutorNormalizador (l.38), TestReauditoriaNormalizador (l.40) e TestOrdemAntiguidadeEquipe
+  // (l.99). A fechadura `Testes/TestReferenciaFantasma.js` impede a volta da referencia fantasma.
   require('./TestFormularioCidadeBairro');
   console.log('');
   require('./TestFormularioAis');
@@ -141,6 +146,16 @@ async function main() {
     const testNanoMachines = require('./TestNanoMachines');
     if (typeof testNanoMachines === 'function') {
       testNanoMachines();
+    }
+  }
+  console.log('');
+  {
+    // #172 (F1) - fechadura contra REFERENCIA FANTASMA: todo `require` do runner tem de resolver para
+    // arquivo existente E rastreado no Git. Nasceu VERMELHA (TestNormalizadorEfetivo) e ficou verde
+    // quando o require fantasma saiu do runner.
+    const testReferenciaFantasma = require('./TestReferenciaFantasma');
+    if (typeof testReferenciaFantasma === 'function') {
+      testReferenciaFantasma();
     }
   }
   console.log('');
